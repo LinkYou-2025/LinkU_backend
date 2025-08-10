@@ -44,6 +44,9 @@ public class JwtTokenProvider {
 
     private final UserRefreshTokenRepository userRefreshTokenRepository;
 
+    @Value("${jwt.hmac-secret}")
+    private String hmacSecret;
+
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(jwtProperties.getKeys().getAccess().getBytes());
     }
@@ -112,22 +115,40 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // 리프레시 토큰 유효성 검증
+    private String hmac(String token) {
+        try {
+            var mac = javax.crypto.Mac.getInstance("HmacSHA256");
+            mac.init(new javax.crypto.spec.SecretKeySpec(hmacSecret.getBytes(), "HmacSHA256"));
+            return java.util.HexFormat.of().formatHex(mac.doFinal(token.getBytes()));
+        } catch (Exception e) { throw new IllegalStateException(e); }
+    }
+
+    // 리프레시 토큰 유효성 검증 (Redis 화이트리스트: HMAC id 존재 여부)
     @Transactional(readOnly = true)
     public void validateRefreshToken(String refreshToken) {
-        String provided = normalizeStrict(refreshToken);
-        Claims claims = validateAndParseRefresh(provided).getBody();
+        // 1) 정규화
+        String raw = normalizeStrict(refreshToken);
 
+        // 2) 서명/만료 검증 (여기서 JJWT가 검증함)
+        Jws<Claims> jws = validateAndParseRefresh(raw);
+        Claims claims = jws.getBody();
         String email = claims.getSubject();
-        Long userId = userRepository.findByEmail(email)
+
+        // 3) 화이트리스트 키 = HMAC(normalized token)
+        String id = hmac(raw); // ※ JwtTokenProvider 안에 hmac(secret) 구현 필요
+
+        // 4) Redis 화이트리스트에 키가 존재하는지 확인
+        UserRefreshToken saved = userRefreshTokenRepository.findById(id)
+                .orElseThrow(() -> new UserHandler(ErrorStatus._INVALID_TOKEN));
+
+        // 5) (권장) 토큰 소유자 일치 검증
+        Long expectedUserId = userRepository.findByEmail(email)
                 .map(Users::getId)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
-        userRefreshTokenRepository.findByUserId(userId)
-                .filter(refresh -> {
-                    String stored = normalizeStrict(refresh.getRefreshToken());
-                    return java.util.Objects.equals(stored, provided);
-                })
-                .orElseThrow(() -> new UserHandler(ErrorStatus._INVALID_TOKEN));
+
+        if (!saved.getUserId().equals(expectedUserId)) {
+            throw new UserHandler(ErrorStatus._INVALID_TOKEN);
+        }
     }
 
     // 액세스 토큰 생성 (subject 기반)

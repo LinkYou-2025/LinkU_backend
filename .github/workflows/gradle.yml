@@ -2,9 +2,9 @@ name: linkyou
 
 on:
   push:
-    branches: [ "develop", "feat/#106-refresh-token-api" ]
+    branches: [ "develop", "feat/#117-redis-refresh" ]
   pull_request:
-    branches: [ "develop", "feat/#106-refresh-token-api" ]
+    branches: [ "develop", "feat/#117-redis-refresh" ]
   workflow_dispatch:
 
 permissions:

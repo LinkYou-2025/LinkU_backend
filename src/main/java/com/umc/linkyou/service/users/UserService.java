@@ -36,5 +36,5 @@ public interface UserService {
 
     Users withdrawUser(Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO);
 
-    String reissueRefreshToken(String refreshToken);
+    UserResponseDTO.TokenPair reissueRefreshToken(String refreshToken);
 }

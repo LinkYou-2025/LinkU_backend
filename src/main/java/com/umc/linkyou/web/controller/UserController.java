@@ -41,7 +41,7 @@ public class UserController {
 
     @Operation(summary = "토큰 재발급")
     @PostMapping("/reissue")
-    public ApiResponse<String> reissueToken(@RequestHeader("Refresh-Token") String refreshToken) {
+    public ApiResponse<UserResponseDTO.TokenPair> reissueToken(@RequestHeader("Refresh-Token") String refreshToken) {
         return ApiResponse.onSuccess(userService.reissueRefreshToken(refreshToken));
     }
 

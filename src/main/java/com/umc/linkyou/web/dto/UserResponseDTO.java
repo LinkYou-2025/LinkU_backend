@@ -32,6 +32,13 @@ public class UserResponseDTO {
         LocalDateTime inactiveDate;
     }
 
+    // 리프레시 토큰 로테이션
+    @Getter @AllArgsConstructor
+    public static class TokenPair {
+        private final String accessToken;
+        private final String refreshToken;
+    }
+
     @Builder
     @Getter
     @NoArgsConstructor
