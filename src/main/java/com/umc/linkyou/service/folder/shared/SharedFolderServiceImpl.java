@@ -33,11 +33,15 @@ public class SharedFolderServiceImpl implements SharedFolderService {
         // 유저 id로 공유 받은 폴더 리스트
         List<Folder> sharedFolders = usersFolderRepository.findSharedFolders(userId);
 
+        // 공유 폴더가 없으면 즉시 빈 결과 반환
+        if (sharedFolders.isEmpty()) {
+            return new ArrayList<>();
+        }
+
         // 폴더 id만
         List<Long> folderIdList = sharedFolders.stream()
                 .map(Folder::getFolderId)
                 .collect(Collectors.toList());
-
         // 폴더 주인 찾기
         List<UsersFolder> ownerMappings = usersFolderRepository.findOwnersByFolderIdIn(folderIdList);
         Map<Long, Users> folderOwnerMap = ownerMappings.stream()
