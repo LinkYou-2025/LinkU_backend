@@ -7,6 +7,8 @@ import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.service.folder.shared.SharedFolderService;
 import com.umc.linkyou.web.dto.folder.FolderListResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
+import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
+import com.umc.linkyou.web.dto.folder.share.SharedFolderTreeResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,15 +23,15 @@ import java.util.List;
 public class SharedFolderController {
     private final SharedFolderService sharedFolderService;
 
-    // 공유 받은 폴더 목록 조회
+    // 공유 받은 폴더 트리 조회
     @GetMapping
-    @Operation(summary = "공유 받은 폴더 목록 조회")
-    public ApiResponse<List<FolderListResponseDTO>> getSharedFolders(
+    @Operation(summary = "공유 받은 폴더 트리 조회")
+    public ApiResponse<List<SharedFolderTreeResponseDTO>> getSharedFolders(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         // 유저 폴더 테이블에서 isOwner가 false고 isViewer가 true인 폴더들 조회
-        List<FolderListResponseDTO> folderList = sharedFolderService.getSharedFolders(userDetails.getUsers().getId());
-        return ApiResponse.of(SuccessStatus._FOLDER_SHARED_OK, folderList);
+        List<SharedFolderTreeResponseDTO> folderTree = sharedFolderService.getSharedFolderTree(userDetails.getUsers().getId());
+        return ApiResponse.of(SuccessStatus._FOLDER_SHARED_OK, folderTree);
     }
 
     // 공유 받은 폴더 삭제

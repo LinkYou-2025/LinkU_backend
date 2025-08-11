@@ -42,4 +42,12 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
                   and uf.isViewer = true
             """)
     List<UsersFolder> searchViewers(@Param("folderId") Long folderId);
+
+    // 공유 받은 폴더 주인 닉네임 찾기
+    @Query(""" 
+                select uf
+                from UsersFolder uf
+                where uf.folder.folderId = :folderId AND uf.isOwner = true
+            """)
+    Optional<UsersFolder> findOwnerByFolderId(@Param("folderId") Long folderId);
 }
