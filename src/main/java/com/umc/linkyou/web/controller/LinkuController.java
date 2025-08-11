@@ -3,6 +3,7 @@ package com.umc.linkyou.web.controller;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.service.Linku.LinkuSearchService;
@@ -31,6 +32,11 @@ public class LinkuController {
     private final LinkuService linkuService;
     private final LinkuSearchService linkuSearchService;
 
+    private Long requireUser(CustomUserDetails user){
+        if (user==null) throw new UserHandler(ErrorStatus._USER_NOT_FOUND);
+        return user.getUsers().getId();
+    }
+
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<LinkuResponseDTO.LinkuResultDTO> createLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -49,7 +55,7 @@ public class LinkuController {
         LinkuRequestDTO.LinkuCreateDTO linkuCreateDTO =
                 LinkuConverter.toLinkuCreateDTO(linku, memo, emotionId);
 
-        Long userId = userDetails.getUsers().getId();
+        Long userId = requireUser(userDetails);
         LinkuResponseDTO.LinkuResultDTO result = linkuService.createLinku(userId, linkuCreateDTO, image);
         return ApiResponse.onSuccess(result);
     }//linku 생성
@@ -63,7 +69,7 @@ public class LinkuController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.onFailure(ErrorStatus._INVALID_TOKEN.getCode(),ErrorStatus._INVALID_TOKEN.getMessage(), null));
         }
-        Long userId = userDetails.getUsers().getId();
+        Long userId = requireUser(userDetails);
         return linkuService.existLinku(userId, url);
     } //linku 존재여부 확인
 
@@ -76,7 +82,7 @@ public class LinkuController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.onFailure(ErrorStatus._INVALID_TOKEN.getCode(),ErrorStatus._INVALID_TOKEN.getMessage(), null));
         }
-        Long userId = userDetails.getUsers().getId();
+        Long userId = requireUser(userDetails);
         return linkuService.detailGetLinku(userId, linkuid);
     } //linku 상세보기
 
@@ -88,7 +94,7 @@ public class LinkuController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.onFailure(ErrorStatus._INVALID_TOKEN.getCode(), ErrorStatus._INVALID_TOKEN.getMessage(), null));
         }
-        Long userId = userDetails.getUsers().getId();
+        Long userId = requireUser(userDetails);
         List<LinkuResponseDTO.LinkuSimpleDTO> result = linkuService.getRecentViewedLinkus(userId, limit);
         return ResponseEntity.ok(ApiResponse.onSuccess("최근 열람한 링크를 가져왔습니다.",result));
     } //최근 열람한 링크 보기
@@ -103,7 +109,7 @@ public class LinkuController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.onFailure(ErrorStatus._INVALID_TOKEN.getCode(), ErrorStatus._INVALID_TOKEN.getMessage(), null));
         }
-        Long userId = userDetails.getUsers().getId();
+        Long userId = requireUser(userDetails);
         LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(userId, linkuId, updateDTO);
         return ResponseEntity.ok(ApiResponse.onSuccess("링크 수정에 성공했습니다.",result));
     } //링큐 수정하기
@@ -122,7 +128,7 @@ public class LinkuController {
                             ErrorStatus._INVALID_TOKEN.getMessage(),
                             null));
         }
-        Long userId = userDetails.getUsers().getId();
+        Long userId = requireUser(userDetails);
         return linkuService.recommendLinku(userId, situationId, emotionId, page, size);
     }//linku 추천 내부로
 
@@ -144,7 +150,7 @@ public class LinkuController {
             );
         }
 
-        Long userId = userDetails.getUsers().getId();
+        Long userId = requireUser(userDetails);
         List<LinkuSearchSuggestionResponse> result = linkuSearchService.suggest(userId, keyword);
         return ApiResponse.onSuccess(result);
     }
