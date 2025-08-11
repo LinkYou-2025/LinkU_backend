@@ -8,7 +8,7 @@ import com.umc.linkyou.domain.classification.*;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.mapping.SituationJob;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.googleImgParser.LinkToImageService;
+import com.umc.linkyou.TitleImgParser.LinkToImageService;
 import com.umc.linkyou.openApi.OpenAISummaryUtil;
 import com.umc.linkyou.openApi.SummaryAnalysisResultDTO;
 import com.umc.linkyou.repository.*;

@@ -1,4 +1,4 @@
-package com.umc.linkyou.googleImgParser;
+package com.umc.linkyou.TitleImgParser;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +31,73 @@ public class LinkToImageService {
         }
     }
 
+    //네이버 블로그 판별 함수
+    private boolean isNaverBlog(String url) {
+        return url.contains("blog.naver.com");
+    }
+
+    //네이버 블로그 iframe 내부 본문 접근 + 대표 이미지 추출
+    private String extractFromNaverBlog(String blogUrl) {
+        try {
+            Document doc = Jsoup.connect(blogUrl)
+                    .userAgent("Mozilla/5.0")
+                    .get();
+            // iframe src 추출
+            String frameSrc = doc.select("iframe#mainFrame").attr("src");
+            if (frameSrc == null || frameSrc.isEmpty()) return null;
+
+            // 절대경로 조합
+            String realUrl = "https://blog.naver.com" + frameSrc;
+            Document realDoc = Jsoup.connect(realUrl)
+                    .userAgent("Mozilla/5.0")
+                    .get();
+
+            // og:image 메타검색
+            String ogImage = realDoc.select("meta[property=og:image]").attr("content");
+            if (ogImage != null && !ogImage.isEmpty()) return ogImage;
+
+            // 본문 내 첫 이미지 태그
+            String firstImg = realDoc.select("img").attr("src");
+            return firstImg != null && !firstImg.isEmpty() ? firstImg : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    //일반 웹페이지 대표 이미지 크롤링 메서드
+    private String extractRepresentativeImage(String url) {
+        try {
+            Document doc = Jsoup.connect(url)
+                    .userAgent("Mozilla/5.0")
+                    .get();
+
+            String[] selectors = {
+                    "meta[property=og:image]",
+                    "meta[name=twitter:image]",
+                    "meta[itemprop=image]",
+                    "link[rel=image_src]"
+            };
+
+            for (String selector : selectors) {
+                String imgUrl = doc.select(selector).attr("content");
+                if (imgUrl == null || imgUrl.isEmpty()) {
+                    imgUrl = doc.select(selector).attr("href");
+                }
+                if (imgUrl != null && !imgUrl.isEmpty()) {
+                    return imgUrl;
+                }
+            }
+
+            // 본문 내 첫 이미지
+            String imgTag = doc.select("img").attr("src");
+            if (imgTag != null && !imgTag.isEmpty()) {
+                return imgTag;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+        return null;
+    }
     // 2. 진짜 이미지 URL인지 체크 -> 뽑아서 반환!
     public String searchFirstDirectImageUrl(String query) {
         final int MAX_TRY = 5; // 최대 5개까지만 검사
@@ -87,19 +154,31 @@ public class LinkToImageService {
      * 전체 플로우
      */
     public String getRelatedImageFromUrl(String url, String title) {
-        if (title != null && !title.isEmpty()) {
-            String img = searchFirstDirectImageUrl(title);
-            if (img != null) return img;
+        String imgUrl;
+
+        // 1. 네이버 블로그 전용 처리
+        if (isNaverBlog(url)) {
+            imgUrl = extractFromNaverBlog(url);
+            if (imgUrl != null && !imgUrl.isEmpty()) return imgUrl;
+        } else {
+            // 2. 일반 페이지 대표 이미지 크롤링
+            imgUrl = extractRepresentativeImage(url);
+            if (imgUrl != null && !imgUrl.isEmpty()) return imgUrl;
         }
 
-        // 제목 없거나 이미지 결과 못 찾음 → 도메인으로도 한 번 검색
+        // 3. 실패 시 → 구글 API 검색
+        if (title != null && !title.isEmpty()) {
+            imgUrl = searchFirstDirectImageUrl(title);
+            if (imgUrl != null) return imgUrl;
+        }
+
+        // 4. 제목 없으면 도메인으로 검색
         String domain = extractDomainFromUrl(url);
         if (domain != null && !domain.isEmpty()) {
-            String img = searchFirstDirectImageUrl(domain);
-            if (img != null) return img;
+            imgUrl = searchFirstDirectImageUrl(domain);
+            if (imgUrl != null) return imgUrl;
         }
 
-        // 마지막까지 실패 시 null 반환
         return null;
     }
 
