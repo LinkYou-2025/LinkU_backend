@@ -1,35 +1,30 @@
 package com.umc.linkyou.domain;
 
-import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
+import org.springframework.data.redis.core.TimeToLive;
+import org.springframework.data.redis.core.index.Indexed;
 
-import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-@Entity
+@RedisHash(value = "refreshToken")
 public class UserRefreshToken {
     @Id
-    private Long memberId;
-    @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "user_id")
-    private Users user;
     private String refreshToken;
+    @Indexed
+    private Long userId;
 
-    public UserRefreshToken(Users user, String refreshToken) {
-        this.user = user;
+    @TimeToLive(unit = TimeUnit.MILLISECONDS)
+    private Long ttl;
+
+    public UserRefreshToken(String refreshToken, Long userId, Long ttl) {
         this.refreshToken = refreshToken;
+        this.userId = userId;
+        this.ttl = ttl;
     }
-
-    public void updateRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
-
-    public boolean validateRefreshToken(String refreshToken) {
-        return this.refreshToken.equals(refreshToken);
-    }
-
 }
