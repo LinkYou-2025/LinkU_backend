@@ -178,14 +178,14 @@ public class LinkuServiceImpl implements LinkuService {
     public ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuIsExistDTO>> existLinku(Long userId, String url) {
 
         // 1. 영상 링크 차단
-        if (isVideoLink(url)) {
+        if (UrlValidUtils.isVideoLink(url)) {
             ErrorStatus error = ErrorStatus._LINKU_VIDEO_NOT_ALLOWED;
             return ResponseEntity.status(error.getHttpStatus())
                     .body(ApiResponse.onFailure(error.getCode(), error.getMessage(), null));
         }
 
         // 2. 유효하지 않은 링크 차단
-        if (!isValidUrl(url)) {
+        if (!UrlValidUtils.isValidUrl(url)) {
             ErrorStatus error = ErrorStatus._LINKU_INVALID_URL;
             return ResponseEntity.status(error.getHttpStatus())
                     .body(ApiResponse.onFailure(error.getCode(), error.getMessage(), null));
