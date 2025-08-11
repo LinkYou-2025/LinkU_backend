@@ -19,7 +19,7 @@ import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.SituationJob;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
-import com.umc.linkyou.googleImgParser.LinkToImageService;
+import com.umc.linkyou.TitleImgParser.LinkToImageService;
 import com.umc.linkyou.openApi.OpenAICategoryClassifier;
 import com.umc.linkyou.repository.*;
 import com.umc.linkyou.repository.FolderRepository;
@@ -143,7 +143,7 @@ public class LinkuServiceImpl implements LinkuService {
         //image저장
         String imageUrl = null;
         if (image != null && !image.isEmpty()) {
-            imageUrl = AwsS3Converter.toImageUrl(image, awsS3Service);
+            imageUrl = awsS3Service.uploadFile(image, "linkucreate");
         } else {
             // 링크로 대표 이미지 추출 저장 실패 시 null로 저장
             imageUrl = linkToImageService.getRelatedImageFromUrl(linku.getLinku(),linku.getTitle());

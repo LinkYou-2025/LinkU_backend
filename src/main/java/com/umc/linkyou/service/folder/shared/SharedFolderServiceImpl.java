@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.folder.shared;
 
 import com.umc.linkyou.converter.FolderConverter;
+import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
@@ -29,52 +30,57 @@ public class SharedFolderServiceImpl implements SharedFolderService {
 
     // 공유받은 폴더 트리 조회
     public List<SharedFolderTreeResponseDTO> getSharedFolderTree(Long userId) {
+        // 유저 id로 공유 받은 폴더 리스트
         List<Folder> sharedFolders = usersFolderRepository.findSharedFolders(userId);
+
+        // 공유 폴더가 없으면 즉시 빈 결과 반환
+        if (sharedFolders.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 폴더 id만
+        List<Long> folderIdList = sharedFolders.stream()
+                .map(Folder::getFolderId)
+                .collect(Collectors.toList());
+        // 폴더 주인 찾기
+        List<UsersFolder> ownerMappings = usersFolderRepository.findOwnersByFolderIdIn(folderIdList);
+        Map<Long, Users> folderOwnerMap = ownerMappings.stream()
+                .collect(Collectors.toMap(
+                        uf -> uf.getFolder().getFolderId(),
+                        uf -> uf.getUser()
+                ));
 
         // 공유자 유저id별 그룹핑
         Map<Long, List<Folder>> userIdFolderMap = sharedFolders.stream()
-                .collect(Collectors.groupingBy(folder -> findOwnerId(folder.getFolderId())));
+                .collect(Collectors.groupingBy(folder -> {
+                    Users owner = folderOwnerMap.get(folder.getFolderId());
+                    if (owner == null) {
+                        throw new IllegalStateException("공유폴더의 소유자 정보가 없습니다: folderId=" + folder.getFolderId());
+                    }
+                    return owner.getId();
+                }));
 
-        List<SharedFolderTreeResponseDTO> result = new ArrayList<>();
+      List<SharedFolderTreeResponseDTO> result = new ArrayList<>();
         for (Map.Entry<Long, List<Folder>> entry : userIdFolderMap.entrySet()) {
             Long ownerId = entry.getKey();
             List<Folder> folders = entry.getValue();
+            Users owner = folderOwnerMap.get(folders.get(0).getFolderId());
+            String nickname = owner != null ? owner.getNickName() : "닉네임 없음";
 
-            String nickname = findOwnerNickname(folders.get(0).getFolderId());
-
-            // 트리 변환
-            Map<Long, List<Folder>> parentChildMap = folders.stream()
-                    .collect(Collectors.groupingBy(folder ->
-                            folder.getParentFolder() != null ? folder.getParentFolder().getFolderId() : 0L));
-
-            List<FolderTreeResponseDTO> folderTrees = parentChildMap.getOrDefault(0L, new ArrayList<>()).stream()
-                    .map(rootFolder -> buildTreeFromMap(rootFolder, parentChildMap, userId))
+            List<FolderTreeResponseDTO> folderDTOs = folders.stream()
+                    .map(folder -> folderConverter.toFolderTreeDTO(folder, userId))
                     .collect(Collectors.toList());
 
             SharedFolderTreeResponseDTO dto = SharedFolderTreeResponseDTO.builder()
                     .userId(ownerId)
                     .nickname(nickname)
-                    .folders(folderTrees)
+                    .folders(folderDTOs)
                     .build();
 
             result.add(dto);
         }
 
         return result;
-    }
-
-    // 공유자 userId 조회
-    public Long findOwnerId(Long folderId) {
-        return usersFolderRepository.findOwnerByFolderId(folderId)
-                .map(userFolder -> userFolder.getUser().getId())
-                .orElse(null);
-    }
-
-    // 공유자 닉네임 조회
-    public String findOwnerNickname(Long folderId) {
-        return usersFolderRepository.findOwnerByFolderId(folderId)
-                .map(userFolder -> userFolder.getUser().getNickName())
-                .orElse("닉네임 없음");
     }
 
     // 폴더 트리

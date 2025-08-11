@@ -3,10 +3,9 @@ package com.umc.linkyou.service.curation.linku;
 
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.googleImgParser.LinkToImageService;
+import com.umc.linkyou.TitleImgParser.LinkToImageService;
 import com.umc.linkyou.repository.CurationRepository;
 import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
-import com.umc.linkyou.domain.log.CurationTopLog;
 import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
 import com.umc.linkyou.service.curation.utils.EmotionSimilarityTable;
 import com.umc.linkyou.service.curation.utils.EmotionTagMapper;
@@ -18,7 +17,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
