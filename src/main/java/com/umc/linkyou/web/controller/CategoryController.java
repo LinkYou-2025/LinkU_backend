@@ -26,8 +26,9 @@ public class CategoryController {
     @GetMapping
     @Operation(summary = "카테고리 목록 조회")
     public ApiResponse<List<CategoryListResponseDTO>> getCategoryList(
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        List<CategoryListResponseDTO> categoryList = categoryService.getCategories();
+        List<CategoryListResponseDTO> categoryList = categoryService.getCategories(userDetails.getUsers().getId());
         return ApiResponse.of(SuccessStatus._CATEGORY_OK, categoryList);
     }
 
