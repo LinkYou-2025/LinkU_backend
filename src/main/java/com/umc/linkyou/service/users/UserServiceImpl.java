@@ -6,6 +6,7 @@ import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.EmailVerification;
+import com.umc.linkyou.domain.UserRefreshToken;
 import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.folder.Folder;
@@ -16,10 +17,7 @@ import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
-import com.umc.linkyou.repository.EmailRepository;
-import com.umc.linkyou.repository.UserQueryRepository;
-import com.umc.linkyou.repository.FolderRepository;
-import com.umc.linkyou.repository.UserRepository;
+import com.umc.linkyou.repository.*;
 import com.umc.linkyou.repository.categoryRepository.UsersCategoryColorRepository;
 import com.umc.linkyou.repository.classification.InterestRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
@@ -31,10 +29,13 @@ import com.umc.linkyou.web.dto.EmailVerificationResponse;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 //import io.swagger.v3.oas.annotations.servers.Server;
+import io.jsonwebtoken.Claims;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -79,9 +80,26 @@ public class UserServiceImpl implements UserService {
 
     private final UsersCategoryColorRepository usersCategoryColorRepository;
 
+    private final UserRefreshTokenRepository userRefreshTokenRepository;
 
-    @Value("${auth-code-expiration-millis}")
-    private long authCodeExpirationMillis;
+
+    @Value("${jwt.token.expiration.refresh}")
+    private long refreshTtlMs;
+
+    @Value("${jwt.hmac-secret}")
+    private String hmacSecret;
+
+    @Autowired
+    StringRedisTemplate stringRedisTemplate;
+
+    private String key(String id){ return "refreshToken:" + id; }
+
+    private void logKey(String id){
+        String k = key(id);
+        Long pttl = stringRedisTemplate.getExpire(k, java.util.concurrent.TimeUnit.MILLISECONDS);
+        Map<Object,Object> map = stringRedisTemplate.opsForHash().entries(k);
+        log.debug("[redis] key={}, pttl(ms)={}, fields={}", k, pttl, map.keySet());
+    }
 
     @Override
     @Transactional
@@ -162,6 +180,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public UserResponseDTO.LoginResultDTO loginUser(UserRequestDTO.LoginRequestDTO request) {
         Users user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(()-> new UserHandler(ErrorStatus._LOGIN_FAILED));
@@ -176,8 +195,54 @@ public class UserServiceImpl implements UserService {
         );
 
         String accessToken = jwtTokenProvider.generateToken(authentication);
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
 
-        return UserConverter.toLoginResultDTO(user, accessToken);
+        // 리프레시 토큰이 이미 있으면 토큰을 갱신하고 없으면 토큰을 추가
+        userRefreshTokenRepository.findByUserId(user.getId())
+                .ifPresent(t -> userRefreshTokenRepository.deleteById(t.getRefreshToken()));
+        String id = hmac(jwtTokenProvider.normalizeStrict(refreshToken));
+        userRefreshTokenRepository.save(new UserRefreshToken(id, user.getId(), refreshTtlMs));
+
+        return UserConverter.toLoginResultDTO(user, accessToken, refreshToken);
+    }
+
+    private String hmac(String token) {
+        try {
+            var mac = javax.crypto.Mac.getInstance("HmacSHA256");
+            mac.init(new javax.crypto.spec.SecretKeySpec(hmacSecret.getBytes(), "HmacSHA256"));
+            return java.util.HexFormat.of().formatHex(mac.doFinal(token.getBytes()));
+        } catch (Exception e) { throw new IllegalStateException(e); }
+    }
+
+    public UserResponseDTO.TokenPair reissueRefreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new GeneralException(ErrorStatus._BAD_REQUEST);
+        }
+
+        String raw = jwtTokenProvider.normalizeStrict(refreshToken);
+
+        // 1) 서명/만료 검증
+        jwtTokenProvider.validateRefreshToken(raw);
+
+        // 2) 이메일 파싱(액세스 토큰 재발급용)
+        jwtTokenProvider.validateRefreshToken(raw);
+        Claims claims = jwtTokenProvider.validateAndParseRefresh(refreshToken).getBody();
+        String email = claims.getSubject();
+
+        // 3) 화이트리스트 확인
+        String oldId = hmac(raw);
+        var saved = userRefreshTokenRepository.findById(oldId)
+                .orElseThrow(() -> new UserHandler(ErrorStatus._UNAUTHORIZED));
+
+        // 4) (권장) 로테이션: 이전 토큰 삭제 → 새 토큰 저장(※ DB 접근 없음)
+        String newRefresh = jwtTokenProvider.createRefreshToken(email);
+        String newId = hmac(jwtTokenProvider.normalizeStrict(newRefresh));
+        userRefreshTokenRepository.deleteById(oldId);
+        userRefreshTokenRepository.save(new UserRefreshToken(newId, saved.getUserId(), refreshTtlMs));
+
+        // 5) 새 Access 발급
+        String newAccess = jwtTokenProvider.createAccessToken(email);
+        return new UserResponseDTO.TokenPair(newAccess, newRefresh);
     }
 
     @Override

@@ -35,4 +35,6 @@ public interface UserService {
     void sendTempPassword(String email);
 
     Users withdrawUser(Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO);
+
+    UserResponseDTO.TokenPair reissueRefreshToken(String refreshToken);
 }

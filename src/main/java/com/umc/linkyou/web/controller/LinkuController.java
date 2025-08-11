@@ -5,11 +5,13 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.LinkuConverter;
+import com.umc.linkyou.service.Linku.LinkuSearchService;
 import com.umc.linkyou.service.Linku.LinkuService;
-import com.umc.linkyou.service.Linku.SearchService;
 import com.umc.linkyou.web.dto.QuickSearchDto;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
+import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -27,8 +29,7 @@ import java.util.List;
 public class LinkuController {
 
     private final LinkuService linkuService;
-
-    private final SearchService searchService;
+    private final LinkuSearchService linkuSearchService;
 
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<LinkuResponseDTO.LinkuResultDTO> createLinku(
@@ -125,13 +126,27 @@ public class LinkuController {
         return linkuService.recommendLinku(userId, situationId, emotionId, page, size);
     }//linku 추천 내부로
 
-    @GetMapping("/api/search/quick")
-    public ApiResponse<QuickSearchDto.QuickSearchResult> quickSearch(
-            @RequestParam String keyword,
-            @RequestParam Long userId
+    // 빠른 검색 (사용자가 저장한 링크 전체 대상)
+    @Operation(
+            summary = "빠른 검색 (사용자 저장 링크 전체 대상)",
+            description = "사용자가 저장한 링크 전체를 대상으로 키워드가 포함된 추천 검색어 목록을 조회합니다."
+    )
+    @GetMapping("/search/quick")
+    public ApiResponse<List<LinkuSearchSuggestionResponse>> quickSearch(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam String keyword
     ) {
-        QuickSearchDto.QuickSearchResult result = searchService.quickSearch(keyword, userId);
+        if (userDetails == null) {
+            return ApiResponse.onFailure(
+                    ErrorStatus._INVALID_TOKEN.getCode(),
+                    ErrorStatus._INVALID_TOKEN.getMessage(),
+                    null
+            );
+        }
 
-        return ApiResponse.of(SuccessStatus._OK, result);
+        Long userId = userDetails.getUsers().getId();
+        List<LinkuSearchSuggestionResponse> result = linkuSearchService.suggest(userId, keyword);
+        return ApiResponse.onSuccess(result);
     }
+
 }

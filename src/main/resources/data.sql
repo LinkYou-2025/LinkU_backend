@@ -1,3 +1,33 @@
+
+
+-- domain 데이터 삽입 (중복시 아무 변경 없이 넘어감)
+INSERT INTO domain (domain_id, domain_tail, image_url, name) VALUES
+    (1, 'invalid', NULL, 'invalid'),
+    (2, 'blog.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/416766de-7e9c-4033-9d08-cf56a90f85c3.png', 'blog.naver'),
+    (3, 'cafe.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/382fd711-bc04-4185-8174-cff8546ec85e.png', 'cafe.naver'),
+    (4, 'kin.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/a2204494-8f68-41c5-8fc9-494f0328ed64.png', 'kin.naver'),
+    (5, 'shopping.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/32d11801-e291-436e-9c2a-e755d2517d20.png', 'shopping.naver'),
+    (6, 'github.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/a5bfcf0c-be33-4c18-9773-c75601806feb.png', 'github'),
+    (7, 'linkedin.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/3eb0fb2b-3edb-41c9-a256-3f9dfe19ce48.png', 'linkedin'),
+    (8, 'tistory.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/e603a485-e147-46fc-8831-0064604b7868.png', 'tistory'),
+    (9, 'google.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/222e6458-2bbd-47a1-8154-c911b059cc89.png', 'google'),
+    (10, 'nytimes.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/0d02a4f3-f447-426f-8dfc-803973507f3d.png', 'nytimes'),
+    (11, 'brunch.co.kr', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/d6adf9f7-344c-4cec-8cac-7e64f12d8af0.png', 'brunch'),
+    (12, 'velog.io', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/ef86fa27-2b0a-421b-b51c-ee881cf45cf7.png', 'velog'),
+    (13, 'daum.net', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/7d1e7dc0-36dd-4b9e-a593-e9a6045d2dca.png', 'daum'),
+    (14, 'jobkorea.co.kr', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/d56fa67f-d64e-4f88-a159-c6f421297a50.png', 'jobkorea'),
+    (15, 'wanted.co.kr', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/dd7b199e-818f-4118-8410-637d15100df2.png', 'wanted'),
+    (16, 'musinsa.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/cb230106-0d22-4488-ac45-bac1546a6fa2.png', 'musinsa'),
+    (17, '11st.co.kr', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/df7f17b8-80b3-4cb3-96bb-5c5048953ed7.png', '11st'),
+    (18, 'instagram.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/d4906426-cf6e-4480-8b06-009167720b7f.png', 'instagram'),
+    (19, 'twitter.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/e07e2ced-7f1c-4a3d-a545-04066eced0e0.png', 'twitter'),
+    (20, 'facebook.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/91eb63c2-46b1-46f0-a28c-449fb567b408.png', 'facebook'),
+    (21, 'naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver')
+    ON DUPLICATE KEY UPDATE domain_id = domain_id;
+
+
+
+
 INSERT INTO fcolor
 (fcolor_id, color_name, color_code1, color_code2, color_code3, color_code4)
 VALUES
@@ -438,77 +468,68 @@ INSERT INTO situation (situation_id, name) VALUES
     ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 
--- 고등학생 (job_id = 1)
-INSERT INTO situation_job (situation_id, job_id) VALUES
-(1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (6, 1), (7, 1), (8, 1),
-
--- 대학생 (job_id = 2)
-(9, 2), (10, 2), (11, 2), (12, 2), (13, 2), (14, 2), (15, 2), (16, 2),
-
--- 직장인 (job_id = 3)
-(17, 3), (18, 3), (19, 3), (20, 3), (21, 3), (22, 3), (23, 3), (24, 3),
-
--- 자영업자 (job_id = 4)
-(25, 4), (26, 4), (27, 4), (28, 4), (29, 4), (30, 4), (31, 4), (32, 4),
-
--- 프리랜서 (job_id = 5)
-(33, 5), (34, 5), (35, 5), (36, 5), (37, 5), (38, 5), (39, 5), (40, 5),
-
--- 취준생 (job_id = 6)
-(41, 6), (42, 6), (43, 6), (44, 6), (45, 6), (46, 6), (47, 6), (48, 6);
-
-INSERT INTO situation_category (situation_id, category_id) VALUES
-   (1, 1), (1, 14), (1, 11),
-   (2, 3), (2, 5), (2, 10),
-   (3, 14), (3, 15),
-   (4, 3), (4, 1), (4, 10),
-   (5, 14), (5, 12),
-   (6, 12), (6, 9),
-   (7, 11), (7, 10), (7, 14),
-   (8, 11), (8, 10),
-
-   (9, 8), (9, 3), (9, 4),
-   (10, 1), (10, 2), (10, 14),
-   (11, 12), (11, 9),
-   (12, 5), (12, 7),
-   (13, 12), (13, 2), (13, 13),
-   (14, 15), (14, 14),
-   (15, 11), (15, 10),
-   (16, 11), (16, 14),
-
-   (17, 2), (17, 14), (17, 12),
-   (18, 12), (18, 7), (18, 4),
-   (19, 8), (19, 7),
-   (20, 6), (20, 5), (20, 10),
-   (21, 12), (21, 9),
-   (22, 15), (22, 14),
-   (23, 10), (23, 11),
-   (24, 11), (24, 14),
-
-   (25, 2), (25, 12),
-   (26, 8), (26, 7),
-   (27, 15), (27, 14),
-   (28, 15), (28, 9),
-   (29, 12), (29, 9),
-   (30, 12), (30, 2), (30, 13),
-   (31, 11), (31, 10),
-   (32, 11), (32, 14),
-
-   (33, 8), (33, 13),
-   (34, 12), (34, 9),
-   (35, 12), (35, 13), (35, 4),
-   (36, 15), (36, 14),
-   (37, 9), (37, 14),
-   (38, 15),
-   (39, 11), (39, 10),
-   (40, 14), (40, 10),
-
-   (41, 6), (41, 5),
-   (42, 6), (42, 10),
-   (43, 9), (43, 14),
-   (44, 12), (44, 2), (44, 7),
-   (45, 12), (45, 9),
-   (46, 14), (46, 9),
-   (47, 11), (47, 10),
-   (48, 10), (48, 14)
+INSERT INTO situation_job (situation_job_id, situation_id, job_id) VALUES
+    (1,1,1),(2,2,1),(3,3,1),(4,4,1),(5,5,1),(6,6,1),(7,7,1),(8,8,1),
+    (9,9,2),(10,10,2),(11,11,2),(12,12,2),(13,13,2),(14,14,2),(15,15,2),(16,16,2),
+    (17,17,3),(18,18,3),(19,19,3),(20,20,3),(21,21,3),(22,22,3),(23,23,3),(24,24,3),
+    (25,25,4),(26,26,4),(27,27,4),(28,28,4),(29,29,4),(30,30,4),(31,31,4),(32,32,4),
+    (33,33,5),(34,34,5),(35,35,5),(36,36,5),(37,37,5),(38,38,5),(39,39,5),(40,40,5),
+    (41,41,6),(42,42,6),(43,43,6),(44,44,6),(45,45,6),(46,46,6),(47,47,6),(48,48,6)
     ON DUPLICATE KEY UPDATE situation_id = situation_id;
+
+INSERT INTO situation_category (id, situation_id, category_id) VALUES
+      (1, 1, 1), (2, 1, 14), (3, 1, 11),
+      (4, 2, 3), (5, 2, 5), (6, 2, 10),
+      (7, 3, 14), (8, 3, 15),
+      (9, 4, 3), (10, 4, 1), (11, 4, 10),
+      (12, 5, 14), (13, 5, 12),
+      (14, 6, 12), (15, 6, 9),
+      (16, 7, 11), (17, 7, 10), (18, 7, 14),
+      (19, 8, 11), (20, 8, 10),
+
+      (21, 9, 8), (22, 9, 3), (23, 9, 4),
+      (24, 10, 1), (25, 10, 2), (26, 10, 14),
+      (27, 11, 12), (28, 11, 9),
+      (29, 12, 5), (30, 12, 7),
+      (31, 13, 12), (32, 13, 2), (33, 13, 13),
+      (34, 14, 15), (35, 14, 14),
+      (36, 15, 11), (37, 15, 10),
+      (38, 16, 11), (39, 16, 14),
+
+      (40, 17, 2), (41, 17, 14), (42, 17, 12),
+      (43, 18, 12), (44, 18, 7), (45, 18, 4),
+      (46, 19, 8), (47, 19, 7),
+      (48, 20, 6), (49, 20, 5), (50, 20, 10),
+      (51, 21, 12), (52, 21, 9),
+      (53, 22, 15), (54, 22, 14),
+      (55, 23, 10), (56, 23, 11),
+      (57, 24, 11), (58, 24, 14),
+
+      (59, 25, 2), (60, 25, 12),
+      (61, 26, 8), (62, 26, 7),
+      (63, 27, 15), (64, 27, 14),
+      (65, 28, 15), (66, 28, 9),
+      (67, 29, 12), (68, 29, 9),
+      (69, 30, 12), (70, 30, 2), (71, 30, 13),
+      (72, 31, 11), (73, 31, 10),
+      (74, 32, 11), (75, 32, 14),
+
+      (76, 33, 8), (77, 33, 13),
+      (78, 34, 12), (79, 34, 9),
+      (80, 35, 12), (81, 35, 13), (82, 35, 4),
+      (83, 36, 15), (84, 36, 14),
+      (85, 37, 9), (86, 37, 14),
+      (87, 38, 15),
+      (88, 39, 11), (89, 39, 10),
+      (90, 40, 14), (91, 40, 10),
+
+      (92, 41, 6), (93, 41, 5),
+      (94, 42, 6), (95, 42, 10),
+      (96, 43, 9), (97, 43, 14),
+      (98, 44, 12), (99, 44, 2), (100, 44, 7),
+      (101, 45, 12), (102, 45, 9),
+      (103, 46, 14), (104, 46, 9),
+      (105, 47, 11), (106, 47, 10),
+      (107, 48, 10), (108, 48, 14)
+    ON DUPLICATE KEY UPDATE situation_id = situation_id;
+

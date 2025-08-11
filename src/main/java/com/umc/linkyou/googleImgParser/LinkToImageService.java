@@ -24,8 +24,8 @@ public class LinkToImageService {
                     .get();
             String ogTitle = doc.select("meta[property=og:title]").attr("content");
             if (ogTitle != null && !ogTitle.isEmpty())
-                return ogTitle;
-            return doc.title();
+                return ogTitle.replaceAll("[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\s]", "");  // 특수문자 모두 삭제
+            return doc.title().replaceAll("[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\s]", "");  // 특수문자 모두 삭제
         } catch (Exception e) {
             return null;
         }
@@ -86,8 +86,7 @@ public class LinkToImageService {
     /**
      * 전체 플로우
      */
-    public String getRelatedImageFromUrl(String url) {
-        String title = extractTitle(url);
+    public String getRelatedImageFromUrl(String url, String title) {
         if (title != null && !title.isEmpty()) {
             String img = searchFirstDirectImageUrl(title);
             if (img != null) return img;
@@ -103,4 +102,10 @@ public class LinkToImageService {
         // 마지막까지 실패 시 null 반환
         return null;
     }
+
+    public String getRelatedImageFromUrl(String url) {
+        String title = extractTitle(url);
+        return getRelatedImageFromUrl(url, title);
+    }
+
 }
