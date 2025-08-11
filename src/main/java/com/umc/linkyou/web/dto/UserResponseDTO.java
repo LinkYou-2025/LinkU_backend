@@ -27,8 +27,16 @@ public class UserResponseDTO {
     public static class LoginResultDTO{
         Long userId;
         String accessToken;
+        String refreshToken; // 리프레시 토큰
         String status;
         LocalDateTime inactiveDate;
+    }
+
+    // 리프레시 토큰 로테이션
+    @Getter @AllArgsConstructor
+    public static class TokenPair {
+        private final String accessToken;
+        private final String refreshToken;
     }
 
     @Builder
