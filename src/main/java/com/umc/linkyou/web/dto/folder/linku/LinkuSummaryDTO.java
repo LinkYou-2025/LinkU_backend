@@ -1,5 +1,6 @@
 package com.umc.linkyou.web.dto.folder.linku;
 
+import com.umc.linkyou.domain.classification.Domain;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,5 +11,9 @@ public class LinkuSummaryDTO {
     private Long linkuId;
     private String title;
     private String url;
+    private String keyword;
+    private Domain domain;
+    private String domainImageUrl;
+    private String linkuImageUrl;
     private String createdAt;
 }

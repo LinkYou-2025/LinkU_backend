@@ -22,7 +22,7 @@ import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.googleImgParser.LinkToImageService;
 import com.umc.linkyou.openApi.OpenAICategoryClassifier;
 import com.umc.linkyou.repository.*;
-import com.umc.linkyou.repository.FolderRepository;
+import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.LogRepository.EmotionLogRepository;
 import com.umc.linkyou.repository.LogRepository.SituationLogRepository;

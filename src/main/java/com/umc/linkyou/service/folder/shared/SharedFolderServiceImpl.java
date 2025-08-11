@@ -2,13 +2,9 @@ package com.umc.linkyou.service.folder.shared;
 
 import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
-import com.umc.linkyou.repository.FolderRepository;
-import com.umc.linkyou.repository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
-import com.umc.linkyou.service.folder.share.ShareFolderService;
 import com.umc.linkyou.web.dto.folder.FolderListResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
