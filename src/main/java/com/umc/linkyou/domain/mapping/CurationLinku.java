@@ -21,10 +21,28 @@ public class CurationLinku {
     private Curation curation;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_linku_id", nullable = false)
+    @JoinColumn(name = "user_linku_id")
     private UsersLinku usersLinku;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private CurationLinkuType type;
+    private CurationLinkuType type; // RECOMMENDED / EXTERNAL
+
+    // 외부추천용 최소 컬럼
+    @Column(columnDefinition = "TEXT")
+    private String url;
+
+    @Column(length = 255)
+    private String title;
+
+    // 팩토리 메서드
+    public static CurationLinku ofExternal(Curation curation, String url, String title) {
+        return CurationLinku.builder()
+                .curation(curation)
+                .type(CurationLinkuType.EXTERNAL)
+                .url(url)
+                .title(title)
+                .build();
+    }
+
 }
