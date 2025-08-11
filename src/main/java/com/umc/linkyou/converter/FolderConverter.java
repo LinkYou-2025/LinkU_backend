@@ -37,12 +37,6 @@ public class FolderConverter {
         dto.setFolderId(folder.getFolderId());
         dto.setFolderName(folder.getFolderName());
 
-        boolean isBookmarked = usersFolderRepository
-                .findByUserIdAndFolderId(userId, folder.getFolderId())
-                .map(UsersFolder::getIsBookmarked)
-                .orElse(false);
-        dto.setIsBookmarked(isBookmarked);
-
         Category category = folder.getCategory();
         if (category != null) {
             dto.setCategoryId(category.getCategoryId());
