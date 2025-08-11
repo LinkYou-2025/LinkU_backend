@@ -83,7 +83,7 @@ public class AiArticleServiceImpl implements AiArticleService {
 
 
         //이미지 받아오기
-        String imageUrl = linkToImageService.getRelatedImageFromUrl(linku.getLinku());
+        String imageUrl = linkToImageService.getRelatedImageFromUrl(linku.getLinku(),linku.getTitle());
 
         // 5. id 기반 Entity 조인
         Situation selectedSituation = situationRepository.findById(result.getSituationId())

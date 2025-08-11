@@ -39,6 +39,12 @@ public class UserController {
         return ApiResponse.onSuccess(userService.loginUser(request));
     }
 
+    @Operation(summary = "토큰 재발급")
+    @PostMapping("/reissue")
+    public ApiResponse<UserResponseDTO.TokenPair> reissueToken(@RequestHeader("Refresh-Token") String refreshToken) {
+        return ApiResponse.onSuccess(userService.reissueRefreshToken(refreshToken));
+    }
+
     // 닉네임 중복확인
     @GetMapping("/check-nickname")
     public ApiResponse<String> checkNickname(@RequestParam String nickname) {
