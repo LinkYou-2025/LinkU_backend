@@ -2,9 +2,9 @@ name: linkyou
 
 on:
   push:
-    branches: [ "develop", "feat/#117-redis-refresh" ]
+    branches: [ "develop", "feat/#128-user-auth-method" ]
   pull_request:
-    branches: [ "develop", "feat/#117-redis-refresh" ]
+    branches: [ "develop", "feat/#128-user-auth-method" ]
   workflow_dispatch:
 
 permissions:
