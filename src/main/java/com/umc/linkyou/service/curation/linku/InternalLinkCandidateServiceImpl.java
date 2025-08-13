@@ -6,6 +6,7 @@ import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.TitleImgParser.LinkToImageService;
 import com.umc.linkyou.repository.CurationRepository;
 import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
+import com.umc.linkyou.repository.curationLinkuRepository.UsersLinkuRepositoryCustom;
 import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
 import com.umc.linkyou.service.curation.utils.EmotionSimilarityTable;
 import com.umc.linkyou.service.curation.utils.EmotionTagMapper;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class InternalLinkCandidateServiceImpl implements InternalLinkCandidateService {
 
+    private final UsersLinkuRepositoryCustom usersLinkuRepositoryCustom;
     private final UsersLinkuRepository usersLinkuRepository;
     private final CurationRepository curationRepository;
     private final CurationTopLogRepository curationTopLogRepository;
@@ -37,12 +40,16 @@ public class InternalLinkCandidateServiceImpl implements InternalLinkCandidateSe
                 .orElseThrow(() -> new IllegalArgumentException("큐레이션 없음"));
 
         // 1. 큐레이션 생성 월 계산
-        LocalDateTime monthStart = curation.getCreatedAt().withDayOfMonth(1).toLocalDate().atStartOfDay();
-        LocalDateTime monthEnd = monthStart.plusMonths(1);
+        YearMonth ym = YearMonth.parse(curation.getMonth());
+        LocalDateTime monthStart = ym.atDay(1).atStartOfDay();
+        LocalDateTime monthEnd   = ym.plusMonths(1).atDay(1).atStartOfDay();
 
         // 2. 유저가 해당 월에 저장한 링크 조회
         List<UsersLinku> candidates = usersLinkuRepository
                 .findAllByUserIdAndCreatedAtBetween(userId, monthStart, monthEnd);
+        if (candidates.isEmpty()) {
+            candidates = usersLinkuRepositoryCustom.findRecentLinkCandidatesByUser(userId, limit);
+        }
 
         // 상위 감정명 추출 (예: 슬픔, 분노, 짜증)
         List<String> topEmotionNames = curationTopLogRepository.findTop3EmotionLogsByCurationId(curationId).stream()
