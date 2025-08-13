@@ -19,14 +19,21 @@ public class ExternalRecommendMaterializer {
     @Async("defaultTaskExecutor")
     public void generateAndStoreExternalAsync(Long curationId) {
         log.info("[EXT] async trigger curationId={}", curationId);
+        boolean acquired = false;
         try {
             externalRecoLimiter.acquire();
+            acquired = true;
             worker.generateAndStoreExternal(curationId);  // ✅ 다른 빈 호출 → @Transactional 적용됨
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
-            log.warn("‼️ external recommend interrupted for curationId={}", curationId);
+            log.warn("external recommend interrupted for curationId={}", curationId);
+            return;
+        } catch (Exception e) {
+            log.error("external recommend failed for curationId={}", curationId, e);
         } finally {
-            externalRecoLimiter.release();
+            if (acquired) {
+                externalRecoLimiter.release();
+            }
         }
     }
 }
