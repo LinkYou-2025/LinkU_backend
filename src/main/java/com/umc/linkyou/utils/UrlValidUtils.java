@@ -47,11 +47,29 @@ public class UrlValidUtils {
             connection.setConnectTimeout(3000);
             connection.setReadTimeout(3000);
             connection.setInstanceFollowRedirects(true);
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36");
 
             int responseCode = connection.getResponseCode();
             return responseCode >= 200 && responseCode < 400;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+
+    /**
+     * URL에서 도메인명만 추출 (예: https://blog.naver.com/abc → blog.naver.com)
+     */
+    public static String extractDomainTail(String url) {
+        try {
+            URI uri = new URI(url);
+            String domain = uri.getHost();
+            if (domain != null && domain.startsWith("www.")) {
+                domain = domain.substring(4);
+            }
+            return domain;
+        } catch (Exception e) {
+            return null;
         }
     }
 }

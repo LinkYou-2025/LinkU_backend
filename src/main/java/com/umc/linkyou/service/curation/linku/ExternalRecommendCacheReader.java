@@ -5,6 +5,7 @@ import com.umc.linkyou.domain.enums.CurationLinkuType;
 import com.umc.linkyou.TitleImgParser.LinkToImageService;
 import com.umc.linkyou.repository.classification.DomainRepository;
 import com.umc.linkyou.repository.curationLinkuRepository.CurationLinkuRepository;
+import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,8 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static com.umc.linkyou.service.Linku.LinkuServiceImpl.extractDomainTail;
 
 @Service
 @RequiredArgsConstructor
@@ -39,7 +38,7 @@ public class ExternalRecommendCacheReader {
                         e.getUrl(),
                         e.getTitle(),
                         e.getImageUrl(),                      // ← DB에 저장된 이미지 그대로 사용
-                        extractDomainTail(e.getUrl())))
+                        UrlValidUtils.extractDomainTail(e.getUrl())))
                 .toList();
 
         // 2) 고유 domainTail 수집 후 일괄 조회

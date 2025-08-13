@@ -111,7 +111,7 @@ public class LinkuServiceImpl implements LinkuService {
                 : emotionRepository.findById(dto.getEmotionId())
                 .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
         //도메인 가져오기
-        String domainTail = extractDomainTail(normalizedLink);
+        String domainTail = UrlValidUtils.extractDomainTail(normalizedLink);
         Domain domain = (domainTail != null)
                 ? domainRepository.findByDomainTail(domainTail)
                 .orElseGet(() -> domainRepository.findById(DEFAULT_DOMAIN_ID)
@@ -205,21 +205,6 @@ public class LinkuServiceImpl implements LinkuService {
     }
     //링크가 이미 존재하는 지 여부 판단
 
-
-
-    // URL에서 도메인명만 추출 (예: https://blog.naver.com/abc → blog.naver.com)
-    public static String extractDomainTail(String url) {
-        try {
-            java.net.URI uri = new java.net.URI(url);
-            String domain = uri.getHost();
-            if (domain != null && domain.startsWith("www.")) {
-                domain = domain.substring(4);
-            }
-            return domain;
-        } catch (Exception e) {
-            return null;
-        }
-    }
 
 
     @Override
