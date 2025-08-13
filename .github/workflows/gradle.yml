@@ -48,13 +48,14 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build -x test
 
-      - name: Extract SSL certificate
+      - name: Extract SSL fullchain certificate
         continue-on-error: true
         run: |
           mkdir -p certs
           echo | openssl s_client -connect ${{ secrets.SERVER_DOMAIN }}:443 -showcerts 2>/dev/null \
-            | openssl x509 -outform PEM > certs/server.crt
-          echo "Certificate extracted to certs/server.crt"
+            | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > certs/server.crt
+          echo "Fullchain certificate extracted to certs/server.crt"
+
 
       - name: Prepare Docker build context (copy cert)
         run: |
