@@ -35,13 +35,17 @@ public class CurationLinku {
     @Column(length = 255)
     private String title;
 
+    @Column(name = "image_url", length = 1024)
+    private String imageUrl;
+
     // 팩토리 메서드
-    public static CurationLinku ofExternal(Curation curation, String url, String title) {
+    public static CurationLinku ofExternal(Curation curation, String url, String title, String imageUrl) {
         return CurationLinku.builder()
                 .curation(curation)
                 .type(CurationLinkuType.EXTERNAL)
                 .url(url)
                 .title(title)
+                .imageUrl(imageUrl)
                 .build();
     }
 
