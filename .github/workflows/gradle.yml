@@ -23,6 +23,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+
+
       - name: Gradle Caching
         uses: actions/cache@v3
         with:
@@ -45,6 +47,23 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew build -x test
+
+      - name: Extract SSL certificate
+        continue-on-error: true
+        run: |
+          mkdir -p certs
+          echo | openssl s_client -connect ${{ secrets.SERVER_DOMAIN }}:443 -showcerts 2>/dev/null \
+            | openssl x509 -outform PEM > certs/server.crt
+          echo "Certificate extracted to certs/server.crt"
+
+      - name: Prepare Docker build context (copy cert)
+        run: |
+          if [ -f certs/server.crt ]; then
+            cp certs/server.crt ./
+          else
+            echo "Certificate not found, skipping copy."
+          fi
+
 
       - name: Docker build
         run: |
