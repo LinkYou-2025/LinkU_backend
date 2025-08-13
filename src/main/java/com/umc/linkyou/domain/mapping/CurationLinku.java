@@ -21,7 +21,7 @@ public class CurationLinku {
     private Curation curation;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_linku_id")
+    @JoinColumn(name = "user_linku_id", nullable = true)
     private UsersLinku usersLinku;
 
     @Column(nullable = false)
@@ -37,6 +37,9 @@ public class CurationLinku {
 
     @Column(name = "image_url", length = 1024)
     private String imageUrl;
+
+    @Column(name = "url_normalized", length = 2048, insertable = false, updatable = false)
+    private String urlNormalized;
 
     // 팩토리 메서드
     public static CurationLinku ofExternal(Curation curation, String url, String title, String imageUrl) {
