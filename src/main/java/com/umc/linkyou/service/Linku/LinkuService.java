@@ -9,16 +9,16 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface LinkuService {
-    LinkuResponseDTO.LinkuResultDTO createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) ;
+    LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) ;
 
-    ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuIsExistDTO>> existLinku(Long userId, String url);
+    ApiResponse<LinkuResponseDTO.LinkuIsExistDTO> existLinku(Long userId, String url);
 
-    ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuResultDTO>> detailGetLinku(Long userId, Long linkuId);
+    ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailGetLinku(Long userId, Long linkuId);
 
     List<LinkuResponseDTO.LinkuSimpleDTO> getRecentViewedLinkus(Long userId, int limit);
 
     LinkuResponseDTO.LinkuResultDTO updateLinku(Long userId, Long linkuId, LinkuRequestDTO.LinkuUpdateDTO updateDTO);
 
-    ResponseEntity<ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>>> recommendLinku(
+    ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
             Long userId, Long situationId, Long emotionId, int page, int size);
 }

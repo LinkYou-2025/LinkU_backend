@@ -82,7 +82,7 @@ public class LinkuServiceImpl implements LinkuService {
 
     @Override
     @Transactional
-    public LinkuResponseDTO.LinkuResultDTO createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
+    public LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
         // URL 정규화 적용
         String normalizedLink = UrlUtils.normalizeUrl(dto.getLinku());
 
@@ -90,11 +90,8 @@ public class LinkuServiceImpl implements LinkuService {
         if (UrlValidUtils.isVideoLink(normalizedLink)) {
             throw new GeneralException(ErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
         }
-
-        // 유효하지 않은 링크 차단
-        if (!UrlValidUtils.isValidUrl(dto.getLinku())) {
-            throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
-        }
+        // 유효하지 않은 링크
+        boolean isValidUrl = UrlValidUtils.isValidUrl(dto.getLinku()); //해당 함수에서 error반환
 
         // AI 카테고리 분류
         Long aiCategoryId = openAiCategoryClassifier.classifyCategoryByUrl(normalizedLink, categoryRepository.findAll());
@@ -167,49 +164,50 @@ public class LinkuServiceImpl implements LinkuService {
         LinkuFolder linkuFolder = LinkuConverter.toLinkuFolder(newfolder, usersLinku);
         linkuFolderRepository.save(linkuFolder);
 
-        return LinkuConverter.toLinkuResultDTO(
-                userId, linku, usersLinku, linkuFolder, category,domain
-        );
+        LinkuResponseDTO.LinkuResultDTO resultDto =
+                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain);
+
+        return LinkuResponseDTO.LinkuCreateResult.builder()
+                .data(resultDto)
+                .validUrl(isValidUrl)
+                .build();
+
     }
 // 링큐 생성
 
     @Override
     @Transactional
-    public ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuIsExistDTO>> existLinku(Long userId, String url) {
+    public ApiResponse<LinkuResponseDTO.LinkuIsExistDTO> existLinku(Long userId, String url) {
 
-        // 1. 영상 링크 차단
+        // 1. 영상 링크 차단 → 예외 던지기
         if (UrlValidUtils.isVideoLink(url)) {
-            ErrorStatus error = ErrorStatus._LINKU_VIDEO_NOT_ALLOWED;
-            return ResponseEntity.status(error.getHttpStatus())
-                    .body(ApiResponse.onFailure(error.getCode(), error.getMessage(), null));
+            throw new GeneralException(ErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
         }
 
-        // 2. 유효하지 않은 링크 차단
+        // 2. 유효하지 않은 링크 차단 → 예외 던지기
         if (!UrlValidUtils.isValidUrl(url)) {
-            ErrorStatus error = ErrorStatus._LINKU_INVALID_URL;
-            return ResponseEntity.status(error.getHttpStatus())
-                    .body(ApiResponse.onFailure(error.getCode(), error.getMessage(), null));
+            throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
         }
 
         // 3. 기존에 링크 저장 여부 확인
-        Optional<UsersLinku> usersLinkuOpt = usersLinkuRepository.findByUserIdAndLinku_Linku(userId, url);
+        Optional<UsersLinku> usersLinkuOpt =
+                usersLinkuRepository.findByUserIdAndLinku_Linku(userId, url);
+
+        LinkuResponseDTO.LinkuIsExistDTO dto =
+                LinkuConverter.toLinkuIsExistDTO(userId, usersLinkuOpt.orElse(null));
 
         if (usersLinkuOpt.isPresent()) {
-            Linku linku = usersLinkuOpt.get().getLinku();
-            LinkuResponseDTO.LinkuIsExistDTO dto = LinkuConverter.toLinkuIsExistDTO(userId, usersLinkuOpt.orElse(null));
-            return ResponseEntity.ok(ApiResponse.onSuccess("링큐가 이미 존재합니다.", dto));
+            return ApiResponse.onSuccess("링큐가 이미 존재합니다.", dto);
         } else {
-            LinkuResponseDTO.LinkuIsExistDTO dto = LinkuConverter.toLinkuIsExistDTO(userId, null);
-            return ResponseEntity.ok(ApiResponse.onSuccess("링큐가 존재하지 않습니다.", dto));
+            return ApiResponse.onSuccess("링큐가 존재하지 않습니다.", dto);
         }
-    }
-    //링크가 이미 존재하는 지 여부 판단
+    }//링크가 이미 존재하는 지 여부 판단
 
 
 
     @Override
     @Transactional
-    public ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuResultDTO>> detailGetLinku(Long userId, Long linkuId) {
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailGetLinku(Long userId, Long linkuId) {
         // 1. 해당 사용자가 이 링크(linkuId)를 저장한 UsersLinku 찾기.
         UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
@@ -232,7 +230,7 @@ public class LinkuServiceImpl implements LinkuService {
         LinkuResponseDTO.LinkuResultDTO dto = LinkuConverter.toLinkuResultDTO(
                 userId, linku, usersLinku, linkuFolder, category, domain
         );
-        return ResponseEntity.ok(ApiResponse.onSuccess("링크 상세 조회 성공", dto));
+        return ApiResponse.onSuccess("링크 상세 조회 성공", dto);
     } //링크 상세조회
 
 
@@ -373,7 +371,7 @@ public class LinkuServiceImpl implements LinkuService {
 
     @Override
     @Transactional(readOnly = true)
-    public ResponseEntity<ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>>> recommendLinku(
+    public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
             Long userId, Long situationId, Long emotionId, int page, int size) {
 
         List<UsersLinku> userLinkus = usersLinkuRepository.findByUser_Id(userId);
@@ -439,7 +437,7 @@ public class LinkuServiceImpl implements LinkuService {
         int toIndex = Math.min(fromIndex + size, scoredList.size());
 
         if (fromIndex > scoredList.size()) {
-            return ResponseEntity.ok(ApiResponse.onSuccess(Collections.emptyList()));
+            return ApiResponse.onSuccess(Collections.emptyList());
         }
 
         List<LinkuInternalDTO.ScoredLinkuDTO> pagedList = scoredList.subList(fromIndex, toIndex);
@@ -448,7 +446,7 @@ public class LinkuServiceImpl implements LinkuService {
                 .map(scored -> LinkuConverter.toLinkuSimpleDTO(scored.getUserLinku()))
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(ApiResponse.onSuccess(result));
+        return ApiResponse.onSuccess(result);
     }
 
 

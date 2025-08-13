@@ -1,5 +1,11 @@
 package com.umc.linkyou.utils;
 
+import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
+
+import javax.net.ssl.SSLHandshakeException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -51,6 +57,8 @@ public class UrlValidUtils {
 
             int responseCode = connection.getResponseCode();
             return responseCode >= 200 && responseCode < 400;
+        } catch (SSLHandshakeException e) { //SSL 인증성 없음
+            throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
         } catch (Exception e) {
             return false;
         }

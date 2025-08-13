@@ -21,6 +21,8 @@ public enum SuccessStatus implements BaseCode {
     // 로그인 관련 응답
     _TEMP_PASSWORD_SENT(HttpStatus.ACCEPTED, "USER205", "임시 비밀번호 전송 성공."),
 
+    //링크 생성
+    _LINKU_SUS_URL(HttpStatus.ACCEPTED, "LINKU_SUS200", "유효하지 않은 링크일 가능성이 있습니다."),
     // 카테고리 관련 응답
     _CATEGORY_OK(HttpStatus.ACCEPTED, "CATEGORY200", "카테고리 조회에 성공했습니다."),
     _CATEGORY_COLOR_OK(HttpStatus.ACCEPTED, "CATEGORY_COLOR200", "카테고리 색상 설정을 성공했습니다."),

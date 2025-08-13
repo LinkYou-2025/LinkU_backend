@@ -8,7 +8,7 @@ import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.service.Linku.LinkuSearchService;
 import com.umc.linkyou.service.Linku.LinkuService;
-import com.umc.linkyou.web.dto.QuickSearchDto;
+import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
@@ -18,7 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,11 +30,7 @@ public class LinkuController {
 
     private final LinkuService linkuService;
     private final LinkuSearchService linkuSearchService;
-
-    private Long requireUser(CustomUserDetails user){
-        if (user==null) throw new UserHandler(ErrorStatus._USER_NOT_FOUND);
-        return user.getUsers().getId();
-    }
+    private final UsersUtils usersUtils;
 
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<LinkuResponseDTO.LinkuResultDTO> createLinku(
@@ -45,90 +40,66 @@ public class LinkuController {
             @RequestParam(required = false) Long emotionId,
             @RequestParam(required = false) MultipartFile image
     ) {
-        if (userDetails == null) {
-            return ApiResponse.onFailure(
-                    ErrorStatus._INVALID_TOKEN.getCode(),
-                    ErrorStatus._INVALID_TOKEN.getMessage(),
-                    null
-            );
-        }
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         LinkuRequestDTO.LinkuCreateDTO linkuCreateDTO =
                 LinkuConverter.toLinkuCreateDTO(linku, memo, emotionId);
 
-        Long userId = requireUser(userDetails);
-        LinkuResponseDTO.LinkuResultDTO result = linkuService.createLinku(userId, linkuCreateDTO, image);
-        return ApiResponse.onSuccess(result);
+        LinkuResponseDTO.LinkuCreateResult serviceResult = linkuService.createLinku(userId, linkuCreateDTO, image);
+
+        if (serviceResult.isValidUrl()) {
+            return ApiResponse.of(SuccessStatus._OK, serviceResult.getData());
+        } else {
+            return ApiResponse.of(SuccessStatus._LINKU_SUS_URL, serviceResult.getData());
+        }
     }//linku 생성
 
     @GetMapping("/exist")
-    public ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuIsExistDTO>> existLinku(
+    public ApiResponse<LinkuResponseDTO.LinkuIsExistDTO> existLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam String url
     ){
-        if (userDetails == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.onFailure(ErrorStatus._INVALID_TOKEN.getCode(),ErrorStatus._INVALID_TOKEN.getMessage(), null));
-        }
-        Long userId = requireUser(userDetails);
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         return linkuService.existLinku(userId, url);
-    } //linku 존재여부 확인
+    }//linku 존재여부 확인
 
     @GetMapping("/{linkuid}")
-    public ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuResultDTO>> detailLinku(
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("linkuid") Long linkuid
     ){
-        if (userDetails == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.onFailure(ErrorStatus._INVALID_TOKEN.getCode(),ErrorStatus._INVALID_TOKEN.getMessage(), null));
-        }
-        Long userId = requireUser(userDetails);
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         return linkuService.detailGetLinku(userId, linkuid);
     } //linku 상세보기
 
     @GetMapping("/recent")
-    public ResponseEntity<ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>>> getRecentViewedLinkus(
+    public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getRecentViewedLinkus(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(defaultValue = "10") int limit) {
-        if (userDetails == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.onFailure(ErrorStatus._INVALID_TOKEN.getCode(), ErrorStatus._INVALID_TOKEN.getMessage(), null));
-        }
-        Long userId = requireUser(userDetails);
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         List<LinkuResponseDTO.LinkuSimpleDTO> result = linkuService.getRecentViewedLinkus(userId, limit);
-        return ResponseEntity.ok(ApiResponse.onSuccess("최근 열람한 링크를 가져왔습니다.",result));
+        return ApiResponse.onSuccess("최근 열람한 링크를 가져왔습니다.",result);
     } //최근 열람한 링크 보기
 
     @PatchMapping(value = "/{linkuId}", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuResultDTO>> updateLinku(
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long linkuId,
             @RequestBody LinkuRequestDTO.LinkuUpdateDTO updateDTO
     ) {
-        if (userDetails == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.onFailure(ErrorStatus._INVALID_TOKEN.getCode(), ErrorStatus._INVALID_TOKEN.getMessage(), null));
-        }
-        Long userId = requireUser(userDetails);
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(userId, linkuId, updateDTO);
-        return ResponseEntity.ok(ApiResponse.onSuccess("링크 수정에 성공했습니다.",result));
+        return ApiResponse.onSuccess("링크 수정에 성공했습니다.",result);
     } //링큐 수정하기
 
     @GetMapping("/recommend")
-    public ResponseEntity<ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>>> recommendLinku(
+    public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam Long situationId,
             @RequestParam Long emotionId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size
     ) {
-        if (userDetails == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.onFailure(ErrorStatus._INVALID_TOKEN.getCode(),
-                            ErrorStatus._INVALID_TOKEN.getMessage(),
-                            null));
-        }
-        Long userId = requireUser(userDetails);
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         return linkuService.recommendLinku(userId, situationId, emotionId, page, size);
     }//linku 추천 내부로
 
@@ -142,15 +113,7 @@ public class LinkuController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam String keyword
     ) {
-        if (userDetails == null) {
-            return ApiResponse.onFailure(
-                    ErrorStatus._INVALID_TOKEN.getCode(),
-                    ErrorStatus._INVALID_TOKEN.getMessage(),
-                    null
-            );
-        }
-
-        Long userId = requireUser(userDetails);
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         List<LinkuSearchSuggestionResponse> result = linkuSearchService.suggest(userId, keyword);
         return ApiResponse.onSuccess(result);
     }
