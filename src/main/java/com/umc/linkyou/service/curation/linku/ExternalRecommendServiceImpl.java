@@ -8,13 +8,12 @@ import com.umc.linkyou.repository.classification.DomainRepository;
 import com.umc.linkyou.service.curation.gpt.GptService;
 import com.umc.linkyou.domain.log.CurationTopLog;
 import com.umc.linkyou.service.curation.perplexity.PerplexityExternalSearchService;
+import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-
-import static com.umc.linkyou.service.Linku.LinkuServiceImpl.extractDomainTail;
 
 
 @Service
@@ -71,7 +70,7 @@ public class ExternalRecommendServiceImpl implements ExternalRecommendService {
         // 도메인/이미지 보강
         return external.stream().map(item -> {
             String url = item.getUrl();
-            String domainTail = extractDomainTail(url);
+            String domainTail = UrlValidUtils.extractDomainTail(url);
             var domain = domainRepository.findByDomainTail(domainTail)
                     .orElse(Domain.builder().name("unknown").imageUrl(null).build());
             String imageUrl = linkToImageService.getRelatedImageFromUrl(url);
