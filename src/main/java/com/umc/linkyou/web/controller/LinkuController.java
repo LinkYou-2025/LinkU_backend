@@ -54,16 +54,16 @@ public class LinkuController {
     }//linku 생성
 
     @GetMapping("/exist")
-    public ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuIsExistDTO>> existLinku(
+    public ApiResponse<LinkuResponseDTO.LinkuIsExistDTO> existLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam String url
     ){
         Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         return linkuService.existLinku(userId, url);
-    } //linku 존재여부 확인
+    }//linku 존재여부 확인
 
     @GetMapping("/{linkuid}")
-    public ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuResultDTO>> detailLinku(
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable("linkuid") Long linkuid
     ){
@@ -72,27 +72,27 @@ public class LinkuController {
     } //linku 상세보기
 
     @GetMapping("/recent")
-    public ResponseEntity<ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>>> getRecentViewedLinkus(
+    public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getRecentViewedLinkus(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(defaultValue = "10") int limit) {
         Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         List<LinkuResponseDTO.LinkuSimpleDTO> result = linkuService.getRecentViewedLinkus(userId, limit);
-        return ResponseEntity.ok(ApiResponse.onSuccess("최근 열람한 링크를 가져왔습니다.",result));
+        return ApiResponse.onSuccess("최근 열람한 링크를 가져왔습니다.",result);
     } //최근 열람한 링크 보기
 
     @PatchMapping(value = "/{linkuId}", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuResultDTO>> updateLinku(
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long linkuId,
             @RequestBody LinkuRequestDTO.LinkuUpdateDTO updateDTO
     ) {
         Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(userId, linkuId, updateDTO);
-        return ResponseEntity.ok(ApiResponse.onSuccess("링크 수정에 성공했습니다.",result));
+        return ApiResponse.onSuccess("링크 수정에 성공했습니다.",result);
     } //링큐 수정하기
 
     @GetMapping("/recommend")
-    public ResponseEntity<ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>>> recommendLinku(
+    public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam Long situationId,
             @RequestParam Long emotionId,

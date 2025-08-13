@@ -7,6 +7,7 @@ import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.service.users.UserService;
+import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.EmailVerificationResponse;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final UsersUtils usersUtils;
 
     // 회원 가입
     @PostMapping("/join")
@@ -70,14 +72,7 @@ public class UserController {
     // 마이페이지 조회
     @GetMapping("/{userId}")
     public ApiResponse<UserResponseDTO.UserInfoDTO> getUserInfo(@AuthenticationPrincipal CustomUserDetails userDetails, @PathVariable("userId") Long userId) {
-        if (userDetails == null) {
-            // 토큰이 없거나 잘못된 경우
-            return ApiResponse.onFailure(ErrorStatus._INVALID_TOKEN.getCode(), ErrorStatus._INVALID_TOKEN.getMessage(), null);
-        }
-
-        String email = userDetails.getEmail();
-        System.out.println(email);
-
+        String email = usersUtils.getAuthenticatedUserEmail(userDetails);
         return ApiResponse.onSuccess(userService.userInfo(userId));
     }
 
@@ -87,15 +82,7 @@ public class UserController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody UserRequestDTO.UpdateProfileDTO updateDTO
     ) {
-        if (userDetails == null) {
-            return ApiResponse.onFailure(
-                    ErrorStatus._INVALID_TOKEN.getCode(),
-                    ErrorStatus._INVALID_TOKEN.getMessage(),
-                    null
-            );
-        }
-
-        Long userId = userDetails.getUsers().getId(); // 로그인된 사용자 ID 추출
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         userService.updateUserProfile(userId, updateDTO);
 
         return ApiResponse.onSuccess("성공입니다.", "마이페이지가 수정되었습니다.");
@@ -113,10 +100,7 @@ public class UserController {
     public ApiResponse<UserResponseDTO.withDrawalResultDTO> withdrawMe(@AuthenticationPrincipal CustomUserDetails userDetails
      ,@RequestBody UserRequestDTO.DeleteReasonDTO deleteReasonDTO
     ) {
-        if (userDetails == null) {
-            return ApiResponse.onFailure(ErrorStatus._INVALID_TOKEN.getCode(), ErrorStatus._INVALID_TOKEN.getMessage(), null);
-        }
-        Long userId = userDetails.getUsers().getId();
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         Users user = userService.withdrawUser(userId,deleteReasonDTO);
         return ApiResponse.onSuccess(UserConverter.toWithDrawalResultDTO(user));
     }

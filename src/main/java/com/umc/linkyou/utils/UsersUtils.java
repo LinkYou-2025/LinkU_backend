@@ -14,6 +14,12 @@ public class UsersUtils {
         }
         return userDetails.getUsers().getId();
     }
+    public String getAuthenticatedUserEmail(CustomUserDetails userDetails) {
+        if (userDetails == null) {
+            throw new UserHandler(ErrorStatus._INVALID_TOKEN);
+        }
+        return userDetails.getEmail();
+    }
 }
 
 
