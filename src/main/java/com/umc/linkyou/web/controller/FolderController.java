@@ -44,7 +44,7 @@ public class FolderController {
         return ApiResponse.of(SuccessStatus._FOLDER_UPDATE_OK, response);
     }
 
-    // (소분류) 폴더 삭제
+   // (소분류) 폴더 삭제
     @DeleteMapping("/subfolders/{folderId}")
     @Operation(summary = "소분류 폴더 삭제")
     public ResponseEntity<FolderResponseDTO> deleteFolder(
