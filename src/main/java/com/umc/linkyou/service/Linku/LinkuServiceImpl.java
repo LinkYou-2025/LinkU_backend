@@ -4,7 +4,6 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awsS3.AwsS3Service;
-import com.umc.linkyou.converter.AwsS3Converter;
 import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.converter.LogConverter;
@@ -35,6 +34,7 @@ import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.utils.EmotionSimilarityUtil;
 import com.umc.linkyou.utils.UrlUtils;
+import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.linku.LinkuInternalDTO;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
@@ -87,12 +87,12 @@ public class LinkuServiceImpl implements LinkuService {
         String normalizedLink = UrlUtils.normalizeUrl(dto.getLinku());
 
         // 영상 링크 차단
-        if (isVideoLink(normalizedLink)) {
+        if (UrlValidUtils.isVideoLink(normalizedLink)) {
             throw new GeneralException(ErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
         }
 
         // 유효하지 않은 링크 차단
-        if (!isValidUrl(dto.getLinku())) {
+        if (!UrlValidUtils.isValidUrl(dto.getLinku())) {
             throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
         }
 
@@ -178,14 +178,14 @@ public class LinkuServiceImpl implements LinkuService {
     public ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuIsExistDTO>> existLinku(Long userId, String url) {
 
         // 1. 영상 링크 차단
-        if (isVideoLink(url)) {
+        if (UrlValidUtils.isVideoLink(url)) {
             ErrorStatus error = ErrorStatus._LINKU_VIDEO_NOT_ALLOWED;
             return ResponseEntity.status(error.getHttpStatus())
                     .body(ApiResponse.onFailure(error.getCode(), error.getMessage(), null));
         }
 
         // 2. 유효하지 않은 링크 차단
-        if (!isValidUrl(url)) {
+        if (!UrlValidUtils.isValidUrl(url)) {
             ErrorStatus error = ErrorStatus._LINKU_INVALID_URL;
             return ResponseEntity.status(error.getHttpStatus())
                     .body(ApiResponse.onFailure(error.getCode(), error.getMessage(), null));
@@ -218,46 +218,6 @@ public class LinkuServiceImpl implements LinkuService {
             return domain;
         } catch (Exception e) {
             return null;
-        }
-    }
-
-    //
-    private boolean isVideoLink(String url) {
-        // 영상 플랫폼 도메인 리스트
-        List<String> videoDomains = List.of(
-                "youtube.com", "youtu.be", "vimeo.com", "tiktok.com", "dailymotion.com", "kakao.tv", "navertv", "tv.kakao.com"
-        );
-
-        try {
-            URI uri = new URI(url);
-            String host = uri.getHost();
-            if (host == null) return false;
-
-            return videoDomains.stream().anyMatch(host::contains);
-        } catch (URISyntaxException e) {
-            return false;
-        }
-    }
-    private boolean isValidUrl(String url) {
-        // 1. URL 형식 문법 검사
-        try {
-            new URL(url);
-        } catch (MalformedURLException e) {
-            return false;
-        }
-
-        // 2. HTTP GET 요청으로 실제 존재 여부 검사 (HEAD보다 실패 확률 적음)
-        try {
-            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setRequestMethod("GET");
-            connection.setConnectTimeout(3000); // 3초 타임아웃
-            connection.setReadTimeout(3000);
-            connection.setInstanceFollowRedirects(true); // 리다이렉트 허용
-
-            int responseCode = connection.getResponseCode();
-            return responseCode >= 200 && responseCode < 400; // 2xx,3xx 정상 판단
-        } catch (Exception e) {
-            return false;
         }
     }
 
