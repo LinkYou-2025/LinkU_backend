@@ -56,8 +56,13 @@ public class LinkuController {
                 LinkuConverter.toLinkuCreateDTO(linku, memo, emotionId);
 
         Long userId = requireUser(userDetails);
-        LinkuResponseDTO.LinkuResultDTO result = linkuService.createLinku(userId, linkuCreateDTO, image);
-        return ApiResponse.onSuccess(result);
+        LinkuResponseDTO.LinkuCreateResult serviceResult = linkuService.createLinku(userId, linkuCreateDTO, image);
+
+        if (serviceResult.isValidUrl()) {
+            return ApiResponse.of(SuccessStatus._OK, serviceResult.getData());
+        } else {
+            return ApiResponse.of(SuccessStatus._LINKU_SUS_URL, serviceResult.getData());
+        }
     }//linku 생성
 
     @GetMapping("/exist")

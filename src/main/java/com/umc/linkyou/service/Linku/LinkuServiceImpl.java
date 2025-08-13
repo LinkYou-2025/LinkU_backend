@@ -82,7 +82,7 @@ public class LinkuServiceImpl implements LinkuService {
 
     @Override
     @Transactional
-    public LinkuResponseDTO.LinkuResultDTO createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
+    public LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
         // URL 정규화 적용
         String normalizedLink = UrlUtils.normalizeUrl(dto.getLinku());
 
@@ -90,11 +90,8 @@ public class LinkuServiceImpl implements LinkuService {
         if (UrlValidUtils.isVideoLink(normalizedLink)) {
             throw new GeneralException(ErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
         }
-
-        // 유효하지 않은 링크 차단
-        if (!UrlValidUtils.isValidUrl(dto.getLinku())) {
-            throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
-        }
+        // 유효하지 않은 링크
+        boolean isValidUrl = UrlValidUtils.isValidUrl(dto.getLinku()); //해당 함수에서 error반환
 
         // AI 카테고리 분류
         Long aiCategoryId = openAiCategoryClassifier.classifyCategoryByUrl(normalizedLink, categoryRepository.findAll());
@@ -167,9 +164,14 @@ public class LinkuServiceImpl implements LinkuService {
         LinkuFolder linkuFolder = LinkuConverter.toLinkuFolder(newfolder, usersLinku);
         linkuFolderRepository.save(linkuFolder);
 
-        return LinkuConverter.toLinkuResultDTO(
-                userId, linku, usersLinku, linkuFolder, category,domain
-        );
+        LinkuResponseDTO.LinkuResultDTO resultDto =
+                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain);
+
+        return LinkuResponseDTO.LinkuCreateResult.builder()
+                .data(resultDto)
+                .validUrl(isValidUrl)
+                .build();
+
     }
 // 링큐 생성
 
