@@ -6,6 +6,7 @@ import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.service.alarm.AlarmService;
 import com.umc.linkyou.service.category.CategoryService;
+import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmResponseDTO;
@@ -27,6 +28,7 @@ import java.util.List;
 public class AlarmController {
 
     private final AlarmService alarmService;
+    private final UsersUtils usersUtils;
 
     // FCM 토큰 보내기
     @PostMapping("/fcmtoken")
@@ -35,14 +37,7 @@ public class AlarmController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO
     ) {
-        if (userDetails == null) {
-            return ApiResponse.onFailure(
-                    ErrorStatus._INVALID_TOKEN.getCode(),
-                    ErrorStatus._INVALID_TOKEN.getMessage(),
-                    null
-            );
-        }
-        Long userId = userDetails.getUsers().getId();
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         alarmService.registerFcmToken(userId, alarmFcmTokenDTO); //정상 등록되면
         return ApiResponse.onSuccess("FCM 토큰이 정상적으로 등록되었습니다.");
     }
