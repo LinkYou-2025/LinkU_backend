@@ -3,6 +3,7 @@ package com.umc.linkyou.web.controller;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.service.curation.CurationLikeService;
 import com.umc.linkyou.service.curation.CurationService;
 import com.umc.linkyou.service.curation.CurationTopLogService;
@@ -31,39 +32,15 @@ public class CurationController {
     private final CurationRecommendBuilderService curationRecommendBuilderService;
     private final InternalLinkCandidateService internalLinkCandidateService;
 
-//    @GetMapping("/top-log/{curationId}")
-//    public List<String> getTopTags(@PathVariable Long curationId) {
-//        return curationTopLogService.getTopTagNamesByCuration(curationId);
-//    }
-
-    /**
-     * 큐레이션 생성 요청 (Top3 감정/상황 자동 분석 포함)
-     */
-//    @PostMapping("/generate/{userId}")
-//    public ResponseEntity<CreateCurationResponse> createCuration(
-//            @PathVariable Long userId,
-//            @RequestBody CreateCurationRequest request) {
-//
-//        Curation created = curationService.createCuration(userId, request);
-//
-//        CreateCurationResponse response = CreateCurationResponse.builder()
-//                .curationId(created.getCurationId())
-//                .month(created.getMonth())
-//                .thumbnailUrl(created.getThumbnailUrl())
-//                .createdAt(created.getCreatedAt())
-//                .build();
-//
-//        return ResponseEntity.ok(response);
-//    }
     // 자동생성 테스트
     @Operation(
             summary = "배치 트리거(관리용)",
             description = "모든 사용자에 대해 월간 큐레이션을 즉시 생성합니다. 운영/개발 전용 엔드포인트입니다."
     )
     @GetMapping("/batch/manual")
-    public ResponseEntity<Void> triggerBatch() {
+    public ResponseEntity<ApiResponse<Void>> triggerBatch() {
         curationService.generateMonthlyCurationForAllUsers();
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.onSuccess(null));
     }
 
     /**
@@ -74,9 +51,9 @@ public class CurationController {
             description = "큐레이션 ID로 상세 정보를 조회합니다."
     )
     @GetMapping("/detail/{curationId}")
-    public ResponseEntity<CurationDetailResponse> getCurationDetail(@PathVariable Long curationId) {
+    public ResponseEntity<ApiResponse<CurationDetailResponse>> getCurationDetail(@PathVariable Long curationId) {
         CurationDetailResponse response = curationService.getCurationDetail(curationId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.onSuccess(response));
     }
 
     /**
@@ -87,10 +64,9 @@ public class CurationController {
             description = "사용자 ID로 해당 사용자의 최신 큐레이션을 조회합니다. 없으면 204(No Content) 반환."
     )
     @GetMapping("/latest/{userId}")
-    public ResponseEntity<CurationLatestResponse> getLatestCuration(@PathVariable Long userId) {
-        return curationService.getLatestCuration(userId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.noContent().build()); // or .notFound()
+    public ResponseEntity<ApiResponse<CurationLatestResponse>> getLatestCuration(@PathVariable Long userId) {
+        var body = curationService.getLatestCuration(userId).orElse(null);
+        return ResponseEntity.ok(ApiResponse.onSuccess(body));
     }
 
     /**
@@ -101,9 +77,9 @@ public class CurationController {
             description = "해당 큐레이션에 좋아요를 등록합니다."
     )
     @PostMapping("/{curationId}/like")
-    public ResponseEntity<Void> likeCuration(@PathVariable Long curationId, @RequestParam Long userId) {
+    public ResponseEntity<ApiResponse<Void>> likeCuration(@PathVariable Long curationId, @RequestParam Long userId) {
         curationLikeService.likeCuration(userId, curationId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.onSuccess(null));
     }
     /**
      * 큐레이션 좋아요 취소
@@ -113,9 +89,9 @@ public class CurationController {
             description = "해당 큐레이션의 좋아요를 취소합니다."
     )
     @DeleteMapping("/{curationId}/like")
-    public ResponseEntity<Void> unlikeCuration(@PathVariable Long curationId, @RequestParam Long userId) {
+    public ResponseEntity<ApiResponse<Void>> unlikeCuration(@PathVariable Long curationId, @RequestParam Long userId) {
         curationLikeService.unlikeCuration(userId, curationId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.onSuccess(null));
     }
 
     /**
@@ -126,9 +102,12 @@ public class CurationController {
             description = "해당 큐레이션에 사용자가 좋아요를 눌렀는지 여부를 조회합니다."
     )
     @GetMapping("/{curationId}/like")
-    public ResponseEntity<CurationLikeStatusResponse> isLiked(@PathVariable Long curationId, @RequestParam Long userId) {
+    public ResponseEntity<ApiResponse<CurationLikeStatusResponse>> isLiked(
+            @PathVariable Long curationId,
+            @RequestParam Long userId
+    ) {
         boolean liked = curationLikeService.isLiked(userId, curationId);
-        return ResponseEntity.ok(new CurationLikeStatusResponse(liked));
+        return ResponseEntity.ok(ApiResponse.onSuccess(new CurationLikeStatusResponse(liked)));
     }
 
     /**
@@ -139,8 +118,9 @@ public class CurationController {
             description = "사용자의 최근 좋아요 기록을 최신순으로 조회합니다."
     )
     @GetMapping("/likes/recent")
-    public ResponseEntity<List<LikedCurationResponse>> getRecentLikedCurations(@RequestParam Long userId) {
-        return ResponseEntity.ok(curationLikeService.getRecentLikedCurations(userId));
+    public ResponseEntity<ApiResponse<List<LikedCurationResponse>>> getRecentLikedCurations(@RequestParam Long userId) {
+        var list = curationLikeService.getRecentLikedCurations(userId);
+        return ResponseEntity.ok(ApiResponse.onSuccess(list));
     }
 
     /**
@@ -151,14 +131,12 @@ public class CurationController {
             description = "해당 큐레이션을 기반으로 내부/외부 추천 로직을 종합하여 링크를 추천합니다."
     )
     @GetMapping("/recommend-links")
-    public ResponseEntity<List<RecommendedLinkResponse>> getRecommendedLinks(
+    public ResponseEntity<ApiResponse<List<RecommendedLinkResponse>>> getRecommendedLinks(
             @RequestParam Long userId,
-            @RequestParam Long curationId) {
-
-        List<RecommendedLinkResponse> recommendations =
-                curationRecommendBuilderService.buildRecommendedLinks(userId, curationId);
-
-        return ResponseEntity.ok(recommendations);
+            @RequestParam Long curationId
+    ) {
+        var recommendations = curationRecommendBuilderService.buildRecommendedLinks(userId, curationId);
+        return ResponseEntity.ok(ApiResponse.onSuccess(recommendations));
     }
 
 
@@ -170,12 +148,11 @@ public class CurationController {
             description = "내부 보유 링크 중 해당 큐레이션과 유사도가 높은 상위 2개 링크를 조회합니다."
     )
     @GetMapping("/recommend-links/internal/top2")
-    public ResponseEntity<List<RecommendedLinkResponse>> getInternalSimilarLinks(
+    public ResponseEntity<ApiResponse<List<RecommendedLinkResponse>>> getInternalSimilarLinks(
             @RequestParam Long userId,
             @RequestParam Long curationId
     ) {
-        List<RecommendedLinkResponse> result =
-                internalLinkCandidateService.getTop2SimilarInternalLinks(userId, curationId);
-        return ResponseEntity.ok(result);
+        var result = internalLinkCandidateService.getTop2SimilarInternalLinks(userId, curationId);
+        return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
 }

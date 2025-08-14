@@ -3,12 +3,14 @@ package com.umc.linkyou.service.folder;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.FolderConverter;
+import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
+import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
-import com.umc.linkyou.repository.FolderRepository;
+import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.UserRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
@@ -18,7 +20,6 @@ import com.umc.linkyou.web.dto.folder.linku.FolderSummaryDTO;
 import com.umc.linkyou.web.dto.folder.linku.LinkuSummaryDTO;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -209,10 +210,10 @@ public class FolderServiceImpl implements FolderService {
                     return dto;
                 }).toList();
 
-        // 커서: 없으면 Long.MAX_VALUE
+        // 커서 (없으면 Long.MAX_VALUE)
         Long cursorId = (cursor == null) ? Long.MAX_VALUE : Long.parseLong(cursor);
 
-        // 링크 매핑(폴더 내부의 링크만) → LinkuFolder 리스트 반환 받아야 함
+        // 폴더 내부 링크들
         List<LinkuFolder> linkuFolders = linkuFolderRepository.findByFolder(folder);
         List<Linku> linkus = linkuFolders.stream()
                 .map(lf -> lf.getUsersLinku().getLinku())
@@ -221,11 +222,28 @@ public class FolderServiceImpl implements FolderService {
                 .limit(limit)
                 .toList();
 
-        List<LinkuSummaryDTO> linkDtos = linkus.stream().map(link -> {
+        List<LinkuSummaryDTO> linkDtos = linkuFolders.stream().map(lf -> {
+            Linku link = lf.getUsersLinku().getLinku();
             LinkuSummaryDTO dto = new LinkuSummaryDTO();
+
+            // 링크
             dto.setLinkuId(link.getLinkuId());
+            dto.setLinkuImageUrl(lf.getUsersLinku().getImageUrl());
             dto.setTitle(link.getTitle());
             dto.setUrl(link.getLinku());
+
+            // 태그(키워드)
+            AiArticle ai = link.getAiArticle();
+            if (ai != null) {
+                ai.getKeyword(); // ai 프록시 초기화
+            }
+
+            // 도메인
+            Domain domain = link.getDomain();
+            if (domain != null) {
+                domain.getImageUrl(); // domain 프록시 초기화
+            }
+
             dto.setCreatedAt(link.getCreatedAt().toString());
             return dto;
         }).toList();
@@ -234,11 +252,11 @@ public class FolderServiceImpl implements FolderService {
                 ? String.valueOf(linkus.get(linkus.size() - 1).getLinkuId())
                 : null;
 
-        FolderLinkusResponseDTO resp = new FolderLinkusResponseDTO();
-        resp.setFolders(subfolderDtos);
-        resp.setLinks(linkDtos);
-        resp.setNextCursor(newCursor);
+        FolderLinkusResponseDTO response = new FolderLinkusResponseDTO();
+        response.setFolders(subfolderDtos);
+        response.setLinks(linkDtos);
+        response.setNextCursor(newCursor);
 
-        return resp;
+        return response;
     }
 }

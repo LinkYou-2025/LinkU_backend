@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awsS3.AwsS3Service;
+import com.umc.linkyou.converter.AiArticleConverter;
 import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.converter.LogConverter;
@@ -21,7 +22,7 @@ import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.TitleImgParser.LinkToImageService;
 import com.umc.linkyou.openApi.OpenAICategoryClassifier;
 import com.umc.linkyou.repository.*;
-import com.umc.linkyou.repository.FolderRepository;
+import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.LogRepository.EmotionLogRepository;
 import com.umc.linkyou.repository.LogRepository.SituationLogRepository;
@@ -71,6 +72,7 @@ public class LinkuServiceImpl implements LinkuService {
     private final EmotionLogRepository emotionLogRepository;
     private final SituationJobRepository situationJobRepository;
     private final UsersFolderRepository usersFolderRepository;
+    private final AiArticleRepository aiArticleRepository;
 
     private static final Long DEFAULT_CATEGORY_ID = 16L;
     private static final Long DEFAULT_EMOTION_ID = 2L;
@@ -79,6 +81,7 @@ public class LinkuServiceImpl implements LinkuService {
     private final SituationCategoryService situationCategoryService;
     private final OpenAICategoryClassifier openAiCategoryClassifier;
     private final FolderConverter folderConverter;
+    private final AiArticleConverter aiArticleConverter;
 
     @Override
     @Transactional
@@ -90,11 +93,18 @@ public class LinkuServiceImpl implements LinkuService {
         if (UrlValidUtils.isVideoLink(normalizedLink)) {
             throw new GeneralException(ErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
         }
-        // 유효하지 않은 링크
-        boolean isValidUrl = UrlValidUtils.isValidUrl(dto.getLinku()); //해당 함수에서 error반환
+
+        // 유효하지 않은 링크 차단
+        if (!UrlValidUtils.isValidUrl(dto.getLinku())) {
+            throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
+        }
 
         // AI 카테고리 분류
-        Long aiCategoryId = openAiCategoryClassifier.classifyCategoryByUrl(normalizedLink, categoryRepository.findAll());
+        OpenAICategoryClassifier.CategoryResult aiResult =
+                openAiCategoryClassifier.classifyCategoryByUrl(normalizedLink, categoryRepository.findAll());
+
+        Long aiCategoryId = (aiResult != null) ? aiResult.getCategoryId() : null;
+        String aiKeywords = (aiResult != null) ? aiResult.getKeywords() : null;
 
         Category category = Optional.ofNullable(aiCategoryId)
                 .flatMap(categoryRepository::findById)
@@ -164,14 +174,37 @@ public class LinkuServiceImpl implements LinkuService {
         LinkuFolder linkuFolder = LinkuConverter.toLinkuFolder(newfolder, usersLinku);
         linkuFolderRepository.save(linkuFolder);
 
+        // AI Article 생성 or 재사용
+        if (aiKeywords != null && !aiKeywords.isBlank()) {
+            Situation defaultSituation = situationRepository.findById(1L)
+                    .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
+
+            // 이미 aiArticle 존재 여부 확인 (Linku 1:1 매핑)
+            AiArticle existingAiArticle = linku.getAiArticle(); // 연관관계 매핑되어 있다면
+            // AiArticle existingAiArticle = aiArticleRepository.findByLinku(linku).orElse(null); // Repository 조회 방식
+
+            if (existingAiArticle == null){
+                // 없으면 새로 생성
+                AiArticle newAiArticle = AiArticleConverter.toEntityKeywordOnly(
+                        aiKeywords,
+                        linku,
+                        defaultSituation,
+                        category,
+                        emotion
+                );
+                aiArticleRepository.save(newAiArticle);
+            }
+        }
+
+
         LinkuResponseDTO.LinkuResultDTO resultDto =
                 LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain);
 
+        boolean isSusUrl = UrlValidUtils.isURLConnectionOk(normalizedLink);
         return LinkuResponseDTO.LinkuCreateResult.builder()
                 .data(resultDto)
-                .validUrl(isValidUrl)
+                .validUrl(isSusUrl)
                 .build();
-
     }
 // 링큐 생성
 

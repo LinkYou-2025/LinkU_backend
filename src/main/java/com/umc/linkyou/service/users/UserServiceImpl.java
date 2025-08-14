@@ -18,6 +18,7 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.*;
+import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.categoryRepository.UsersCategoryColorRepository;
 import com.umc.linkyou.repository.classification.InterestRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;

@@ -22,8 +22,31 @@ INSERT INTO domain (domain_id, domain_tail, image_url, name) VALUES
     (18, 'instagram.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/d4906426-cf6e-4480-8b06-009167720b7f.png', 'instagram'),
     (19, 'twitter.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/e07e2ced-7f1c-4a3d-a545-04066eced0e0.png', 'twitter'),
     (20, 'facebook.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/91eb63c2-46b1-46f0-a28c-449fb567b408.png', 'facebook'),
-    (21, 'naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver')
-    ON DUPLICATE KEY UPDATE domain_id = domain_id;
+    (21, 'naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver'),
+    (22, 'm.blog.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/416766de-7e9c-4033-9d08-cf56a90f85c3.png', 'blog.naver'),
+    (23, 'blogon.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/416766de-7e9c-4033-9d08-cf56a90f85c3.png', 'blog.naver'),
+    (24, 'm.cafe.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/382fd711-bc04-4185-8174-cff8546ec85e.png', 'cafe.naver'),
+    (25, 'cafeon.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/382fd711-bc04-4185-8174-cff8546ec85e.png', 'cafe.naver'),
+    (26, 'news.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver news'),
+    (27, 'n.news.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver news'),
+    (28, 'post.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver post'),
+    (29, 'm.post.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver post'),
+    (30, 'm.shopping.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/32d11801-e291-436e-9c2a-e755d2517d20.png', 'shopping.naver'),
+    (31, 'smartstore.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/32d11801-e291-436e-9c2a-e755d2517d20.png', 'shopping.naver'),
+    (32, 'm.kin.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/a2204494-8f68-41c5-8fc9-494f0328ed64.png', 'kin.naver'),
+    (33, 'map.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver map'),
+    (34, 'm.map.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver map'),
+    (35, 'comic.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver comic'),
+    (36, 'm.comic.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver comic'),
+    (37, 'naver.me', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver shortlink'),
+    (38, 'dict.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver dict'),
+    (39, 'ko.dict.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver dict'),
+    (40, 'en.dict.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver dict'),
+    (41, 'newsstand.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver newsstand'),
+    (42, 'm.newsstandnaver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver newsstand'),
+    (43, 'novel.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver novel'),
+    (44, 'series.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver series')
+ON DUPLICATE KEY UPDATE domain_id = domain_id;
 
 
 
