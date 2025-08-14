@@ -19,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LinkToImageService {
 
-    private final DomainRepositoryCustom domainRepository;
+    private final DomainRepository domainRepository;
 
     @Value("${custom.search.api.key}")
     private String apiKey;

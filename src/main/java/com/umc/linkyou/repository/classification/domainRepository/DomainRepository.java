@@ -9,6 +9,6 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface DomainRepository extends JpaRepository<Domain, Long> {
+public interface DomainRepository extends JpaRepository<Domain, Long>, DomainRepositoryCustom {
 
 }

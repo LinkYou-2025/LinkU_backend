@@ -10,4 +10,5 @@ public interface DomainRepositoryCustom {
     Optional<Domain> findByDomainTail(String domainTail);
     Optional<Domain> findById(long l);
     List<Domain> findByDomainTailIn(Collection<String> domainTails);
+    List<Domain> findDomainsCursorPaging(Long lastDomainId, int pageSize);
 }

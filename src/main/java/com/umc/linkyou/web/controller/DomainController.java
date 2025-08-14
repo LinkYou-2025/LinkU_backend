@@ -3,7 +3,7 @@ package com.umc.linkyou.web.controller;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.DomainConverter;
-import com.umc.linkyou.service.DomainService;
+import com.umc.linkyou.service.domain.DomainService;
 import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.DomainDTO;
 import lombok.RequiredArgsConstructor;

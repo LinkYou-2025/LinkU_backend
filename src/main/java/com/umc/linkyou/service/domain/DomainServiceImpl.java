@@ -1,4 +1,4 @@
-package com.umc.linkyou.service;
+package com.umc.linkyou.service.domain;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -11,6 +11,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -66,5 +68,28 @@ public class DomainServiceImpl implements DomainService{
                 .build();
     }
 //도메인 수정
+
+    @Override
+    @Transactional
+    public DomainDTO.DomainCursorPageResponse getDomainsCursor(Long lastDomainId, int size) {
+        List<Domain> domains = domainRepository.findDomainsCursorPaging(lastDomainId, size);
+
+        // nextCursor 셋팅: 마지막 원소의 ID
+        Long nextCursor = domains.isEmpty() ? null : domains.get(domains.size() - 1).getDomainId();
+
+        List<DomainDTO.DomainReponseDTO> items = domains.stream()
+                .map(d -> DomainDTO.DomainReponseDTO.builder()
+                        .name(d.getName())
+                        .domainTail(d.getDomainTail())
+                        .imageUrl(d.getImageUrl())
+                        .build())
+                .toList();
+
+        return DomainDTO.DomainCursorPageResponse.builder()
+                .items(items)
+                .nextCursor(nextCursor)
+                .hasNext(domains.size() == size) // 더 가져올 데이터가 있는 경우
+                .build();
+    }
 
 }
