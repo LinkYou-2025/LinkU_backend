@@ -90,8 +90,11 @@ public class LinkuServiceImpl implements LinkuService {
         if (UrlValidUtils.isVideoLink(normalizedLink)) {
             throw new GeneralException(ErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
         }
-        // 유효하지 않은 링크
-        boolean isValidUrl = UrlValidUtils.isValidUrl(dto.getLinku()); //해당 함수에서 error반환
+
+        // 유효하지 않은 링크 차단
+        if (!UrlValidUtils.isValidUrl(dto.getLinku())) {
+            throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
+        }
 
         // AI 카테고리 분류
         Long aiCategoryId = openAiCategoryClassifier.classifyCategoryByUrl(normalizedLink, categoryRepository.findAll());
@@ -167,11 +170,11 @@ public class LinkuServiceImpl implements LinkuService {
         LinkuResponseDTO.LinkuResultDTO resultDto =
                 LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain);
 
+        boolean isSusUrl = UrlValidUtils.isURLConnectionOk(normalizedLink);
         return LinkuResponseDTO.LinkuCreateResult.builder()
                 .data(resultDto)
-                .validUrl(isValidUrl)
+                .validUrl(isSusUrl)
                 .build();
-
     }
 // 링큐 생성
 

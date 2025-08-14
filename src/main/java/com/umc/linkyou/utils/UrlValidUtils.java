@@ -34,33 +34,40 @@ public class UrlValidUtils {
             return false;
         }
     }
-
     /**
-     * URL 형식 & 실제 접속 가능 여부 체크
+     * URL 문법 형식만 체크 (접속 시도하지 않음)
      */
     public static boolean isValidUrl(String url) {
-        // 1. URL 문법 체크
         try {
-            new URL(url);
+            new URL(url); // 문법적으로 유효한지 검사
+            return true;
         } catch (MalformedURLException e) {
             return false;
         }
+    }
 
-        // 2. HTTP GET 요청으로 확인
+    /**
+     * 실제 HTTP 연결이 정상인지 확인
+     */
+    public static boolean isURLConnectionOk(String url) {
         try {
             HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(3000);
             connection.setReadTimeout(3000);
             connection.setInstanceFollowRedirects(true);
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36");
+            connection.setRequestProperty(
+                    "User-Agent",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                            "Chrome/115.0 Safari/537.36"
+            );
 
             int responseCode = connection.getResponseCode();
             return responseCode >= 200 && responseCode < 400;
-        } catch (SSLHandshakeException e) { //SSL 인증성 없음
-            return false; // 컨트롤러에서 SUS_URL 처리
+
         } catch (Exception e) {
-            throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
+            return false;
         }
     }
 
