@@ -22,6 +22,7 @@ public class LinkuResponseDTO {
         private String title;
         private String domainImageUrl;
         private String linkuImageUrl;
+        private Boolean aiArticleExists;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
     }
@@ -37,6 +38,7 @@ public class LinkuResponseDTO {
         private String domain;
         private String domainImageUrl;
         private String linkuImageUrl;
+        private boolean aiArticleExists;
     }
     @Setter
     @Getter
