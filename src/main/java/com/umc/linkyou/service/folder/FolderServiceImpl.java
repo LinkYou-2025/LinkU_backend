@@ -7,6 +7,7 @@ import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
+import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.UserRepository;
@@ -248,11 +249,22 @@ public class FolderServiceImpl implements FolderService {
                 .limit(limit)
                 .toList();
 
-        List<LinkuSummaryDTO> linkDtos = linkus.stream().map(link -> {
+        List<LinkuSummaryDTO> linkDtos = linkuFolders.stream().map(lf -> {
+            UsersLinku usersLinku = lf.getUsersLinku();
+            Linku link = usersLinku.getLinku();
+
             LinkuSummaryDTO dto = new LinkuSummaryDTO();
             dto.setLinkuId(link.getLinkuId());
             dto.setTitle(link.getTitle());
             dto.setUrl(link.getLinku());
+            dto.setKeyword(
+                    link.getAiArticle() != null
+                            ? link.getAiArticle().getKeyword()
+                            : null
+            );
+            dto.setLinkuImageUrl(
+                    usersLinku.getImageUrl()
+            );
             dto.setCreatedAt(link.getCreatedAt().toString());
             return dto;
         }).toList();

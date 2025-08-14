@@ -3,8 +3,12 @@ package com.umc.linkyou.domain;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.common.BaseEntity;
+import com.umc.linkyou.domain.mapping.UsersLinku;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Setter
 @Getter
@@ -36,4 +40,6 @@ public class Linku extends BaseEntity {
     @Column(columnDefinition = "text", nullable = false)
     private String title;
 
+    @OneToMany(mappedBy = "linku", cascade = CascadeType.ALL)
+    private List<UsersLinku> usersLinku = new ArrayList<>();
 }

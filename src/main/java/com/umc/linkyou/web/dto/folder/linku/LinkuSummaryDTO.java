@@ -12,8 +12,6 @@ public class LinkuSummaryDTO {
     private String title;
     private String url;
     private String keyword;
-    private Domain domain;
-    private String domainImageUrl;
     private String linkuImageUrl;
     private String createdAt;
 }
