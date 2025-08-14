@@ -22,7 +22,7 @@ INSERT INTO domain (domain_id, domain_tail, image_url, name) VALUES
     (18, 'instagram.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/d4906426-cf6e-4480-8b06-009167720b7f.png', 'instagram'),
     (19, 'twitter.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/e07e2ced-7f1c-4a3d-a545-04066eced0e0.png', 'twitter'),
     (20, 'facebook.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/91eb63c2-46b1-46f0-a28c-449fb567b408.png', 'facebook'),
-    (21, 'naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver')
+    (21, 'naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/81d40a80-1500-422f-b8c4-6748d3a55ca3.png', 'naver'),
     (22, 'm.blog.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/416766de-7e9c-4033-9d08-cf56a90f85c3.png', 'blog.naver'),
     (23, 'blogon.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/416766de-7e9c-4033-9d08-cf56a90f85c3.png', 'blog.naver'),
     (24, 'm.cafe.naver.com', 'https://linku-image-bucket.s3.ap-southeast-2.amazonaws.com/domain/382fd711-bc04-4185-8174-cff8546ec85e.png', 'cafe.naver'),
