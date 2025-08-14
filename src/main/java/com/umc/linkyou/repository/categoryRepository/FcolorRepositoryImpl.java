@@ -16,16 +16,11 @@ public class FcolorRepositoryImpl implements FcolorRepositoryCustom {
     @Override
     public Fcolor searchColorCode(Long fcolorId) {
         QFcolor fcolor = QFcolor.fcolor;
-        BooleanBuilder builder = new BooleanBuilder();
 
         // 색상 ID
-        if (fcolorId != null) {
-            builder.and(fcolor.fcolorId.eq(fcolorId));
-        }
-
         return queryFactory
                 .selectFrom(fcolor)
-                .where(builder)
+                .where(fcolor.fcolorId.eq(fcolorId))
                 .fetchOne();
     }
 }

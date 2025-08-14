@@ -87,8 +87,10 @@ public class FolderServiceImpl implements FolderService {
                 .folderName(folder.getFolderName())
                 .categoryId(category.getCategoryId())
                 .categoryName(category.getCategoryName())
-                .parentFolderId(parent.getFolderId()).build();
-    }
+                .parentFolderId(parent.getFolderId())
+                .createdAt(folder.getCreatedAt()) 
+                .updatedAt(folder.getUpdatedAt())
+                .build();    }
 
     // 폴더 이름 수정
     @Transactional
@@ -173,12 +175,26 @@ public class FolderServiceImpl implements FolderService {
     public List<FolderListResponseDTO> getSubFolders(Long userId, Long parentFolderId) {
         List<Folder> subFolders = usersFolderRepository.searchFolders(userId, null, parentFolderId, null, null, false);
 
+        List<UsersFolder> us = usersFolderRepository.findFolders(userId);
+
+        Map<Long, Boolean> bookmarkMap = us.stream()
+                .collect(Collectors.toMap(
+                        uf -> uf.getFolder().getFolderId(),
+                        UsersFolder::getIsBookmarked
+                ));
+
         return subFolders.stream()
-                .map(folder -> FolderListResponseDTO.builder()
-                        .folderId(folder.getFolderId())
-                        .folderName(folder.getFolderName())
-                        .parentFolderId(parentFolderId)
-                        .build())
+                .map(folder -> {
+                    boolean isBookmarked = bookmarkMap.getOrDefault(folder.getFolderId(), Boolean.FALSE);
+
+                    return FolderListResponseDTO.builder()
+                            .folderId(folder.getFolderId())
+                            .folderName(folder.getFolderName())
+                            .parentFolderId(parentFolderId)
+                            .isBookmarked(isBookmarked)
+                            .isSharing(getSharingStatus(folder.getFolderId()))
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 
@@ -200,12 +216,24 @@ public class FolderServiceImpl implements FolderService {
         Folder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
 
+        List<UsersFolder> us = usersFolderRepository.findFolders(userId);
+
+        Map<Long, Boolean> bookmarkMap = us.stream()
+                .collect(Collectors.toMap(
+                        uf -> uf.getFolder().getFolderId(),
+                        UsersFolder::getIsBookmarked
+                ));
+
         List<Folder> subFolders = folderRepository.findByParentFolder_FolderId(folderId);
         List<FolderSummaryDTO> subfolderDtos = subFolders.stream()
                 .map(f -> {
+                    boolean isBookmarked = bookmarkMap.getOrDefault(f.getFolderId(), Boolean.FALSE);
+
                     FolderSummaryDTO dto = new FolderSummaryDTO();
                     dto.setFolderId(f.getFolderId());
                     dto.setFolderName(f.getFolderName());
+                    dto.setIsBookmarked(isBookmarked);
+                    dto.setIsSharing(getSharingStatus(f.getFolderId()));
                     return dto;
                 }).toList();
 
@@ -241,4 +269,21 @@ public class FolderServiceImpl implements FolderService {
 
         return resp;
     }
+
+    // 공유 상태 확인
+    public String getSharingStatus(Long folderId) {
+        List<UsersFolder> relations = usersFolderRepository.findNonOwnerRelations(folderId);
+
+        if (relations.isEmpty()) {
+            // 개인 소유
+            return "personal";
+        } else if (relations.stream().anyMatch(UsersFolder::getIsViewer)) {
+            // 공유 상태
+            return "share";
+        } else {
+            // 공유 된 이력은 있지만 지금은 비공개
+            return "protect";
+        }
+    }
+
 }
