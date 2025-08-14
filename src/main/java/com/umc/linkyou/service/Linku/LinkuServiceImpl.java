@@ -125,23 +125,27 @@ public class LinkuServiceImpl implements LinkuService {
                         .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND)))
                 : domainRepository.findById(DEFAULT_DOMAIN_ID)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND));
-        //링크 생성
+        //Linku 생성 or 재사용 (Converter 사용)
         Optional<Linku> existingLinkuOpt = linkuRepository.findByLinku(normalizedLink);
-
         Linku linku = existingLinkuOpt.orElseGet(() -> {
-            // 새로 title 크롤링
             String crawledTitle = linkToImageService.extractTitle(normalizedLink);
-
-            // 새로 Linku 생성
-            Linku newLinku = Linku.builder()
-                    .linku(normalizedLink)
-                    .category(category)
-                    .domain(domain)
-                    .title(crawledTitle)
-                    .build();
-
+            Linku newLinku = LinkuConverter.toLinku(normalizedLink, category, domain, crawledTitle);
             return linkuRepository.save(newLinku);
         });
+
+        // 6. AiArticle 생성 (Linku 저장 직후)
+        if (aiKeywords != null && !aiKeywords.isBlank()) {
+            Situation defaultSituation = situationRepository.findById(1L)
+                    .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
+
+            if (linku.getAiArticle() == null) {
+                AiArticle aiArticle = AiArticleConverter.toEntityKeywordOnly(
+                        aiKeywords, linku, defaultSituation, category, emotion
+                );
+                linku.setAiArticle(aiArticle); // 연관관계 세팅
+                aiArticleRepository.save(aiArticle);
+            }
+        }
 
         //요청 보낸 사용자 저장
         Users user = userRepository.findById(userId)
@@ -174,27 +178,7 @@ public class LinkuServiceImpl implements LinkuService {
         LinkuFolder linkuFolder = LinkuConverter.toLinkuFolder(newfolder, usersLinku);
         linkuFolderRepository.save(linkuFolder);
 
-        // AI Article 생성 or 재사용
-        if (aiKeywords != null && !aiKeywords.isBlank()) {
-            Situation defaultSituation = situationRepository.findById(1L)
-                    .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
 
-            // 이미 aiArticle 존재 여부 확인 (Linku 1:1 매핑)
-            AiArticle existingAiArticle = linku.getAiArticle(); // 연관관계 매핑되어 있다면
-            // AiArticle existingAiArticle = aiArticleRepository.findByLinku(linku).orElse(null); // Repository 조회 방식
-
-            if (existingAiArticle == null){
-                // 없으면 새로 생성
-                AiArticle newAiArticle = AiArticleConverter.toEntityKeywordOnly(
-                        aiKeywords,
-                        linku,
-                        defaultSituation,
-                        category,
-                        emotion
-                );
-                aiArticleRepository.save(newAiArticle);
-            }
-        }
 
 
         LinkuResponseDTO.LinkuResultDTO resultDto =
