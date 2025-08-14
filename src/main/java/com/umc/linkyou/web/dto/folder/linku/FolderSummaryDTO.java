@@ -9,6 +9,4 @@ import lombok.Setter;
 public class FolderSummaryDTO {
     private Long folderId;
     private String folderName;
-    private Boolean isBookmarked;
-    private String isSharing;
 }

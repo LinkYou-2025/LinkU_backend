@@ -44,39 +44,28 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
             """)
     List<UsersFolder> searchViewers(@Param("folderId") Long folderId);
 
-    @Query("""
-                select uf
-                from UsersFolder uf
-                where uf.folder.folderId = :folderId
-                  and uf.isOwner = false
-            """)
-    List<UsersFolder> findNonOwnerRelations(@Param("folderId") Long folderId);
-
     // 중복 폴더 검사
     @Query("""
-                SELECT COUNT(uf) > 0 FROM UsersFolder uf
-                WHERE uf.user.id = :userId
-                  AND uf.folder.folderName = :folderName
-                  AND uf.folder.category = :category
-            """)
+        SELECT COUNT(uf) > 0 FROM UsersFolder uf
+        WHERE uf.user.id = :userId
+          AND uf.folder.folderName = :folderName
+          AND uf.folder.category = :category
+    """)
     boolean existsUserFolderNameInCategory(
             @Param("userId") Long userId,
             @Param("folderName") String folderName,
             @Param("category") Category category
     );
-
+           
     // 공유 받은 폴더 주인 찾기
     @Query(""" 
-            select uf
-            from UsersFolder uf
-            join fetch uf.user
-            where uf.folder.folderId = :folderId
-            and uf.isOwner = true""")
+                select uf
+                from UsersFolder uf
+                join fetch uf.user
+                where uf.folder.folderId = :folderId
+                and uf.isOwner = true""")
     Optional<UsersFolder> findOwnerByFolderId(@Param("folderId") Long folderId);
 
     @Query("SELECT uf FROM UsersFolder uf WHERE uf.folder.folderId IN :folderIds AND uf.isOwner = true")
     List<UsersFolder> findOwnersByFolderIdIn(@Param("folderIds") List<Long> folderIds);
-
-    @Query("SELECT uf FROM UsersFolder uf WHERE uf.user.id = :userId")
-    List<UsersFolder> findFolders(@Param("userId") Long userId);
 }
