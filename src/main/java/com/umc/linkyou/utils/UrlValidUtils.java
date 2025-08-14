@@ -58,9 +58,9 @@ public class UrlValidUtils {
             int responseCode = connection.getResponseCode();
             return responseCode >= 200 && responseCode < 400;
         } catch (SSLHandshakeException e) { //SSL 인증성 없음
-            throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
+            return false; // 컨트롤러에서 SUS_URL 처리
         } catch (Exception e) {
-            return false;
+            throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
         }
     }
 
