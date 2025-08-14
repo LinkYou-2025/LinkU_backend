@@ -40,4 +40,13 @@ public class DomainRepositoryImpl implements DomainRepositoryCustom {
                 .where(d.domainTail.in(domainTails))
                 .fetch();
     }
+    @Override
+    public List<Domain> findDomainsCursorPaging(Long lastDomainId, int pageSize) {
+        return queryFactory
+                .selectFrom(d)
+                .where(lastDomainId != null ? d.domainId.lt(lastDomainId) : null)
+                .orderBy(d.domainId.desc())
+                .limit(pageSize)
+                .fetch();
+    }
 }

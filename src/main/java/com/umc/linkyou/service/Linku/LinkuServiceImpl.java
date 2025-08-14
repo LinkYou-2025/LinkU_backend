@@ -58,7 +58,7 @@ public class LinkuServiceImpl implements LinkuService {
     private final LinkuRepository linkuRepository;
     private final CategoryRepository categoryRepository;
     private final EmotionRepository emotionRepository;
-    private final DomainRepositoryCustom domainRepository;
+    private final DomainRepository domainRepository;
     private final LinkuFolderRepository linkuFolderRepository;
     private final UsersLinkuRepository usersLinkuRepository;
     private final FolderRepository folderRepository;
