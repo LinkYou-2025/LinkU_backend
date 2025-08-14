@@ -8,7 +8,11 @@ import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.openApi.SummaryAnalysisResultDTO;
 import com.umc.linkyou.web.dto.AiArticleResponsetDTO;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
+@RequiredArgsConstructor
+@Component
 public class AiArticleConverter {
     // 엔티티 생성 메서드
     public static AiArticle toEntity(SummaryAnalysisResultDTO result,
@@ -55,6 +59,24 @@ public class AiArticleConverter {
                 .imgUrl(entity.getImgUrl())
                 .memo(usersLinku != null ? usersLinku.getMemo() : null)
                 .keyword(entity.getKeyword())
+                .build();
+    }
+    public static AiArticle toEntityKeywordOnly(
+            String keyword,
+            Linku linku,
+            Situation defaultSituation,
+            Category defaultCategory,
+            Emotion defaultEmotion
+    ) {
+        return AiArticle.builder()
+                .linku(linku)
+                .situation(defaultSituation)           // nullable=false
+                .title("")                             // nullable=false
+                .aiFeelingId(defaultEmotion.getEmotionId())
+                .aiCategoryId(defaultCategory.getCategoryId())
+                .summary("")                           // nullable=false
+                .imgUrl(null)
+                .keyword(keyword)                      // 실제로 넣고 싶은 값
                 .build();
     }
 }
