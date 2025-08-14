@@ -4,7 +4,8 @@ import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.repository.UserRepository;
 import com.umc.linkyou.TitleImgParser.LinkToImageService;
 import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
-import com.umc.linkyou.repository.classification.DomainRepository;
+import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
+import com.umc.linkyou.repository.classification.domainRepository.DomainRepositoryCustom;
 import com.umc.linkyou.service.curation.gpt.GptService;
 import com.umc.linkyou.domain.log.CurationTopLog;
 import com.umc.linkyou.service.curation.perplexity.PerplexityExternalSearchService;
@@ -23,7 +24,7 @@ public class ExternalRecommendServiceImpl implements ExternalRecommendService {
     private final InternalLinkCandidateService internalLinkCandidateService;
     private final CurationTopLogRepository curationTopLogRepository;
     private final GptService gptService;
-    private final DomainRepository domainRepository;
+    private final DomainRepositoryCustom domainRepository;
     private final LinkToImageService linkToImageService;
     private final PerplexityExternalSearchService perplexityExternalSearchService;
     private final UserRepository userRepository;

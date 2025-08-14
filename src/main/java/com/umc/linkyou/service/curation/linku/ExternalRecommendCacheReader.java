@@ -2,8 +2,8 @@ package com.umc.linkyou.service.curation.linku;
 
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
-import com.umc.linkyou.TitleImgParser.LinkToImageService;
-import com.umc.linkyou.repository.classification.DomainRepository;
+import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
+import com.umc.linkyou.repository.classification.domainRepository.DomainRepositoryCustom;
 import com.umc.linkyou.repository.curationLinkuRepository.CurationLinkuRepository;
 import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public class ExternalRecommendCacheReader {
 
     private final CurationLinkuRepository curationLinkuRepository;
-    private final DomainRepository domainRepository;
+    private final DomainRepositoryCustom domainRepository;
 
     private static final Domain UNKNOWN_DOMAIN =
             Domain.builder().name("unknown").imageUrl(null).build();
