@@ -22,6 +22,7 @@ public class LinkuResponseDTO {
         private String title;
         private String domainImageUrl;
         private String linkuImageUrl;
+        private Boolean aiArticleExists;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
     }

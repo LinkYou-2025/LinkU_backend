@@ -23,7 +23,7 @@ import com.umc.linkyou.TitleImgParser.LinkToImageService;
 import com.umc.linkyou.openApi.OpenAICategoryClassifier;
 import com.umc.linkyou.repository.*;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
-import com.umc.linkyou.repository.classification.domainRepository.DomainRepositoryCustom;
+import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.LogRepository.EmotionLogRepository;
 import com.umc.linkyou.repository.LogRepository.SituationLogRepository;
@@ -181,7 +181,7 @@ public class LinkuServiceImpl implements LinkuService {
 
 
         LinkuResponseDTO.LinkuResultDTO resultDto =
-                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain);
+                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain, null);
 
         boolean isSusUrl = UrlValidUtils.isURLConnectionOk(normalizedLink);
         return LinkuResponseDTO.LinkuCreateResult.builder()
@@ -241,10 +241,11 @@ public class LinkuServiceImpl implements LinkuService {
         // 4. LinkuFolder 최신 1개 조회
         LinkuFolder linkuFolder =
                 linkuFolderRepository.findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()).orElse(null);
+        boolean aiArticleExists = aiArticleRepository.existsAiArticleByLinkuId(linkuId);
 
         // 5. DTO 변환 및 반환
         LinkuResponseDTO.LinkuResultDTO dto = LinkuConverter.toLinkuResultDTO(
-                userId, linku, usersLinku, linkuFolder, category, domain
+                userId, linku, usersLinku, linkuFolder, category, domain, aiArticleExists
         );
         return ApiResponse.onSuccess("링크 상세 조회 성공", dto);
     } //링크 상세조회
@@ -292,8 +293,7 @@ public class LinkuServiceImpl implements LinkuService {
             Linku linku = rv.getLinku();
             UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linku.getLinkuId())
                     .orElse(null);
-            boolean aiArticleExists = aiArticleRepository.existsByLinku_LinkuId(linku.getLinkuId());
-
+            boolean aiArticleExists = aiArticleRepository.existsAiArticleByLinkuId(linku.getLinkuId());
             Domain domain = linku.getDomain();
 
             LinkuResponseDTO.LinkuSimpleDTO dto = toLinkuSimpleDTO(linku, usersLinku, domain, aiArticleExists);
@@ -383,7 +383,7 @@ public class LinkuServiceImpl implements LinkuService {
         Domain domain = linku.getDomain();
 
         // 13. DTO 변환해 반환 (모든 정보 최신상태로 응답)
-        return LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain);
+        return LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain, null);
     } //링크 수정
 
     @Override
@@ -465,7 +465,7 @@ public class LinkuServiceImpl implements LinkuService {
                     Linku linku = userLinku.getLinku();
                     Domain domain = linku.getDomain();
 
-                    boolean aiArticleExists = linku.getAiArticle() != null;
+                    boolean aiArticleExists = aiArticleRepository.existsAiArticleByLinkuId(linku.getLinkuId());
                     return LinkuConverter.toLinkuSimpleDTO(
                             linku,
                             userLinku,

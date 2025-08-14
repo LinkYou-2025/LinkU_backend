@@ -29,7 +29,8 @@ public class LinkuConverter {
             UsersLinku usersLinku,
             LinkuFolder linkuFolder,
             Category category,
-            Domain domain
+            Domain domain,
+            Boolean aiArticleExists
     ) {
         return LinkuResponseDTO.LinkuResultDTO.builder()
                 .userId(userId)
@@ -43,6 +44,7 @@ public class LinkuConverter {
                 .title(linku.getTitle())
                 .domainImageUrl(domain.getImageUrl())
                 .linkuImageUrl(usersLinku.getImageUrl())
+                .aiArticleExists(aiArticleExists)
                 .createdAt(linku.getCreatedAt())
                 .updatedAt(linku.getUpdatedAt())
                 .build();

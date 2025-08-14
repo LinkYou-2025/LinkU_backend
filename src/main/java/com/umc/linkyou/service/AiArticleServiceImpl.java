@@ -12,6 +12,7 @@ import com.umc.linkyou.TitleImgParser.LinkToImageService;
 import com.umc.linkyou.openApi.OpenAISummaryUtil;
 import com.umc.linkyou.openApi.SummaryAnalysisResultDTO;
 import com.umc.linkyou.repository.*;
+import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
