@@ -4,7 +4,6 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awsS3.AwsS3Service;
-import com.umc.linkyou.converter.AwsS3Converter;
 import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.converter.LogConverter;
@@ -19,7 +18,7 @@ import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.SituationJob;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
-import com.umc.linkyou.googleImgParser.LinkToImageService;
+import com.umc.linkyou.TitleImgParser.LinkToImageService;
 import com.umc.linkyou.openApi.OpenAICategoryClassifier;
 import com.umc.linkyou.repository.*;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
@@ -35,6 +34,7 @@ import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.utils.EmotionSimilarityUtil;
 import com.umc.linkyou.utils.UrlUtils;
+import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.linku.LinkuInternalDTO;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
@@ -82,19 +82,16 @@ public class LinkuServiceImpl implements LinkuService {
 
     @Override
     @Transactional
-    public LinkuResponseDTO.LinkuResultDTO createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
+    public LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
         // URL 정규화 적용
         String normalizedLink = UrlUtils.normalizeUrl(dto.getLinku());
 
         // 영상 링크 차단
-        if (isVideoLink(normalizedLink)) {
+        if (UrlValidUtils.isVideoLink(normalizedLink)) {
             throw new GeneralException(ErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
         }
-
-        // 유효하지 않은 링크 차단
-        if (!isValidUrl(dto.getLinku())) {
-            throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
-        }
+        // 유효하지 않은 링크
+        boolean isValidUrl = UrlValidUtils.isValidUrl(dto.getLinku()); //해당 함수에서 error반환
 
         // AI 카테고리 분류
         Long aiCategoryId = openAiCategoryClassifier.classifyCategoryByUrl(normalizedLink, categoryRepository.findAll());
@@ -111,7 +108,7 @@ public class LinkuServiceImpl implements LinkuService {
                 : emotionRepository.findById(dto.getEmotionId())
                 .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
         //도메인 가져오기
-        String domainTail = extractDomainTail(normalizedLink);
+        String domainTail = UrlValidUtils.extractDomainTail(normalizedLink);
         Domain domain = (domainTail != null)
                 ? domainRepository.findByDomainTail(domainTail)
                 .orElseGet(() -> domainRepository.findById(DEFAULT_DOMAIN_ID)
@@ -143,7 +140,7 @@ public class LinkuServiceImpl implements LinkuService {
         //image저장
         String imageUrl = null;
         if (image != null && !image.isEmpty()) {
-            imageUrl = AwsS3Converter.toImageUrl(image, awsS3Service);
+            imageUrl = awsS3Service.uploadFile(image, "linkucreate");
         } else {
             // 링크로 대표 이미지 추출 저장 실패 시 null로 저장
             imageUrl = linkToImageService.getRelatedImageFromUrl(linku.getLinku(),linku.getTitle());
@@ -167,104 +164,50 @@ public class LinkuServiceImpl implements LinkuService {
         LinkuFolder linkuFolder = LinkuConverter.toLinkuFolder(newfolder, usersLinku);
         linkuFolderRepository.save(linkuFolder);
 
-        return LinkuConverter.toLinkuResultDTO(
-                userId, linku, usersLinku, linkuFolder, category,domain
-        );
+        LinkuResponseDTO.LinkuResultDTO resultDto =
+                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain);
+
+        return LinkuResponseDTO.LinkuCreateResult.builder()
+                .data(resultDto)
+                .validUrl(isValidUrl)
+                .build();
+
     }
 // 링큐 생성
 
     @Override
     @Transactional
-    public ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuIsExistDTO>> existLinku(Long userId, String url) {
+    public ApiResponse<LinkuResponseDTO.LinkuIsExistDTO> existLinku(Long userId, String url) {
 
-        // 1. 영상 링크 차단
-        if (isVideoLink(url)) {
-            ErrorStatus error = ErrorStatus._LINKU_VIDEO_NOT_ALLOWED;
-            return ResponseEntity.status(error.getHttpStatus())
-                    .body(ApiResponse.onFailure(error.getCode(), error.getMessage(), null));
+        // 1. 영상 링크 차단 → 예외 던지기
+        if (UrlValidUtils.isVideoLink(url)) {
+            throw new GeneralException(ErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
         }
 
-        // 2. 유효하지 않은 링크 차단
-        if (!isValidUrl(url)) {
-            ErrorStatus error = ErrorStatus._LINKU_INVALID_URL;
-            return ResponseEntity.status(error.getHttpStatus())
-                    .body(ApiResponse.onFailure(error.getCode(), error.getMessage(), null));
+        // 2. 유효하지 않은 링크 차단 → 예외 던지기
+        if (!UrlValidUtils.isValidUrl(url)) {
+            throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
         }
 
         // 3. 기존에 링크 저장 여부 확인
-        Optional<UsersLinku> usersLinkuOpt = usersLinkuRepository.findByUserIdAndLinku_Linku(userId, url);
+        Optional<UsersLinku> usersLinkuOpt =
+                usersLinkuRepository.findByUserIdAndLinku_Linku(userId, url);
+
+        LinkuResponseDTO.LinkuIsExistDTO dto =
+                LinkuConverter.toLinkuIsExistDTO(userId, usersLinkuOpt.orElse(null));
 
         if (usersLinkuOpt.isPresent()) {
-            Linku linku = usersLinkuOpt.get().getLinku();
-            LinkuResponseDTO.LinkuIsExistDTO dto = LinkuConverter.toLinkuIsExistDTO(userId, usersLinkuOpt.orElse(null));
-            return ResponseEntity.ok(ApiResponse.onSuccess("링큐가 이미 존재합니다.", dto));
+            return ApiResponse.onSuccess("링큐가 이미 존재합니다.", dto);
         } else {
-            LinkuResponseDTO.LinkuIsExistDTO dto = LinkuConverter.toLinkuIsExistDTO(userId, null);
-            return ResponseEntity.ok(ApiResponse.onSuccess("링큐가 존재하지 않습니다.", dto));
+            return ApiResponse.onSuccess("링큐가 존재하지 않습니다.", dto);
         }
-    }
-    //링크가 이미 존재하는 지 여부 판단
+    }//링크가 이미 존재하는 지 여부 판단
 
-
-
-    // URL에서 도메인명만 추출 (예: https://blog.naver.com/abc → blog.naver.com)
-    public static String extractDomainTail(String url) {
-        try {
-            java.net.URI uri = new java.net.URI(url);
-            String domain = uri.getHost();
-            if (domain != null && domain.startsWith("www.")) {
-                domain = domain.substring(4);
-            }
-            return domain;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    //
-    private boolean isVideoLink(String url) {
-        // 영상 플랫폼 도메인 리스트
-        List<String> videoDomains = List.of(
-                "youtube.com", "youtu.be", "vimeo.com", "tiktok.com", "dailymotion.com", "kakao.tv", "navertv", "tv.kakao.com"
-        );
-
-        try {
-            URI uri = new URI(url);
-            String host = uri.getHost();
-            if (host == null) return false;
-
-            return videoDomains.stream().anyMatch(host::contains);
-        } catch (URISyntaxException e) {
-            return false;
-        }
-    }
-    private boolean isValidUrl(String url) {
-        // 1. URL 형식 문법 검사
-        try {
-            new URL(url);
-        } catch (MalformedURLException e) {
-            return false;
-        }
-
-        // 2. HTTP GET 요청으로 실제 존재 여부 검사 (HEAD보다 실패 확률 적음)
-        try {
-            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setRequestMethod("GET");
-            connection.setConnectTimeout(3000); // 3초 타임아웃
-            connection.setReadTimeout(3000);
-            connection.setInstanceFollowRedirects(true); // 리다이렉트 허용
-
-            int responseCode = connection.getResponseCode();
-            return responseCode >= 200 && responseCode < 400; // 2xx,3xx 정상 판단
-        } catch (Exception e) {
-            return false;
-        }
-    }
 
 
     @Override
     @Transactional
-    public ResponseEntity<ApiResponse<LinkuResponseDTO.LinkuResultDTO>> detailGetLinku(Long userId, Long linkuId) {
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailGetLinku(Long userId, Long linkuId) {
         // 1. 해당 사용자가 이 링크(linkuId)를 저장한 UsersLinku 찾기.
         UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
@@ -287,7 +230,7 @@ public class LinkuServiceImpl implements LinkuService {
         LinkuResponseDTO.LinkuResultDTO dto = LinkuConverter.toLinkuResultDTO(
                 userId, linku, usersLinku, linkuFolder, category, domain
         );
-        return ResponseEntity.ok(ApiResponse.onSuccess("링크 상세 조회 성공", dto));
+        return ApiResponse.onSuccess("링크 상세 조회 성공", dto);
     } //링크 상세조회
 
 
@@ -428,7 +371,7 @@ public class LinkuServiceImpl implements LinkuService {
 
     @Override
     @Transactional(readOnly = true)
-    public ResponseEntity<ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>>> recommendLinku(
+    public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
             Long userId, Long situationId, Long emotionId, int page, int size) {
 
         List<UsersLinku> userLinkus = usersLinkuRepository.findByUser_Id(userId);
@@ -494,7 +437,7 @@ public class LinkuServiceImpl implements LinkuService {
         int toIndex = Math.min(fromIndex + size, scoredList.size());
 
         if (fromIndex > scoredList.size()) {
-            return ResponseEntity.ok(ApiResponse.onSuccess(Collections.emptyList()));
+            return ApiResponse.onSuccess(Collections.emptyList());
         }
 
         List<LinkuInternalDTO.ScoredLinkuDTO> pagedList = scoredList.subList(fromIndex, toIndex);
@@ -503,7 +446,7 @@ public class LinkuServiceImpl implements LinkuService {
                 .map(scored -> LinkuConverter.toLinkuSimpleDTO(scored.getUserLinku()))
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(ApiResponse.onSuccess(result));
+        return ApiResponse.onSuccess(result);
     }
 
 

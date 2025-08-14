@@ -56,7 +56,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
                     return owner.getId();
                 }));
 
-        List<SharedFolderTreeResponseDTO> result = new ArrayList<>();
+      List<SharedFolderTreeResponseDTO> result = new ArrayList<>();
         for (Map.Entry<Long, List<Folder>> entry : userIdFolderMap.entrySet()) {
             Long ownerId = entry.getKey();
             List<Folder> folders = entry.getValue();

@@ -37,9 +37,11 @@ public enum ErrorStatus implements BaseErrorCode {
     //OPENAI관련 오류
     _AI_PARSE_ERROR(HttpStatus.BAD_REQUEST, "OPENAI5001", "AI 응답 파싱에 실패했습니다."),
     _AI_INVALID_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR, "OPENAI5002", "AI 응답이 예상한 형식이 아닙니다."),
+
     //AIArticle 생성오류
     _DUPLICATE_AI_ARTICLE(HttpStatus.CONFLICT, "AIARTICLE4091", "이미 해당 링크로 생성된 AI Article이 존재합니다."),
     _AI_ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND, "AIARTICLE4041", "해당하는 AI Article을 찾을 수 없습니다."),
+    _CONTENT_EXTRACTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "CRAWLER5001", "웹페이지 본문 추출에 실패했습니다."),
 
     //카테고리(폴더종류) 관련 에러
     _CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CATEGORY4041", "해당하는 카테고리를 찾을 수 없습니다."),

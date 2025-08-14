@@ -51,4 +51,11 @@ public class LinkuResponseDTO {
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
     }
+    @Setter
+    @Getter
+    @Builder
+    public static class LinkuCreateResult {
+        private LinkuResponseDTO.LinkuResultDTO data;
+        private boolean validUrl;
+    }
 }

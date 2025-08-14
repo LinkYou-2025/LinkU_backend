@@ -8,7 +8,7 @@ import com.umc.linkyou.domain.classification.*;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.mapping.SituationJob;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.googleImgParser.LinkToImageService;
+import com.umc.linkyou.TitleImgParser.LinkToImageService;
 import com.umc.linkyou.openApi.OpenAISummaryUtil;
 import com.umc.linkyou.openApi.SummaryAnalysisResultDTO;
 import com.umc.linkyou.repository.*;
@@ -103,6 +103,9 @@ public class AiArticleServiceImpl implements AiArticleService {
                 imageUrl
         );
         AiArticle saved = aiArticleRepository.save(article);
+        //linku에 연결
+        linku.setAiArticle(saved);
+        linkuRepository.save(linku);
 
         // 7. 유저 개별정보(memo 등)는 users_linku에서 조회 (없으면 null 가능)
         UsersLinku usersLinku = usersLinkuRepository.findByUserAndLinku(user, linku)

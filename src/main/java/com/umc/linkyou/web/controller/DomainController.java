@@ -1,10 +1,10 @@
 package com.umc.linkyou.web.controller;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.DomainConverter;
 import com.umc.linkyou.service.DomainService;
+import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.DomainDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class DomainController {
 
     private final DomainService domainService;
+    private final UsersUtils usersUtils;
 
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<DomainDTO.DomainReponseDTO> createLinku(
@@ -26,16 +27,9 @@ public class DomainController {
             @RequestParam(required = false) String domainTail,
             @RequestParam(required = false) MultipartFile image
     ) {
-        if (userDetails == null) {
-            return ApiResponse.onFailure(
-                    ErrorStatus._INVALID_TOKEN.getCode(),
-                    ErrorStatus._INVALID_TOKEN.getMessage(),
-                    null
-            );
-        }
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         DomainDTO.DomainRequestDTO domainCreateDTO = DomainConverter.toDomainCreateDTO(name, domainTail);
 
-        Long userId = userDetails.getUsers().getId();
         DomainDTO.DomainReponseDTO result = domainService.createDomain(userId,domainCreateDTO, image);
         return ApiResponse.onSuccess(result);
     }
@@ -48,13 +42,7 @@ public class DomainController {
             @RequestParam(required = false) String domainTail,
             @RequestParam(required = false) MultipartFile image
     ) {
-        if (userDetails == null) {
-            return ApiResponse.onFailure(
-                    ErrorStatus._INVALID_TOKEN.getCode(),
-                    ErrorStatus._INVALID_TOKEN.getMessage(),
-                    null
-            );
-        }
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         // id 포함한 DTO 생성
         DomainDTO.DomainRequestDTO domainUpdateDTO = DomainDTO.DomainRequestDTO.builder()
                 .id(id)
@@ -62,7 +50,6 @@ public class DomainController {
                 .domainTail(domainTail)
                 .build();
 
-        Long userId = userDetails.getUsers().getId();
         DomainDTO.DomainReponseDTO result = domainService.updateDomain(userId, domainUpdateDTO, image);
         return ApiResponse.onSuccess(result);
     }
