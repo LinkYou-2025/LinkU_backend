@@ -3,10 +3,8 @@ package com.umc.linkyou.service.folder;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.FolderConverter;
-import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
-import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
@@ -88,8 +86,10 @@ public class FolderServiceImpl implements FolderService {
                 .folderName(folder.getFolderName())
                 .categoryId(category.getCategoryId())
                 .categoryName(category.getCategoryName())
-                .parentFolderId(parent.getFolderId()).build();
-    }
+                .parentFolderId(parent.getFolderId())
+                .createdAt(folder.getCreatedAt())
+                .updatedAt(folder.getUpdatedAt())
+                .build();    }
 
     // 폴더 이름 수정
     @Transactional
@@ -174,12 +174,26 @@ public class FolderServiceImpl implements FolderService {
     public List<FolderListResponseDTO> getSubFolders(Long userId, Long parentFolderId) {
         List<Folder> subFolders = usersFolderRepository.searchFolders(userId, null, parentFolderId, null, null, false);
 
+        List<UsersFolder> us = usersFolderRepository.findFolders(userId);
+
+        Map<Long, Boolean> bookmarkMap = us.stream()
+                .collect(Collectors.toMap(
+                        uf -> uf.getFolder().getFolderId(),
+                        UsersFolder::getIsBookmarked
+                ));
+
         return subFolders.stream()
-                .map(folder -> FolderListResponseDTO.builder()
-                        .folderId(folder.getFolderId())
-                        .folderName(folder.getFolderName())
-                        .parentFolderId(parentFolderId)
-                        .build())
+                .map(folder -> {
+                    boolean isBookmarked = bookmarkMap.getOrDefault(folder.getFolderId(), Boolean.FALSE);
+
+                    return FolderListResponseDTO.builder()
+                            .folderId(folder.getFolderId())
+                            .folderName(folder.getFolderName())
+                            .parentFolderId(parentFolderId)
+                            .isBookmarked(isBookmarked)
+                            .isSharing(getSharingStatus(folder.getFolderId()))
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 
@@ -201,19 +215,31 @@ public class FolderServiceImpl implements FolderService {
         Folder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
 
+        List<UsersFolder> us = usersFolderRepository.findFolders(userId);
+
+        Map<Long, Boolean> bookmarkMap = us.stream()
+                .collect(Collectors.toMap(
+                        uf -> uf.getFolder().getFolderId(),
+                        UsersFolder::getIsBookmarked
+                ));
+
         List<Folder> subFolders = folderRepository.findByParentFolder_FolderId(folderId);
         List<FolderSummaryDTO> subfolderDtos = subFolders.stream()
                 .map(f -> {
+                    boolean isBookmarked = bookmarkMap.getOrDefault(f.getFolderId(), Boolean.FALSE);
+
                     FolderSummaryDTO dto = new FolderSummaryDTO();
                     dto.setFolderId(f.getFolderId());
                     dto.setFolderName(f.getFolderName());
+                    dto.setIsBookmarked(isBookmarked);
+                    dto.setIsSharing(getSharingStatus(f.getFolderId()));
                     return dto;
                 }).toList();
 
-        // 커서 (없으면 Long.MAX_VALUE)
+        // 커서: 없으면 Long.MAX_VALUE
         Long cursorId = (cursor == null) ? Long.MAX_VALUE : Long.parseLong(cursor);
 
-        // 폴더 내부 링크들
+        // 링크 매핑(폴더 내부의 링크만) → LinkuFolder 리스트 반환 받아야 함
         List<LinkuFolder> linkuFolders = linkuFolderRepository.findByFolder(folder);
         List<Linku> linkus = linkuFolders.stream()
                 .map(lf -> lf.getUsersLinku().getLinku())
@@ -222,28 +248,11 @@ public class FolderServiceImpl implements FolderService {
                 .limit(limit)
                 .toList();
 
-        List<LinkuSummaryDTO> linkDtos = linkuFolders.stream().map(lf -> {
-            Linku link = lf.getUsersLinku().getLinku();
+        List<LinkuSummaryDTO> linkDtos = linkus.stream().map(link -> {
             LinkuSummaryDTO dto = new LinkuSummaryDTO();
-
-            // 링크
             dto.setLinkuId(link.getLinkuId());
-            dto.setLinkuImageUrl(lf.getUsersLinku().getImageUrl());
             dto.setTitle(link.getTitle());
             dto.setUrl(link.getLinku());
-
-            // 태그(키워드)
-            AiArticle ai = link.getAiArticle();
-            if (ai != null) {
-                ai.getKeyword(); // ai 프록시 초기화
-            }
-
-            // 도메인
-            Domain domain = link.getDomain();
-            if (domain != null) {
-                domain.getImageUrl(); // domain 프록시 초기화
-            }
-
             dto.setCreatedAt(link.getCreatedAt().toString());
             return dto;
         }).toList();
@@ -252,11 +261,28 @@ public class FolderServiceImpl implements FolderService {
                 ? String.valueOf(linkus.get(linkus.size() - 1).getLinkuId())
                 : null;
 
-        FolderLinkusResponseDTO response = new FolderLinkusResponseDTO();
-        response.setFolders(subfolderDtos);
-        response.setLinks(linkDtos);
-        response.setNextCursor(newCursor);
+        FolderLinkusResponseDTO resp = new FolderLinkusResponseDTO();
+        resp.setFolders(subfolderDtos);
+        resp.setLinks(linkDtos);
+        resp.setNextCursor(newCursor);
 
-        return response;
+        return resp;
     }
+
+    // 공유 상태 확인
+    public String getSharingStatus(Long folderId) {
+        List<UsersFolder> relations = usersFolderRepository.findNonOwnerRelations(folderId);
+
+        if (relations.isEmpty()) {
+            // 개인 소유
+            return "personal";
+        } else if (relations.stream().anyMatch(UsersFolder::getIsViewer)) {
+            // 공유 상태
+            return "share";
+        } else {
+            // 공유 된 이력은 있지만 지금은 비공개
+            return "protect";
+        }
+    }
+
 }

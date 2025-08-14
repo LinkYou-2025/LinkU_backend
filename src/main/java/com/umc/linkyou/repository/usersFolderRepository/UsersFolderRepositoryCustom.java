@@ -2,6 +2,7 @@ package com.umc.linkyou.repository.usersFolderRepository;
 
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
