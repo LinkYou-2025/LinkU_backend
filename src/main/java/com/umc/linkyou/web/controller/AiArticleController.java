@@ -6,6 +6,7 @@ import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.repository.AiArticleRepository;
 import com.umc.linkyou.service.AiArticleService;
+import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.AiArticleResponsetDTO;
 import com.umc.linkyou.web.dto.DomainDTO;
 import lombok.RequiredArgsConstructor;
@@ -21,36 +22,24 @@ public class AiArticleController {
 
     final private AiArticleService aiArticleService;
     final private AiArticleRepository aiArticleRepository;
+    final private UsersUtils usersUtils;
 
     @PostMapping("/{linkuid}")
-    public ResponseEntity<ApiResponse<AiArticleResponsetDTO.AiArticleResultDTO>> saveAiArticle(
+    public ApiResponse<AiArticleResponsetDTO.AiArticleResultDTO> saveAiArticle(
             @PathVariable("linkuid") Long linkuId,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        if (userDetails == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    ApiResponse.onFailure(
-                            ErrorStatus._INVALID_TOKEN.getCode(),
-                            ErrorStatus._INVALID_TOKEN.getMessage(),
-                            null
-                    )
-            );
-        }
-        Long userId = userDetails.getUsers().getId();
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         boolean exists = aiArticleRepository.existsByLinku_LinkuId(linkuId);
         AiArticleResponsetDTO.AiArticleResultDTO result;
         if (!exists) {
             result = aiArticleService.saveAiArticle(linkuId, userId);
             // 201: 생성! (ApiResponse.of 쓰면 code/message도 생성용으로 가공 가능)
-            return ResponseEntity
-                    .status(HttpStatus.CREATED)
-                    .body(ApiResponse.of(SuccessStatus._CREATED, result));
+            return ApiResponse.of(SuccessStatus._CREATED, result);
         } else {
             result = aiArticleService.showAiArticle(linkuId, userId);
             // 200: 정상 조회!
-            return ResponseEntity
-                    .status(HttpStatus.OK)
-                    .body(ApiResponse.of(SuccessStatus._OK, result));
+            return ApiResponse.of(SuccessStatus._OK, result);
         }
     }
 

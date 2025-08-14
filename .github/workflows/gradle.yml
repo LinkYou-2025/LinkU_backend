@@ -2,9 +2,9 @@ name: linkyou
 
 on:
   push:
-    branches: [ "develop", "feat/#117-redis-refresh" ]
+    branches: [ "develop", "feat/#128-user-auth-method" ]
   pull_request:
-    branches: [ "develop", "feat/#117-redis-refresh" ]
+    branches: [ "develop", "feat/#128-user-auth-method" ]
   workflow_dispatch:
 
 permissions:
@@ -22,6 +22,8 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+
+
 
       - name: Gradle Caching
         uses: actions/cache@v3
@@ -45,6 +47,24 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew build -x test
+
+      - name: Extract SSL fullchain certificate
+        continue-on-error: true
+        run: |
+          mkdir -p certs
+          echo | openssl s_client -connect ${{ secrets.SERVER_DOMAIN }}:443 -showcerts 2>/dev/null \
+            | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > certs/server.crt
+          echo "Fullchain certificate extracted to certs/server.crt"
+
+
+      - name: Prepare Docker build context (copy cert)
+        run: |
+          if [ -f certs/server.crt ]; then
+            cp certs/server.crt ./
+          else
+            echo "Certificate not found, skipping copy."
+          fi
+
 
       - name: Docker build
         run: |

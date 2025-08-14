@@ -8,6 +8,7 @@ import com.umc.linkyou.domain.log.CurationTopLog;
 import com.umc.linkyou.repository.CurationMentRepository;
 import com.umc.linkyou.service.curation.gpt.GptService;
 import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
+import com.umc.linkyou.service.curation.linku.ExternalRecommendMaterializer;
 import com.umc.linkyou.web.dto.curation.CreateCurationRequest;
 import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
 import com.umc.linkyou.repository.CurationRepository;
@@ -33,6 +34,7 @@ public class CurationServiceImpl implements CurationService {
     private final CurationRepository curationRepository;
     private final CurationTopLogService curationTopLogService;
     private final ThumbnailUrlProvider thumbnailUrlProvider;
+    private final ExternalRecommendMaterializer externalRecommendMaterializer;
 
     /**
      * 유저의 큐레이션을 생성하고, 감정/상황 로그 기반 top3 태그를 계산해 저장한다.
@@ -84,6 +86,9 @@ public class CurationServiceImpl implements CurationService {
 
             curationRepository.save(curation);
             curationTopLogService.calculateAndSaveTopLogs(user.getId(), curation);
+
+            // ✅ 배치 자동생성 시에도 선계산
+            externalRecommendMaterializer.generateAndStoreExternalAsync(curation.getCurationId());
         }
     }
 
