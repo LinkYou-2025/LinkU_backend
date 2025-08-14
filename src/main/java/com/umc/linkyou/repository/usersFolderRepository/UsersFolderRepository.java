@@ -1,5 +1,6 @@
 package com.umc.linkyou.repository.usersFolderRepository;
 
+import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -42,6 +43,19 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
                   and uf.isViewer = true
             """)
     List<UsersFolder> searchViewers(@Param("folderId") Long folderId);
+
+    // 중복 폴더 검사
+    @Query("""
+        SELECT COUNT(uf) > 0 FROM UsersFolder uf
+        WHERE uf.user.id = :userId
+          AND uf.folder.folderName = :folderName
+          AND uf.folder.category = :category
+    """)
+    boolean existsUserFolderNameInCategory(
+            @Param("userId") Long userId,
+            @Param("folderName") String folderName,
+            @Param("category") Category category
+    );
            
     // 공유 받은 폴더 주인 찾기
     @Query(""" 

@@ -54,8 +54,10 @@ public class FolderServiceImpl implements FolderService {
         }
 
         // 중복 폴더명 검사 (카테고리 내부)
-        boolean exists = folderRepository.existsDuplicateFolder(
-                req.getFolderName(), parent, category
+        boolean exists = usersFolderRepository.existsUserFolderNameInCategory(
+                userId,
+                req.getFolderName(),
+                category
         );
 
         if (exists) {
@@ -247,7 +249,7 @@ public class FolderServiceImpl implements FolderService {
         }).toList();
 
         String newCursor = (linkus.size() == limit)
-                ? String.valueOf(linkus.get(linkus.size()-1).getLinkuId())
+                ? String.valueOf(linkus.get(linkus.size() - 1).getLinkuId())
                 : null;
 
         FolderLinkusResponseDTO response = new FolderLinkusResponseDTO();
