@@ -9,13 +9,47 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 @Slf4j
 @Component
 public class WebContentExtractor {
 
+    // URL 인코딩 메서드 추가
+    private String normalizeUrl(String inputUrl) {
+        try {
+            URI uri = new URI(inputUrl);
+            String encodedPath = uri.getRawPath() != null
+                    ? URLEncoder.encode(uri.getRawPath(), StandardCharsets.UTF_8)
+                    .replace("+", "%20")
+                    : null;
+            String encodedQuery = uri.getRawQuery() != null
+                    ? URLEncoder.encode(uri.getRawQuery(), StandardCharsets.UTF_8)
+                    .replace("+", "%20")
+                    : null;
+
+            return new URI(
+                    uri.getScheme(),
+                    uri.getAuthority(),
+                    encodedPath,
+                    encodedQuery,
+                    uri.getFragment()
+            ).toString();
+
+        } catch (Exception e) {
+            log.error("[URL 인코딩 실패] {}", inputUrl, e);
+            return inputUrl; // 실패 시 원본 반환
+        }
+    }
+
     public String extractTextFromUrl(String url) {
         try {
-            Document doc = Jsoup.connect(url)
+            // 한글/특수문자 안전 인코딩 처리
+            String safeUrl = normalizeUrl(url);
+
+            Document doc = Jsoup.connect(safeUrl) //safeUrl 사용
                     .userAgent("Mozilla/5.0")
                     .timeout(15000)
                     .get();
@@ -106,7 +140,6 @@ public class WebContentExtractor {
             return extracted;
 
         } catch (GeneralException e) {
-            // 이미 커스텀 예외면 그대로 던짐
             throw e;
         } catch (Exception e) {
             log.error("[크롤링 실패] URL: {}, 이유: {}", url, e.getMessage());
