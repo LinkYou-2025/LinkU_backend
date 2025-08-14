@@ -52,6 +52,17 @@ public class FolderServiceImpl implements FolderService {
             throw new GeneralException(ErrorStatus._FOLDER_CATEGORY_NOT_FOUND);
         }
 
+        // 중복 폴더명 검사 (카테고리 내부)
+        boolean exists = usersFolderRepository.existsUserFolderNameInCategory(
+                userId,
+                req.getFolderName(),
+                category
+        );
+
+        if (exists) {
+            throw new GeneralException(ErrorStatus._FOLDER_CREATE_DUPLICATE);
+        }
+
         // 폴더 테이블에 저장
         Folder folder = Folder.builder()
                 .folderName(req.getFolderName())
@@ -220,7 +231,7 @@ public class FolderServiceImpl implements FolderService {
         }).toList();
 
         String newCursor = (linkus.size() == limit)
-                ? String.valueOf(linkus.get(linkus.size()-1).getLinkuId())
+                ? String.valueOf(linkus.get(linkus.size() - 1).getLinkuId())
                 : null;
 
         FolderLinkusResponseDTO resp = new FolderLinkusResponseDTO();
