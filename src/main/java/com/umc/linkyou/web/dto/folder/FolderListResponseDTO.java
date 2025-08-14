@@ -12,5 +12,6 @@ public class FolderListResponseDTO {
     private String folderName;
     private Long parentFolderId;
     private Boolean isBookmarked;
+    private String isSharing;
 }
 
