@@ -292,10 +292,11 @@ public class LinkuServiceImpl implements LinkuService {
             Linku linku = rv.getLinku();
             UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linku.getLinkuId())
                     .orElse(null);
+            boolean aiArticleExists = aiArticleRepository.existsByLinku_LinkuId(linku.getLinkuId());
 
             Domain domain = linku.getDomain();
 
-            LinkuResponseDTO.LinkuSimpleDTO dto = toLinkuSimpleDTO(linku, usersLinku, domain);
+            LinkuResponseDTO.LinkuSimpleDTO dto = toLinkuSimpleDTO(linku, usersLinku, domain, aiArticleExists);
             results.add(dto);
         }
         return results;
@@ -459,8 +460,21 @@ public class LinkuServiceImpl implements LinkuService {
         List<LinkuInternalDTO.ScoredLinkuDTO> pagedList = scoredList.subList(fromIndex, toIndex);
 
         List<LinkuResponseDTO.LinkuSimpleDTO> result = pagedList.stream()
-                .map(scored -> LinkuConverter.toLinkuSimpleDTO(scored.getUserLinku()))
+                .map(scored -> {
+                    UsersLinku userLinku = scored.getUserLinku();
+                    Linku linku = userLinku.getLinku();
+                    Domain domain = linku.getDomain();
+
+                    boolean aiArticleExists = linku.getAiArticle() != null;
+                    return LinkuConverter.toLinkuSimpleDTO(
+                            linku,
+                            userLinku,
+                            domain,
+                            aiArticleExists
+                    );
+                })
                 .collect(Collectors.toList());
+
 
         return ApiResponse.onSuccess(result);
     }

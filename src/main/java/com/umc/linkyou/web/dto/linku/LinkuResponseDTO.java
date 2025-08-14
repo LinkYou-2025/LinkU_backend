@@ -37,6 +37,7 @@ public class LinkuResponseDTO {
         private String domain;
         private String domainImageUrl;
         private String linkuImageUrl;
+        private boolean aiArticleExists;
     }
     @Setter
     @Getter
