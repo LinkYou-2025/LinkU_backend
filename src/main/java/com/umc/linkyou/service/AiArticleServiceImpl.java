@@ -18,6 +18,7 @@ import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.web.dto.AiArticleResponsetDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -7,7 +7,7 @@ import com.umc.linkyou.domain.log.CurationTopLog;
 import com.umc.linkyou.domain.mapping.CurationLinku;
 import com.umc.linkyou.repository.CurationRepository;
 import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
-import com.umc.linkyou.repository.UserRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.curationLinkuRepository.CurationLinkuRepository;
 import com.umc.linkyou.service.curation.perplexity.PerplexityExternalSearchService;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
