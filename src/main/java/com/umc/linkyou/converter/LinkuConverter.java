@@ -23,6 +23,38 @@ public class LinkuConverter {
     }
 
     // Linku생성 → LinkuResultDTO 변환
+    // Linku생성 → LinkuResultDTO 변환
+    public static LinkuResponseDTO.LinkuResultDTO toLinkuResultDTO(
+            Long userId,
+            Linku linku,
+            UsersLinku usersLinku,
+            LinkuFolder linkuFolder,
+            Category category,
+            Domain domain,
+            Boolean aiArticleExists,
+            String keyword,
+            String summary
+    ) {
+        return LinkuResponseDTO.LinkuResultDTO.builder()
+                .userId(userId)
+                .linkuId(linku.getLinkuId())
+                .linkuFolderId(linkuFolder != null ? linkuFolder.getLinkuFolderId() : null)
+                .categoryId(category != null ? category.getCategoryId() : null)
+                .linku(linku.getLinku())
+                .memo(usersLinku.getMemo())
+                .emotionId(usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
+                .domain(domain != null ? domain.getName() : null)
+                .title(linku.getTitle())
+                .domainImageUrl(domain != null ? domain.getImageUrl() : null)
+                .linkuImageUrl(usersLinku.getImageUrl())
+                .aiArticleExists(aiArticleExists)
+                .createdAt(linku.getCreatedAt())
+                .updatedAt(linku.getUpdatedAt())
+                .keyword(keyword)
+                .summary(summary)
+                .build();
+    }
+
     public static LinkuResponseDTO.LinkuResultDTO toLinkuResultDTO(
             Long userId,
             Linku linku,

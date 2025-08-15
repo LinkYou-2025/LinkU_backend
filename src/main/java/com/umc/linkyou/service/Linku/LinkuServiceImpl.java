@@ -279,12 +279,25 @@ public class LinkuServiceImpl implements LinkuService {
                 linkuFolderRepository.findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()).orElse(null);
         boolean aiArticleExists = aiArticleRepository.existsAiArticleByLinkuId(linkuId);
 
-        // 5. DTO 변환 및 반환
+        String keyword = null;
+        String summary = null;
+
+        if (aiArticleExists) {
+            // 실제 AiArticle 조회
+            AiArticle aiArticle = aiArticleRepository.findByLinku(linku)
+                    .orElse(null);
+            if (aiArticle != null) {
+                keyword = aiArticle.getKeyword();
+                summary = aiArticle.getSummary();
+            }
+        }
+
         LinkuResponseDTO.LinkuResultDTO dto = LinkuConverter.toLinkuResultDTO(
-                userId, linku, usersLinku, linkuFolder, category, domain, aiArticleExists
+                userId, linku, usersLinku, linkuFolder, category, domain, aiArticleExists, keyword, summary
         );
+
         return ApiResponse.onSuccess("링크 상세 조회 성공", dto);
-    } //링크 상세조회
+    }//링크 상세조회
 
 
     @Transactional

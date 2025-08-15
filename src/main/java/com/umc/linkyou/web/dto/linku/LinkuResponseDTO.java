@@ -25,6 +25,8 @@ public class LinkuResponseDTO {
         private Boolean aiArticleExists;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+        private String keyword;
+        private String summary;
     }
     @Getter
     @Setter
