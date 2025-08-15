@@ -175,13 +175,21 @@ public class LinkuServiceImpl implements LinkuService {
     private Linku findOrCreateLinku(String normalizedLink, Category category, Domain domain) {
         return linkuRepository.findByLinku(normalizedLink)
                 .orElseGet(() -> {
+                    // 크롤링해서 title 추출
                     String crawledTitle = linkToImageService.extractTitle(normalizedLink);
+                    // 크롤링 실패 시 기본값으로 세팅 (수정된 부분)
+                    if (crawledTitle == null || crawledTitle.isBlank()) {
+                        crawledTitle = "제목 없음"; // 원하시는 기본값으로 변경 가능
+                    }
                     return linkuRepository.save(LinkuConverter.toLinku(normalizedLink, category, domain, crawledTitle));
                 });
     }
-    // 6. AI Article 생성
+    // 6. AI Article 생성 (기본 키워드 처리 포함, 수정된 부분)
     private void createAiArticleIfNeeded(Linku linku, Category category, Emotion emotion, String aiKeywords) {
-        if (aiKeywords != null && !aiKeywords.isBlank() && linku.getAiArticle() == null) {
+        if (aiKeywords == null || aiKeywords.isBlank()) {
+            aiKeywords = "키워드 없음"; // 기본키워드로 설정
+        }
+        if (linku.getAiArticle() == null) {
             Situation defaultSituation = situationRepository.findById(1L)
                     .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
             AiArticle aiArticle = AiArticleConverter.toEntityKeywordOnly(aiKeywords, linku, defaultSituation, category, emotion);
