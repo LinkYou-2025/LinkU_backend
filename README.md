@@ -145,5 +145,6 @@ backend-server/
 [refactor]	전면 수정이 있을 때 사용</br>
 [test]	테스트 코드 추가 시 사용 </br>
 
-
+# 서비스 아키텍처
+<img width="876" height="976" alt="링큐 서비스 아키텍쳐 drawio" src="https://github.com/user-attachments/assets/0a5d8699-0cb5-4b3a-a485-94a94a2f17d9" />
 
