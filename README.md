@@ -146,6 +146,5 @@ backend-server/
 [test]	테스트 코드 추가 시 사용 </br>
 
 # 서비스 아키텍처
-
-<img width="876" height="977" alt="링큐 서비스 아키텍쳐 drawio (1)" src="https://github.com/user-attachments/assets/8aac9147-e7fc-46b9-9def-0550a198d81c" />
+<img width="876" height="977" alt="링큐 서비스 아키텍쳐 drawio (2)" src="https://github.com/user-attachments/assets/77e646eb-1ccc-4a62-a5cd-7af6719fa669" />
 
