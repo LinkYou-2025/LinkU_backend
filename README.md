@@ -148,3 +148,6 @@ backend-server/
 # 서비스 아키텍처
 <img width="876" height="977" alt="링큐 서비스 아키텍쳐 drawio (2)" src="https://github.com/user-attachments/assets/77e646eb-1ccc-4a62-a5cd-7af6719fa669" />
 
+
+# erd
+<img width="5340" height="2092" alt="linkU-BE" src="https://github.com/user-attachments/assets/920add42-371d-4b07-b7af-52fda4b913c2" />
