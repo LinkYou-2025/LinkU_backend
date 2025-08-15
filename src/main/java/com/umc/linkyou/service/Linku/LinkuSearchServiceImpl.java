@@ -1,5 +1,6 @@
 package com.umc.linkyou.service.Linku;
 
+import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepositoryCustom;
 import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
 import lombok.RequiredArgsConstructor;
@@ -13,12 +14,12 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class LinkuSearchServiceImpl implements LinkuSearchService {
 
-    private final LinkuRepositoryCustom linkuRepositoryCustom;
+    private final LinkuRepository linkuRepository;
 
     @Override
     public List<LinkuSearchSuggestionResponse> suggest(Long userId, String keyword) {
         String q = (keyword == null) ? "" : keyword.trim();
         if (q.length() < 2) return List.of(); // 입력 2자 미만 가드
-        return linkuRepositoryCustom.findUserSavedSuggestions(userId, q);
+        return linkuRepository.findUserSavedSuggestions(userId, q);
     }
 }
