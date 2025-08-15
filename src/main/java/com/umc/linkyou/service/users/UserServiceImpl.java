@@ -350,20 +350,21 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
         user.setJob(job);
 
-        // 닉네임 업데이트
-        if (request.getNickname() != null) {
+        if (request.getNickname() != null && !request.getNickname().equals(user.getNickName())) {
+            boolean exists = userRepository.findByNickName(request.getNickname()).isPresent();
+            if (exists) throw new UserHandler(ErrorStatus._DUPLICATE_NICKNAME);
             user.setNickName(request.getNickname());
         }
 
-        purposeRepository.deleteAllByUser(user); // 기존 목적 삭제
-
+        // 기존 목적 리스트 삭제 후 신규 목적 저장
+        purposeRepository.deleteAllByUser(user);
         List<Purposes> newPurposes = request.getPurposes().stream()
                 .map(purpose -> new Purposes(purpose, user))
                 .collect(Collectors.toList());
         purposeRepository.saveAll(newPurposes);
 
-        interestRepository.deleteAllByUser(user); // 기존 관심사 삭제
-
+        // 기존 관심사 리스트 삭제 후 신규 관심사 저장
+        interestRepository.deleteAllByUser(user);
         List<Interests> newInterests = request.getInterests().stream()
                 .map(interest -> new Interests(interest, user))
                 .collect(Collectors.toList());
@@ -371,6 +372,7 @@ public class UserServiceImpl implements UserService {
 
         userRepository.save(user);
     }
+
 
     // 임시 비밀번호 생성
     public String createPassword() {
