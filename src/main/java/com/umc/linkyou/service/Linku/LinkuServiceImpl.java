@@ -315,13 +315,22 @@ public class LinkuServiceImpl implements LinkuService {
     public List<LinkuResponseDTO.LinkuSimpleDTO> getRecentViewedLinkus(Long userId, int limit) {
         List<RecentViewedLinku> recentList = recentViewedLinkuRepository
                 .findTop10ByUser_IdOrderByViewedAtDesc(userId);
+
+        // 모든 linkuId를 한 번에 뽑아서 AI 아티클 존재 여부 조회
+        List<Long> linkuIds = recentList.stream()
+                .map(rv -> rv.getLinku().getLinkuId())
+                .collect(Collectors.toList());
+
+        Map<Long, Boolean> aiArticleExistsMap = aiArticleRepository.existsAiArticleByLinkuIds(linkuIds);
+
         List<LinkuResponseDTO.LinkuSimpleDTO> results = new ArrayList<>();
+
 
         for (RecentViewedLinku rv : recentList) {
             Linku linku = rv.getLinku();
             UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linku.getLinkuId())
                     .orElse(null);
-            boolean aiArticleExists = aiArticleRepository.existsAiArticleByLinkuId(linku.getLinkuId());
+            boolean aiArticleExists = aiArticleExistsMap.getOrDefault(linku.getLinkuId(), false);
             Domain domain = linku.getDomain();
 
             LinkuResponseDTO.LinkuSimpleDTO dto = toLinkuSimpleDTO(linku, usersLinku, domain, aiArticleExists);
@@ -487,13 +496,24 @@ public class LinkuServiceImpl implements LinkuService {
 
         List<LinkuInternalDTO.ScoredLinkuDTO> pagedList = scoredList.subList(fromIndex, toIndex);
 
+        // 1. 추천된 링크들의 linkuId 리스트 추출
+        List<Long> linkuIds = pagedList.stream()
+                .map(scored -> scored.getUserLinku().getLinku().getLinkuId())
+                .collect(Collectors.toList());
+
+        // 2. 한 번의 쿼리로 AI 아티클 존재여부를 Map으로 조회
+        Map<Long, Boolean> aiArticleExistsMap = aiArticleRepository.existsAiArticleByLinkuIds(linkuIds);
+
+        // 3. Map을 참고하여 DTO 변환
         List<LinkuResponseDTO.LinkuSimpleDTO> result = pagedList.stream()
                 .map(scored -> {
                     UsersLinku userLinku = scored.getUserLinku();
                     Linku linku = userLinku.getLinku();
                     Domain domain = linku.getDomain();
 
-                    boolean aiArticleExists = aiArticleRepository.existsAiArticleByLinkuId(linku.getLinkuId());
+                    // AI 아티클 존재 여부를 Map에서 꺼내옴 (없으면 false)
+                    boolean aiArticleExists = aiArticleExistsMap.getOrDefault(linku.getLinkuId(), false);
+
                     return LinkuConverter.toLinkuSimpleDTO(
                             linku,
                             userLinku,
