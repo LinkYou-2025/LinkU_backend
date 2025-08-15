@@ -1,4 +1,4 @@
-package com.umc.linkyou.repository;
+package com.umc.linkyou.repository.userRepository;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.QAiArticle;

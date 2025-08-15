@@ -13,7 +13,7 @@ import com.umc.linkyou.converter.EmailConverter;
 import com.umc.linkyou.domain.EmailVerification;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.repository.EmailRepository;
-import com.umc.linkyou.repository.UserRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

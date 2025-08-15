@@ -4,7 +4,7 @@ import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.mapping.CurationLike;
 import com.umc.linkyou.repository.CurationRepository;
-import com.umc.linkyou.repository.UserRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.mapping.CurationLikeRepository;
 import com.umc.linkyou.web.dto.curation.LikedCurationResponse;
 import jakarta.transaction.Transactional;

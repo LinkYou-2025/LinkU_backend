@@ -21,6 +21,8 @@ import com.umc.linkyou.repository.*;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.categoryRepository.UsersCategoryColorRepository;
 import com.umc.linkyou.repository.classification.InterestRepository;
+import com.umc.linkyou.repository.userRepository.UserQueryRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.JobRepository;

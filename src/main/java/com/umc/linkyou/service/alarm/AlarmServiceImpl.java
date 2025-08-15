@@ -5,7 +5,7 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.UsersFcmToken;
 import com.umc.linkyou.repository.UserFcmTokenRepository;
-import com.umc.linkyou.repository.UserRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

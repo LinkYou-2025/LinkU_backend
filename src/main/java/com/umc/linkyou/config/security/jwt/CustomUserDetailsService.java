@@ -1,7 +1,7 @@
 package com.umc.linkyou.config.security.jwt;
 
 import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.repository.UserRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
