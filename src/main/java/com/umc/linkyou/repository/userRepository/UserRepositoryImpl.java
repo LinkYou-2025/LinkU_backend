@@ -47,10 +47,11 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                         queryFactory.select(usersFolder.folder.folderId.countDistinct())
                                 .from(usersFolder)
                                 .where(usersFolder.user.id.eq(userId)),
-                        // AI 링크 개수: UsersLinku → linku → aiArticle 조건 (title not empty)
+                        // AI 링크 개수: UsersLinku → linku → aiArticle 조건 (title not null and not empty)
                         queryFactory.select(usersLinku.linku.aiArticle.countDistinct())
                                 .from(usersLinku)
                                 .where(usersLinku.user.id.eq(userId)
+                                        .and(usersLinku.linku.aiArticle.title.isNotNull())
                                         .and(usersLinku.linku.aiArticle.title.isNotEmpty()))
                 ))
                 .from(users)
