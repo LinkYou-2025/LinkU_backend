@@ -85,111 +85,139 @@ public class LinkuServiceImpl implements LinkuService {
     @Override
     @Transactional
     public LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
-        // URL 정규화 적용
-        String normalizedLink = UrlUtils.normalizeUrl(dto.getLinku());
+        // 1) URL 정규화 & 검증 (비디오 링크 여부, URL 유효성 체크)
+        String normalizedLink = validateAndNormalizeUrl(dto.getLinku());
 
-        // 영상 링크 차단
-        if (UrlValidUtils.isVideoLink(normalizedLink)) {
-            throw new GeneralException(ErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
-        }
+        // 2) AI 분류 실행 → Category + AI 키워드 반환
+        AiCategoryInfo aiInfo = resolveCategoryAndKeywords(normalizedLink);
+        Category category = aiInfo.category;
+        String aiKeywords = aiInfo.aiKeywords;
 
-        // 유효하지 않은 링크 차단
-        if (!UrlValidUtils.isValidUrl(dto.getLinku())) {
-            throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
-        }
+        // 3) 감정(Emotion) 조회 (없으면 기본값)
+        Emotion emotion = resolveEmotion(dto.getEmotionId());
 
-        // AI 카테고리 분류
+        // 4) Domain 조회 (없으면 기본값)
+        Domain domain = resolveDomain(normalizedLink);
+
+        // 5) Linku 조회 또는 신규 생성
+        Linku linku = findOrCreateLinku(normalizedLink, category, domain);
+
+        // 6) AI Article 존재 여부 확인하고 필요시 생성
+        createAiArticleIfNeeded(linku, category, emotion, aiKeywords);
+
+        // 7) 요청 보낸 사용자 조회
+        Users user = findUser(userId);
+
+        // 8) 이미지 저장 (파일 업로드 or 링크 이미지 추출)
+        String imageUrl = processImage(image, linku);
+
+        // 9) UsersLinku 생성 & 저장
+        UsersLinku usersLinku = createUsersLinku(user, linku, emotion, dto.getMemo(), imageUrl);
+
+        // 10) 폴더 조회 또는 신규 생성
+        Folder folder = findOrCreateFolder(userId, category);
+
+        // 11) LinkuFolder 생성 & 저장
+        LinkuFolder linkuFolder = LinkuConverter.toLinkuFolder(folder, usersLinku);
+        linkuFolderRepository.save(linkuFolder);
+
+        // 12) 응답 DTO 변환
+        LinkuResponseDTO.LinkuResultDTO resultDto =
+                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain, null);
+
+        // 13) 최종 결과 반환
+        return LinkuResponseDTO.LinkuCreateResult.builder()
+                .data(resultDto)
+                .validUrl(UrlValidUtils.isURLConnectionOk(normalizedLink)) // URL 연결 가능 여부
+                .build();
+    }// 링큐 생성
+
+    //링큐 생성 편의 메소드 시작
+    // 1. URL 정규화 및 기본 검증(영상 여부, 유효성)
+    private String validateAndNormalizeUrl(String url) {
+        String normalized = UrlUtils.normalizeUrl(url);
+        if (UrlValidUtils.isVideoLink(normalized)) throw new GeneralException(ErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
+        if (!UrlValidUtils.isValidUrl(url)) throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
+        return normalized;
+    }
+
+    // 2. AI 카테고리 분류 + Category 조회 결과 묶어서 반환
+    private record AiCategoryInfo(Category category, String aiKeywords) {}
+
+    private AiCategoryInfo resolveCategoryAndKeywords(String normalizedLink) {
         OpenAICategoryClassifier.CategoryResult aiResult =
                 openAiCategoryClassifier.classifyCategoryByUrl(normalizedLink, categoryRepository.findAll());
-
         Long aiCategoryId = (aiResult != null) ? aiResult.getCategoryId() : null;
         String aiKeywords = (aiResult != null) ? aiResult.getKeywords() : null;
-
         Category category = Optional.ofNullable(aiCategoryId)
                 .flatMap(categoryRepository::findById)
                 .or(() -> categoryRepository.findById(DEFAULT_CATEGORY_ID))
                 .orElseThrow(() -> new GeneralException(ErrorStatus._CATEGORY_NOT_FOUND));
-
-
-        Emotion emotion = (dto.getEmotionId() == null || dto.getEmotionId() <= 0)
-                ? emotionRepository.findById(DEFAULT_EMOTION_ID)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND))
-                : emotionRepository.findById(dto.getEmotionId())
-                .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
-        //도메인 가져오기
+        return new AiCategoryInfo(category, aiKeywords);
+    }
+    // 3. 감정(Emotion) 조회
+    private Emotion resolveEmotion(Long emotionId) {
+        return (emotionId == null || emotionId <= 0)
+                ? emotionRepository.findById(DEFAULT_EMOTION_ID).orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND))
+                : emotionRepository.findById(emotionId).orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
+    }
+    // 4. Domain 조회
+    private Domain resolveDomain(String normalizedLink) {
         String domainTail = UrlValidUtils.extractDomainTail(normalizedLink);
-        Domain domain = (domainTail != null)
+        return domainTail != null
                 ? domainRepository.findByDomainTail(domainTail)
                 .orElseGet(() -> domainRepository.findById(DEFAULT_DOMAIN_ID)
                         .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND)))
                 : domainRepository.findById(DEFAULT_DOMAIN_ID)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND));
-        //Linku 생성 or 재사용 (Converter 사용)
-        Optional<Linku> existingLinkuOpt = linkuRepository.findByLinku(normalizedLink);
-        Linku linku = existingLinkuOpt.orElseGet(() -> {
-            String crawledTitle = linkToImageService.extractTitle(normalizedLink);
-            Linku newLinku = LinkuConverter.toLinku(normalizedLink, category, domain, crawledTitle);
-            return linkuRepository.save(newLinku);
-        });
-
-        // 6. AiArticle 생성 (Linku 저장 직후)
-        if (aiKeywords != null && !aiKeywords.isBlank()) {
+    }
+    // 5. Linku 조회 또는 생성
+    private Linku findOrCreateLinku(String normalizedLink, Category category, Domain domain) {
+        return linkuRepository.findByLinku(normalizedLink)
+                .orElseGet(() -> {
+                    String crawledTitle = linkToImageService.extractTitle(normalizedLink);
+                    return linkuRepository.save(LinkuConverter.toLinku(normalizedLink, category, domain, crawledTitle));
+                });
+    }
+    // 6. AI Article 생성
+    private void createAiArticleIfNeeded(Linku linku, Category category, Emotion emotion, String aiKeywords) {
+        if (aiKeywords != null && !aiKeywords.isBlank() && linku.getAiArticle() == null) {
             Situation defaultSituation = situationRepository.findById(1L)
                     .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
-
-            if (linku.getAiArticle() == null) {
-                AiArticle aiArticle = AiArticleConverter.toEntityKeywordOnly(
-                        aiKeywords, linku, defaultSituation, category, emotion
-                );
-                linku.setAiArticle(aiArticle); // 연관관계 세팅
-                aiArticleRepository.save(aiArticle);
-            }
+            AiArticle aiArticle = AiArticleConverter.toEntityKeywordOnly(aiKeywords, linku, defaultSituation, category, emotion);
+            linku.setAiArticle(aiArticle);
+            aiArticleRepository.save(aiArticle);
         }
-
-        //요청 보낸 사용자 저장
-        Users user = userRepository.findById(userId)
+    }
+    // 7. 사용자 조회
+    private Users findUser(Long userId) {
+        return userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
-
-        //image저장
-        String imageUrl = null;
+    }
+    // 8. 이미지 업로드/추출 처리
+    private String processImage(MultipartFile image, Linku linku) {
         if (image != null && !image.isEmpty()) {
-            imageUrl = awsS3Service.uploadFile(image, "linkucreate");
-        } else {
-            // 링크로 대표 이미지 추출 저장 실패 시 null로 저장
-            imageUrl = linkToImageService.getRelatedImageFromUrl(linku.getLinku(),linku.getTitle());
+            return awsS3Service.uploadFile(image, "linkucreate");
         }
-
-        //usersLinku생성
-        UsersLinku usersLinku = LinkuConverter.toUsersLinku(user, linku, emotion, dto.getMemo(),imageUrl);
-        usersLinkuRepository.save(usersLinku);
-
-        // 유저가 동일한 폴더명을 가진 폴더를 이미 가지고 있는지 조회
-        Folder newfolder = usersFolderRepository.findFolderByUserIdAndFolderName(userId, category.getCategoryName())
+        return linkToImageService.getRelatedImageFromUrl(linku.getLinku(), linku.getTitle());
+    }
+    // 9. UsersLinku 생성/저장
+    private UsersLinku createUsersLinku(Users user, Linku linku, Emotion emotion, String memo, String imageUrl) {
+        UsersLinku usersLinku = LinkuConverter.toUsersLinku(user, linku, emotion, memo, imageUrl);
+        return usersLinkuRepository.save(usersLinku);
+    }
+    // 10. 폴더 조회/생성
+    private Folder findOrCreateFolder(Long userId, Category category) {
+        return usersFolderRepository.findFolderByUserIdAndFolderName(userId, category.getCategoryName())
                 .orElseGet(() -> {
                     Folder newFolder = folderConverter.toFolder(category);
                     folderRepository.save(newFolder);
-
-                    UsersFolder newUsersFolder = folderConverter.toUsersFolder(user, newFolder);
+                    UsersFolder newUsersFolder = folderConverter.toUsersFolder(userRepository.getReferenceById(userId), newFolder);
                     usersFolderRepository.save(newUsersFolder);
-
                     return newFolder;
                 });
-        LinkuFolder linkuFolder = LinkuConverter.toLinkuFolder(newfolder, usersLinku);
-        linkuFolderRepository.save(linkuFolder);
-
-
-
-
-        LinkuResponseDTO.LinkuResultDTO resultDto =
-                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain, null);
-
-        boolean isSusUrl = UrlValidUtils.isURLConnectionOk(normalizedLink);
-        return LinkuResponseDTO.LinkuCreateResult.builder()
-                .data(resultDto)
-                .validUrl(isSusUrl)
-                .build();
     }
-// 링큐 생성
+    //링큐 생성 편의 메소드 끝
 
     @Override
     @Transactional

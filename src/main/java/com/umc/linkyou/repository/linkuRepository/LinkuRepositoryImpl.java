@@ -3,6 +3,7 @@ package com.umc.linkyou.repository.linkuRepository;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.QLinku;
 import com.umc.linkyou.domain.classification.QDomain;
 import com.umc.linkyou.domain.mapping.QUsersLinku;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -24,32 +26,47 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
         if (q.length() < 2) return List.of();
 
         QUsersLinku ul = QUsersLinku.usersLinku;
-        QLinku l = QLinku.linku1;          // QLinku static 인스턴스
+        QLinku l = QLinku.linku1;
         QDomain d = QDomain.domain;
 
-        // 제목 내 검색어 위치 (앞쪽일수록 값이 작음, 미일치 시 0)
         var pos = Expressions.numberTemplate(Integer.class, "INSTR({0}, {1})", l.title, q);
 
         return queryFactory
                 .select(Projections.constructor(
                         LinkuSearchSuggestionResponse.class,
-                        l.title,        // title
-                        d.imageUrl,      // domainImageUrl
-                        l.linku         // linkUrl
+                        l.title,   // title
+                        d.imageUrl, // domainImageUrl
+                        l.linku    // linkUrl
                 ))
                 .from(ul)
-                .join(ul.linku, l)
-                .leftJoin(l.domain, d)
+                .join(ul.linku, l).fetchJoin()        // Linku N+1 방지
+                .leftJoin(l.domain, d).fetchJoin()   // Domain N+1 방지
                 .where(
                         ul.user.id.eq(userId)
                                 .and(l.title.containsIgnoreCase(q))
                 )
                 .orderBy(
-                        // 앞쪽 일치 우선 (미일치 pos=0은 가장 뒤로)
-                        Expressions.numberTemplate(Integer.class,
-                                "CASE WHEN {0}=0 THEN 9999 ELSE {0} END", pos).asc(),
+                        Expressions.numberTemplate(
+                                Integer.class,
+                                "CASE WHEN {0}=0 THEN 9999 ELSE {0} END", pos
+                        ).asc(),
                         l.title.asc()
                 )
                 .fetch();
     }
+
+    @Override
+    public Optional<Linku> findByLinku(String normalizedLink) {
+        QLinku l = QLinku.linku1;
+
+        // AiArticle만 fetch join (이후 바로 null 체크 및 세팅하기 때문)
+        Linku result = queryFactory
+                .selectFrom(l)
+                .leftJoin(l.aiArticle).fetchJoin()
+                .where(l.linku.eq(normalizedLink))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
+    }
+
 }
