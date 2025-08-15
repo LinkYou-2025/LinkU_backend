@@ -7,6 +7,7 @@ import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.EmailVerification;
 import com.umc.linkyou.domain.UserRefreshToken;
+import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.classification.Category;
@@ -20,6 +21,7 @@ import com.umc.linkyou.repository.*;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.categoryRepository.UsersCategoryColorRepository;
 import com.umc.linkyou.repository.classification.InterestRepository;
+import com.umc.linkyou.repository.userRepository.UserQueryRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
@@ -58,6 +60,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     private final PasswordEncoder passwordEncoder;
+    private final UserQueryRepository userQueryRepository;
 
     private final JwtTokenProvider jwtTokenProvider;
 
@@ -322,7 +325,17 @@ public class UserServiceImpl implements UserService {
     // 마이페이지 조회
     @Override
     public UserResponseDTO.UserInfoDTO userInfo(Long userId){
-        return userRepository.findUserWithFoldersAndLinks(userId);
+        String nickName = userQueryRepository.findNicknameByUserId(userId);
+        String email = userQueryRepository.findEmailByUserId(userId);
+        Gender gender = userQueryRepository.findGenderByUserId(userId);
+        Job job = userQueryRepository.findJobByUserId(userId);
+        Long linkCount = userQueryRepository.countLinksByUserId(userId);
+        Long folderCount = userQueryRepository.countFoldersByUserId(userId);
+        Long aiLinkCount = userQueryRepository.countAiLinksByUserId(userId);
+
+        return UserConverter.toUserInfoDTO(
+                nickName, email, gender, job, linkCount, folderCount, aiLinkCount
+        );
     }
 
     // 마이페이지 수정
