@@ -39,8 +39,8 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
                         l.linku    // linkUrl
                 ))
                 .from(ul)
-                .join(ul.linku, l).fetchJoin()        // Linku N+1 방지
-                .leftJoin(l.domain, d).fetchJoin()   // Domain N+1 방지
+                .join(ul.linku, l)       // Linku N+1 방지
+                .leftJoin(l.domain, d)   // Domain N+1 방지
                 .where(
                         ul.user.id.eq(userId)
                                 .and(l.title.containsIgnoreCase(q))
