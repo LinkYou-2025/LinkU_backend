@@ -22,6 +22,17 @@ LinkU 백엔드 레포지토리 입니다.
 
 ---
 
+### 💙 팀원 소개
+
+|장서원|김하진|나현주|조효림|
+|:---:|:---:|:---:|:---:|
+|<img src="https://github.com/user-attachments/assets/65b56c2f-15f4-4dcd-9871-ac4656773441" width="300" height="230">|<img src="https://github.com/user-attachments/assets/7319fc3a-29cd-48b9-b3a0-860368117081" width="300" height="230">|<img src="https://github.com/HyeonJooooo.png" width="300" height="230">|<img src="https://github.com/user-attachments/assets/8becc477-f7d2-4d85-96ba-0b9e8719413a" width="300" height="230">|
+|[@oculo0204](https://github.com/oculo0204)|[@Hajin99](https://github.com/Hajin99)|[@HyeonJooooo](https://github.com/HyeonJooooo)|[@hyorim-jo](https://github.com/hyorim-jo)|
+|ai기반 링크 생성 및 추천, 회원 탈퇴, 서버 배포| 회원정보 관련 기능, redis 설정 |ai기반 링크 큐레이션, cloudwatch 설정| 폴더 공유 포함 폴더 관련 기능|
+
+
+
+
 ## 🛠 기술 스택 및 환경
 
 - **Backend**  
@@ -80,16 +91,7 @@ backend-server/
 └── build.gradle
 ```
 
-### 💙 팀원 소개
 
-|장서원|김하진|나현주|조효림|
-|:---:|:---:|:---:|:---:|
-|<img src="https://github.com/user-attachments/assets/65b56c2f-15f4-4dcd-9871-ac4656773441" width="300" height="230">|<img src="https://github.com/user-attachments/assets/7319fc3a-29cd-48b9-b3a0-860368117081" width="300" height="230">|<img src="https://github.com/HyeonJooooo.png" width="300" height="230">|<img src="https://github.com/user-attachments/assets/8becc477-f7d2-4d85-96ba-0b9e8719413a" width="300" height="230">|
-|[@oculo0204](https://github.com/oculo0204)|[@Hajin99](https://github.com/Hajin99)|[@HyeonJooooo](https://github.com/HyeonJooooo)|[@hyorim-jo](https://github.com/hyorim-jo)|
-|ai기반 링크 생성 및 추천, 회원 탈퇴, 서버 배포| 회원정보 관련 기능, redis 설정 |ai기반 링크 큐레이션, cloudwatch 설정| 폴더 공유 포함 폴더 관련 기능|
-
-
-</br></br>
 
 ## 📌 Branch 전략 ##
 ## Branch
