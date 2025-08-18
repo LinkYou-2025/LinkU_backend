@@ -7,6 +7,7 @@ import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
+import com.sendgrid.helpers.mail.objects.Personalization;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.converter.EmailConverter;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.Year;
 import java.util.Optional;
 
 @Slf4j
@@ -43,6 +45,13 @@ public class EmailService {
 
     @Value("${spring.sendgrid.from}")
     private String fromEmail;
+
+    // ✅ 추가: 다이나믹 템플릿 ID & 로고 URL (S3 공개 URL)
+    @Value("${spring.sendgrid.templates.verify-id}")
+    private String verifyTemplateId;
+
+    @Value("${cloud.aws.s3.base-url}")
+    private String s3BaseUrl;
 
     public void sendEmail(String toEmail,
                           String title,
@@ -72,6 +81,42 @@ public class EmailService {
             log.info("메일 전송 성공: {}", toEmail);
         } catch (IOException e) {
             log.error("메일 전송 중 오류 발생 toEmail: {}, title: {}, text: {}", toEmail, title, text, e);
+            throw new UserHandler(ErrorStatus._SEND_MAIL_FAILED);
+        }
+    }
+
+    /**
+     * ✅ 신규: 다이나믹 템플릿(HTML)로 인증 메일 전송
+     * 템플릿 변수: nickname, code, expiresInMinutes, year, logoUrl, (옵션) verifyUrl
+     */
+    public void sendVerificationEmailTemplate(String toEmail,
+                                              String nickname,
+                                              String code,
+                                              int expiresInMinutes) {
+        try {
+            Mail mail = new Mail();
+            // From 표시 이름 추가
+            mail.setFrom(new Email(fromEmail, "Link You"));
+
+            // 템플릿 ID 지정
+            mail.setTemplateId(verifyTemplateId);
+
+            // 수신자 & 템플릿 변수
+            Personalization p = new Personalization();
+            p.addTo(new Email(toEmail));
+            p.addDynamicTemplateData("nickname", nickname);
+            p.addDynamicTemplateData("code", code);
+            p.addDynamicTemplateData("expiresInMinutes", expiresInMinutes);
+            p.addDynamicTemplateData("year", Year.now().getValue());
+            p.addDynamicTemplateData("logoUrl", s3BaseUrl + "/linkuLogo/logo_white.png");
+
+            mail.addPersonalization(p);
+
+            // 발송
+            send(mail);
+            log.info("템플릿 인증 메일 전송 성공: {}", toEmail);
+        } catch (Exception e) {
+            log.error("템플릿 인증 메일 전송 실패 toEmail: {}, code: {}", toEmail, code, e);
             throw new UserHandler(ErrorStatus._SEND_MAIL_FAILED);
         }
     }

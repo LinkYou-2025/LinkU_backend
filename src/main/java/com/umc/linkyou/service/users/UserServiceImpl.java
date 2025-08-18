@@ -260,14 +260,24 @@ public class UserServiceImpl implements UserService {
         this.checkDuplicatedEmail(toEmail);
         String title = "Link You 이메일 인증 번호";
         String authCode = this.createCode();
+        int expiresInMinutes = 10;
+        String nickname = "링큐 회원";
 
         log.info("인증 코드: {}", authCode);
 
         try {
-            emailService.sendEmail(toEmail, title, authCode);
+            //emailService.sendEmail(toEmail, title, authCode);
+            //emailService.saveCode(toEmail, authCode);
+
+            // 템플릿 기반 HTML 메일로 전송
+            emailService.sendVerificationEmailTemplate(
+                    toEmail,
+                    nickname,
+                    authCode,
+                    expiresInMinutes
+            );
+
             emailService.saveCode(toEmail, authCode);
-            //redisService.setValues(AUTH_CODE_PREFIX + toEmail,
-            //        authCode, Duration.ofMillis(this.authCodeExpirationMillis));
             log.info("이메일 전송 완료: {}", toEmail);
         } catch (Exception e) {
             log.error("이메일 전송 실패: {}", toEmail, e);
