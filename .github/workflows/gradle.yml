@@ -1,15 +1,12 @@
 name: linkyou
-
 on:
   push:
     branches: [ "develop", "feat/#128-user-auth-method" ]
   pull_request:
     branches: [ "develop", "feat/#128-user-auth-method" ]
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,8 +20,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-
-
       - name: Gradle Caching
         uses: actions/cache@v3
         with:
@@ -35,7 +30,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: make application.properties
+      - name: Make application.properties
         run: |
           mkdir -p src/main/resources
           echo "$APPLICATION" > src/main/resources/application.properties
@@ -56,7 +51,6 @@ jobs:
             | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > certs/server.crt
           echo "Fullchain certificate extracted to certs/server.crt"
 
-
       - name: Prepare Docker build context (copy cert)
         run: |
           if [ -f certs/server.crt ]; then
@@ -65,7 +59,6 @@ jobs:
             echo "Certificate not found, skipping copy."
           fi
 
-
       - name: Docker build
         run: |
           docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
@@ -73,7 +66,7 @@ jobs:
           docker tag app ${{ secrets.DOCKER_REPO_NAME }}:latest
           docker push ${{ secrets.DOCKER_REPO_NAME }}:latest
 
-      - name: Deploy to dev
+      - name: Deploy using docker-compose and deploy.sh
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -82,21 +75,19 @@ jobs:
           script: |
             sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
             sudo docker pull ${{ secrets.DOCKER_REPO_NAME }}:latest
-            sudo docker stop linku || true
-            sudo docker rm linku || true
-            sudo docker run -d --name linku --log-driver=syslog -p 8080:8080 \
-              -e TZ=Asia/Seoul \
-              -e SPRING_PROFILES_ACTIVE= \
-              ${{ secrets.DOCKER_REPO_NAME }}:latest
+            cd /home/ubuntu
+            sudo docker-compose pull
+            cd /home/ubuntu/linkyou
+            sudo bash deploy.sh
             sudo docker image prune -a -f
-      - name: Check logs and fail if MariaDB driver missing
+
+      - name: Check logs for MariaDB driver errors
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            # 컨테이너 시작 후 10초 대기 (애플리케이션 기동 대기)
             sleep 10
             LOG=$(sudo docker logs $(sudo docker ps -lq))
             echo "$LOG"
