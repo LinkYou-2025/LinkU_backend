@@ -47,7 +47,7 @@ public class LinkuConverter {
                 .title(linku.getTitle())
                 .domainImageUrl(domain != null ? domain.getImageUrl() : null)
                 .linkuImageUrl(usersLinku.getImageUrl())
-                .aiArticleExists(aiArticleExists)
+                .aiArticleExists(aiArticleExists != null ? aiArticleExists : false)
                 .createdAt(linku.getCreatedAt())
                 .updatedAt(linku.getUpdatedAt())
                 .keyword(keyword)
@@ -76,7 +76,7 @@ public class LinkuConverter {
                 .title(linku.getTitle())
                 .domainImageUrl(domain.getImageUrl())
                 .linkuImageUrl(usersLinku.getImageUrl())
-                .aiArticleExists(aiArticleExists)
+                .aiArticleExists(aiArticleExists != null ? aiArticleExists : false)
                 .createdAt(linku.getCreatedAt())
                 .updatedAt(linku.getUpdatedAt())
                 .build();
