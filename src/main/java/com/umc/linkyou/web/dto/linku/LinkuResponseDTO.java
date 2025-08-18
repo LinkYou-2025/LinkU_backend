@@ -22,7 +22,8 @@ public class LinkuResponseDTO {
         private String title;
         private String domainImageUrl;
         private String linkuImageUrl;
-        private Boolean aiArticleExists;
+        @Builder.Default
+        private Boolean aiArticleExists = false;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
         private String keyword;
@@ -40,7 +41,8 @@ public class LinkuResponseDTO {
         private String domain;
         private String domainImageUrl;
         private String linkuImageUrl;
-        private boolean aiArticleExists;
+        @Builder.Default
+        private Boolean aiArticleExists = false;
     }
     @Setter
     @Getter
