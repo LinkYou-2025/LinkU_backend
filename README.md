@@ -6,29 +6,16 @@
 
 > **유저맞춤 링크추천**으로 _"사용자에게 가장 적합한 콘텐츠를 제공"_ 하며,  
 > 단순 아카이빙을 넘어, 정보 재소비와 재발견의 즐거움을 제공.
-<img width="1920" height="1400" alt="표지" src="https://github.com/user-attachments/assets/7e92645c-c528-42fa-a393-73c301b2bf28" />
-
-
-**✅ 진행 사항 확인**  
-- **Notion**에서 자세한 진행사항 보러가기 ->   
-  [![Notion](https://img.shields.io/badge/Notion-000000?style=flat-square&logo=notion&logoColor=white)](https://sapphire-lamprey-5db.notion.site/1f393020f65580249c69d231b96abbec?source=copy_link)
-
----
-
-## 📖 프로젝트 소개  
-<aside>
-💡 링큐 (Link U) : **LINK U, THINK YOU**
-
-> 당신을 생각하는 링크, 링큐
-“사용자의 라이프스타일에 맞춰 AI가 링크를 추천하고, 맞춤형 큐레이션을 제공하는 앱”
-> 
-</aside>
-
 - 사용자가 앱에 저장한 링크를 바탕으로 AI가 정보를 간단히 요약하고 분류
 - 저장된 링크 기반으로 사용자의 라이프스타일, 감정 상태 등을 고려한 맞춤형 큐레이션 서비스 제공
 - 저장한 링크를 맞춤형 뉴스레터 형식으로 제공
+<img width="1920" height="1400" alt="표지" src="https://github.com/user-attachments/assets/7e92645c-c528-42fa-a393-73c301b2bf28" />
 
----
+
+### ✅ 진행 사항 확인
+- **Notion**에서 자세한 진행사항 보러가기 ->   
+  [![Notion](https://img.shields.io/badge/Notion-000000?style=flat-square&logo=notion&logoColor=white)](https://sapphire-lamprey-5db.notion.site/1f393020f65580249c69d231b96abbec?source=copy_link)
+
 
 ### 💙 팀원 소개
 
