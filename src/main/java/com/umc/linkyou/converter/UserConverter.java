@@ -45,15 +45,16 @@ public class UserConverter {
                 .build();
     }
 
-    public static UserResponseDTO.UserInfoDTO toUserInfoDTO(String nickName, String email, Gender gender, Job job, Long linkCount, Long folderCount, Long aiLinkCount) {
-        return UserResponseDTO.UserInfoDTO.builder()
-                .nickname(nickName)
-                .email(email)
-                .gender(gender)
-                .job(job)
-                .myLinku(linkCount)
-                .myFolder(folderCount)
-                .myAiLinku(aiLinkCount)
+    public static UserResponseDTO.UserProfileSummaryDto toUserInfoDTO(UserResponseDTO.UserProfileSummaryDto s) {
+
+        return UserResponseDTO.UserProfileSummaryDto.builder()
+                .nickName(s.getNickName())
+                .email(s.getEmail())
+                .gender(s.getGender())
+                .job(s.getJob())
+                .linkCount(s.getLinkCount())
+                .folderCount(s.getFolderCount())
+                .aiLinkCount(s.getAiLinkCount())
                 .build();
     }
     public static UserResponseDTO.withDrawalResultDTO toWithDrawalResultDTO(Users user) {

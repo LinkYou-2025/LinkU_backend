@@ -71,8 +71,7 @@ public class UserController {
 
     // 마이페이지 조회
     @GetMapping("/{userId}")
-    public ApiResponse<UserResponseDTO.UserInfoDTO> getUserInfo(@AuthenticationPrincipal CustomUserDetails userDetails, @PathVariable("userId") Long userId) {
-        String email = usersUtils.getAuthenticatedUserEmail(userDetails);
+    public ApiResponse<UserResponseDTO.UserProfileSummaryDto> getUserInfo(@AuthenticationPrincipal CustomUserDetails userDetails, @PathVariable("userId") Long userId) {
         return ApiResponse.onSuccess(userService.userInfo(userId));
     }
 
