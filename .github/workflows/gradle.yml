@@ -70,7 +70,7 @@ jobs:
           docker tag app ${{ secrets.DOCKER_REPO_NAME }}:latest
           docker push ${{ secrets.DOCKER_REPO_NAME }}:latest
 
-      - name: Deploy using docker-compose and deploy.sh
+      - name: Deploy using docker compose and deploy.sh
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -80,7 +80,7 @@ jobs:
             sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
             sudo docker pull ${{ secrets.DOCKER_REPO_NAME }}:latest
             cd /home/ubuntu
-            sudo docker-compose pull
+            sudo docker compose pull
             cd /home/ubuntu/linkyou
             sudo bash deploy.sh
             sudo docker image prune -a -f
