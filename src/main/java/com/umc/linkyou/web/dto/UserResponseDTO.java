@@ -80,10 +80,9 @@ public class UserResponseDTO {
         private final String email;
         private final Gender gender;
         private final Job job;
-        private final Long linkCount;
-        private final Long folderCount;
-        private final Long aiLinkCount;
+        private final Long myLinku;
+        private final Long myFolder;
+        private final Long myAiLinku;
     }
-
 
 }
