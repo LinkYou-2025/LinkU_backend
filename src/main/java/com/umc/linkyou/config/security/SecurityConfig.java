@@ -36,7 +36,7 @@ public class SecurityConfig {
                                 "/", "/css/**",
                                 "/api/users/**",
                                 "/swagger-ui/**", "/v3/api-docs/**",
-                                "/.well-known/assetlinks.json"
+                                "/*.well-known/**"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
