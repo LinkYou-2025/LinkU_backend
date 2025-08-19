@@ -334,18 +334,10 @@ public class UserServiceImpl implements UserService {
 
     // 마이페이지 조회
     @Override
-    public UserResponseDTO.UserInfoDTO userInfo(Long userId){
-        String nickName = userQueryRepository.findNicknameByUserId(userId);
-        String email = userQueryRepository.findEmailByUserId(userId);
-        Gender gender = userQueryRepository.findGenderByUserId(userId);
-        Job job = userQueryRepository.findJobByUserId(userId);
-        Long linkCount = userQueryRepository.countLinksByUserId(userId);
-        Long folderCount = userQueryRepository.countFoldersByUserId(userId);
-        Long aiLinkCount = userQueryRepository.countAiLinksByUserId(userId);
+    public UserResponseDTO.UserProfileSummaryDto userInfo(Long userId){
+        UserResponseDTO.UserProfileSummaryDto s = userQueryRepository.findUserProfileSummary(userId);
 
-        return UserConverter.toUserInfoDTO(
-                nickName, email, gender, job, linkCount, folderCount, aiLinkCount
-        );
+        return UserConverter.toUserInfoDTO(s);
     }
 
     // 마이페이지 수정

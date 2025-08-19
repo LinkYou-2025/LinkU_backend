@@ -44,7 +44,7 @@ public class UserResponseDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UserInfoDTO{
-        String nickname;
+        String nickName;
 
         String email;
 
@@ -71,5 +71,19 @@ public class UserResponseDTO {
         String status;
         LocalDateTime inactiveDate;
     }
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class UserProfileSummaryDto {
+        private final String nickName;
+        private final String email;
+        private final Gender gender;
+        private final Job job;
+        private final Long linkCount;
+        private final Long folderCount;
+        private final Long aiLinkCount;
+    }
+
 
 }
