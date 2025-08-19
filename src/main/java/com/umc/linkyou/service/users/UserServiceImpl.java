@@ -436,28 +436,34 @@ public class UserServiceImpl implements UserService {
     // 임시 비밀번호 전송
     @Override
     public void sendTempPassword(String toEmail) {
-        // 회원의 이메일인지 확인
-        Optional <Users> users = userRepository.findByEmail(toEmail);
-        if(users.isPresent()) {
-            String title = "Link You 임시 비밀번호";
-            // 임시 비밀번호 생성
-            String tempPassword = this.createPassword();
+        Users user = userRepository.findByEmail(toEmail)
+                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
 
-            log.info("인증 코드: {}", tempPassword);
+        String tempPassword = this.createPassword();
+        int expiresInMinutes = 10; // 템플릿에서 표시용
 
-            try {
-                emailService.sendEmail(toEmail, title, tempPassword);
-                emailService.savePassword(toEmail, tempPassword);
-                log.info("이메일 전송 완료: {}", toEmail);
-            } catch (Exception e) {
-                log.error("이메일 전송 실패: {}", toEmail, e);
-                throw e;
-            }
-        }else {
-            // 가입되지 않은 이메일인 경우
-            throw new UserHandler(ErrorStatus._USER_NOT_FOUND);
+        try {
+            // 1) 임시 비밀번호 저장(암호화)
+            emailService.savePassword(toEmail, tempPassword);
+
+            // 2) 메일 발송 (템플릿)
+            String nickname = (user.getNickName() == null || user.getNickName().isBlank())
+                    ? "링큐 회원" : user.getNickName();
+
+            emailService.sendTempPasswordTemplate(
+                    toEmail,
+                    nickname,
+                    tempPassword,
+                    expiresInMinutes
+            );
+
+            log.info("임시 비밀번호 메일 전송 완료: {}", toEmail);
+        } catch (Exception e) {
+            log.error("임시 비밀번호 발송 실패: {}", toEmail, e);
+            throw e;
         }
     }
+
 
     @Override
     @Transactional
