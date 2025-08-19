@@ -8,6 +8,9 @@ RUN gradle clean build --no-daemon
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
+# curl 설치 추가
+RUN apk update && apk add --no-cache curl
+
 # 인증서 파일 복사 (워크플로우에서 복사된 위치 기준)
 COPY server.crt /tmp/server.crt
 
