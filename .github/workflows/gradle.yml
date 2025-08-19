@@ -36,6 +36,10 @@ jobs:
           echo "$APPLICATION" > src/main/resources/application.properties
         env:
           APPLICATION: ${{ secrets.APPLICATION }}
+      - name: Create assetlinks.json file
+        run: |
+          mkdir -p src/main/resources/static/.well-known
+          echo "${{ secrets.ASSETLINKS_JSON }}" > src/main/resources/static/.well-known/assetlinks.json
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
