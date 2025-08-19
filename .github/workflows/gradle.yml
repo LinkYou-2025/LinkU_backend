@@ -1,30 +1,23 @@
 name: linkyou
-
 on:
   push:
     branches: [ "develop", "feat/#128-user-auth-method" ]
   pull_request:
     branches: [ "develop", "feat/#128-user-auth-method" ]
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
-
-
-
       - name: Gradle Caching
         uses: actions/cache@v3
         with:
@@ -34,45 +27,22 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-
       - name: make application.properties
         run: |
           mkdir -p src/main/resources
           echo "$APPLICATION" > src/main/resources/application.properties
         env:
           APPLICATION: ${{ secrets.APPLICATION }}
-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-
       - name: Build with Gradle
         run: ./gradlew build -x test
-
-      - name: Extract SSL fullchain certificate
-        continue-on-error: true
-        run: |
-          mkdir -p certs
-          echo | openssl s_client -connect ${{ secrets.SERVER_DOMAIN }}:443 -showcerts 2>/dev/null \
-            | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > certs/server.crt
-          echo "Fullchain certificate extracted to certs/server.crt"
-
-
-      - name: Prepare Docker build context (copy cert)
-        run: |
-          if [ -f certs/server.crt ]; then
-            cp certs/server.crt ./
-          else
-            echo "Certificate not found, skipping copy."
-          fi
-
-
       - name: Docker build
         run: |
           docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
           docker build -t app .
           docker tag app ${{ secrets.DOCKER_REPO_NAME }}:latest
           docker push ${{ secrets.DOCKER_REPO_NAME }}:latest
-
       - name: Deploy to dev
         uses: appleboy/ssh-action@master
         with:
