@@ -77,13 +77,15 @@ jobs:
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
+            export DOCKER_REPO_NAME="${{ secrets.DOCKER_REPO_NAME }}"
             sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-            sudo docker pull ${{ secrets.DOCKER_REPO_NAME }}:latest
+            sudo docker pull $DOCKER_REPO_NAME:latest
             cd /home/ubuntu
             sudo docker compose pull
             cd /home/ubuntu/linkyou
-            sudo bash deploy.sh
+            sudo DOCKER_REPO_NAME=$DOCKER_REPO_NAME bash deploy.sh
             sudo docker image prune -a -f
+
 
       - name: Check logs for MariaDB driver errors
         uses: appleboy/ssh-action@master
