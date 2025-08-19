@@ -5,11 +5,16 @@ on:
   pull_request:
     branches: [ "develop" ]
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      DOCKER_REPO_NAME: ${{ secrets.DOCKER_REPO_NAME }}  # 환경변수 설정
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -36,6 +41,7 @@ jobs:
           echo "$APPLICATION" > src/main/resources/application.properties
         env:
           APPLICATION: ${{ secrets.APPLICATION }}
+
       - name: Create assetlinks.json file
         run: |
           mkdir -p src/main/resources/static/.well-known
@@ -63,29 +69,34 @@ jobs:
             echo "Certificate not found, skipping copy."
           fi
 
-      - name: Docker build
+      - name: Docker build and push
         run: |
           docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
           docker build -t app .
-          docker tag app ${{ secrets.DOCKER_REPO_NAME }}:latest
-          docker push ${{ secrets.DOCKER_REPO_NAME }}:latest
+          docker tag app $DOCKER_REPO_NAME:latest
+          docker push $DOCKER_REPO_NAME:latest
 
-      - name: Deploy using docker compose and deploy.sh
+      - name: Deploy with Docker Compose and deploy.sh
         uses: appleboy/ssh-action@master
+        env:
+          DOCKER_REPO_NAME: ${{ secrets.DOCKER_REPO_NAME }}
         with:
           host: ${{ secrets.HOST }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            export DOCKER_REPO_NAME="${{ secrets.DOCKER_REPO_NAME }}"
+            export DOCKER_REPO_NAME=${DOCKER_REPO_NAME}
             sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
             sudo docker pull $DOCKER_REPO_NAME:latest
             cd /home/ubuntu
             sudo docker compose pull
             cd /home/ubuntu/linkyou
             sudo DOCKER_REPO_NAME=$DOCKER_REPO_NAME bash deploy.sh
+            if [ $? -ne 0 ]; then
+              echo "Deployment failed"
+              exit 1
+            fi
             sudo docker image prune -a -f
-
 
       - name: Check logs for MariaDB driver errors
         uses: appleboy/ssh-action@master
