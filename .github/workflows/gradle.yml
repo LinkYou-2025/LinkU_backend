@@ -1,9 +1,10 @@
 name: linkyou
+
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "develop", "feat/#128-user-auth-method" ]
   pull_request:
-    branches: [ "develop" ]
+    branches: [ "develop", "feat/#128-user-auth-method" ]
   workflow_dispatch:
 
 permissions:
@@ -12,9 +13,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      DOCKER_REPO_NAME: ${{ secrets.DOCKER_REPO_NAME }}  # 환경변수 설정
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -24,6 +22,8 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+
+
 
       - name: Gradle Caching
         uses: actions/cache@v3
@@ -35,17 +35,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Make application.properties
+      - name: make application.properties
         run: |
           mkdir -p src/main/resources
           echo "$APPLICATION" > src/main/resources/application.properties
         env:
           APPLICATION: ${{ secrets.APPLICATION }}
-
-      - name: Create assetlinks.json file
-        run: |
-          mkdir -p src/main/resources/static/.well-known
-          echo "${{ secrets.ASSETLINKS_JSON }}" > src/main/resources/static/.well-known/assetlinks.json
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -61,6 +56,7 @@ jobs:
             | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > certs/server.crt
           echo "Fullchain certificate extracted to certs/server.crt"
 
+
       - name: Prepare Docker build context (copy cert)
         run: |
           if [ -f certs/server.crt ]; then
@@ -69,39 +65,38 @@ jobs:
             echo "Certificate not found, skipping copy."
           fi
 
-      - name: Docker build and push
+
+      - name: Docker build
         run: |
           docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
           docker build -t app .
-          docker tag app $DOCKER_REPO_NAME:latest
-          docker push $DOCKER_REPO_NAME:latest
+          docker tag app ${{ secrets.DOCKER_REPO_NAME }}:latest
+          docker push ${{ secrets.DOCKER_REPO_NAME }}:latest
 
-      - name: Deploy with Docker Compose and deploy.sh
+      - name: Deploy to dev
         uses: appleboy/ssh-action@master
-        env:
-          DOCKER_REPO_NAME: ${{ secrets.DOCKER_REPO_NAME }}
         with:
           host: ${{ secrets.HOST }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            set -x
-            cd /home/ubuntu/linkyou
-            chmod +x deploy.sh
-            sudo ./deploy.sh
-            if [ $? -ne 0 ]; then
-              echo "Deployment failed"
-              exit 1
-            fi
+            sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+            sudo docker pull ${{ secrets.DOCKER_REPO_NAME }}:latest
+            sudo docker stop linku || true
+            sudo docker rm linku || true
+            sudo docker run -d --name linku --log-driver=syslog -p 8080:8080 \
+              -e TZ=Asia/Seoul \
+              -e SPRING_PROFILES_ACTIVE= \
+              ${{ secrets.DOCKER_REPO_NAME }}:latest
             sudo docker image prune -a -f
-
-      - name: Check logs for MariaDB driver errors
+      - name: Check logs and fail if MariaDB driver missing
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
+            # 컨테이너 시작 후 10초 대기 (애플리케이션 기동 대기)
             sleep 10
             LOG=$(sudo docker logs $(sudo docker ps -lq))
             echo "$LOG"
