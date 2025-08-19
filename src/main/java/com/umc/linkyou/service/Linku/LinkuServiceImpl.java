@@ -277,19 +277,15 @@ public class LinkuServiceImpl implements LinkuService {
         // 4. LinkuFolder 최신 1개 조회
         LinkuFolder linkuFolder =
                 linkuFolderRepository.findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()).orElse(null);
-        boolean aiArticleExists = aiArticleRepository.existsAiArticleByLinkuId(linkuId);
+        AiArticle aiArticle = aiArticleRepository.findByLinku(linku).orElse(null);
+        boolean aiArticleExists = aiArticle != null && aiArticle.getTitle() != null && !aiArticle.getTitle().isBlank();
 
         String keyword = null;
         String summary = null;
 
         if (aiArticleExists) {
-            // 실제 AiArticle 조회
-            AiArticle aiArticle = aiArticleRepository.findByLinku(linku)
-                    .orElse(null);
-            if (aiArticle != null) {
-                keyword = aiArticle.getKeyword();
-                summary = aiArticle.getSummary();
-            }
+            keyword = aiArticle.getKeyword();
+            summary = aiArticle.getSummary();
         }
 
         LinkuResponseDTO.LinkuResultDTO dto = LinkuConverter.toLinkuResultDTO(
@@ -337,20 +333,19 @@ public class LinkuServiceImpl implements LinkuService {
         List<RecentViewedLinku> recentList = recentViewedLinkuRepository
                 .findTop10ByUser_IdOrderByViewedAtDesc(userId);
 
-        // 모든 linkuId를 한 번에 뽑아서 AI 아티클 존재 여부 조회
         List<Long> linkuIds = recentList.stream()
                 .map(rv -> rv.getLinku().getLinkuId())
                 .collect(Collectors.toList());
 
+        // 한 번에 AiArticle 조회 후 title 기준 필터링
         Map<Long, Boolean> aiArticleExistsMap = aiArticleRepository.existsAiArticleByLinkuIds(linkuIds);
 
         List<LinkuResponseDTO.LinkuSimpleDTO> results = new ArrayList<>();
-
-
         for (RecentViewedLinku rv : recentList) {
             Linku linku = rv.getLinku();
             UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linku.getLinkuId())
                     .orElse(null);
+
             boolean aiArticleExists = aiArticleExistsMap.getOrDefault(linku.getLinkuId(), false);
             Domain domain = linku.getDomain();
 
@@ -358,7 +353,8 @@ public class LinkuServiceImpl implements LinkuService {
             results.add(dto);
         }
         return results;
-    } //최근 열람한 링크 가져오기
+    }
+    //최근 열람한 링크 가져오기
 
     @Override
     @Transactional
@@ -551,6 +547,7 @@ public class LinkuServiceImpl implements LinkuService {
                 .map(scored -> scored.getUserLinku().getLinku().getLinkuId())
                 .collect(Collectors.toList());
 
+        // 한 번에 AiArticle 조회 및 title 유효성 체크 후 존재 여부 Map 생성
         Map<Long, Boolean> aiArticleExistsMap = aiArticleRepository.existsAiArticleByLinkuIds(linkuIds);
 
         return pagedList.stream()

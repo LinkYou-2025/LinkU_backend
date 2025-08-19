@@ -1,52 +1,54 @@
 package com.umc.linkyou.repository.aiArticleRepository;
 
+import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.umc.linkyou.domain.QAiArticle;
 import com.umc.linkyou.domain.QLinku;
-import com.umc.linkyou.repository.linkuRepository.LinkuRepositoryCustom;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
 public class AiArticleRepositoryImpl implements AiArticleRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
+
+    private final QAiArticle aiArticle = QAiArticle.aiArticle;
     private final QLinku linku = QLinku.linku1;
 
     @Override
     public boolean existsAiArticleByLinkuId(Long linkuId) {
-        Integer fetchOne = queryFactory
+        Integer count = queryFactory
                 .selectOne()
-                .from(linku)
-                .where(linku.linkuId.eq(linkuId)
-                        .and(linku.title.isNotNull())
-                        .and(linku.title.ne("")))
+                .from(aiArticle)
+                .where(aiArticle.linku.linkuId.eq(linkuId)
+                        .and(aiArticle.title.isNotNull())
+                        .and(aiArticle.title.isNotEmpty()))
                 .fetchFirst();
-        return fetchOne != null;
+        return count != null;
     }
 
     @Override
     public Map<Long, Boolean> existsAiArticleByLinkuIds(Collection<Long> linkuIds) {
-        if (linkuIds == null || linkuIds.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
-        // AI 아티클 존재하는 linkuId 리스트 조회
-        List<Long> existingIds = queryFactory
-                .select(linku.linkuId)
-                .from(linku)
-                .where(linku.linkuId.in(linkuIds)
-                        .and(linku.title.isNotNull())
-                        .and(linku.title.ne("")))
+        List<Tuple> results = queryFactory
+                .select(aiArticle.linku.linkuId, aiArticle.title)
+                .from(aiArticle)
+                .where(aiArticle.linku.linkuId.in(linkuIds))
                 .fetch();
 
-        // 결과를 Map<Long, Boolean> 형식으로 반환 (존재하면 true)
-        Map<Long, Boolean> result = new HashMap<>();
-        for (Long id : linkuIds) {
-            result.put(id, existingIds.contains(id));
-        }
-        return result;
+        return results.stream()
+                .collect(Collectors.toMap(
+                        tuple -> tuple.get(aiArticle.linku.linkuId),
+                        tuple -> {
+                            String title = tuple.get(aiArticle.title);
+                            return title != null && !title.isBlank();
+                        },
+                        (a, b) -> a
+                ));
     }
 }
