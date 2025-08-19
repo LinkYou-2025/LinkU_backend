@@ -36,7 +36,8 @@ public class SecurityConfig {
                                 "/", "/css/**",
                                 "/api/users/**",
                                 "/swagger-ui/**", "/v3/api-docs/**",
-                                "/*.well-known/**"
+                                "/*.well-known/**",
+                            "/actuator/**"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
