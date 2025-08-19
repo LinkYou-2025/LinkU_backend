@@ -1,9 +1,9 @@
 name: linkyou
 on:
   push:
-    branches: [ "develop", "feat/#128-user-auth-method" ]
+    branches: [ "develop"]
   pull_request:
-    branches: [ "develop", "feat/#128-user-auth-method" ]
+    branches: [ "develop" ]
   workflow_dispatch:
 permissions:
   contents: read
@@ -13,11 +13,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
+
       - name: Gradle Caching
         uses: actions/cache@v3
         with:
@@ -27,22 +29,32 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
+
       - name: make application.properties
         run: |
           mkdir -p src/main/resources
           echo "$APPLICATION" > src/main/resources/application.properties
         env:
           APPLICATION: ${{ secrets.APPLICATION }}
+
+      - name: Create assetlinks.json file
+        run: |
+          mkdir -p src/main/resources/static/.well-known
+          echo "${{ secrets.ASSETLINKS_JSON }}" > src/main/resources/static/.well-known/assetlinks.json
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+
       - name: Build with Gradle
         run: ./gradlew build -x test
+
       - name: Docker build
         run: |
           docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
           docker build -t app .
           docker tag app ${{ secrets.DOCKER_REPO_NAME }}:latest
           docker push ${{ secrets.DOCKER_REPO_NAME }}:latest
+
       - name: Deploy to dev
         uses: appleboy/ssh-action@master
         with:
@@ -59,6 +71,7 @@ jobs:
               -e SPRING_PROFILES_ACTIVE= \
               ${{ secrets.DOCKER_REPO_NAME }}:latest
             sudo docker image prune -a -f
+
       - name: Check logs and fail if MariaDB driver missing
         uses: appleboy/ssh-action@master
         with:
