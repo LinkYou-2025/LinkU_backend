@@ -5,6 +5,7 @@ import com.umc.linkyou.web.dto.UserResponseDTO;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface UserRepositoryCustom {
     UserResponseDTO.UserInfoDTO findUserWithFoldersAndLinks(Long userId);

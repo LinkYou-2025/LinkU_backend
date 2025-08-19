@@ -52,9 +52,9 @@ public class UserConverter {
                 .email(s.getEmail())
                 .gender(s.getGender())
                 .job(s.getJob())
-                .linkCount(s.getLinkCount())
-                .folderCount(s.getFolderCount())
-                .aiLinkCount(s.getAiLinkCount())
+                .myLinku(s.getMyLinku())
+                .myFolder(s.getMyFolder())
+                .myAiLinku(s.getMyAiLinku())
                 .build();
     }
     public static UserResponseDTO.withDrawalResultDTO toWithDrawalResultDTO(Users user) {
