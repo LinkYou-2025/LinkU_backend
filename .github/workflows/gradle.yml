@@ -85,13 +85,10 @@ jobs:
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            export DOCKER_REPO_NAME=${DOCKER_REPO_NAME}
-            sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-            sudo docker pull $DOCKER_REPO_NAME:latest
-            cd /home/ubuntu
-            sudo docker compose pull
+            set -x
             cd /home/ubuntu/linkyou
-            sudo DOCKER_REPO_NAME=$DOCKER_REPO_NAME bash deploy.sh
+            chmod +x deploy.sh
+            sudo ./deploy.sh
             if [ $? -ne 0 ]; then
               echo "Deployment failed"
               exit 1
