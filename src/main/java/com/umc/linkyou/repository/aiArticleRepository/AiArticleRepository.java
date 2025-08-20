@@ -10,6 +10,4 @@ import java.util.Optional;
 public interface AiArticleRepository extends JpaRepository<AiArticle, Long>, AiArticleRepositoryCustom {
    Optional<AiArticle> findByLinku(Linku linku);
 
-    boolean existsByLinku_LinkuId(Long linkuId);
-
 }

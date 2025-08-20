@@ -51,7 +51,6 @@ public class AiArticleServiceImpl implements AiArticleService {
     @Override
     @Transactional
     public AiArticleResponsetDTO.AiArticleResultDTO saveAiArticle(Long linkuId, Long userId) {
-
         // 1. linku, 유저 조회
         Linku linku = linkuRepository.findById(linkuId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
@@ -83,11 +82,10 @@ public class AiArticleServiceImpl implements AiArticleService {
             throw new GeneralException(ErrorStatus._AI_INVALID_RESPONSE);
         }
 
+        // 5. 이미지 받아오기
+        String imageUrl = linkToImageService.getRelatedImageFromUrl(linku.getLinku(), linku.getTitle());
 
-        //이미지 받아오기
-        String imageUrl = linkToImageService.getRelatedImageFromUrl(linku.getLinku(),linku.getTitle());
-
-        // 5. id 기반 Entity 조인
+        // 6. id 기반 Entity 조인
         Situation selectedSituation = situationRepository.findById(result.getSituationId())
                 .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
         Emotion selectedEmotion = emotionRepository.findById(result.getEmotionId())
@@ -95,7 +93,7 @@ public class AiArticleServiceImpl implements AiArticleService {
         Category selectedCategory = categoryRepository.findById(result.getCategoryId())
                 .orElseThrow(() -> new GeneralException(ErrorStatus._CATEGORY_NOT_FOUND));
 
-        // 6. ai_article 저장 (usersLinku 더이상 저장 안 함, linku 기준)
+        // 7. ai_article 저장 (usersLinku 더이상 저장 안 함, linku 기준)
         AiArticle article = AiArticleConverter.toEntity(
                 result,
                 selectedSituation,
@@ -105,15 +103,16 @@ public class AiArticleServiceImpl implements AiArticleService {
                 imageUrl
         );
         AiArticle saved = aiArticleRepository.save(article);
-        //linku에 연결
+
+        // linku에 연결
         linku.setAiArticle(saved);
         linkuRepository.save(linku);
 
-        // 7. 유저 개별정보(memo 등)는 users_linku에서 조회 (없으면 null 가능)
+        // 8. 유저 개별정보(memo 등)는 users_linku에서 조회 (없으면 null 가능)
         UsersLinku usersLinku = usersLinkuRepository.findByUserAndLinku(user, linku)
                 .orElse(null);
 
-        // 8. 반환 DTO 생성 (memo 등 usersLinku 정보도 포함)
+        // 9. DTO 반환
         return AiArticleConverter.toDto(
                 saved,
                 linku,
@@ -122,6 +121,25 @@ public class AiArticleServiceImpl implements AiArticleService {
                 selectedEmotion,
                 selectedCategory
         );
+    }
+
+
+    /**
+     * 존재 여부 + title 검증 후 생성 or 조회
+     */
+    @Override
+    @Transactional
+    public AiArticleResponsetDTO.AiArticleResultDTO saveOrGetAiArticle(Long linkuId, Long userId) {
+        Linku linku = linkuRepository.findById(linkuId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
+
+        AiArticle aiArticle = aiArticleRepository.findByLinku(linku).orElse(null);
+
+        if (aiArticle == null || aiArticle.getTitle() == null || aiArticle.getTitle().isBlank()) {
+            return saveAiArticle(linkuId, userId); // 새로 생성
+        } else {
+            return showAiArticle(linkuId, userId); // 기존 반환
+        }
     }
 
     /**
