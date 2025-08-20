@@ -88,6 +88,8 @@ public class LinkuServiceImpl implements LinkuService {
         // 1) URL 정규화 & 검증 (비디오 링크 여부, URL 유효성 체크)
         String normalizedLink = validateAndNormalizeUrl(dto.getLinku());
 
+        String domainTail = UrlValidUtils.extractDomainTail(normalizedLink);
+
         // 2) AI 분류 실행 → Category + AI 키워드 반환
         AiCategoryInfo aiInfo = resolveCategoryAndKeywords(normalizedLink);
         Category category = aiInfo.category;
@@ -97,10 +99,10 @@ public class LinkuServiceImpl implements LinkuService {
         Emotion emotion = resolveEmotion(dto.getEmotionId());
 
         // 4) Domain 조회 (없으면 기본값)
-        Domain domain = resolveDomain(normalizedLink);
+        Domain domain = resolveDomain(domainTail);
 
         // 5) Linku 조회 또는 신규 생성
-        Linku linku = findOrCreateLinku(normalizedLink, category, domain);
+        Linku linku = findOrCreateLinku(normalizedLink, category, domain, domainTail);
 
         // 6) AI Article 존재 여부 확인하고 필요시 생성
         createAiArticleIfNeeded(linku, category, emotion, aiKeywords);
@@ -162,8 +164,7 @@ public class LinkuServiceImpl implements LinkuService {
                 : emotionRepository.findById(emotionId).orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
     }
     // 4. Domain 조회
-    private Domain resolveDomain(String normalizedLink) {
-        String domainTail = UrlValidUtils.extractDomainTail(normalizedLink);
+    private Domain resolveDomain(String domainTail) {
         return domainTail != null
                 ? domainRepository.findByDomainTail(domainTail)
                 .orElseGet(() -> domainRepository.findById(DEFAULT_DOMAIN_ID)
@@ -172,18 +173,17 @@ public class LinkuServiceImpl implements LinkuService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND));
     }
     // 5. Linku 조회 또는 생성
-    private Linku findOrCreateLinku(String normalizedLink, Category category, Domain domain) {
+    private Linku findOrCreateLinku(String normalizedLink, Category category, Domain domain, String domainTail) {
         return linkuRepository.findByLinku(normalizedLink)
                 .orElseGet(() -> {
-                    // 크롤링해서 title 추출
                     String crawledTitle = linkToImageService.extractTitle(normalizedLink);
-                    // 크롤링 실패 시 기본값으로 세팅 (수정된 부분)
                     if (crawledTitle == null || crawledTitle.isBlank()) {
-                        crawledTitle = "제목 없음"; // 원하시는 기본값으로 변경 가능
+                        crawledTitle = (domainTail != null && !domainTail.isBlank()) ? domainTail : "제목 없음";
                     }
                     return linkuRepository.save(LinkuConverter.toLinku(normalizedLink, category, domain, crawledTitle));
                 });
     }
+
     // 6. AI Article 생성 (기본 키워드 처리 포함, 수정된 부분)
     private void createAiArticleIfNeeded(Linku linku, Category category, Emotion emotion, String aiKeywords) {
         if (aiKeywords == null || aiKeywords.isBlank()) {
