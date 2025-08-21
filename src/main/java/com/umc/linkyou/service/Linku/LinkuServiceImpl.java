@@ -125,7 +125,7 @@ public class LinkuServiceImpl implements LinkuService {
 
         // 12) 응답 DTO 변환
         LinkuResponseDTO.LinkuResultDTO resultDto =
-                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain, null);
+                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain, null, aiKeywords, null);
 
         // 13) 최종 결과 반환
         return LinkuResponseDTO.LinkuCreateResult.builder()
