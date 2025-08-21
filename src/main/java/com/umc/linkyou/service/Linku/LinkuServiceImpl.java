@@ -15,6 +15,7 @@ import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.Linku;
+import com.umc.linkyou.domain.mapping.CurationLinku;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
@@ -23,6 +24,7 @@ import com.umc.linkyou.openApi.OpenAICategoryClassifier;
 import com.umc.linkyou.repository.*;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
+import com.umc.linkyou.repository.curationLinkuRepository.CurationLinkuRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.LogRepository.EmotionLogRepository;
 import com.umc.linkyou.repository.LogRepository.SituationLogRepository;
@@ -72,6 +74,7 @@ public class LinkuServiceImpl implements LinkuService {
     private final SituationJobRepository situationJobRepository;
     private final UsersFolderRepository usersFolderRepository;
     private final AiArticleRepository aiArticleRepository;
+    private final CurationLinkuRepository curationLinkuRepository;
 
     private static final Long DEFAULT_CATEGORY_ID = 16L;
     private static final Long DEFAULT_EMOTION_ID = 2L;
@@ -571,7 +574,6 @@ public class LinkuServiceImpl implements LinkuService {
 
     @Transactional
     public void deleteUsersLinku(Long userId, Long userLinkuId) {
-        // 1. 사용자 소유의 UsersLinku 엔티티 조회
         UsersLinku usersLinku = usersLinkuRepository.findById(userLinkuId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
 
@@ -579,9 +581,22 @@ public class LinkuServiceImpl implements LinkuService {
             throw new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND);
         }
 
-        // 2. UsersLinku 삭제 (연관된 Linku는 삭제하지 않음)
+        // 1. linku_folder 관련 삭제
+        List<LinkuFolder> linkuFolders = linkuFolderRepository.findByUsersLinku(usersLinku);
+        linkuFolderRepository.deleteAll(linkuFolders);
+
+        // 2. curation_linku 관련 삭제
+        List<CurationLinku> curationLinkus = curationLinkuRepository.findByUserLinkuId(userLinkuId);
+        curationLinkuRepository.deleteAll(curationLinkus);
+
+        // 3. 최근 열람 기록 삭제 - 이 부분에 linkuId 필요
+        Long linkuId = usersLinku.getLinku().getLinkuId();
+        recentViewedLinkuRepository.deleteByUserIdAndLinkuId(userId, linkuId);
+
+        // 4. UsersLinku 삭제
         usersLinkuRepository.delete(usersLinku);
     }
+
 
 
 

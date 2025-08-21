@@ -15,4 +15,6 @@ public interface CurationLinkuRepository extends JpaRepository<CurationLinku, Lo
     @Modifying
     @Query("delete from CurationLinku cl where cl.curation.curationId = :curationId and cl.type = :type")
     void deleteAllByCurationIdAndType(Long curationId, CurationLinkuType type);
+
+    List<CurationLinku> findByUserLinkuId(Long userLinkuId);
 }
