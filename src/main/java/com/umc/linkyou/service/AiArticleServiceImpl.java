@@ -114,7 +114,6 @@ public class AiArticleServiceImpl implements AiArticleService {
             article.setAiCategoryId(selectedCategory.getCategoryId());
             article.setSummary(result.getSummary());
             article.setImgUrl(imageUrl);
-            article.setKeyword(result.getKeywords());
         }
 
         AiArticle saved = aiArticleRepository.save(article);

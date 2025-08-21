@@ -30,7 +30,6 @@ public class AiArticleConverter {
                 .aiCategoryId(selectedCategory.getCategoryId())
                 .summary(result.getSummary())
                 .imgUrl(imageUrl)
-                .keyword(result.getKeywords())
                 .build();
     }
 
