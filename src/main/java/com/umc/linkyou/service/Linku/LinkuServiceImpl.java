@@ -591,7 +591,7 @@ public class LinkuServiceImpl implements LinkuService {
 
         // 3. 최근 열람 기록 삭제 - 이 부분에 linkuId 필요
         Long linkuId = usersLinku.getLinku().getLinkuId();
-        recentViewedLinkuRepository.deleteByUserUserIdAndLinkuLinkuId(userId, linkuId);
+        recentViewedLinkuRepository.deleteByUser_IdAndLinku_LinkuId(userId, linkuId);
 
         // 4. UsersLinku 삭제
         usersLinkuRepository.delete(usersLinku);
