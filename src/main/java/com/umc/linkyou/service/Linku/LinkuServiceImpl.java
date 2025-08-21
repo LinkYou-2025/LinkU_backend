@@ -569,6 +569,19 @@ public class LinkuServiceImpl implements LinkuService {
     }
 
 
+    @Transactional
+    public void deleteUsersLinku(Long userId, Long userLinkuId) {
+        // 1. 사용자 소유의 UsersLinku 엔티티 조회
+        UsersLinku usersLinku = usersLinkuRepository.findById(userLinkuId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
+
+        if (!usersLinku.getUser().getId().equals(userId)) {
+            throw new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND);
+        }
+
+        // 2. UsersLinku 삭제 (연관된 Linku는 삭제하지 않음)
+        usersLinkuRepository.delete(usersLinku);
+    }
 
 
 

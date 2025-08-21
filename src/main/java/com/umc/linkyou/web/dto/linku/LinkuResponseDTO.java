@@ -12,6 +12,7 @@ public class LinkuResponseDTO {
     @Builder
     public static class LinkuResultDTO {
         private Long userId;
+        private Long userLinkuId;
         private Long linkuId;
         private Long linkuFolderId;
         private Long categoryId;

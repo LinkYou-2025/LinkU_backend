@@ -118,4 +118,15 @@ public class LinkuController {
         return ApiResponse.onSuccess(result);
     }
 
+    @DeleteMapping("/{userLinkuId}")
+    public ApiResponse<Void> deleteUsersLinku(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long userLinkuId
+    ) {
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        linkuService.deleteUsersLinku(userId, userLinkuId);
+        return ApiResponse.<Void>onSuccess("링크 삭제에 성공했습니다.", null);
+
+    }
+
 }

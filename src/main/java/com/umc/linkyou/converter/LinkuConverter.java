@@ -23,7 +23,6 @@ public class LinkuConverter {
     }
 
     // Linku생성 → LinkuResultDTO 변환
-    // Linku생성 → LinkuResultDTO 변환
     public static LinkuResponseDTO.LinkuResultDTO toLinkuResultDTO(
             Long userId,
             Linku linku,
@@ -37,6 +36,7 @@ public class LinkuConverter {
     ) {
         return LinkuResponseDTO.LinkuResultDTO.builder()
                 .userId(userId)
+                .userLinkuId(usersLinku != null ? usersLinku.getUserLinkuId() : null)
                 .linkuId(linku.getLinkuId())
                 .linkuFolderId(linkuFolder != null ? linkuFolder.getLinkuFolderId() : null)
                 .categoryId(category != null ? category.getCategoryId() : null)
