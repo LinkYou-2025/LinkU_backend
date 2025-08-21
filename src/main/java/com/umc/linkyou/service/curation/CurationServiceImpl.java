@@ -90,6 +90,47 @@ public class CurationServiceImpl implements CurationService {
         }
     }
 
+    /**
+     * 기존 운영 코드에는 손대지 않고, 개발용으로만 2025-02 ~ 2025-07 생성
+     * - idempotent: existsByUserAndMonth 로 중복 방지
+     * - materializeExternal=false 권장(외부 호출 부담 줄이기)
+     */
+    @Override
+    @Transactional
+    public void seedFebToJul2025(boolean materializeExternal) {
+        List<Users> users = userRepository.findAll();
+
+        YearMonth cursor = YearMonth.of(2025, 2);
+        YearMonth end = YearMonth.of(2025, 7);
+
+        while (!cursor.isAfter(end)) {
+            final String monthStr = cursor.toString(); // "YYYY-MM"
+            final String thumbnailUrl = thumbnailUrlProvider.getUrlForMonth("curation", monthStr);
+
+            for (Users user : users) {
+                if (curationRepository.existsByUserAndMonth(user, monthStr)) continue;
+
+                Curation curation = Curation.builder()
+                        .user(user)
+                        .month(monthStr)
+                        .thumbnailUrl(thumbnailUrl)
+                        .build();
+
+                curationRepository.save(curation);
+
+                // Top 로그 계산/저장 (현행 규칙 동일)
+                curationTopLogService.calculateAndSaveTopLogs(user.getId(), curation);
+
+                // 외부 추천 선계산 (옵션)
+                if (materializeExternal) {
+                    externalRecommendMaterializer.generateAndStoreExternalAsync(curation.getCurationId());
+                }
+            }
+
+            cursor = cursor.plusMonths(1);
+        }
+    }
+
     private final CurationTopLogRepository curationTopLogRepository;
     private final CurationMentRepository curationMentRepository;
     private final GptService gptService;
