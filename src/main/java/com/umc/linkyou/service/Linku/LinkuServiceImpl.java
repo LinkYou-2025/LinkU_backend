@@ -264,9 +264,12 @@ public class LinkuServiceImpl implements LinkuService {
     @Transactional
     public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailGetLinku(Long userId, Long linkuId) {
         // 1. 해당 사용자가 이 링크(linkuId)를 저장한 UsersLinku 찾기.
-        UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId)
+        List<UsersLinku> list = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId);
+
+        UsersLinku usersLinku = list.stream()
+                .max(Comparator.comparing(UsersLinku::getCreatedAt)) // 혹은 정렬해서 가장 최근꺼 선택
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
-        // 최근 열람 기록 upDate
+// 최근 열람 기록 upDate
         updateRecentViewedLinku(userId, linkuId);
 
         // 2. Linku는 UsersLinku에서 직접 꺼낼 수 있음
@@ -346,8 +349,12 @@ public class LinkuServiceImpl implements LinkuService {
         List<LinkuResponseDTO.LinkuSimpleDTO> results = new ArrayList<>();
         for (RecentViewedLinku rv : recentList) {
             Linku linku = rv.getLinku();
-            UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linku.getLinkuId())
-                    .orElse(null);
+            List<UsersLinku> list = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linku.getLinkuId());
+
+            UsersLinku usersLinku = list.stream()
+                    .max(Comparator.comparing(UsersLinku::getCreatedAt))
+                    .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
+
 
             boolean aiArticleExists = aiArticleExistsMap.getOrDefault(linku.getLinkuId(), false);
             Domain domain = linku.getDomain();
@@ -363,7 +370,10 @@ public class LinkuServiceImpl implements LinkuService {
     @Transactional
     public LinkuResponseDTO.LinkuResultDTO updateLinku(Long userId, Long linkuId, LinkuRequestDTO.LinkuUpdateDTO dto) {
         // 1. 본인이 소유한 UsersLinku 찾기 (= 내 userId와 linkuId로 찾음. 못 찾으면 오류)
-        UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId)
+        List<UsersLinku> list = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId);
+
+        UsersLinku usersLinku = list.stream()
+                .max(Comparator.comparing(UsersLinku::getCreatedAt))// 혹은 정렬해서 가장 최근꺼 선택
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
 
         // 2. 연관 Linku 엔티티 가져오기 (실제 링크 정보) 및 변경 플래그 준비

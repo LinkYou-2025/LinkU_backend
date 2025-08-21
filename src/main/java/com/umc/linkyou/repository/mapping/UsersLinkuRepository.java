@@ -17,7 +17,7 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long> {
 
     Optional<UsersLinku> findByUserAndLinku(Users user, Linku linku);
 
-    Optional<UsersLinku> findByUser_IdAndLinku_LinkuId(Long userId, Long linkuId);
+    List<UsersLinku> findByUser_IdAndLinku_LinkuId(Long userId, Long linkuId);
 
     List<UsersLinku> findByUser_Id(Long userId);
 
