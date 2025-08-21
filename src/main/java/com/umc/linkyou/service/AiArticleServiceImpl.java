@@ -93,26 +93,43 @@ public class AiArticleServiceImpl implements AiArticleService {
         Category selectedCategory = categoryRepository.findById(result.getCategoryId())
                 .orElseThrow(() -> new GeneralException(ErrorStatus._CATEGORY_NOT_FOUND));
 
-        // 7. ai_article 저장 (usersLinku 더이상 저장 안 함, linku 기준)
-        AiArticle article = AiArticleConverter.toEntity(
-                result,
-                selectedSituation,
-                selectedEmotion,
-                selectedCategory,
-                linku,
-                imageUrl
-        );
+        // 7. 기존 AI Article 조회
+        AiArticle article = aiArticleRepository.findByLinku(linku).orElse(null);
+
+        if (article == null) {
+            // 없으면 새로 생성
+            article = AiArticleConverter.toEntity(
+                    result,
+                    selectedSituation,
+                    selectedEmotion,
+                    selectedCategory,
+                    linku,
+                    imageUrl
+            );
+        } else {
+            // 있으면 내용 업데이트
+            article.setTitle(result.getTitle());
+            article.setSituation(selectedSituation);
+            article.setAiFeelingId(selectedEmotion.getEmotionId());
+            article.setAiCategoryId(selectedCategory.getCategoryId());
+            article.setSummary(result.getSummary());
+            article.setImgUrl(imageUrl);
+            article.setKeyword(result.getKeywords());
+        }
+
         AiArticle saved = aiArticleRepository.save(article);
 
-        // linku에 연결
-        linku.setAiArticle(saved);
-        linkuRepository.save(linku);
+        // 8. linku와 연관관계 상태 점검 후 업데이트 필요 시 처리
+        if (linku.getAiArticle() == null || !linku.getAiArticle().equals(saved)) {
+            linku.setAiArticle(saved);
+            linkuRepository.save(linku);
+        }
 
-        // 8. 유저 개별정보(memo 등)는 users_linku에서 조회 (없으면 null 가능)
+        // 9. 유저 개별정보 조회 (없으면 null 가능)
         UsersLinku usersLinku = usersLinkuRepository.findByUserAndLinku(user, linku)
                 .orElse(null);
 
-        // 9. DTO 반환
+        // 10. DTO 반환
         return AiArticleConverter.toDto(
                 saved,
                 linku,
