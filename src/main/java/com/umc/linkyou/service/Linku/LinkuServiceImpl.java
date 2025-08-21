@@ -586,7 +586,7 @@ public class LinkuServiceImpl implements LinkuService {
         linkuFolderRepository.deleteAll(linkuFolders);
 
         // 2. curation_linku 관련 삭제
-        List<CurationLinku> curationLinkus = curationLinkuRepository.findByUserLinkuId(userLinkuId);
+        List<CurationLinku> curationLinkus = curationLinkuRepository.findByUsersLinku_UserLinkuId(userLinkuId);
         curationLinkuRepository.deleteAll(curationLinkus);
 
         // 3. 최근 열람 기록 삭제 - 이 부분에 linkuId 필요
