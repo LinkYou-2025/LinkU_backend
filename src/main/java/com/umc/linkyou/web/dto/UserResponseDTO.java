@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class UserResponseDTO {
     @Builder
@@ -83,6 +84,28 @@ public class UserResponseDTO {
         private final Long myLinku;
         private final Long myFolder;
         private final Long myAiLinku;
+        private List<String> purposes;
+        private List<String> interests;
+
+        public UserProfileSummaryDto(
+                String nickName,
+                String email,
+                Gender gender,
+                Job job,
+                Long linkCount,
+                Long folderCount,
+                Long aiLinkCount
+        ) {
+            this.nickName   = nickName;
+            this.email      = email;
+            this.gender     = gender;
+            this.job        = job;
+            this.myLinku  = linkCount;
+            this.myFolder= folderCount;
+            this.myAiLinku= aiLinkCount;
+            this.purposes   = java.util.Collections.emptyList();
+            this.interests  = java.util.Collections.emptyList();
+        }
     }
 
 }

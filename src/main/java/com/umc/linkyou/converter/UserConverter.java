@@ -7,6 +7,7 @@ import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class UserConverter {
     public static Users toUser(UserRequestDTO.JoinDTO request, Job job){
@@ -45,8 +46,11 @@ public class UserConverter {
                 .build();
     }
 
-    public static UserResponseDTO.UserProfileSummaryDto toUserInfoDTO(UserResponseDTO.UserProfileSummaryDto s) {
-
+    public static UserResponseDTO.UserProfileSummaryDto toUserInfoDTO(
+            UserResponseDTO.UserProfileSummaryDto s,
+            List<String> purposes,
+            List<String> interests
+    ) {
         return UserResponseDTO.UserProfileSummaryDto.builder()
                 .nickName(s.getNickName())
                 .email(s.getEmail())
@@ -55,8 +59,11 @@ public class UserConverter {
                 .myLinku(s.getMyLinku())
                 .myFolder(s.getMyFolder())
                 .myAiLinku(s.getMyAiLinku())
+                .purposes(purposes)
+                .interests(interests)
                 .build();
     }
+
     public static UserResponseDTO.withDrawalResultDTO toWithDrawalResultDTO(Users user) {
         if (user == null) return null;
         return UserResponseDTO.withDrawalResultDTO.builder()
