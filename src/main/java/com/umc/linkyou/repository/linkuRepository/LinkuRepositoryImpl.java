@@ -34,13 +34,14 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
         return queryFactory
                 .select(Projections.constructor(
                         LinkuSearchSuggestionResponse.class,
-                        l.title,   // title
+                        l.linkuId,       // ✅ linkuId
+                        l.title,    // title
                         d.imageUrl, // domainImageUrl
-                        l.linku    // linkUrl
+                        l.linku     // linkUrl
                 ))
                 .from(ul)
-                .join(ul.linku, l)       // Linku N+1 방지
-                .leftJoin(l.domain, d)   // Domain N+1 방지
+                .join(ul.linku, l)        // (fetchJoin 제거 유지)
+                .leftJoin(l.domain, d)    // (fetchJoin 제거 유지)
                 .where(
                         ul.user.id.eq(userId)
                                 .and(l.title.containsIgnoreCase(q))
