@@ -10,6 +10,7 @@ public interface RecentViewedLinkuRepository extends JpaRepository<RecentViewedL
     Optional<RecentViewedLinku> findByUser_IdAndLinku_LinkuId(Long userId, Long linkuId);
     List<RecentViewedLinku> findAllByUser_IdOrderByViewedAtDesc(Long userId);
     List<RecentViewedLinku> findTop10ByUser_IdOrderByViewedAtDesc(Long userId);
-    void deleteByUserIdAndLinkuId(Long userId, Long linkuId);
+    void deleteByUserUserIdAndLinkuLinkuId(Long userId, Long linkuId);
+
 
 }
