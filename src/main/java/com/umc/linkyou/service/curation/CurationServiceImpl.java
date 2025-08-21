@@ -18,6 +18,8 @@ import com.umc.linkyou.web.dto.curation.GptMentResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.YearMonth;
 import java.util.List;
@@ -85,8 +87,13 @@ public class CurationServiceImpl implements CurationService {
             curationRepository.save(curation);
             curationTopLogService.calculateAndSaveTopLogs(user.getId(), curation);
 
-            // ✅ 배치 자동생성 시에도 선계산
-            externalRecommendMaterializer.generateAndStoreExternalAsync(curation.getCurationId());
+            // ✅ 커밋 이후에 외부추천 비동기 실행 (레이스 방지)
+            Long cid = curation.getCurationId();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() {
+                    externalRecommendMaterializer.generateAndStoreExternalAsync(cid);
+                }
+            });
         }
     }
 
@@ -121,9 +128,14 @@ public class CurationServiceImpl implements CurationService {
                 // Top 로그 계산/저장 (현행 규칙 동일)
                 curationTopLogService.calculateAndSaveTopLogs(user.getId(), curation);
 
-                // 외부 추천 선계산 (옵션)
                 if (materializeExternal) {
-                    externalRecommendMaterializer.generateAndStoreExternalAsync(curation.getCurationId());
+                    // ✅ 커밋 이후로 지연 실행
+                    Long cid = curation.getCurationId();
+                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override public void afterCommit() {
+                            externalRecommendMaterializer.generateAndStoreExternalAsync(cid);
+                        }
+                    });
                 }
             }
 
