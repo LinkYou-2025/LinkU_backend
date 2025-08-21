@@ -43,6 +43,18 @@ public class CurationController {
         return ResponseEntity.ok(ApiResponse.onSuccess(null));
     }
 
+    @Operation(
+            summary = "개발용 시드: 2025-02 ~ 2025-07 큐레이션 생성",
+            description = "기존 운영 코드 변경 없이, 테스트 데이터만 일괄 생성합니다. 이미 존재하는 (user, month)는 스킵합니다."
+    )
+    @PostMapping("/seed-feb-to-jul-2025")
+    public ResponseEntity<ApiResponse<Void>> seedFebToJul2025(
+            @RequestParam(defaultValue = "false") boolean materializeExternal
+    ) {
+        curationService.seedFebToJul2025(materializeExternal);
+        return ResponseEntity.ok(ApiResponse.onSuccess(null));
+    }
+
     /**
      * 큐레이션 상세 조회 API
      */
