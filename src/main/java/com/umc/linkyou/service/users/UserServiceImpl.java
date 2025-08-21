@@ -8,6 +8,7 @@ import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.EmailVerification;
 import com.umc.linkyou.domain.UserRefreshToken;
 import com.umc.linkyou.domain.enums.Gender;
+import com.umc.linkyou.domain.enums.Interest;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.classification.Category;
@@ -336,8 +337,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponseDTO.UserProfileSummaryDto userInfo(Long userId){
         UserResponseDTO.UserProfileSummaryDto s = userQueryRepository.findUserProfileSummary(userId);
+        List<String> purposes  = purposeRepository.findAllPurposeNamesByUserId(userId);
+        List<String> interests = interestRepository.findAllInterestNamesByUserId(userId);
 
-        return UserConverter.toUserInfoDTO(s);
+        return UserConverter.toUserInfoDTO(s, purposes, interests);
     }
 
     // 마이페이지 수정
