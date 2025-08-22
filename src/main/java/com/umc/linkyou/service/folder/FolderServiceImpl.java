@@ -254,7 +254,8 @@ public class FolderServiceImpl implements FolderService {
             Linku link = usersLinku.getLinku();
 
             LinkuSummaryDTO dto = new LinkuSummaryDTO();
-            dto.setLinkuId(usersLinku.getUserLinkuId());
+            dto.setUserLinkuId(usersLinku.getUserLinkuId());
+            dto.setLinkuId(link.getLinkuId());
             dto.setTitle(link.getTitle());
             dto.setUrl(link.getLinku());
             dto.setKeyword(

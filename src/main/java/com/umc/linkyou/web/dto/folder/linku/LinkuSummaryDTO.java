@@ -12,6 +12,7 @@ public class LinkuSummaryDTO {
     private String title;
     private String url;
     private String keyword;
+    private Long userLinkuId;
     private String linkuImageUrl;
     private String createdAt;
 }
