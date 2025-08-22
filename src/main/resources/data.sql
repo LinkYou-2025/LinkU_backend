@@ -1,35 +1,35 @@
-INSERT INTO category (category_id, color_code, name) VALUES (1, '#000000', '어학')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (2, '#000000', '뉴스')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (3, '#000000', '공부법')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (4, '#000000', 'IT·개발')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (5, '#000000', '자기계발')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (6, '#000000', '취업·이직')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (7, '#000000', '비즈니스 인사이트')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (8, '#000000', '생산성·툴')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (9, '#000000', '라이프스타일')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (10, '#000000', '심리·자기이해')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (11, '#000000', '에세이·칼럼')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (12, '#000000', '트렌드')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (13, '#000000', '디자인·예술')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (14, '#000000', '영상·뮤직')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (15, '#000000', '맛집·여행')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
-INSERT INTO category (category_id, color_code, name) VALUES (16, '#000000', '기타')
-    ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (1, '#000000', '어학')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (2, '#000000', '뉴스')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (3, '#000000', '공부법')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (4, '#000000', 'IT·개발')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (5, '#000000', '자기계발')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (6, '#000000', '취업·이직')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (7, '#000000', '비즈니스 인사이트')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (8, '#000000', '생산성·툴')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (9, '#000000', '라이프스타일')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (10, '#000000', '심리·자기이해')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (11, '#000000', '에세이·칼럼')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (12, '#000000', '트렌드')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (13, '#000000', '디자인·예술')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (14, '#000000', '영상·뮤직')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (15, '#000000', '맛집·여행')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
+# INSERT INTO category (category_id, color_code, name) VALUES (16, '#000000', '기타')
+#     ON DUPLICATE KEY UPDATE name = VALUES(name), color_code = VALUES(color_code);
 
 INSERT INTO folder (folder_id, category_id, folder_name, parent_folder_id, created_at, updated_at)
 VALUES (1, 1, '어학', NULL, NOW(), NOW())
