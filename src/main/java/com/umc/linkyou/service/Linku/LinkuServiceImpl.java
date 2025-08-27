@@ -268,7 +268,7 @@ public class LinkuServiceImpl implements LinkuService {
 
         UsersLinku usersLinku = list.stream()
                 .max(Comparator.comparing(UsersLinku::getCreatedAt))
-                .orElseGet(() -> new UsersLinku());
+                .orElse(null);
 // 최근 열람 기록 upDate
         updateRecentViewedLinku(userId, linkuId);
 

@@ -36,7 +36,7 @@ public class LinkuConverter {
     ) {
         return LinkuResponseDTO.LinkuResultDTO.builder()
                 .userId(userId)
-                .userLinkuId(usersLinku != null ? usersLinku.getUserLinkuId() : null)
+                .userLinkuId(usersLinku != null ? usersLinku.getUserLinkuId() : 0) //프론트에서 null처리 안해놨을 거 같아서
                 .linkuId(linku.getLinkuId())
                 .linkuFolderId(linkuFolder != null ? linkuFolder.getLinkuFolderId() : null)
                 .categoryId(category != null ? category.getCategoryId() : null)
