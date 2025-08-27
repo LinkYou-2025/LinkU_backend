@@ -71,6 +71,13 @@ public class LinkuController {
         return linkuService.detailGetLinku(userId, linkuid);
     } //linku 상세보기
 
+    @GetMapping("/{userId}/{linkuId}")
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
+            @PathVariable Long userId,
+            @PathVariable Long linkuId) {
+        return linkuService.detailGetLinku(userId, linkuId);
+    }//userId를 받아서 상세보기
+
     @GetMapping("/recent")
     public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getRecentViewedLinkus(
             @AuthenticationPrincipal CustomUserDetails userDetails,
