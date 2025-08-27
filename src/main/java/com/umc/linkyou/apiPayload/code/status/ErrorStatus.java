@@ -33,7 +33,8 @@ public enum ErrorStatus implements BaseErrorCode {
     //링큐 관련 코드
     _LINKU_VIDEO_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "LINKU4001", "영상 링크는 저장할 수 없습니다."),
     _LINKU_INVALID_URL(HttpStatus.BAD_REQUEST, "LINKU4002", "유효하지 않은 링크입니다."),
-    _USER_LINKU_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU404", "user_linku 테이블을 찾기 못했습니다." ),
+    _USER_LINKU_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU4043", "user_linku 테이블을 찾기 못했습니다." ),
+    _LINKU_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU4044", "linku 테이블을 찾기 못했습니다." ),
     //OPENAI관련 오류
     _AI_PARSE_ERROR(HttpStatus.BAD_REQUEST, "OPENAI5001", "AI 응답 파싱에 실패했습니다."),
     _AI_INVALID_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR, "OPENAI5002", "AI 응답이 예상한 형식이 아닙니다."),

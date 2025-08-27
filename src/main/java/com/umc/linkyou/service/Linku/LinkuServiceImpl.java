@@ -267,13 +267,19 @@ public class LinkuServiceImpl implements LinkuService {
         List<UsersLinku> list = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId);
 
         UsersLinku usersLinku = list.stream()
-                .max(Comparator.comparing(UsersLinku::getCreatedAt)) // 혹은 정렬해서 가장 최근꺼 선택
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
+                .max(Comparator.comparing(UsersLinku::getCreatedAt))
+                .orElseGet(() -> new UsersLinku());
 // 최근 열람 기록 upDate
         updateRecentViewedLinku(userId, linkuId);
 
         // 2. Linku는 UsersLinku에서 직접 꺼낼 수 있음
-        Linku linku = usersLinku.getLinku();
+        Linku linku;
+        if (usersLinku != null) {
+            linku = usersLinku.getLinku();
+        } else {
+            linku = linkuRepository.findById(linkuId)
+                    .orElseThrow(() -> new GeneralException(ErrorStatus._LINKU_NOT_FOUND));
+        }
 
         // 3. 기타 연관 엔티티 처리
         Category category = linku.getCategory();
