@@ -37,4 +37,7 @@ public class UsersLinku extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "linku_id", nullable = false)
     private Linku linku;
+
+    @Column(name = "is_ai_exist", nullable = false)
+    private Boolean isAiExist = false;
 }
