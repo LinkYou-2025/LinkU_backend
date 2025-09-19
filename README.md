@@ -1,10 +1,16 @@
 # backend-server  
 LinkU 백엔드 레포지토리 입니다.
 
-**✅ 진행 사항 확인**  
-- **Notion**에서 자세한 진행사항 보러가기 ->   
-  [![Notion](https://img.shields.io/badge/Notion-000000?style=flat-square&logo=notion&logoColor=white)](https://sapphire-lamprey-5db.notion.site/1f393020f65580249c69d231b96abbec?source=copy_link)
-
+** 로컬에서 서버를 실행하는 법 **  
+1. Redis 실행하기</br>
+(0) docker desktop과 wsl설치 </br>
+```wsl --install```</br>
+```wsl --set-default-version 2```</br>
+```docker --version```</br></br>
+(1) docker desktop키기</br></br>
+(2) redis를 docker로 실행</br></br>
+```docker run -d --name redis -p 6379:6379 redis:7```</br></br>
+2. spring 서버 실행
 ---
 
 ## 📖 프로젝트 소개  
