@@ -11,6 +11,9 @@ LinkU 백엔드 레포지토리 입니다.
 (2) redis를 docker로 실행</br></br>
 ```docker run -d --name redis -p 6379:6379 redis:7```</br></br>
 2. spring 서버 실행
+3. 트러블 슈팅</br>
+-docker: Error response from daemon: Conflict. The container name "/redis" is already in use by container </br>
+```docker rm -f redis```
 ---
 
 ## 📖 프로젝트 소개  
