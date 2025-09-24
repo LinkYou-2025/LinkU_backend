@@ -128,6 +128,12 @@ public class AiArticleServiceImpl implements AiArticleService {
         UsersLinku usersLinku = usersLinkuRepository.findByUserAndLinku(user, linku)
                 .orElse(null);
 
+        //ai 생성여부
+        if (usersLinku != null) {
+            usersLinku.setIsAiExist(true);
+            usersLinkuRepository.save(usersLinku);
+        }
+
         // 10. DTO 반환
         return AiArticleConverter.toDto(
                 saved,
@@ -171,7 +177,9 @@ public class AiArticleServiceImpl implements AiArticleService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
         UsersLinku usersLinku = usersLinkuRepository.findByUserAndLinku(user, linku)
                 .orElse(null);
-
+        if (usersLinku.getIsAiExist() == null || !usersLinku.getIsAiExist()) {
+            throw new GeneralException(ErrorStatus._AI_ARTICLE_NOT_FOUND);
+        }
         Situation situation = article.getSituation();
         Emotion emotion = null;
         if (article.getAiFeelingId() != null)

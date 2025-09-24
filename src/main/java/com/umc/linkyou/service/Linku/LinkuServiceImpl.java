@@ -119,6 +119,9 @@ public class LinkuServiceImpl implements LinkuService {
         // 9) UsersLinku 생성 & 저장
         UsersLinku usersLinku = createUsersLinku(user, linku, emotion, dto.getMemo(), imageUrl);
 
+        // 9-1) 링크 생성 후 "최근 열람 링크"에도 기록 추가
+        updateRecentViewedLinku(userId, linku.getLinkuId());
+
         // 10) 폴더 조회 또는 신규 생성
         Folder folder = findOrCreateFolder(userId, category);
 
@@ -284,7 +287,7 @@ public class LinkuServiceImpl implements LinkuService {
         LinkuFolder linkuFolder =
                 linkuFolderRepository.findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()).orElse(null);
         AiArticle aiArticle = aiArticleRepository.findByLinku(linku).orElse(null);
-        boolean aiArticleExists = aiArticle != null && aiArticle.getTitle() != null && !aiArticle.getTitle().isBlank();
+        boolean aiArticleExists = Boolean.TRUE.equals(usersLinku.getIsAiExist());
 
         String keyword = null;
         String summary = null;
@@ -356,7 +359,7 @@ public class LinkuServiceImpl implements LinkuService {
                     .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
 
 
-            boolean aiArticleExists = aiArticleExistsMap.getOrDefault(linku.getLinkuId(), false);
+            boolean aiArticleExists = Boolean.TRUE.equals(usersLinku.getIsAiExist());
             Domain domain = linku.getDomain();
 
             LinkuResponseDTO.LinkuSimpleDTO dto = toLinkuSimpleDTO(linku, usersLinku, domain, aiArticleExists);
@@ -454,7 +457,7 @@ public class LinkuServiceImpl implements LinkuService {
     } //링크 수정
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
             Long userId, Long situationId, Long emotionId, int page, int size) {
 
@@ -569,7 +572,7 @@ public class LinkuServiceImpl implements LinkuService {
                     Linku linku = userLinku.getLinku();
                     Domain domain = linku.getDomain();
 
-                    boolean aiArticleExists = aiArticleExistsMap.getOrDefault(linku.getLinkuId(), false);
+                    boolean aiArticleExists = Boolean.TRUE.equals(userLinku.getIsAiExist());
 
                     return LinkuConverter.toLinkuSimpleDTO(
                             linku,
