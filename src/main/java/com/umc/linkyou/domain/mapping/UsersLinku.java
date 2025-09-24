@@ -38,6 +38,7 @@ public class UsersLinku extends BaseEntity {
     @JoinColumn(name = "linku_id", nullable = false)
     private Linku linku;
 
+    @Builder.Default
     @Column(name = "is_ai_exist", nullable = false)
     private Boolean isAiExist = false;
 }
