@@ -84,3 +84,35 @@ jobs:
             LOG=$(sudo docker logs $(sudo docker ps -lq))
             echo "$LOG"
             echo "$LOG" | grep "Cannot load driver class: org.mariadb.jdbc.Driver" && exit 1 || true
+      - name: Wait for Spring Boot to be ready
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ubuntu
+          key: ${{ secrets.PRIVATE_KEY }}
+          script: |
+            # Spring 컨테이너가 완전히 기동될 때까지 확인
+            RETRIES=10
+            until curl -s http://localhost:8080/actuator/health || [ $RETRIES -eq 0 ]; do
+              echo "Waiting for Spring Boot app to start..."
+              sleep 5
+              RETRIES=$((RETRIES-1))
+            done
+
+      - name: Test and restart Nginx safely
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ubuntu
+          key: ${{ secrets.PRIVATE_KEY }}
+          script: |
+            # Nginx 설정 테스트
+            sudo nginx -t
+            # 설정이 문제 없으면 재시작
+            if [ $? -eq 0 ]; then
+              echo "Nginx config OK. Restarting Nginx..."
+              sudo systemctl restart nginx
+            else
+              echo "Nginx config test failed. Not restarting."
+              exit 1
+            fi  
