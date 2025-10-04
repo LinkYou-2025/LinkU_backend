@@ -21,16 +21,11 @@ import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.openApi.OpenAICategoryClassifier;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
-import com.umc.linkyou.repository.LogRepository.EmotionLogRepository;
-import com.umc.linkyou.repository.LogRepository.SituationLogRepository;
-import com.umc.linkyou.repository.RecentViewedLinkuRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
-import com.umc.linkyou.repository.curationLinkuRepository.CurationLinkuRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
-import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
@@ -44,7 +39,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.inject.Qualifier;
 import java.util.Optional;
 
 @Service
@@ -61,14 +55,9 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
     private final UserRepository userRepository;
     private final AwsS3Service awsS3Service;
     private final LinkToImageService linkToImageService;
-    private final RecentViewedLinkuRepository recentViewedLinkuRepository;
     private final SituationRepository situationRepository;
-    private final SituationLogRepository situationLogRepository;
-    private final EmotionLogRepository emotionLogRepository;
-    private final SituationJobRepository situationJobRepository;
     private final UsersFolderRepository usersFolderRepository;
     private final AiArticleRepository aiArticleRepository;
-    private final CurationLinkuRepository curationLinkuRepository;
 
     private static final Long DEFAULT_CATEGORY_ID = 16L;
     private static final Long DEFAULT_EMOTION_ID = 2L;
