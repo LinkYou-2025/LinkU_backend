@@ -9,8 +9,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface LinkuService {
-    LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) ;
-
     ApiResponse<LinkuResponseDTO.LinkuIsExistDTO> existLinku(Long userId, String url);
 
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailGetLinku(Long userId, Long linkuId);
@@ -19,8 +17,6 @@ public interface LinkuService {
 
     LinkuResponseDTO.LinkuResultDTO updateLinku(Long userId, Long linkuId, LinkuRequestDTO.LinkuUpdateDTO updateDTO);
 
-    ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
-            Long userId, Long situationId, Long emotionId, int page, int size);
 
     void deleteUsersLinku(Long userId, Long userLinkuId);
 }
