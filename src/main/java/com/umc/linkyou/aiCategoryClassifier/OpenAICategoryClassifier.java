@@ -1,8 +1,9 @@
-package com.umc.linkyou.openApi;
+package com.umc.linkyou.aiCategoryClassifier;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.umc.linkyou.openApi.util.HtmlParser;
+import com.umc.linkyou.aiCategoryClassifier.util.TitleDomainParser;
+import com.umc.linkyou.aiCategoryClassifier.util.WebContentExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,7 +29,7 @@ public class OpenAICategoryClassifier {
     private String model;
 
     private final ObjectMapper objectMapper;
-    private final HtmlParser htmlParser;
+    private final TitleDomainParser titleDomainParser;
     private final WebContentExtractor webContentExtractor;
 
     public CategoryResult classifyCategoryByUrl(String url, List<?> categories) {
@@ -38,7 +39,7 @@ public class OpenAICategoryClassifier {
             String pageContent = null;
 
             // Jsoup 파싱 분리된 클래스 호출
-            HtmlParser.ParsedPageInfo pageInfo = htmlParser.parseUrl(url);
+            TitleDomainParser.ParsedPageInfo pageInfo = titleDomainParser.parseUrl(url);
             domain = pageInfo.domain();
             title = pageInfo.title();
 

@@ -1,4 +1,4 @@
-package com.umc.linkyou.openApi.util;
+package com.umc.linkyou.aiCategoryClassifier.util;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -10,7 +10,7 @@ import java.net.URI;
 
 @Slf4j
 @Component
-public class HtmlParser {
+public class TitleDomainParser {
 
     public ParsedPageInfo parseUrl(String url) {
         String domain = null;

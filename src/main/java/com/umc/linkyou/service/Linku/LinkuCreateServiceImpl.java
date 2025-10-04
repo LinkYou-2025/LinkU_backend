@@ -18,7 +18,7 @@ import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
-import com.umc.linkyou.openApi.OpenAICategoryClassifier;
+import com.umc.linkyou.aiCategoryClassifier.OpenAICategoryClassifier;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
