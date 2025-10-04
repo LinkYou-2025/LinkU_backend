@@ -1,6 +1,7 @@
 package com.umc.linkyou.aiCategoryClassifier.util;
 
 import com.umc.linkyou.domain.classification.Domain;
+import com.umc.linkyou.domain.enums.CrawlStrategy;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -13,23 +14,22 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 public class WebContentExtractor {
 
-    private final DomainRepository domainRepository;  // JPA 등으로 DB 접근하는 Repository
+    private final DomainRepository domainRepository;
 
     public WebContentExtractor(DomainRepository domainRepository) {
         this.domainRepository = domainRepository;
     }
 
-    // 도메인별 크롤러 전략 인터페이스
     interface ContentExtractorStrategy {
         String extract(Document doc, String url) throws Exception;
     }
 
-    // 기본 크롤러 전략 - article, main, p 등
     static class DefaultExtractor implements ContentExtractorStrategy {
         @Override
         public String extract(Document doc, String url) {
@@ -52,7 +52,6 @@ public class WebContentExtractor {
         }
     }
 
-    // 네이버 블로그 iframe 크롤러 전략 구현 예
     static class NaverBlogExtractor implements ContentExtractorStrategy {
         @Override
         public String extract(Document doc, String url) throws Exception {
@@ -60,7 +59,10 @@ public class WebContentExtractor {
             if (!naverIframe.isEmpty()) {
                 String src = naverIframe.attr("src");
                 String iframeUrl = src.startsWith("http") ? src : "https://blog.naver.com" + src;
-                Document iframeDoc = Jsoup.connect(iframeUrl).userAgent("Mozilla/5.0").timeout(15000).get();
+                Document iframeDoc = Jsoup.connect(iframeUrl)
+                        .userAgent("Mozilla/5.0")
+                        .timeout(15000)
+                        .get();
 
                 String logNo = null;
                 String[] paramPairs = src.split("&");
@@ -84,25 +86,34 @@ public class WebContentExtractor {
                         return iframeBody;
                 }
             }
-            // iframe 없거나 실패시 빈 문자열 반환
             return "";
         }
     }
 
-    // 도메인 tail (ex: blog.naver.com) 과 크롤러 전략 맵을 미리 빌드해서 사용
+    static class BodyExtractor implements ContentExtractorStrategy {
+        @Override
+        public String extract(Document doc, String url) {
+            return doc.body() != null ? doc.body().text() : "";
+        }
+    }
+
     private Map<String, ContentExtractorStrategy> crawlerStrategies;
 
     private void initStrategies(List<Domain> domains) {
         crawlerStrategies = domains.stream().collect(
-                java.util.stream.Collectors.toMap(
+                Collectors.toMap(
                         Domain::getDomainTail,
                         domain -> {
-                            // 도메인 tail 기반 전략 매핑 예시
-                            if (domain.getDomainTail().contains("blog.naver.com")) {
-                                return new NaverBlogExtractor();
+                            CrawlStrategy strategy = domain.getCrawlStrategy();
+                            switch (strategy) {
+                                case IFRAME:
+                                    return new NaverBlogExtractor();
+                                case BODY:
+                                    return new BodyExtractor();
+                                case DEFAULT:
+                                default:
+                                    return new DefaultExtractor();
                             }
-                            // 그 외는 기본 추출기 사용
-                            return new DefaultExtractor();
                         }
                 )
         );
@@ -121,10 +132,8 @@ public class WebContentExtractor {
                     .timeout(15000)
                     .get();
 
-            // URL에서 호스트 부분 추출하여 도메인 tail과 매칭 (예: blog.naver.com)
             String host = new java.net.URL(safeUrl).getHost();
 
-            // 매칭되는 도메인 tail 찾기 (가장 긴 일치 tail 우선)
             String targetDomainTail = crawlerStrategies.keySet().stream()
                     .filter(host::endsWith)
                     .max((a, b) -> Integer.compare(a.length(), b.length()))
@@ -134,7 +143,6 @@ public class WebContentExtractor {
 
             String extracted = strategy.extract(doc, safeUrl);
 
-            // fallback 기본 전체 body 추출
             if (extracted == null || extracted.isBlank()) {
                 extracted = doc.body() != null ? doc.body().text() : "";
             }
