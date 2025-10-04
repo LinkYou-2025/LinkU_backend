@@ -85,7 +85,6 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
     public LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
         // 1) URL 정규화 & 검증 (비디오 링크 여부, URL 유효성 체크)
         String normalizedLink = validateAndNormalizeUrl(dto.getLinku());
-
         String domainTail = UrlValidUtils.extractDomainTail(normalizedLink);
 
         // 2) AI 분류 실행 → Category + AI 키워드 반환

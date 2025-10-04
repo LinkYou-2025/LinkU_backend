@@ -2,17 +2,13 @@ package com.umc.linkyou.openApi;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.openApi.util.HtmlParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,6 +28,7 @@ public class OpenAICategoryClassifier {
     private String model;
 
     private final ObjectMapper objectMapper;
+    private final HtmlParser htmlParser;
     private final WebContentExtractor webContentExtractor;
 
     public CategoryResult classifyCategoryByUrl(String url, List<?> categories) {
@@ -40,29 +37,11 @@ public class OpenAICategoryClassifier {
             String title = null;
             String pageContent = null;
 
-            try {
-                // 1. 도메인 추출
-                domain = new URI(url).getHost();
+            // Jsoup 파싱 분리된 클래스 호출
+            HtmlParser.ParsedPageInfo pageInfo = htmlParser.parseUrl(url);
+            domain = pageInfo.domain();
+            title = pageInfo.title();
 
-                // 2. HTML 파싱
-                Document doc = Jsoup.connect(url)
-                        .userAgent("Mozilla/5.0")
-                        .timeout(10000)
-                        .get();
-
-                // 3. 제목 추출 (og:title > <title>)
-                Element ogTitle = doc.selectFirst("meta[property=og:title]");
-                if (ogTitle != null) {
-                    title = ogTitle.attr("content");
-                }
-                if (title == null || title.isBlank()) {
-                    title = doc.title();
-                }
-            } catch (Exception e) {
-                log.warn("[도메인/제목 추출 실패] {}", e.getMessage());
-            }
-
-            // 4. 본문 추출 (WebContentExtractor)
             try {
                 pageContent = webContentExtractor.extractTextFromUrl(url);
             } catch (Exception e) {
@@ -80,7 +59,6 @@ public class OpenAICategoryClassifier {
                 pageContent = pageContent.substring(0, 2000);
             }
 
-            // 5. 카테고리 목록 텍스트화
             String categoryList = categories.stream()
                     .map(c -> {
                         var entity = (com.umc.linkyou.domain.classification.Category) c;
@@ -88,7 +66,6 @@ public class OpenAICategoryClassifier {
                     })
                     .collect(Collectors.joining("\n"));
 
-            // 6. OpenAI 프롬프트 구성
             String prompt = String.format("""
                 다음은 특정 URL에서 가져온 정보입니다.
 
@@ -115,8 +92,7 @@ public class OpenAICategoryClassifier {
                     domain != null ? domain : "없음",
                     title != null ? title : "없음",
                     pageContent != null ? pageContent : "본문 없음",
-                    categoryList
-            );
+                    categoryList);
 
             Map<String, Object> requestBody = Map.of(
                     "model", model,
