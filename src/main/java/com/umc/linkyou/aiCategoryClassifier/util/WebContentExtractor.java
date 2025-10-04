@@ -12,6 +12,11 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,6 +26,8 @@ import java.util.stream.Collectors;
 public class WebContentExtractor {
 
     private final DomainRepository domainRepository;
+
+    private Map<String, ContentExtractorStrategy> crawlerStrategies;
 
     public WebContentExtractor(DomainRepository domainRepository) {
         this.domainRepository = domainRepository;
@@ -97,8 +104,6 @@ public class WebContentExtractor {
         }
     }
 
-    private Map<String, ContentExtractorStrategy> crawlerStrategies;
-
     private void initStrategies(List<Domain> domains) {
         crawlerStrategies = domains.stream().collect(
                 Collectors.toMap(
@@ -119,8 +124,68 @@ public class WebContentExtractor {
         );
     }
 
+    private boolean isAllowedByRobotsTxt(String urlStr, String userAgent) {
+        try {
+            URL url = new URL(urlStr);
+            String robotsUrl = url.getProtocol() + "://" + url.getHost() + "/robots.txt";
+
+            HttpURLConnection conn = (HttpURLConnection) new URL(robotsUrl).openConnection();
+            conn.setRequestProperty("User-Agent", userAgent);
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode != 200) {
+                // robots.txt 없으면 기본 허용
+                return true;
+            }
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String line;
+            boolean applicableUserAgent = false;
+            List<String> disallowPaths = new ArrayList<>();
+
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+
+                if (line.toLowerCase().startsWith("user-agent")) {
+                    String ua = line.split(":")[1].trim();
+                    applicableUserAgent = ua.equals("*") || ua.equalsIgnoreCase(userAgent);
+                } else if (applicableUserAgent && line.toLowerCase().startsWith("disallow")) {
+                    String path = line.split(":")[1].trim();
+                    if (!path.isEmpty()) {
+                        disallowPaths.add(path);
+                    }
+                } else if (line.isEmpty()) {
+                    applicableUserAgent = false; // user-agent 블록 종료
+                }
+            }
+            reader.close();
+
+            String path = url.getPath();
+
+            for (String disallow : disallowPaths) {
+                if (path.startsWith(disallow)) {
+                    log.info("[robots.txt] URL {} is disallowed for userAgent {}", urlStr, userAgent);
+                    return false;
+                }
+            }
+            return true;
+
+        } catch (Exception e) {
+            log.warn("[robots.txt 검사 실패] URL: {}, 이유: {}", urlStr, e.getMessage());
+            // 검사 실패 시 기본 허용
+            return true;
+        }
+    }
+
     public String extractTextFromUrl(String url) {
         try {
+            if (!isAllowedByRobotsTxt(url, "Mozilla/5.0")) {
+                log.warn("[크롤링 제한] robots.txt에 의해 접근 금지된 URL: {}", url);
+                throw new GeneralException(ErrorStatus._CONTENT_EXTRACTION_PROHIBITED);
+            }
+
             if (crawlerStrategies == null) {
                 List<Domain> domains = domainRepository.findAll();
                 initStrategies(domains);
