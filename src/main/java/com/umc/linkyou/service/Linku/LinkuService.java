@@ -17,8 +17,6 @@ public interface LinkuService {
 
     LinkuResponseDTO.LinkuResultDTO updateLinku(Long userId, Long linkuId, LinkuRequestDTO.LinkuUpdateDTO updateDTO);
 
-    ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
-            Long userId, Long situationId, Long emotionId, int page, int size);
 
     void deleteUsersLinku(Long userId, Long userLinkuId);
 }
