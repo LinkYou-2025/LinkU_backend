@@ -6,6 +6,7 @@ import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.LinkuConverter;
+import com.umc.linkyou.service.Linku.LinkuCreateService;
 import com.umc.linkyou.service.Linku.LinkuSearchService;
 import com.umc.linkyou.service.Linku.LinkuService;
 import com.umc.linkyou.utils.UsersUtils;
@@ -29,6 +30,7 @@ import java.util.List;
 public class LinkuController {
 
     private final LinkuService linkuService;
+    private final LinkuCreateService linkuCreateService;
     private final LinkuSearchService linkuSearchService;
     private final UsersUtils usersUtils;
 
@@ -44,7 +46,7 @@ public class LinkuController {
         LinkuRequestDTO.LinkuCreateDTO linkuCreateDTO =
                 LinkuConverter.toLinkuCreateDTO(linku, memo, emotionId);
 
-        LinkuResponseDTO.LinkuCreateResult serviceResult = linkuService.createLinku(userId, linkuCreateDTO, image);
+        LinkuResponseDTO.LinkuCreateResult serviceResult = linkuCreateService.createLinku(userId, linkuCreateDTO, image);
 
         if (serviceResult.isValidUrl()) {
             return ApiResponse.of(SuccessStatus._OK, serviceResult.getData());

@@ -9,8 +9,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface LinkuService {
-    LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) ;
-
     ApiResponse<LinkuResponseDTO.LinkuIsExistDTO> existLinku(Long userId, String url);
 
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailGetLinku(Long userId, Long linkuId);
