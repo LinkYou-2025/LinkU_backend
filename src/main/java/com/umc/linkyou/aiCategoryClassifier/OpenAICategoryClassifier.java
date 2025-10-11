@@ -2,8 +2,8 @@ package com.umc.linkyou.aiCategoryClassifier;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.umc.linkyou.aiCategoryClassifier.util.TitleDomainParser;
-import com.umc.linkyou.aiCategoryClassifier.util.WebContentExtractor;
+import com.umc.linkyou.utils.extractors.TitleDomainParser;
+import com.umc.linkyou.utils.extractors.WebContentExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.aiCategoryClassifier.util.WebContentExtractor;
+import com.umc.linkyou.utils.extractors.WebContentExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

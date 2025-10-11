@@ -1,4 +1,4 @@
-package com.umc.linkyou.aiCategoryClassifier.util;
+package com.umc.linkyou.utils.extractors;
 
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.CrawlStrategy;
@@ -17,9 +17,11 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+
+import static com.umc.linkyou.utils.UrlValidUtils.extractDomainTail;
 
 @Slf4j
 @Component
@@ -104,24 +106,35 @@ public class WebContentExtractor {
         }
     }
 
-    private void initStrategies(List<Domain> domains) {
-        crawlerStrategies = domains.stream().collect(
-                Collectors.toMap(
-                        Domain::getDomainTail,
-                        domain -> {
-                            CrawlStrategy strategy = domain.getCrawlStrategy();
-                            switch (strategy) {
-                                case IFRAME:
-                                    return new NaverBlogExtractor();
-                                case BODY:
-                                    return new BodyExtractor();
-                                case DEFAULT:
-                                default:
-                                    return new DefaultExtractor();
-                            }
-                        }
-                )
-        );
+    private void initStrategies(String domainTail) {
+        if (domainTail == null) {
+            crawlerStrategies.clear();
+            return;
+        }
+        Domain domain =  domainRepository.findByDomainTail(domainTail)
+                .orElse(null);
+        if (domain == null) {
+            crawlerStrategies.clear();
+            return;
+        }
+
+        CrawlStrategy strategy = domain.getCrawlStrategy();
+        ContentExtractorStrategy extractorStrategy;
+        switch (strategy) {
+            case IFRAME:
+                extractorStrategy = new NaverBlogExtractor();
+                break;
+            case BODY:
+                extractorStrategy = new BodyExtractor();
+                break;
+            case DEFAULT:
+            default:
+                extractorStrategy = new DefaultExtractor();
+                break;
+        }
+        Map<String, ContentExtractorStrategy> map = new HashMap<>();
+        map.put(domainTail, extractorStrategy);
+        crawlerStrategies = map;
     }
 
     private boolean isAllowedByRobotsTxt(String urlStr, String userAgent) {
@@ -186,25 +199,18 @@ public class WebContentExtractor {
                 throw new GeneralException(ErrorStatus._CONTENT_EXTRACTION_PROHIBITED);
             }
 
-            if (crawlerStrategies == null) {
-                List<Domain> domains = domainRepository.findAll();
-                initStrategies(domains);
+            String safeUrl = UrlUtils.normalizeUrl(url);
+            String domainTail = extractDomainTail(safeUrl);
+            if (!crawlerStrategies.containsKey(domainTail)) {
+                initStrategies(domainTail);
             }
 
-            String safeUrl = UrlUtils.normalizeUrl(url);
             Document doc = Jsoup.connect(safeUrl)
                     .userAgent("Mozilla/5.0")
                     .timeout(15000)
                     .get();
 
-            String host = new java.net.URL(safeUrl).getHost();
-
-            String targetDomainTail = crawlerStrategies.keySet().stream()
-                    .filter(host::endsWith)
-                    .max((a, b) -> Integer.compare(a.length(), b.length()))
-                    .orElse(null);
-
-            ContentExtractorStrategy strategy = targetDomainTail != null ? crawlerStrategies.get(targetDomainTail) : new DefaultExtractor();
+            ContentExtractorStrategy strategy = crawlerStrategies.getOrDefault(domainTail, new DefaultExtractor());
 
             String extracted = strategy.extract(doc, safeUrl);
 

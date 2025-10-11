@@ -1,4 +1,4 @@
-package com.umc.linkyou.aiCategoryClassifier.util;
+package com.umc.linkyou.utils.extractors;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
