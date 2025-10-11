@@ -56,6 +56,17 @@ public class OpenAICategoryClassifier {
                 return null;
             }
 
+            // 제목이 없으면 도메인명을 제목으로 대체하고, 카테고리는 기타(16)로 고정,
+            // AI 호출 없이 바로 CategoryResult 반환
+            if (title == null || title.isBlank()) {
+                String fallbackTitle = (domain != null && !domain.isBlank()) ? domain : "제목 없음";
+                log.info("[제목 없음] 도메인명으로 대체, AI 분류 호출 생략 → URL: {}", url);
+                CategoryResult fallbackResult = new CategoryResult();
+                fallbackResult.setCategoryId(16L); // '기타' 카테고리 ID
+                fallbackResult.setKeywords(fallbackTitle);
+                return fallbackResult;
+            }
+
             if (pageContent != null && pageContent.length() > 2000) {
                 pageContent = pageContent.substring(0, 2000);
             }
@@ -91,7 +102,7 @@ public class OpenAICategoryClassifier {
                 ⚠ JSON 외 다른 내용 없이 출력하세요.
                 """,
                     domain != null ? domain : "없음",
-                    title != null ? title : "없음",
+                    title != null && !title.isBlank() ? title : domain != null ? domain : "없음",
                     pageContent != null ? pageContent : "본문 없음",
                     categoryList);
 
