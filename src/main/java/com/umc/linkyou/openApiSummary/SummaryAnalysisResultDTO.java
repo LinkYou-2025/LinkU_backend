@@ -1,4 +1,4 @@
-package com.umc.linkyou.openApi;
+package com.umc.linkyou.openApiSummary;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

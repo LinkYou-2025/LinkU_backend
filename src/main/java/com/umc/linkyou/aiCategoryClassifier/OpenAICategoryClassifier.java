@@ -1,8 +1,9 @@
-package com.umc.linkyou.openApi;
+package com.umc.linkyou.aiCategoryClassifier;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.umc.linkyou.openApi.util.HtmlParser;
+import com.umc.linkyou.utils.extractors.TitleDomainParser;
+import com.umc.linkyou.utils.extractors.WebContentExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,7 +29,7 @@ public class OpenAICategoryClassifier {
     private String model;
 
     private final ObjectMapper objectMapper;
-    private final HtmlParser htmlParser;
+    private final TitleDomainParser titleDomainParser;
     private final WebContentExtractor webContentExtractor;
 
     public CategoryResult classifyCategoryByUrl(String url, List<?> categories) {
@@ -38,7 +39,7 @@ public class OpenAICategoryClassifier {
             String pageContent = null;
 
             // Jsoup 파싱 분리된 클래스 호출
-            HtmlParser.ParsedPageInfo pageInfo = htmlParser.parseUrl(url);
+            TitleDomainParser.ParsedPageInfo pageInfo = titleDomainParser.parseUrl(url);
             domain = pageInfo.domain();
             title = pageInfo.title();
 
@@ -53,6 +54,17 @@ public class OpenAICategoryClassifier {
                     (pageContent == null || pageContent.isBlank())) {
                 log.warn("[카테고리 분류 실패] URL에서 정보 없음 → {}", url);
                 return null;
+            }
+
+            // 제목이 없으면 도메인명을 제목으로 대체하고, 카테고리는 기타(16)로 고정,
+            // AI 호출 없이 바로 CategoryResult 반환
+            if (title == null || title.isBlank()) {
+                String fallbackTitle = (domain != null && !domain.isBlank()) ? domain : "제목 없음";
+                log.info("[제목 없음] 도메인명으로 대체, AI 분류 호출 생략 → URL: {}", url);
+                CategoryResult fallbackResult = new CategoryResult();
+                fallbackResult.setCategoryId(16L); // '기타' 카테고리 ID
+                fallbackResult.setKeywords(fallbackTitle);
+                return fallbackResult;
             }
 
             if (pageContent != null && pageContent.length() > 2000) {
@@ -90,7 +102,7 @@ public class OpenAICategoryClassifier {
                 ⚠ JSON 외 다른 내용 없이 출력하세요.
                 """,
                     domain != null ? domain : "없음",
-                    title != null ? title : "없음",
+                    title != null && !title.isBlank() ? title : domain != null ? domain : "없음",
                     pageContent != null ? pageContent : "본문 없음",
                     categoryList);
 

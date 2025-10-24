@@ -6,7 +6,7 @@ import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.openApi.SummaryAnalysisResultDTO;
+import com.umc.linkyou.openApiSummary.SummaryAnalysisResultDTO;
 import com.umc.linkyou.web.dto.AiArticleResponsetDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

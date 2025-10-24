@@ -18,7 +18,7 @@ import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
-import com.umc.linkyou.openApi.OpenAICategoryClassifier;
+import com.umc.linkyou.aiCategoryClassifier.OpenAICategoryClassifier;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
@@ -70,7 +70,7 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
     private final AiArticleConverter aiArticleConverter;
 
     @Override
-    @Transactional
+    @Transactional  //핵심: 도메인분류, ai 분류, 이미지 추가, 폴더간 매핑
     public LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
         // 1) URL 정규화 & 검증 (비디오 링크 여부, URL 유효성 체크)
         String normalizedLink = validateAndNormalizeUrl(dto.getLinku());
