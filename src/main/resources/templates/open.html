@@ -1,12 +1,15 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8" />
     <title>LinkU 열기</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <script>
+    <script th:inline="javascript">
         (function() {
+            // ▼ 서버 URL (GitHub Actions secrets에서 주입)
+            const serverBaseUrl = /*[[${serverBaseUrl}]]*/ '';
+            
             // ▼ 앱 패키지/스토어 주소(수정해야 함)
             const pkg = "com.example.linku_android";
             const play = "https://play.google.com/store/apps/details?id=" + pkg;
@@ -27,7 +30,7 @@
                     if (action) usp.set("action", action);
                     if (folderId) usp.set("folderId", folderId);
                 }
-                return "linku://open" + (usp.toString() ? ("?" + usp.toString()) : "");
+                return serverBaseUrl + "/open" + (usp.toString() ? ("?" + usp.toString()) : "");
             })();
 
             // intent:// (Android 전용; 패키지/스토어 fallback 포함)
