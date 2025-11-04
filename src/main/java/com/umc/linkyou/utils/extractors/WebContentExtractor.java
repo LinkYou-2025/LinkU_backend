@@ -33,6 +33,7 @@ public class WebContentExtractor {
 
     public WebContentExtractor(DomainRepository domainRepository) {
         this.domainRepository = domainRepository;
+        this.crawlerStrategies = new HashMap<>();
     }
 
     interface ContentExtractorStrategy {
@@ -108,13 +109,11 @@ public class WebContentExtractor {
 
     private void initStrategies(String domainTail) {
         if (domainTail == null) {
-            crawlerStrategies.clear();
             return;
         }
         Domain domain =  domainRepository.findByDomainTail(domainTail)
                 .orElse(null);
         if (domain == null) {
-            crawlerStrategies.clear();
             return;
         }
 
