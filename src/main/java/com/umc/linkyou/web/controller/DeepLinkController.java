@@ -18,6 +18,9 @@ public class DeepLinkController {
     @Value("${app.deeplink.base-url}")
     private String serverBaseUrl;
     
+    @Value("${cloud.aws.s3.base-url}")
+    private String s3BaseUrl;
+    
     @GetMapping("/open")
     public String openPage(@RequestParam(value = "action", required = false) String action,
                            @RequestParam(value = "folderId", required = false) String folderId,
@@ -25,6 +28,7 @@ public class DeepLinkController {
         model.addAttribute("action", action);
         model.addAttribute("folderId", folderId);
         model.addAttribute("serverBaseUrl", serverBaseUrl);
+        model.addAttribute("logoUrl", s3BaseUrl + "/linkuLogo/logo_white.png");
         return "open"; // Thymeleaf 등 템플릿 엔진으로 open.html 렌더링
     }
 
