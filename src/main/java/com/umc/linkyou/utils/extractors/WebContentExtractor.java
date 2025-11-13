@@ -116,8 +116,8 @@ public class WebContentExtractor {
         if (domain == null) {
             return;
         }
-
-        CrawlStrategy strategy = domain.getCrawlStrategy();
+        // if crawlstrategy null -> default
+        CrawlStrategy strategy = domain.getCrawlStrategy() != null ? domain.getCrawlStrategy() : CrawlStrategy.DEFAULT;
         ContentExtractorStrategy extractorStrategy;
         switch (strategy) {
             case IFRAME:
