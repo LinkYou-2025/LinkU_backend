@@ -9,6 +9,7 @@ import com.umc.linkyou.web.dto.category.UpdateCategoryColorRequestDTO;
 import com.umc.linkyou.web.dto.category.UserCategoryColorResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderUpdateRequestDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,15 +17,18 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "category-controller", description = "카테고리 관련 API")
 @RestController
 @RequestMapping("/api/categories")
 @RequiredArgsConstructor
 public class CategoryController {
     private final CategoryService categoryService;
 
-    // 카테고리 목록 조회
+    @Operation(
+            summary = "카테고리 목록 조회",
+            description = "사용자가 사용할 수 있는 모든 카테고리 목록을 조회합니다."
+    )
     @GetMapping
-    @Operation(summary = "카테고리 목록 조회")
     public ApiResponse<List<CategoryListResponseDTO>> getCategoryList(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
@@ -32,9 +36,11 @@ public class CategoryController {
         return ApiResponse.of(SuccessStatus._CATEGORY_OK, categoryList);
     }
 
-    // 유저 카테고리(중분류 폴더) 색상 수정
+    @Operation(
+            summary = "유저 카테고리(중분류 폴더) 색상 수정",
+            description = "사용자의 카테고리(중분류 폴더) 색상을 수정합니다."
+    )
     @PutMapping("/{categoryId}/color")
-    @Operation(summary = "유저 카테고리(중분류 폴더) 색상 수정")
     public ApiResponse<UserCategoryColorResponseDTO> updateUserCategoryColor(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long categoryId,

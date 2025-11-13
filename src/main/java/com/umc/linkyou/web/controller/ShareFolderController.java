@@ -9,6 +9,7 @@ import com.umc.linkyou.web.dto.folder.share.ShareFolderRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,15 +18,18 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "share-folder-controller", description = "폴더 공유 관련 API")
 @RestController
 @RequestMapping("/api/folders/share")
 @RequiredArgsConstructor
 public class ShareFolderController {
     private final ShareFolderService shareFolderService;
 
-    // 폴더 공유 (뷰어 권한 설정)
+    @Operation(
+            summary = "폴더 공유 (뷰어 권한 설정)",
+            description = "폴더를 다른 사용자와 공유하고 뷰어 권한을 부여합니다."
+    )
     @PostMapping("/{folderId}")
-    @Operation(summary = "폴더 공유 (뷰어 권한 설정)")
     public ApiResponse<ShareFolderResponseDTO> shareFolder(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId
@@ -38,9 +42,11 @@ public class ShareFolderController {
         return ApiResponse.of(SuccessStatus._FOLDER_SHARE_OK, response);
     }
 
-    // 폴더 뷰어 조회
+    @Operation(
+            summary = "폴더 뷰어 조회",
+            description = "공유된 폴더의 뷰어 목록을 조회합니다."
+    )
     @GetMapping("/{folderId}/members")
-    @Operation(summary = "폴더 뷰어 조회")
     public ApiResponse<List<ViewerResponseDTO>> getFolderViewers(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId
@@ -50,9 +56,11 @@ public class ShareFolderController {
         return ApiResponse.of(SuccessStatus._FOLDER_MEMBERS_OK, viewers);
     }
 
-    // 뷰어, 라이터 권한 수정
+    @Operation(
+            summary = "폴더 권한 수정",
+            description = "폴더 공유 멤버의 권한(뷰어/라이터)을 수정합니다."
+    )
     @PutMapping("/{folderId}/members/{userFolderId}")
-    @Operation(summary = "폴더 권한 수정")
     public ApiResponse<ShareFolderResponseDTO> updateViewerPermission(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId,
@@ -64,9 +72,11 @@ public class ShareFolderController {
         return ApiResponse.of(SuccessStatus._FOLDER_PERMISSION_OK, response);
     }
 
-    // 폴더 비공개 전환
+    @Operation(
+            summary = "폴더 비공개 전환",
+            description = "공유된 폴더를 비공개로 전환하고 모든 공유 권한을 제거합니다."
+    )
     @PostMapping("/{folderId}/unshare")
-    @Operation(summary = "폴더 비공개 전환")
     public ApiResponse<ShareFolderResponseDTO> unshareFolder(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId

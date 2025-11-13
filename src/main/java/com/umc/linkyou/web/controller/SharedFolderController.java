@@ -10,6 +10,7 @@ import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.SharedFolderTreeResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,15 +18,18 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "shared-folder-controller", description = "공유 받은 폴더 관련 API")
 @RestController
 @RequestMapping("/api/folders/shared")
 @RequiredArgsConstructor
 public class SharedFolderController {
     private final SharedFolderService sharedFolderService;
 
-    // 공유 받은 폴더 트리 조회
+    @Operation(
+            summary = "공유 받은 폴더 트리 조회",
+            description = "사용자가 공유 받은 모든 폴더를 트리 구조로 조회합니다."
+    )
     @GetMapping
-    @Operation(summary = "공유 받은 폴더 트리 조회")
     public ApiResponse<List<SharedFolderTreeResponseDTO>> getSharedFolders(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
@@ -34,9 +38,11 @@ public class SharedFolderController {
         return ApiResponse.of(SuccessStatus._FOLDER_SHARED_OK, folderTree);
     }
 
-    // 공유 받은 폴더 삭제
+    @Operation(
+            summary = "공유 받은 폴더 삭제",
+            description = "공유 받은 폴더를 자신의 목록에서 제거합니다. (폴더 자체는 삭제되지 않습니다)"
+    )
     @DeleteMapping("/{folderId}")
-    @Operation(summary = "공유 받은 폴더 삭제")
     public ResponseEntity<FolderResponseDTO> deleteSharedFolder(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId

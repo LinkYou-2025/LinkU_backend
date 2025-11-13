@@ -15,6 +15,7 @@ import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+@Tag(name = "linku-controller", description = "링크(Linku) 관련 API")
 @RestController
 @RequestMapping("/api/linku")
 @RequiredArgsConstructor
@@ -36,6 +38,10 @@ public class LinkuController {
     private final LinkuRecommendService linkuRecommendService;
     private final UsersUtils usersUtils;
 
+    @Operation(
+            summary = "링크 생성",
+            description = "새로운 링크를 생성합니다. URL, 메모, 감정 ID, 이미지를 포함할 수 있습니다."
+    )
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<LinkuResponseDTO.LinkuResultDTO> createLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -57,6 +63,10 @@ public class LinkuController {
         }
     }//linku 생성
 
+    @Operation(
+            summary = "링크 존재 여부 확인",
+            description = "해당 URL의 링크가 이미 존재하는지 확인합니다."
+    )
     @GetMapping("/exist")
     public ApiResponse<LinkuResponseDTO.LinkuIsExistDTO> existLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -66,6 +76,10 @@ public class LinkuController {
         return linkuService.existLinku(userId, url);
     }//linku 존재여부 확인
 
+    @Operation(
+            summary = "링크 상세 조회 (인증된 사용자)",
+            description = "인증된 사용자의 링크 상세 정보를 조회합니다."
+    )
     @GetMapping("/{linkuid}")
     public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -75,6 +89,10 @@ public class LinkuController {
         return linkuService.detailGetLinku(userId, linkuid);
     } //linku 상세보기
 
+    @Operation(
+            summary = "링크 상세 조회 (사용자 ID 지정)",
+            description = "특정 사용자 ID와 링크 ID로 링크 상세 정보를 조회합니다."
+    )
     @GetMapping("/{userId}/{linkuId}")
     public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
             @PathVariable Long userId,
@@ -82,6 +100,10 @@ public class LinkuController {
         return linkuService.detailGetLinku(userId, linkuId);
     }//userId를 받아서 상세보기
 
+    @Operation(
+            summary = "최근 열람한 링크 조회",
+            description = "사용자가 최근에 열람한 링크 목록을 조회합니다. limit 파라미터로 조회 개수를 지정할 수 있습니다."
+    )
     @GetMapping("/recent")
     public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getRecentViewedLinkus(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -91,6 +113,10 @@ public class LinkuController {
         return ApiResponse.onSuccess("최근 열람한 링크를 가져왔습니다.",result);
     } //최근 열람한 링크 보기
 
+    @Operation(
+            summary = "링크 수정",
+            description = "기존 링크의 정보(URL, 메모, 감정, 도메인, 제목 등)를 수정합니다."
+    )
     @PatchMapping(value = "/{linkuId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -102,6 +128,10 @@ public class LinkuController {
         return ApiResponse.onSuccess("링크 수정에 성공했습니다.",result);
     } //링큐 수정하기
 
+    @Operation(
+            summary = "링크 추천",
+            description = "상황(situation)과 감정(emotion)을 기반으로 링크를 추천합니다. 페이지네이션을 지원합니다."
+    )
     @GetMapping("/recommend")
     public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -129,6 +159,10 @@ public class LinkuController {
         return ApiResponse.onSuccess(result);
     }
 
+    @Operation(
+            summary = "링크 삭제",
+            description = "사용자가 저장한 링크를 삭제합니다."
+    )
     @DeleteMapping("/{userLinkuId}")
     public ApiResponse<Void> deleteUsersLinku(
             @AuthenticationPrincipal CustomUserDetails userDetails,
