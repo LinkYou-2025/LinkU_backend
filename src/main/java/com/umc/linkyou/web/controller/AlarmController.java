@@ -6,12 +6,14 @@ import com.umc.linkyou.service.alarm.AlarmService;
 import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "alarm-controller", description = "알림 관련 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/alarm")
@@ -20,9 +22,11 @@ public class AlarmController {
     private final AlarmService alarmService;
     private final UsersUtils usersUtils;
 
-    // FCM 토큰 보내기
+    @Operation(
+            summary = "FCM 토큰 등록",
+            description = "사용자의 FCM(Firebase Cloud Messaging) 토큰을 등록하여 푸시 알림을 받을 수 있도록 합니다."
+    )
     @PostMapping("/fcmtoken")
-    @Operation(summary = "FCM 토큰 등록")
     public ApiResponse<String> registerFcmToken(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO

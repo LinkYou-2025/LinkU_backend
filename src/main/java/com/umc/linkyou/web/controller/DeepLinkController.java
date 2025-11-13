@@ -21,6 +21,10 @@ public class DeepLinkController {
     @Value("${cloud.aws.s3.base-url}")
     private String s3BaseUrl;
     
+    @io.swagger.v3.oas.annotations.Operation(
+            summary = "딥링크 리디렉션 페이지",
+            description = "딥링크를 통해 앱을 열거나 특정 폴더로 리디렉션하는 페이지입니다."
+    )
     @GetMapping("/open")
     public String openPage(@RequestParam(value = "action", required = false) String action,
                            @RequestParam(value = "folderId", required = false) String folderId,
