@@ -382,7 +382,7 @@ ON DUPLICATE KEY UPDATE
 INSERT INTO fcolor
 (fcolor_id, color_name, color_code1, color_code2, color_code3, color_code4)
 VALUES
-    (13, '핑크', '#FF52DF', '#F9FEDF', '#FFC7F5', '#FFE5FB')
+    (13, '핑크', '#FF52DF', '#FF9FED', '#FFC7F5', '#FFEBFB')
 ON DUPLICATE KEY UPDATE
                      color_name  = VALUES(color_name),
                      color_code1 = VALUES(color_code1),
@@ -393,7 +393,7 @@ ON DUPLICATE KEY UPDATE
 INSERT INTO fcolor
 (fcolor_id, color_name, color_code1, color_code2, color_code3, color_code4)
 VALUES
-    (14, '딥핑크', '#FF459C', '#FFA2CC', '#FFC5E0', '#FFEF72')
+    (14, '딥핑크', '#FF459C', '#FFA2CC', '#FFC5E0', '#FFE7F2')
 ON DUPLICATE KEY UPDATE
                      color_name  = VALUES(color_name),
                      color_code1 = VALUES(color_code1),
