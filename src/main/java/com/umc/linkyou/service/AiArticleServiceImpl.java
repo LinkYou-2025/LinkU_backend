@@ -177,9 +177,13 @@ public class AiArticleServiceImpl implements AiArticleService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
         UsersLinku usersLinku = usersLinkuRepository.findByUserAndLinku(user, linku)
                 .orElse(null);
-        if (usersLinku.getIsAiExist() == null || !usersLinku.getIsAiExist()) {
-            throw new GeneralException(ErrorStatus._AI_ARTICLE_NOT_FOUND);
+        
+        // UsersLinku가 없거나 isAiExist가 false인 경우 false로 처리
+        if (usersLinku == null || usersLinku.getIsAiExist() == null || !usersLinku.getIsAiExist()) {
+            // UsersLinku가 없으면 false로 처리하여 반환
+            // usersLinku가 null이면 null로 전달하고, Converter에서 null 처리를 하도록 함
         }
+        
         Situation situation = article.getSituation();
         Emotion emotion = null;
         if (article.getAiFeelingId() != null)
@@ -195,6 +199,8 @@ public class AiArticleServiceImpl implements AiArticleService {
                 situation,
                 emotion,
                 category
+
+                
         );
     }
 }
