@@ -330,6 +330,9 @@ public class UserServiceImpl implements UserService {
             emailRepository.save(verification);
         }
 
+        else if (isMatch==false)
+            throw new UserHandler(ErrorStatus._VERIFICATION_FAILED);
+
         return EmailVerificationResponse.of(isMatch);
     }
 
