@@ -40,5 +40,9 @@ public class UsersLinku extends BaseEntity {
 
     @Builder.Default
     @Column(name = "is_ai_exist", nullable = false)
-    private Boolean isAiExist = false;
+    private Boolean aiExist = false;
+
+    public Boolean getAiExist() {
+        return this.aiExist;
+    }
 }

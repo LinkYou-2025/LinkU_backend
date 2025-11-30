@@ -130,7 +130,7 @@ public class AiArticleServiceImpl implements AiArticleService {
 
         //ai 생성여부
         if (usersLinku != null) {
-            usersLinku.setIsAiExist(true);
+            usersLinku.setAiExist(true);
             usersLinkuRepository.save(usersLinku);
         }
 
@@ -179,7 +179,7 @@ public class AiArticleServiceImpl implements AiArticleService {
                 .orElse(null);
         
         // UsersLinku가 없거나 isAiExist가 false인 경우 false로 처리
-        if (usersLinku == null || usersLinku.getIsAiExist() == null || !usersLinku.getIsAiExist()) {
+        if (usersLinku == null || usersLinku.getAiExist() == null || !usersLinku.getAiExist()) {
             // UsersLinku가 없으면 false로 처리하여 반환
             // usersLinku가 null이면 null로 전달하고, Converter에서 null 처리를 하도록 함
         }
