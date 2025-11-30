@@ -1,6 +1,7 @@
 package com.umc.linkyou.repository.userRepository;
 
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.JPQLQuery;
@@ -39,12 +40,20 @@ public class UserQueryRepository {
                 .from(uf)
                 .where(uf.user.id.eq(u.id));
 
-        JPQLQuery<Long> aiLinkCountSub = JPAExpressions
-                .select(a.count())
+//        JPQLQuery<Long> aiLinkCountSub = JPAExpressions
+//                .select(a.count())
+//                .from(ul)
+//                .join(ul.linku, l)
+//                .join(l.aiArticle, a)
+//                .where(ul.user.id.eq(u.id));
+
+        BooleanExpression aiExistSub = JPAExpressions
+                .selectOne()
                 .from(ul)
-                .join(ul.linku, l)
-                .join(l.aiArticle, a)
-                .where(ul.user.id.eq(u.id));
+                .where(ul.user.id.eq(u.id)
+                        .and(ul.aiExist.isTrue())
+                )
+                .exists();
 
         return queryFactory
                 .select(Projections.constructor(
@@ -55,7 +64,7 @@ public class UserQueryRepository {
                         u.job,
                         linkCountSub,
                         folderCountSub,
-                        aiLinkCountSub
+                        aiExistSub
                 ))
                 .from(u)
                 .where(u.id.eq(userId))
