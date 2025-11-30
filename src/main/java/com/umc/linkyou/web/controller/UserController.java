@@ -94,7 +94,8 @@ public class UserController {
     )
     @GetMapping("/{userId}")
     public ApiResponse<UserResponseDTO.UserProfileSummaryDto> getUserInfo(@AuthenticationPrincipal CustomUserDetails userDetails, @PathVariable("userId") Long userId) {
-        return ApiResponse.onSuccess(userService.userInfo(userId));
+        Long newUserId = userDetails.getUsers().getId();  //보안 문제 때문에 추가함
+        return ApiResponse.onSuccess(userService.userInfo(newUserId));
     }
 
     @Operation(
