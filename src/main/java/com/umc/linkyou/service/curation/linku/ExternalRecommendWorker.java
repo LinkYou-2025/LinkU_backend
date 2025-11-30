@@ -9,7 +9,8 @@ import com.umc.linkyou.repository.CurationRepository;
 import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.curationLinkuRepository.CurationLinkuRepository;
-import com.umc.linkyou.service.curation.perplexity.PerplexityExternalSearchService;
+// import com.umc.linkyou.service.curation.perplexity.PerplexityExternalSearchService; //Perplexity 사용
+import com.umc.linkyou.service.curation.gemini.GeminiExternalSearchService;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +28,8 @@ public class ExternalRecommendWorker {
     private final CurationLinkuRepository curationLinkuRepository;
     private final InternalLinkCandidateService internalLinkCandidateService;
     private final CurationTopLogRepository curationTopLogRepository;
-    private final PerplexityExternalSearchService perplexityExternalSearchService;
+    // private final PerplexityExternalSearchService perplexityExternalSearchService; // Perplexity 사용
+    private final GeminiExternalSearchService geminiExternalSearchService;
     private final UserRepository userRepository;
     private final LinkToImageService linkToImageService; // 저장 시점에만 사용
 
@@ -61,7 +63,7 @@ public class ExternalRecommendWorker {
         List<RecommendedLinkResponse> external;
         try {
             long t0 = System.currentTimeMillis();
-            external = perplexityExternalSearchService.searchExternalLinks(
+            external = geminiExternalSearchService.searchExternalLinks(
                     recentUrls, topTags, externalLimit, jobName, gender
             );
             log.info("[Perplexity] elapsed={}ms", System.currentTimeMillis() - t0);

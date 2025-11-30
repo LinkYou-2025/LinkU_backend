@@ -85,6 +85,9 @@ dependencies {
 	//blue-green
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
+	// Google Cloud Vertex AI (Gemini)
+	implementation 'com.google.cloud:google-cloud-vertexai:1.14.0'
+
 }
 
 clean {
