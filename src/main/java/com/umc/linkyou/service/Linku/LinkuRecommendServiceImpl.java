@@ -165,7 +165,7 @@ public class LinkuRecommendServiceImpl implements LinkuRecommendService{
                     Linku linku = userLinku.getLinku();
                     Domain domain = linku.getDomain();
 
-                    boolean aiArticleExists = Boolean.TRUE.equals(userLinku.getIsAiExist());
+                    boolean aiArticleExists = Boolean.TRUE.equals(userLinku.getAiExist());
 
                     return LinkuConverter.toLinkuSimpleDTO(
                             linku,
