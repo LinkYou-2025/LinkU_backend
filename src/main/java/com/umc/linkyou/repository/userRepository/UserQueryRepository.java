@@ -42,7 +42,7 @@ public class UserQueryRepository {
                 .from(ul)
                 .where(
                         ul.user.id.eq(u.id)
-                                .and(ul.isAiExist.isTrue())
+                                .and(ul.aiExist.isTrue())
                 );
 
         return queryFactory
