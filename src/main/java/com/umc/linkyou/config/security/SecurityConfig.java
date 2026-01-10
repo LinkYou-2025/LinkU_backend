@@ -38,6 +38,8 @@ public class SecurityConfig {
                                 "/swagger-ui/**", "/v3/api-docs/**",
                                 "/*.well-known/**",
                                 "/open/**",
+                                "/oauth2/**",          // 소셜로그인 진입점
+                                "/api/oauth2/**",    // 소셜로그인 에러, 성공 콜백 url
                                 "/actuator/**",
                                 "/error/**"
                         ).permitAll()
