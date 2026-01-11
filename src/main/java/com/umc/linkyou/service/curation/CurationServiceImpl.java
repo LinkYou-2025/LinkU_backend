@@ -4,7 +4,6 @@ import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.CurationMent;
 import com.umc.linkyou.domain.log.CurationTopLog;
-import com.umc.linkyou.domain.mapping.CurationLike;
 import com.umc.linkyou.repository.CurationMentRepository;
 import com.umc.linkyou.repository.mapping.CurationLikeRepository;
 import com.umc.linkyou.service.curation.gpt.GptService;

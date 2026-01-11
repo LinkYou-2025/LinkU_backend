@@ -2,7 +2,6 @@ package com.umc.linkyou.service.curation;
 
 import com.umc.linkyou.web.dto.curation.CurationListResponse;
 import com.umc.linkyou.web.dto.curation.LikedCurationResponse;
-import com.umc.linkyou.web.dto.curation.CurationListResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

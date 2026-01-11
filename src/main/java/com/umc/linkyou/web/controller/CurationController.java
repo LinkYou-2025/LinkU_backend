@@ -1,8 +1,7 @@
 package com.umc.linkyou.web.controller;
 
-import com.umc.linkyou.converter.LinkuConverter;
-import com.umc.linkyou.domain.Curation;
-import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.config.security.jwt.CustomUserDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.service.curation.CurationLikeService;
 import com.umc.linkyou.service.curation.CurationService;
@@ -93,10 +92,12 @@ public class CurationController {
     )
     @GetMapping("/history")
     public ResponseEntity<ApiResponse<Page<CurationListResponse>>> getMyCurationList(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size
     ) {
+        Long userId = userDetails.getUsers().getId();
+
         // 0페이지부터 시작, size 개수만큼 가져오기
         PageRequest pageRequest = PageRequest.of(page, size);
         Page<CurationListResponse> result = curationService.getMyCurationList(userId, pageRequest);
@@ -166,10 +167,12 @@ public class CurationController {
     )
     @GetMapping("/likes")
     public ResponseEntity<ApiResponse<Page<CurationListResponse>>> getLikedCurationList(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size
     ) {
+        Long userId = userDetails.getUsers().getId();
+
         PageRequest pageRequest = PageRequest.of(page, size);
         Page<CurationListResponse> result = curationLikeService.getLikedCurationList(userId, pageRequest);
         return ResponseEntity.ok(ApiResponse.onSuccess(result));
