@@ -6,10 +6,16 @@ import com.umc.linkyou.domain.mapping.CurationLike;
 import com.umc.linkyou.repository.CurationRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.mapping.CurationLikeRepository;
+import com.umc.linkyou.web.dto.curation.CurationListResponse;
 import com.umc.linkyou.web.dto.curation.LikedCurationResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import com.umc.linkyou.web.dto.curation.CurationListResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -79,6 +85,27 @@ public class CurationLikeServiceImpl implements CurationLikeService {
                     );
                 })
                 .toList();
+    }
+
+    // [▼▼▼ 메서드 추가: 좋아요한 큐레이션 전체 보기]
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Page<CurationListResponse> getLikedCurationList(Long userId, Pageable pageable) {
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // Repository에서 데이터 가져오기 (Curation 정보 포함)
+        Page<CurationLike> likePage = curationLikeRepository.findAllByUserOrderByCreatedAtDesc(user, pageable);
+
+        // CurationLike -> Curation -> DTO 변환
+        return likePage.map(like -> {
+            Curation c = like.getCuration();
+            return CurationListResponse.builder()
+                    .curationId(c.getCurationId())
+                    .month(c.getMonth())
+                    .thumbnailUrl(c.getThumbnailUrl())
+                    .build();
+        });
     }
 
 }
