@@ -25,11 +25,12 @@ public class AuthAccount extends BaseEntity {
     @Column(name = "provider", nullable = false, length = 50)
     private Provider provider;   // GOOGLE, KAKAO 등
 
-    @Column(name = "external_id", nullable = false, length = 255)
+    @Column(name = "external_id", nullable = false, columnDefinition = "TEXT")
     private String externalId;   // sub, kakao id 등
 
-    @Column(name = "social_token", length = 255)
+    @Column(name = "social_token", columnDefinition = "TEXT")
     private String socialToken;
+
 
 
     public void updateToken(String token) {
