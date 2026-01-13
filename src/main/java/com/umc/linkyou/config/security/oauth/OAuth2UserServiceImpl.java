@@ -121,14 +121,25 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
 
     private Users createNewUser(String email, String name) {
         try {
+            // 기본 닉네임 결정
+            String baseNickname = (name != null && !name.isBlank()) ? name : "사용자";
+            String nickname = baseNickname;
+
+            // 닉네임 중복이면 뒤에 _1, _2 ... 붙이기
+            int suffix = 1;
+            while (usersRepository.existsByNickName(nickname)) {
+                nickname = baseNickname + "_" + suffix++;
+            }
+
             Users user = Users.builder()
                     .email(email)
                     .password(null)
-                    .nickName(name != null ? name : "사용자")
+                    .nickName(nickname)   // 여기서 중복 처리된 닉네임 사용
                     .gender(null)
                     .role(Role.USER)
                     .status("ACTIVE")
                     .build();
+
             user = usersRepository.save(user);
             entityManager.flush();
             return user;

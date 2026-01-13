@@ -46,19 +46,18 @@ public class SecurityConfig {
                                 "/api/oauth2/**",     // 소셜 로그인 에러, 성공 콜백 등
                                 "/actuator/**",
                                 "/error/**",
-                                "/login"              // 커스텀 로그인 페이지
+                                "/login/kakao",
+                                "/login/google"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf.disable())
+                .formLogin(form -> form.disable())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 )
                 .oauth2Login(oauth2 -> oauth2
-                        // 사용자가 보는 로그인 페이지 URL (회색 "Login with OAuth 2.0" 화면)
-                        .loginPage("/login")
-
                         // /oauth2/authorization/{registrationId} 진입 URI
                         .authorizationEndpoint(authorization -> authorization
                                 .baseUri("/oauth2/authorization")

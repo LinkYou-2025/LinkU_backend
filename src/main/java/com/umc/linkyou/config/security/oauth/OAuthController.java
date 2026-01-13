@@ -6,12 +6,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class OAuthController {
 
-    @GetMapping("/login")
-    public String login() {
-        // 기본 진입은 구글
-        return "redirect:/oauth2/authorization/google";
-    }
-
     @GetMapping("/login/google")
     public String googleLogin() {
         return "redirect:/oauth2/authorization/google";
