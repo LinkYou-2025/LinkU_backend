@@ -87,6 +87,7 @@ dependencies {
 
 	// Google Cloud Vertex AI (Gemini)
 	implementation 'com.google.cloud:google-cloud-vertexai:1.14.0'
+	implementation 'com.google.protobuf:protobuf-java:3.25.3'
 
 }
 
