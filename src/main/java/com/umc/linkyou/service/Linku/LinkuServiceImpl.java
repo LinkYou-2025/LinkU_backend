@@ -107,7 +107,7 @@ public class LinkuServiceImpl implements LinkuService {
         LinkuFolder linkuFolder =
                 linkuFolderRepository.findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()).orElse(null);
         AiArticle aiArticle = aiArticleRepository.findByLinku(linku).orElse(null);
-        boolean aiArticleExists = Boolean.TRUE.equals(usersLinku.getIsAiExist());
+        boolean aiArticleExists = Boolean.TRUE.equals(usersLinku.getAiExist());
 
         String keyword = null;
         String summary = null;
@@ -179,7 +179,7 @@ public class LinkuServiceImpl implements LinkuService {
                     .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
 
 
-            boolean aiArticleExists = Boolean.TRUE.equals(usersLinku.getIsAiExist());
+            boolean aiArticleExists = Boolean.TRUE.equals(usersLinku.getAiExist());
             Domain domain = linku.getDomain();
 
             LinkuResponseDTO.LinkuSimpleDTO dto = toLinkuSimpleDTO(linku, usersLinku, domain, aiArticleExists);

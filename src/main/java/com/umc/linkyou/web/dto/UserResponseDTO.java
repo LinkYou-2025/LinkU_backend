@@ -58,7 +58,7 @@ public class UserResponseDTO {
         Long myFolder; // 나의 폴더
 
         // 내가 만든 ai 링크
-        Long myAiLinku;
+        Boolean myAiLinku;
 
     }
     @Builder
@@ -72,7 +72,6 @@ public class UserResponseDTO {
         String status;
         LocalDateTime inactiveDate;
     }
-
     @Getter
     @AllArgsConstructor
     @Builder
@@ -83,7 +82,7 @@ public class UserResponseDTO {
         private final Job job;
         private final Long myLinku;
         private final Long myFolder;
-        private final Long myAiLinku;
+        private final Long myAiLinku;   // Boolean → Long
         private List<String> purposes;
         private List<String> interests;
 
@@ -94,15 +93,15 @@ public class UserResponseDTO {
                 Job job,
                 Long linkCount,
                 Long folderCount,
-                Long aiLinkCount
+                Long aiLinkCount   // Boolean → Long
         ) {
             this.nickName   = nickName;
             this.email      = email;
             this.gender     = gender;
             this.job        = job;
-            this.myLinku  = linkCount;
-            this.myFolder= folderCount;
-            this.myAiLinku= aiLinkCount;
+            this.myLinku    = linkCount;
+            this.myFolder   = folderCount;
+            this.myAiLinku  = aiLinkCount;   // 여기서 Long 그대로 대입
             this.purposes   = java.util.Collections.emptyList();
             this.interests  = java.util.Collections.emptyList();
         }

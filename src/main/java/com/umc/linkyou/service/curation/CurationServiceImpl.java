@@ -5,6 +5,7 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.CurationMent;
 import com.umc.linkyou.domain.log.CurationTopLog;
 import com.umc.linkyou.repository.CurationMentRepository;
+import com.umc.linkyou.repository.mapping.CurationLikeRepository;
 import com.umc.linkyou.service.curation.gpt.GptService;
 import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.service.curation.linku.ExternalRecommendMaterializer;
@@ -20,6 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import com.umc.linkyou.web.dto.curation.CurationListResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.YearMonth;
 import java.util.List;
@@ -35,6 +39,7 @@ public class CurationServiceImpl implements CurationService {
     private final CurationTopLogService curationTopLogService;
     private final ThumbnailUrlProvider thumbnailUrlProvider;
     private final ExternalRecommendMaterializer externalRecommendMaterializer;
+    private final CurationLikeRepository curationLikeRepository;
 
     /**
      * 유저의 큐레이션을 생성하고, 감정/상황 로그 기반 top3 태그를 계산해 저장한다.
@@ -229,4 +234,22 @@ public class CurationServiceImpl implements CurationService {
                 ));
     }
 
+
+    // [▼▼▼ 메서드 추가: 내 큐레이션 전체 보기]
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CurationListResponse> getMyCurationList(Long userId, Pageable pageable) {
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // Repository에서 페이징된 데이터 가져오기
+        Page<Curation> curationPage = curationRepository.findAllByUserOrderByMonthDesc(user, pageable);
+
+        // Entity -> DTO 변환
+        return curationPage.map(c -> CurationListResponse.builder()
+                .curationId(c.getCurationId())
+                .month(c.getMonth())
+                .thumbnailUrl(c.getThumbnailUrl())
+                .build());
+    }
 }

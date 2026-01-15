@@ -1,8 +1,7 @@
 package com.umc.linkyou.web.controller;
 
-import com.umc.linkyou.converter.LinkuConverter;
-import com.umc.linkyou.domain.Curation;
-import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.config.security.jwt.CustomUserDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.service.curation.CurationLikeService;
 import com.umc.linkyou.service.curation.CurationService;
@@ -16,6 +15,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.umc.linkyou.web.dto.curation.CurationListResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -69,7 +71,7 @@ public class CurationController {
     }
 
     /**
-     * 가장 최근 큐레이션 조회
+     * [기존] 가장 최근 큐레이션 조회
      */
     @Operation(
             summary = "가장 최근 큐레이션 조회",
@@ -79,6 +81,27 @@ public class CurationController {
     public ResponseEntity<ApiResponse<CurationLatestResponse>> getLatestCuration(@PathVariable Long userId) {
         var body = curationService.getLatestCuration(userId).orElse(null);
         return ResponseEntity.ok(ApiResponse.onSuccess(body));
+    }
+
+    /**
+     * [수정] 내 큐레이션 히스토리 (전체보기 + 페이징)
+     */
+    @Operation(
+            summary = "내 큐레이션 전체 히스토리 조회",
+            description = "나의 월별 큐레이션 전체 목록을 최신순으로 페이징하여 조회합니다. (size 기본값: 10)"
+    )
+    @GetMapping("/history")
+    public ResponseEntity<ApiResponse<Page<CurationListResponse>>> getMyCurationList(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size
+    ) {
+        Long userId = userDetails.getUsers().getId();
+
+        // 0페이지부터 시작, size 개수만큼 가져오기
+        PageRequest pageRequest = PageRequest.of(page, size);
+        Page<CurationListResponse> result = curationService.getMyCurationList(userId, pageRequest);
+        return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
 
     /**
@@ -123,7 +146,7 @@ public class CurationController {
     }
 
     /**
-     * 큐레이션 좋아요 리스트 가져오기
+     * [기존] 큐레이션 좋아요 리스트 가져오기
      */
     @Operation(
             summary = "최근 좋아요한 큐레이션 목록",
@@ -133,6 +156,26 @@ public class CurationController {
     public ResponseEntity<ApiResponse<List<LikedCurationResponse>>> getRecentLikedCurations(@RequestParam Long userId) {
         var list = curationLikeService.getRecentLikedCurations(userId);
         return ResponseEntity.ok(ApiResponse.onSuccess(list));
+    }
+
+    /**
+     * [수정] 좋아요한 큐레이션 전체 리스트 (전체보기 + 페이징)
+     */
+    @Operation(
+            summary = "좋아요한 큐레이션 전체 조회",
+            description = "내가 좋아요를 누른 큐레이션 전체 목록을 좋아요 누른 최신순으로 페이징하여 조회합니다."
+    )
+    @GetMapping("/likes")
+    public ResponseEntity<ApiResponse<Page<CurationListResponse>>> getLikedCurationList(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size
+    ) {
+        Long userId = userDetails.getUsers().getId();
+
+        PageRequest pageRequest = PageRequest.of(page, size);
+        Page<CurationListResponse> result = curationLikeService.getLikedCurationList(userId, pageRequest);
+        return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
 
     /**

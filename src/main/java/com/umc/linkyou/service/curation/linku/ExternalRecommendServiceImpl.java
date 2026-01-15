@@ -7,7 +7,8 @@ import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepositoryCustom;
 import com.umc.linkyou.service.curation.gpt.GptService;
 import com.umc.linkyou.domain.log.CurationTopLog;
-import com.umc.linkyou.service.curation.perplexity.PerplexityExternalSearchService;
+// import com.umc.linkyou.service.curation.perplexity.PerplexityExternalSearchService;
+import com.umc.linkyou.service.curation.gemini.GeminiExternalSearchService;
 import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +26,8 @@ public class ExternalRecommendServiceImpl implements ExternalRecommendService {
     private final GptService gptService;
     private final DomainRepositoryCustom domainRepository;
     private final LinkToImageService linkToImageService;
-    private final PerplexityExternalSearchService perplexityExternalSearchService;
+    // private final PerplexityExternalSearchService perplexityExternalSearchService; // Perplexity 사용
+    private final GeminiExternalSearchService geminiExternalSearchService; // Gemini 사용
     private final UserRepository userRepository;
 
     @Override
@@ -54,7 +56,7 @@ public class ExternalRecommendServiceImpl implements ExternalRecommendService {
         // Perplexity 기반 외부 추천 받기
         List<RecommendedLinkResponse> external;
         try {
-            external = perplexityExternalSearchService.searchExternalLinks(
+            external = geminiExternalSearchService.searchExternalLinks(
                     recentUrls,
                     tagNames,
                     externalLimit,

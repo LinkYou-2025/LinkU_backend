@@ -28,7 +28,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client:3.3.3'
-	//runtimeOnly 'mysql:mysql-connector-java:8.0.33'
+	//implementation 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -84,6 +84,10 @@ dependencies {
 
 	//blue-green
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+	// Google Cloud Vertex AI (Gemini)
+	implementation 'com.google.cloud:google-cloud-vertexai:1.14.0'
+	implementation 'com.google.protobuf:protobuf-java:3.25.3'
 
 }
 

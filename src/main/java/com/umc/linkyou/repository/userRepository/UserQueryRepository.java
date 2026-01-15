@@ -26,8 +26,6 @@ public class UserQueryRepository {
         QUsers u = QUsers.users;
         QUsersLinku ul = QUsersLinku.usersLinku;
         QUsersFolder uf = QUsersFolder.usersFolder;
-        QLinku l = QLinku.linku1;
-        QAiArticle a = QAiArticle.aiArticle;
 
         JPQLQuery<Long> linkCountSub = JPAExpressions
                 .select(ul.count())
@@ -40,11 +38,12 @@ public class UserQueryRepository {
                 .where(uf.user.id.eq(u.id));
 
         JPQLQuery<Long> aiLinkCountSub = JPAExpressions
-                .select(a.count())
+                .select(ul.count())
                 .from(ul)
-                .join(ul.linku, l)
-                .join(l.aiArticle, a)
-                .where(ul.user.id.eq(u.id));
+                .where(
+                        ul.user.id.eq(u.id)
+                                .and(ul.aiExist.isTrue())
+                );
 
         return queryFactory
                 .select(Projections.constructor(
