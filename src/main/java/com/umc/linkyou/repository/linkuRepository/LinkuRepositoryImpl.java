@@ -8,6 +8,7 @@ import com.umc.linkyou.domain.QLinku;
 import com.umc.linkyou.domain.classification.QDomain;
 import com.umc.linkyou.domain.mapping.QUsersLinku;
 import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
+import com.umc.linkyou.repository.linkuRepository.LinkuRepositoryCustom;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 

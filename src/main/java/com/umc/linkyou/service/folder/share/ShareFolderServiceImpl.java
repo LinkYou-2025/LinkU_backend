@@ -3,8 +3,11 @@ package com.umc.linkyou.service.folder.share;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.enums.PermissionType;
+import com.umc.linkyou.domain.folder.Folder;
+import com.umc.linkyou.domain.folder.FolderShareLink;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
+import com.umc.linkyou.repository.FolderShareLinkRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
@@ -14,41 +17,83 @@ import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ShareFolderServiceImpl implements ShareFolderService {
     private final FolderRepository folderRepository;
     private final UserRepository userRepository;
     private final UsersFolderRepository usersFolderRepository;
+    private final FolderShareLinkRepository folderShareLinkRepository;
 
-    // 폴더 공유 (뷰어 권한 설정)
-    public ShareFolderResponseDTO shareFolder(Long userId, Long folderId, ShareFolderRequestDTO request) {
-        // 이미 뷰어 권한 갖고 있는지 검사
-        UsersFolder usersFolder = usersFolderRepository
-                .findByUserIdAndFolderId(request.getUserId(), folderId)
-                .orElseGet(() -> UsersFolder.builder()
-                        .user(userRepository.getById(request.getUserId()))
-                        .folder(folderRepository.getById(folderId))
-                        .build()
-                );
+    // 초대 링크 생성
+    public String createInviteLink(Long userId, Long folderId) {
+        // 폴더 존재 및 소유권 확인
+        Folder folder = folderRepository.findById(folderId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
 
-        usersFolder.setIsViewer(true);
-        usersFolder.setIsWriter(true);
-        usersFolder.setIsOwner(false);
-        usersFolder.setIsBookmarked(false);
+        boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
 
-        usersFolderRepository.save(usersFolder);
+        if (!isOwner) {
+            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+        }
 
-        return ShareFolderResponseDTO.builder()
-                .folderId(folderId)
-                .userId(request.getUserId())
-                .permission("VIEWER")
-                .sharedAt(usersFolder.getCreatedAt().toString())
+        // 이미 존재하는 링크 확인
+        Optional<FolderShareLink> existingLink = folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(folderId);
+
+        // 이미 링크가 있는 경우
+        if (existingLink.isPresent()) {
+            FolderShareLink link = existingLink.get();
+
+            // 유효하면 기존 토큰 반환
+            if (link.isValid()) {
+                return link.getToken();
+            }
+
+            // 만료되었으면 갱신
+            String newToken = UUID.randomUUID().toString();
+            link.updateToken(newToken, LocalDateTime.now().plusDays(7));
+
+            return newToken;
+        }
+
+        // 링크가 없는 경우 -> 새로 생성
+        String token = UUID.randomUUID().toString();
+
+        FolderShareLink newLink = FolderShareLink.builder()
+                .token(token)
+                .folder(folder)
+                .creator(userRepository.findById(userId)
+                        .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND)))
+                .permissionType(PermissionType.VIEWER)
+                .expiresAt(LocalDateTime.now().plusDays(7))
+                .isActive(true)
                 .build();
+
+        folderShareLinkRepository.save(newLink);
+
+        return token;
+    }
+
+    // 초대 링크 비활성화
+    public void deactivateInviteLink(Long userId, Long folderId) {
+        // 폴더 주인 확인
+        boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
+        if (!isOwner) {
+            throw new AccessDeniedException("폴더 주인만 초대 링크를 삭제할 수 있습니다.");
+        }
+
+        FolderShareLink link = folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(folderId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus.INVITATION_LINK_NOT_FOUND));
+
+        link.deactivate();
     }
 
     // 폴더 뷰어 조회
@@ -71,9 +116,13 @@ public class ShareFolderServiceImpl implements ShareFolderService {
     public ShareFolderResponseDTO updateViewerPermission(Long userId, Long folderId, Long userFolderId, FolderPermissionRequestDTO request) {
         UsersFolder usersFolder = usersFolderRepository.findById(userFolderId).orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_FOUND));
 
+        if (!usersFolder.getFolder().getFolderId().equals(folderId)) {
+            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+        }
+
         // 오너일 경우 권한 변경 불가
         if (Boolean.TRUE.equals(usersFolder.getIsOwner())) {
-            throw new GeneralException(ErrorStatus.FOLDER_OWNER_UPDATE_NOT_ALLOWED);
+            throw new GeneralException(ErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED);
         }
 
         PermissionType permission = request.getPermission();
@@ -106,6 +155,10 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         if (!isOwner) {
             throw new AccessDeniedException("폴더 주인만 비공개로 전환 가능");
         }
+
+        // 활성화된 초대 링크가 있다면 만료
+        folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(folderId)
+                .ifPresent(FolderShareLink::deactivate);
 
         // 뷰어들 조회
         List<UsersFolder> mappings =

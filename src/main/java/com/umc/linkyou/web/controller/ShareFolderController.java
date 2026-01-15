@@ -25,21 +25,24 @@ import java.util.List;
 public class ShareFolderController {
     private final ShareFolderService shareFolderService;
 
-    @Operation(
-            summary = "폴더 공유 (뷰어 권한 설정)",
-            description = "폴더를 다른 사용자와 공유하고 뷰어 권한을 부여합니다."
-    )
-    @PostMapping("/{folderId}")
-    public ApiResponse<ShareFolderResponseDTO> shareFolder(
+    @Operation(summary = "초대 링크 생성", description = "해당 폴더의 초대용 토큰을 생성합니다.")
+    @PostMapping("/{folderId}/invitation")
+    public ApiResponse<String> createInviteLink(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId
     ) {
-        ShareFolderRequestDTO request = new ShareFolderRequestDTO();
-        request.setUserId(userDetails.getUsers().getId());
-        request.setPermission("VIEWER");
-        ShareFolderResponseDTO response = shareFolderService.shareFolder(
-                userDetails.getUsers().getId(), folderId, request);
-        return ApiResponse.of(SuccessStatus._FOLDER_SHARE_OK, response);
+        String token = shareFolderService.createInviteLink(userDetails.getUsers().getId(), folderId);
+        return ApiResponse.of(SuccessStatus._OK, "https://linkuserver.store/open?action=share&folderId=" + token);
+    }
+
+    @Operation(summary = "초대 링크 삭제", description = "초대 링크를 비활성화합니다.")
+    @DeleteMapping("/{folderId}/invitation")
+    public ApiResponse<String> deactivateInviteLink(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long folderId
+    ) {
+        shareFolderService.deactivateInviteLink(userDetails.getUsers().getId(), folderId);
+        return ApiResponse.of(SuccessStatus._OK, "초대 링크가 비활성화되었습니다.");
     }
 
     @Operation(

@@ -67,7 +67,11 @@ public enum ErrorStatus implements BaseErrorCode {
 
     // 공유 폴더 관련 응답
     _FOLDER_PERMISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_PERMISSION404", "해당 유저의 폴더 권한 정보를 찾을 수 없습니다."),
-    FOLDER_OWNER_UPDATE_NOT_ALLOWED(HttpStatus.FORBIDDEN, "FOLDER_OWNER_403", "폴더 주인의 권한은 수정할 수 없습니다."),
+    _FOLDER_PERMISSION_NOT_ALLOWED(HttpStatus.FORBIDDEN, "FOLDER_OWNER_403", "폴더 수정 권한을 가지고 있지 않습니다."),
+    _FOLDER_OWNER_UPDATE_NOT_ALLOWED(HttpStatus.FORBIDDEN, "FOLDER_OWNER_403", "폴더 주인의 권한은 수정할 수 없습니다."),
+    INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_TOKEN404", "공유 폴더 토큰을 찾을 수 없습니다."),
+    INVITATION_EXPIRED(HttpStatus.NOT_FOUND, "FOLDER_TOKEN_INVALID404", "공유 폴더 토큰이 유효하지 않습니다."),
+    INVITATION_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_LINK_INVALID404", "공유 폴더 링크가 유효하지 않습니다."),
 
     // 북마크 관련 오류
     _FOLDER_BOOKMARK_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_BOOKMARK404", "해당 유저의 북마크 정보가 존재하지 않습니다."),
