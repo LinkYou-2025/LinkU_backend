@@ -188,7 +188,8 @@ public class UserServiceImpl implements UserService {
         Users user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(()-> new UserHandler(ErrorStatus._LOGIN_FAILED));
 
-        if(!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        // social login은 password null, jwt login은 password null이면 error(NPE 방지 코드)
+        if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new UserHandler(ErrorStatus._LOGIN_FAILED);
         }
 
