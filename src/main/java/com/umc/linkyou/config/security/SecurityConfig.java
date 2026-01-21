@@ -47,7 +47,8 @@ public class SecurityConfig {
                                 "/actuator/**",
                                 "/error/**",
                                 "/login/kakao",
-                                "/login/google"
+                                "/login/google",
+                                "/login/naver"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()

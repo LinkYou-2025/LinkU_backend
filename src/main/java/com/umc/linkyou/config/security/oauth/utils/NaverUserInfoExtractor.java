@@ -13,9 +13,13 @@ public class NaverUserInfoExtractor implements OAuth2UserInfoExtractor {
     public String getExternalId(OAuth2User oAuth2User) {
         Map<String, Object> response = oAuth2User.getAttribute("response");
         if (response != null) {
-            return Objects.requireNonNull(response.get("id")).toString();
+            Object id = response.get("id");
+            if (id == null) {
+                throw new IllegalStateException("Naver 응답에 id가 없습니다");
+            }
+            return id.toString();
         }
-        return null;
+        throw new IllegalStateException("Naver 응답 데이터가 없습니다");
     }
 
     @Override
