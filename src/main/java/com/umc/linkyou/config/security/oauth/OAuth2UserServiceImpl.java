@@ -86,16 +86,8 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
 
             authAccount.updateToken(userRequest.getAccessToken().getTokenValue());
         } else {
-            Optional<Users> userOpt = usersRepository.findByEmail(email);
-
-            if (userOpt.isPresent()) {
-                user = userOpt.get();
-                isNewUser = false;
-            } else {
-                user = createNewUser(email, name);
-                isNewUser = true;
-            }
-
+            user = createNewUser(email, name);
+            isNewUser = true;
             createAuthAccount(user, provider, externalId, userRequest);
 
         }
