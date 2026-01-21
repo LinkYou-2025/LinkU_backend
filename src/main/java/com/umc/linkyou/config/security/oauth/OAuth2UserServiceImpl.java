@@ -125,7 +125,7 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
                 if (nickname.isBlank()) nickname = "user";
             }
 
-            // 최대 3회 시도
+            // 최대 3회 시도 (중복시 다음으로 계속)
             for (int i = 0; i < 3; i++) {
                 String finalNickname = i == 0 ? nickname : nickname + "_" + i;
 
@@ -138,17 +138,20 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
                         .status("ACTIVE")
                         .build();
 
-                Users savedUser = usersRepository.saveAndFlush(user);
-                log.info("소셜 사용자 생성: id={}, nickName={}, from={}",
-                        savedUser.getId(), finalNickname, name != null ? "name" : "email");
-                entityManager.flush();
-                return savedUser;
+                try {
+                    Users savedUser = usersRepository.saveAndFlush(user);
+                    log.info("소셜 사용자 생성: id={}, nickName={}, from={}",
+                            savedUser.getId(), finalNickname, name != null ? "name" : "email");
+                    entityManager.flush();
+                    return savedUser;
+                } catch (DataIntegrityViolationException e) {
+                    log.warn("닉네임 중복 (시도 {}/3): {}", i+1, finalNickname);
+                    if (i == 2) {
+                        log.error("닉네임 생성 완전 실패: email={}, 모든 후보 중복", email);
+                        throw new GeneralException(ErrorStatus._DUPLICATE_NICKNAME);
+                    }
+                }
             }
-
-            log.error("닉네임 생성 완전 실패: email={}, 모든 후보 중복", email);
-            throw new GeneralException(ErrorStatus._DUPLICATE_NICKNAME);
-        } catch (DataIntegrityViolationException e) {
-            log.warn("닉네임 중복: email={}, error={}", email, e.getMessage());
             throw new GeneralException(ErrorStatus._DUPLICATE_NICKNAME);
         } catch (Exception e) {
             log.error("사용자 생성 실패: email={}", email, e);
