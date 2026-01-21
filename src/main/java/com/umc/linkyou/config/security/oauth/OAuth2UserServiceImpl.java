@@ -82,8 +82,16 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
             authAccount = authAccountOpt.get();
             user = authAccount.getUser();
 
+            // 기존 사용자 닉네임 업데이트 (중복 체크)
             if (name != null && !name.equals(user.getNickName())) {
-                user.setNickName(name);
+                if (!usersRepository.existsByNickName(name)) {
+                    user.setNickName(name);
+                    log.info("기존 사용자 닉네임 업데이트: id={}, old={}, new={}",
+                            user.getId(), user.getNickName(), name);
+                } else {
+                    log.warn("닉네임 업데이트 스킵 (중복): userId={}, requested={}",
+                            user.getId(), name);
+                }
             }
 
             authAccount.updateToken(userRequest.getAccessToken().getTokenValue());
