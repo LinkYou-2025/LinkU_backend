@@ -52,7 +52,6 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 // OAuth2 클라이언트 + 리소스 서버 (소셜 로그인용)
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
-	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 
 
 // thymeleaf + security
