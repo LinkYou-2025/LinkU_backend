@@ -5,7 +5,10 @@ import com.umc.linkyou.domain.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
 @Entity
-@Table(name = "auth_account")
+@Table(name = "auth_account",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"provider", "external_id"})
+        })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor

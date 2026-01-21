@@ -178,7 +178,7 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
             case "kakao"  -> Provider.KAKAO;
             case "naver"  -> Provider.NAVER;
 
-            throw new GeneralException(ErrorStatus._SOCIAL_UNSUPPORTED_PROVIDER);
+            default -> throw new GeneralException(ErrorStatus._SOCIAL_UNSUPPORTED_PROVIDER);
         };
     }
 
@@ -187,8 +187,7 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
             case GOOGLE -> googleUserInfoExtractor;
             case KAKAO  -> kakaoUserInfoExtractor;
             case NAVER  -> naverUserInfoExtractor;
-            //각 enum별로 작성하지 않으면 에러남
-            throw new GeneralException(ErrorStatus._SOCIAL_UNSUPPORTED_PROVIDER);
+            default -> throw new GeneralException(ErrorStatus._SOCIAL_UNSUPPORTED_PROVIDER);
         };
     }
 
