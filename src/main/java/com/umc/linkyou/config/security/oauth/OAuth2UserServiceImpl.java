@@ -15,6 +15,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -113,33 +114,46 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
 
     private Users createNewUser(String email, String name) {
         try {
-            // 기본 닉네임 결정
-            String baseNickname = (name != null && !name.isBlank()) ? name : "사용자";
-            String nickname = baseNickname;
-
-            // 닉네임 중복이면 뒤에 _1, _2 ... 붙이기
-            int suffix = 1;
-            while (usersRepository.existsByNickName(nickname)) {
-                nickname = baseNickname + "_" + suffix++;
+            String nickname;
+            if (name != null && !name.isBlank()) {
+                nickname = name;
+            } else {
+                // email@domain.com → domain
+                String domain = email.substring(email.indexOf("@") + 1);
+                nickname = domain.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+                if (nickname.isBlank()) nickname = "user";
             }
 
-            Users user = Users.builder()
-                    .email(email)
-                    .password(null)
-                    .nickName(nickname)   // 여기서 중복 처리된 닉네임 사용
-                    .gender(null)
-                    .role(Role.USER)
-                    .status("ACTIVE")
-                    .build();
+            // 최대 3회 시도
+            for (int i = 0; i < 3; i++) {
+                String finalNickname = i == 0 ? nickname : nickname + "_" + i;
 
-            user = usersRepository.save(user);
-            entityManager.flush();
-            return user;
-        } catch (Exception e) {
-            log.error("Users 저장 실패: email={}", email, e);
+                Users user = Users.builder()
+                        .email(email)
+                        .password(null)
+                        .nickName(finalNickname)
+                        .gender(null)
+                        .role(Role.USER)
+                        .status("ACTIVE")
+                        .build();
+
+                Users savedUser = usersRepository.saveAndFlush(user);
+                log.info("소셜 사용자 생성: id={}, nickName={}, from={}",
+                        savedUser.getId(), finalNickname, name != null ? "name" : "email");
+                entityManager.flush();
+                return savedUser;
+            }
+            throw new IllegalStateException("닉네임 생성 실패 (3회 재시도)");
+
+        } catch (DataIntegrityViolationException e) {
+            log.warn("닉네임 중복: email={}, error={}", email, e.getMessage());
             throw new OAuth2AuthenticationException(
-                    new OAuth2Error("user_creation_failed", "사용자 생성 중 오류가 발생했습니다: " + e.getMessage(), null),
-                    e
+                    new OAuth2Error("DUPLICATE_NICKNAME", "사용 가능한 닉네임을 찾을 수 없습니다.", null)
+            );
+        } catch (Exception e) {
+            log.error("사용자 생성 실패: email={}", email, e);
+            throw new OAuth2AuthenticationException(
+                    new OAuth2Error("USER_CREATION_FAILED", e.getMessage(), null), e
             );
         }
     }
