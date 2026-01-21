@@ -96,12 +96,23 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
 
             authAccount.updateToken(userRequest.getAccessToken().getTokenValue());
         } else {
-            user = createNewUser(email, name);
-            isNewUser = true;
-            createAuthAccount(user, provider, externalId, userRequest);
+            // 1. 이메일로 기존 사용자 조회
+            Optional<Users> existingUserOpt = usersRepository.findByEmail(email);
 
+            if (existingUserOpt.isPresent()) {
+                // 기존 사용자에 AuthAccount만 연결 (새 사용자 아님)
+                user = existingUserOpt.get();
+                log.info("기존 사용자에 소셜 계정 연결: userId={}, provider={}, email={}",
+                        user.getId(), provider, email);
+                createAuthAccount(user, provider, externalId, userRequest);
+                isNewUser = false;
+            } else {
+                // 진짜 새 사용자 생성
+                user = createNewUser(email, name);
+                isNewUser = true;
+                createAuthAccount(user, provider, externalId, userRequest);
+            }
         }
-
         boolean needsTermsAgreement = isNewUser;
 
         Map<String, Object> attributesWithFlag = new HashMap<>(oAuth2User.getAttributes());
