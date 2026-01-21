@@ -29,6 +29,14 @@ public enum ErrorStatus implements BaseErrorCode {
     _INTEREST_NOT_PROVIDED(HttpStatus.NOT_FOUND, "USERS404", "관심 분야를 선택해야합니다."),
     _NO_SUCH_ALGORITHM(HttpStatus.INTERNAL_SERVER_ERROR, "USERS500", "인증 코드 생성 실패"),
     _SEND_MAIL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS500", "인증 코드 전송 실패"),
+    //소셜로그인 관련
+    // 소셜로그인 관련 추가/수정
+    _AUTH_ACCOUNT_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS5001", "소셜 계정 연결에 실패했습니다."),
+    _USER_SOCIAL_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS5002", "소셜 사용자 생성에 실패했습니다."),
+    // 소셜 로그인 섹션에 추가
+    _SOCIAL_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "USERS4003", "소셜 로그인에 이메일이 필요합니다."),
+    _SOCIAL_UNSUPPORTED_PROVIDER(HttpStatus.BAD_REQUEST, "USERS4004", "지원하지 않는 소셜 제공자입니다."),
+
 
     //링큐 관련 코드
     _LINKU_VIDEO_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "LINKU4001", "영상 링크는 저장할 수 없습니다."),
