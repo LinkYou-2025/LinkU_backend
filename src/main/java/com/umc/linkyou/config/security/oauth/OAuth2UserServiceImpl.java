@@ -1,5 +1,7 @@
 package com.umc.linkyou.config.security.oauth;
 
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.oauth.utils.CustomOAuth2User;
 import com.umc.linkyou.config.security.oauth.utils.GoogleUserInfoExtractor;
 import com.umc.linkyou.config.security.oauth.utils.KakaoUserInfoExtractor;
@@ -64,9 +66,8 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
                 email = generateTemporaryEmail(provider, externalId);
                 needsEmailUpdate = true;
             } else {
-                throw new OAuth2AuthenticationException(
-                        new OAuth2Error("email_required", "이메일이 필요합니다.", null)
-                );
+
+                throw new GeneralException(ErrorStatus._SOCIAL_EMAIL_REQUIRED);
             }
         }
 
@@ -143,18 +144,15 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
                 entityManager.flush();
                 return savedUser;
             }
-            throw new IllegalStateException("닉네임 생성 실패 (3회 재시도)");
 
+            log.error("닉네임 생성 완전 실패: email={}, 모든 후보 중복", email);
+            throw new GeneralException(ErrorStatus._DUPLICATE_NICKNAME);
         } catch (DataIntegrityViolationException e) {
             log.warn("닉네임 중복: email={}, error={}", email, e.getMessage());
-            throw new OAuth2AuthenticationException(
-                    new OAuth2Error("DUPLICATE_NICKNAME", "사용 가능한 닉네임을 찾을 수 없습니다.", null)
-            );
+            throw new GeneralException(ErrorStatus._DUPLICATE_NICKNAME);
         } catch (Exception e) {
             log.error("사용자 생성 실패: email={}", email, e);
-            throw new OAuth2AuthenticationException(
-                    new OAuth2Error("USER_CREATION_FAILED", e.getMessage(), null), e
-            );
+            throw new GeneralException(ErrorStatus._USER_SOCIAL_CREATION_FAILED);
         }
     }
 
@@ -170,10 +168,7 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
             );
         } catch (Exception e) {
             log.error("AuthAccount 저장 실패: user.id={}, provider={}", user.getId(), provider, e);
-            throw new OAuth2AuthenticationException(
-                    new OAuth2Error("auth_account_creation_failed", "인증 계정 생성 중 오류가 발생했습니다: " + e.getMessage(), null),
-                    e
-            );
+            throw new GeneralException(ErrorStatus._AUTH_ACCOUNT_SAVE_FAILED);
         }
     }
 
@@ -182,7 +177,8 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
             case "google" -> Provider.GOOGLE;
             case "kakao"  -> Provider.KAKAO;
             case "naver"  -> Provider.NAVER;
-            default -> throw new IllegalArgumentException("Unsupported provider: " + registrationId);
+
+            throw new GeneralException(ErrorStatus._SOCIAL_UNSUPPORTED_PROVIDER);
         };
     }
 
@@ -192,7 +188,7 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
             case KAKAO  -> kakaoUserInfoExtractor;
             case NAVER  -> naverUserInfoExtractor;
             //각 enum별로 작성하지 않으면 에러남
-            default -> throw new IllegalArgumentException("Unsupported provider: " + provider);
+            throw new GeneralException(ErrorStatus._SOCIAL_UNSUPPORTED_PROVIDER);
         };
     }
 
