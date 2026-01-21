@@ -86,7 +86,7 @@ public class OAuth2TokenClient implements OAuth2AccessTokenResponseClient<OAuth2
 
         Map<String, Object> body = responseEntity.getBody();
         if (body == null || !body.containsKey(ACCESS_TOKEN)) {
-            throw new IllegalStateException("Invalid Kakao token response: " + body);
+            throw new IllegalStateException("Invalid Kakao token response: missing access_token");
         }
 
         return convertToAccessTokenResponse(body);
