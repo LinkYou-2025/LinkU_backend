@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.service.folder.share.ShareFolderService;
+import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +26,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ShareFolderController {
     private final ShareFolderService shareFolderService;
+    private final UsersUtils usersUtils;
+
+    @Value("${app.deeplink.base-url}")
+    private String deeplinkBaseUrl;
 
     @Operation(summary = "초대 링크 생성", description = "해당 폴더의 초대용 토큰을 생성합니다.")
     @PostMapping("/{folderId}/invitation")
@@ -31,8 +37,8 @@ public class ShareFolderController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId
     ) {
-        String token = shareFolderService.createInviteLink(userDetails.getUsers().getId(), folderId);
-        return ApiResponse.of(SuccessStatus._OK, "https://linkuserver.store/open?action=share&folderId=" + token);
+        String token = shareFolderService.createInviteLink(usersUtils.getAuthenticatedUserId(userDetails), folderId);
+        return ApiResponse.of(SuccessStatus._OK, deeplinkBaseUrl + "/open?action=share&folderId=" + token);
     }
 
     @Operation(summary = "초대 링크 삭제", description = "초대 링크를 비활성화합니다.")
@@ -41,7 +47,7 @@ public class ShareFolderController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId
     ) {
-        shareFolderService.deactivateInviteLink(userDetails.getUsers().getId(), folderId);
+        shareFolderService.deactivateInviteLink(usersUtils.getAuthenticatedUserId(userDetails), folderId);
         return ApiResponse.of(SuccessStatus._OK, "초대 링크가 비활성화되었습니다.");
     }
 
@@ -55,7 +61,7 @@ public class ShareFolderController {
             @PathVariable Long folderId
     ) {
         List<ViewerResponseDTO> viewers = shareFolderService.getViewers(
-                userDetails.getUsers().getId(), folderId);
+                usersUtils.getAuthenticatedUserId(userDetails), folderId);
         return ApiResponse.of(SuccessStatus._FOLDER_MEMBERS_OK, viewers);
     }
 
@@ -71,7 +77,7 @@ public class ShareFolderController {
             @Valid @RequestBody FolderPermissionRequestDTO request
     ) {
         ShareFolderResponseDTO response = shareFolderService.updateViewerPermission(
-                userDetails.getUsers().getId(), folderId, userFolderId, request);
+                usersUtils.getAuthenticatedUserId(userDetails), folderId, userFolderId, request);
         return ApiResponse.of(SuccessStatus._FOLDER_PERMISSION_OK, response);
     }
 
@@ -85,7 +91,7 @@ public class ShareFolderController {
             @PathVariable Long folderId
     ) {
         // 모든 유저의 (폴더 주인 제외) 뷰어, writer 권한 false
-        ShareFolderResponseDTO response = shareFolderService.unshare(userDetails.getUsers().getId(), folderId);
+        ShareFolderResponseDTO response = shareFolderService.unshare(usersUtils.getAuthenticatedUserId(userDetails), folderId);
         return ApiResponse.of(SuccessStatus._FOLDER_UNSHARE_OK, response);
     }
 }

@@ -125,17 +125,29 @@ public class ShareFolderServiceImpl implements ShareFolderService {
             throw new GeneralException(ErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED);
         }
 
+        // [추가] 호출자가 폴더 소유자인지 확인
+        boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
+        if (!isOwner) {
+            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+        }
+
         PermissionType permission = request.getPermission();
 
-        if (permission == PermissionType.VIEWER) {
-            usersFolder.setIsWriter(false);
-            usersFolder.setIsViewer(true);
-        } else if (permission == PermissionType.WRITER) {
-            usersFolder.setIsWriter(true);
-            usersFolder.setIsViewer(true);
-        } else if (permission == PermissionType.NONE){
-            usersFolder.setIsWriter(false);
-            usersFolder.setIsViewer(false);
+        switch (permission) {
+            case VIEWER:
+                usersFolder.setIsWriter(false);
+                usersFolder.setIsViewer(true);
+                break;
+            case WRITER:
+                usersFolder.setIsWriter(true);
+                usersFolder.setIsViewer(true);
+                break;
+            case NONE:
+                usersFolder.setIsWriter(false);
+                usersFolder.setIsViewer(false);
+                break;
+            default:
+                throw new GeneralException(ErrorStatus._INVALID_PERMISSION_TYPE);
         }
         usersFolderRepository.save(usersFolder);
 

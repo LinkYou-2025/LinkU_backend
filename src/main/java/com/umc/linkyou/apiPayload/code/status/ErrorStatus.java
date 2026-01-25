@@ -72,7 +72,7 @@ public enum ErrorStatus implements BaseErrorCode {
     INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_TOKEN404", "공유 폴더 토큰을 찾을 수 없습니다."),
     INVITATION_EXPIRED(HttpStatus.NOT_FOUND, "FOLDER_TOKEN_INVALID404", "공유 폴더 토큰이 유효하지 않습니다."),
     INVITATION_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_LINK_INVALID404", "공유 폴더 링크가 유효하지 않습니다."),
-
+    _INVALID_PERMISSION_TYPE(HttpStatus.BAD_REQUEST, "PERMISSION400", "유효하지 않은 권한 타입입니다."),
     // 북마크 관련 오류
     _FOLDER_BOOKMARK_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_BOOKMARK404", "해당 유저의 북마크 정보가 존재하지 않습니다."),
     ;
