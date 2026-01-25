@@ -87,7 +87,7 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         // 폴더 주인 확인
         boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
         if (!isOwner) {
-            throw new AccessDeniedException("폴더 주인만 초대 링크를 삭제할 수 있습니다.");
+            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
         FolderShareLink link = folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(folderId)
@@ -153,7 +153,7 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         boolean isOwner = usersFolderRepository
                 .existsFolderOwner(ownerId, folderId);
         if (!isOwner) {
-            throw new AccessDeniedException("폴더 주인만 비공개로 전환 가능");
+            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
         // 활성화된 초대 링크가 있다면 만료
