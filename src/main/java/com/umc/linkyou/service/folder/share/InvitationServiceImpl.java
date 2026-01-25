@@ -54,7 +54,7 @@ public class InvitationServiceImpl implements InvitationService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
 
         // 이미 참여 중인지 확인
-        boolean isAlreadyMember = usersFolderRepository.findByUserIdAndFolderId(userId, folder.getFolderId()).isPresent();
+        boolean isAlreadyMember = usersFolderRepository.existsActiveMember(userId, folder.getFolderId());
         if (isAlreadyMember) {
             // 이미 멤버라면 폴더 ID만 반환
             return folder.getFolderId();

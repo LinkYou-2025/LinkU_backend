@@ -80,4 +80,13 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
     @Query("SELECT uf FROM UsersFolder uf WHERE uf.user.id = :userId")
     List<UsersFolder> findFolders(@Param("userId") Long userId);
 
+    @Query("""
+    SELECT COUNT(uf) > 0 FROM UsersFolder uf 
+    WHERE uf.user.id = :userId 
+    AND uf.folder.folderId = :folderId 
+    AND (uf.isViewer = true OR uf.isWriter = true)
+""")
+    boolean existsActiveMember(@Param("userId") Long userId, @Param("folderId") Long folderId);
+
+
 }

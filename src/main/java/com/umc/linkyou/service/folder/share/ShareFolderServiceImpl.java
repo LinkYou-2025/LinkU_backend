@@ -110,10 +110,24 @@ public class ShareFolderServiceImpl implements ShareFolderService {
                     ViewerResponseDTO dto = new ViewerResponseDTO();
                     dto.setUserId(uf.getUser().getId());
                     dto.setUserName(uf.getUser().getNickName());
-                    dto.setPermission("VIEWER");
+
+                    // 실제 권한 계산 -> dto에 실제 반환되는 권한 명시
+                    String permission;
+                    if (Boolean.TRUE.equals(uf.getIsOwner())) {
+                        permission = "OWNER";
+                    } else if (Boolean.TRUE.equals(uf.getIsWriter())) {
+                        permission = "WRITER";
+                    } else if (Boolean.TRUE.equals(uf.getIsViewer())) {
+                        permission = "VIEWER";
+                    } else {
+                        permission = "NONE";
+                    }
+                    dto.setPermission(permission);
+
                     return dto;
                 })
                 .toList();
+
 
     }
 
