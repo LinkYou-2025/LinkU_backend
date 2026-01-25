@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.service.folder.share.InvitationService;
+import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.folder.share.InvitationInfoResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class InvitationController {
 
     private final InvitationService invitationService;
+    private final UsersUtils usersUtils;
 
     @Operation(summary = "초대장 미리보기", description = "토큰을 통해 초대된 폴더명과 초대자 닉네임을 확인합니다.")
     @GetMapping("/{token}")
@@ -34,7 +36,8 @@ public class InvitationController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable String token
     ) {
-        Long folderId = invitationService.acceptInvitation(userDetails.getUsers().getId(), token);
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        Long folderId = invitationService.acceptInvitation(userId, token);
         return ApiResponse.of(SuccessStatus._OK, folderId);
     }
 }
