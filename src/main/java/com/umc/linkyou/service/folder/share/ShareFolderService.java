@@ -9,8 +9,11 @@ import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
 import java.util.List;
 
 public interface ShareFolderService {
-    // 폴더 공유 (뷰어 권한 설정)
-    ShareFolderResponseDTO shareFolder(Long userId, Long folderId, ShareFolderRequestDTO request);
+    // 초대 링크 생성
+    String createInviteLink(Long userId, Long folderId);
+
+    // 초대 링크 비활성화
+    void deactivateInviteLink(Long userId, Long folderId);
 
     // 폴더 뷰어 조회
     List<ViewerResponseDTO> getViewers(Long userId, Long folderId);
