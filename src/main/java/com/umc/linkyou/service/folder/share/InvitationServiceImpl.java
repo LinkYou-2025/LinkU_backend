@@ -53,6 +53,11 @@ public class InvitationServiceImpl implements InvitationService {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
 
+        //Owner caanot accpet its own
+        if (link.getCreator().getId().equals(userId)) {
+            throw new GeneralException(ErrorStatus.INVITATION_CREATOR_CANNOT_ACCEPT);
+            // 또는 기존: ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED
+        }
         // 이미 참여 중인지 확인
         boolean isAlreadyMember = usersFolderRepository.existsActiveMember(userId, folder.getFolderId());
         if (isAlreadyMember) {

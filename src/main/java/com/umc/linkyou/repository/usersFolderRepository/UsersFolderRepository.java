@@ -3,7 +3,9 @@ package com.umc.linkyou.repository.usersFolderRepository;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -80,6 +82,8 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
     @Query("SELECT uf FROM UsersFolder uf WHERE uf.user.id = :userId")
     List<UsersFolder> findFolders(@Param("userId") Long userId);
 
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
     SELECT COUNT(uf) > 0 FROM UsersFolder uf 
     WHERE uf.user.id = :userId 
