@@ -79,4 +79,8 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
 
     @Query("SELECT uf FROM UsersFolder uf WHERE uf.user.id = :userId")
     List<UsersFolder> findFolders(@Param("userId") Long userId);
+
+
+    @Query("SELECT uf FROM UsersFolder uf WHERE uf.folder.folderId = :folderId AND uf.isOwner = true")
+    Optional<UsersFolder> findFolderOwner(@Param("folderId") Long folderId);
 }

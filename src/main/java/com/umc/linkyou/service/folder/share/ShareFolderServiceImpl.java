@@ -125,9 +125,10 @@ public class ShareFolderServiceImpl implements ShareFolderService {
             throw new GeneralException(ErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED);
         }
 
-        // [추가] 호출자가 폴더 소유자인지 확인
-        boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
-        if (!isOwner) {
+        UsersFolder ownerUsersFolder = usersFolderRepository.findFolderOwner(folderId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
+
+        if (!ownerUsersFolder.getUser().getId().equals(userId)) {
             throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
