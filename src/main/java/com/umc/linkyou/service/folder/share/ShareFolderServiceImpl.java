@@ -98,6 +98,11 @@ public class ShareFolderServiceImpl implements ShareFolderService {
 
     // 폴더 뷰어 조회
     public List<ViewerResponseDTO> getViewers(Long userId, Long folderId) {
+        boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
+        if (!isOwner) {
+            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+        }
+
         List<UsersFolder> viewers = usersFolderRepository.findByFolderFolderIdAndIsViewerTrue(folderId);
 
         return viewers.stream()
@@ -125,10 +130,8 @@ public class ShareFolderServiceImpl implements ShareFolderService {
             throw new GeneralException(ErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED);
         }
 
-        UsersFolder ownerUsersFolder = usersFolderRepository.findFolderOwner(folderId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
-
-        if (!ownerUsersFolder.getUser().getId().equals(userId)) {
+        Optional<UsersFolder> ownerUsersFolder = usersFolderRepository.findOwnerByFolderId(folderId);
+        if (ownerUsersFolder.isPresent() && !ownerUsersFolder.get().getUser().getId().equals(userId)) {
             throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
