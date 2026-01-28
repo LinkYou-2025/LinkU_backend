@@ -23,9 +23,9 @@ public class AwsS3Controller {
 
     // 파일 삭제
     @DeleteMapping("/delete")
-    public ResponseEntity<String> deleteFile(@RequestParam String fileName) {
-        awsS3Service.deleteFile(fileName);
-        return ResponseEntity.ok("Deleted: " + fileName);
+    public ResponseEntity<String> deleteFile(@RequestParam String linkuImageUrl) {
+        awsS3Service.deleteFileByUrl(linkuImageUrl);
+        return ResponseEntity.ok("Deleted: " + linkuImageUrl);
     }
 
     // 파일 URL 조회
@@ -34,4 +34,13 @@ public class AwsS3Controller {
         String fileUrl = awsS3Service.getFileUrl(fileName);
         return ResponseEntity.ok(fileUrl);
     }
+
+    @PostMapping(value = "/upload/{folder}", consumes = "multipart/form-data")
+    public ResponseEntity<String> uploadFile(
+            @PathVariable String folder,
+            @RequestParam("file") MultipartFile multipartFile) {
+        String fileUrl = awsS3Service.uploadFile(multipartFile, folder);  // 폴더 전달!
+        return ResponseEntity.ok(fileUrl);
+    }
+
 }

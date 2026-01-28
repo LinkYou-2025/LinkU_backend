@@ -2,7 +2,6 @@ package com.umc.linkyou.awsS3;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -16,7 +15,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.util.UUID;
 
@@ -98,7 +96,11 @@ public class AwsS3Service {
      * S3에 업로드된 파일의 URL 반환
      */
     public String getFileUrl(String fileName) {
-        return cloudfrontDomain + "/" + fileName;
+        String domain = cloudfrontDomain.trim().endsWith("/")
+                ? cloudfrontDomain.substring(0, cloudfrontDomain.length() - 1)
+                : cloudfrontDomain;
+        String key = fileName.startsWith("/") ? fileName.substring(1) : fileName;
+        return domain + "/" + key;
     }
 
     /**
@@ -127,14 +129,23 @@ public class AwsS3Service {
     /**
      * URL에서 파일명 추출
      */
-    private String extractFileNameFromUrl(String url) {
+    public String extractFileNameFromUrl(String url) {
         try {
             String decodedUrl = URLDecoder.decode(url, "UTF-8");
-            return decodedUrl.substring(decodedUrl.lastIndexOf("/") + 1);
+            // CloudFront 도메인 이후 전체 경로 반환 (= S3 키)
+            String domainSuffix = cloudfrontDomain.endsWith("/")
+                    ? cloudfrontDomain
+                    : cloudfrontDomain + "/";
+            if (decodedUrl.startsWith(domainSuffix)) {
+                return decodedUrl.substring(domainSuffix.length());
+            }
+            // 기존 S3 URL 호환
+            return decodedUrl.substring(decodedUrl.indexOf(bucket) + bucket.length() + 1);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "URL에서 파일명을 추출할 수 없습니다.");
         }
     }
+
 
 
 }
