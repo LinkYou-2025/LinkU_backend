@@ -28,6 +28,9 @@ public class AwsS3Service {
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
 
+    @Value("${cloud.aws.cloudfront.domain}")
+    private String cloudfrontDomain;
+
     private final AmazonS3 amazonS3;
 
     /**
@@ -44,8 +47,7 @@ public class AwsS3Service {
         metadata.setContentType(multipartFile.getContentType());
 
         try (InputStream inputStream = multipartFile.getInputStream()) {
-            amazonS3.putObject(new PutObjectRequest(bucket, fileName, inputStream, metadata)
-                    .withCannedAcl(CannedAccessControlList.PublicRead));
+            amazonS3.putObject(new PutObjectRequest(bucket, fileName, inputStream, metadata));
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 파일 업로드 실패");
         }
@@ -64,8 +66,7 @@ public class AwsS3Service {
         metadata.setContentType(multipartFile.getContentType());
 
         try (InputStream inputStream = multipartFile.getInputStream()) {
-            amazonS3.putObject(new PutObjectRequest(bucket, fileName, inputStream, metadata)
-                    .withCannedAcl(CannedAccessControlList.PublicRead));
+            amazonS3.putObject(new PutObjectRequest(bucket, fileName, inputStream, metadata));
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 파일 업로드 실패");
         }
@@ -97,8 +98,7 @@ public class AwsS3Service {
      * S3에 업로드된 파일의 URL 반환
      */
     public String getFileUrl(String fileName) {
-        URL url = amazonS3.getUrl(bucket, fileName);
-        return url.toString();
+        return cloudfrontDomain + "/" + fileName;
     }
 
     /**
