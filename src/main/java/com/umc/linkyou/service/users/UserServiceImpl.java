@@ -475,7 +475,6 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         return user;
     }
-
     @Scheduled(cron = "0 0 3 * * ?")
     @Transactional
     public void deleteCompletelyInactiveUsers() {
@@ -487,7 +486,7 @@ public class UserServiceImpl implements UserService {
             return;
         }
 
-        // 1. Redis 삭제 (정확한 Repository 방식)
+        // 1. Redis 삭제
         for (Long userId : inactiveUserIds) {
             userRefreshTokenRepository.findByUserId(userId)
                     .ifPresent(token -> {
@@ -496,18 +495,17 @@ public class UserServiceImpl implements UserService {
                     });
         }
 
-        // 2. 엔티티 로드 (Cascade 동작 준비)
+        // 2. 엔티티 로드
         List<Users> toDelete = userRepository.findAllById(inactiveUserIds);
 
-        // 3. 모든 컬렉션 clear (orphanRemoval + Cascade 트리거)
+        // 3. 연관관계 수동 정리 (FK 제약 조건 방지)
         for (Users user : toDelete) {
-            // [중요] UsersLinku 내부에 있는 LinkuFolders를 먼저 clear
+            // 자식의 자식 (LinkuFolder)부터 순차 삭제 트리거
             user.getUsersLinkus().forEach(ul -> ul.getLinkuFolders().clear());
 
-            // 그 다음 UsersLinku 자체를 clear (orphanRemoval에 의해 삭제 트리거)
+            // Users 엔티티에 연결된 모든 리스트 clear
+            // orphanRemoval = true 설정에 의해 DB 삭제 쿼리가 예약됩니다.
             user.getUsersLinkus().clear();
-
-            // 나머지 컬렉션들 (CascadeType.ALL + orphanRemoval=true 설정 덕분에 clear만 해도 삭제됨)
             user.getUserAlarms().clear();
             user.getUserFcmTokens().clear();
             user.getCurations().clear();
@@ -516,19 +514,20 @@ public class UserServiceImpl implements UserService {
             user.getFolderShareLinks().clear();
             user.getRecentViewedLinkus().clear();
             user.getUsersFoldersList().clear();
-            user.getUsersCategoryColorList().clear();
+            user.getUsersCategoryColorList().clear(); // 서버 에러 포인트 해결
             user.getPurposes().clear();
             user.getInterests().clear();
             user.getAuthAccounts().clear();
         }
 
-        // 4. entityManager.remove (Cascade 실행!)
-        toDelete.forEach(entityManager::remove);
+        // 4. 부모 엔티티 삭제
+        // deleteAllInBatch 대신 deleteAll을 사용하여 영속성 컨텍스트를 거쳐 안전하게 삭제합니다.
+        userRepository.deleteAll(toDelete);
 
-        log.info("🗑️ Cascade 완전삭제 {}명 완료 (9개 자식테이블 포함)", toDelete.size());
+        log.info("🗑️ 비활성 사용자 {}명 및 모든 연관 데이터 완전삭제 완료", toDelete.size());
     }
 
-    // 🔥 테스트 메서드 (단일)
+    // 🔥 테스트 메서드 (단일 삭제용)
     @Transactional
     public void testImmediateDelete(Long userId) {
         if (userId == null) {
@@ -543,15 +542,13 @@ public class UserServiceImpl implements UserService {
                     log.debug("Redis 테스트삭제: userId={}", userId);
                 });
 
-        // 2. 엔티티 로드
-        Optional<Users> userOpt = userRepository.findById(userId);
-        userOpt.ifPresent(user -> {
+        // 2. 엔티티 로드 및 정리
+        userRepository.findById(userId).ifPresent(user -> {
+            // 깊은 관계부터 정리
             user.getUsersLinkus().forEach(ul -> ul.getLinkuFolders().clear());
-
-            // 그 다음 UsersLinku 자체를 clear (orphanRemoval에 의해 삭제 트리거)
             user.getUsersLinkus().clear();
 
-            // 나머지 컬렉션들 (CascadeType.ALL + orphanRemoval=true 설정 덕분에 clear만 해도 삭제됨)
+            // 모든 컬렉션 clear
             user.getUserAlarms().clear();
             user.getUserFcmTokens().clear();
             user.getCurations().clear();
@@ -564,12 +561,12 @@ public class UserServiceImpl implements UserService {
             user.getPurposes().clear();
             user.getInterests().clear();
             user.getAuthAccounts().clear();
-            // 4. Cascade 삭제
-            entityManager.remove(user);
+
+            // 3. 최종 삭제
+            userRepository.delete(user);
             log.warn("🧪 테스트삭제 완료: userId={}", userId);
         });
     }
-
 
 
 }

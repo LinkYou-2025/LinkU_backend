@@ -49,13 +49,7 @@ public class Users extends BaseEntity {
     @JoinColumn(name = "job_id", nullable = true)
     private Job job;
 
-    @Builder.Default
-    @OneToMany(mappedBy ="user", cascade = CascadeType.ALL)
-    private List<Purposes> purposes = new ArrayList<>();
 
-    @Builder.Default
-    @OneToMany(mappedBy ="user", cascade = CascadeType.ALL)
-    private List<Interests> interests = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
@@ -72,11 +66,19 @@ public class Users extends BaseEntity {
 
     //CASCADE
     @Builder.Default
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy ="user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Purposes> purposes = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy ="user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Interests> interests = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UsersFolder> usersFoldersList = new ArrayList<>();
 
     @Builder.Default
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UsersCategoryColor> usersCategoryColorList = new ArrayList<>();
 
     @Builder.Default
