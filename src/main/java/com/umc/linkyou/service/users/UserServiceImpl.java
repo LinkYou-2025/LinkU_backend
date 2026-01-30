@@ -475,43 +475,92 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         return user;
     }
-    // 1. 메인 스케줄러 (여러 사용자)
+
     @Scheduled(cron = "0 0 3 * * ?")
     @Transactional
     public void deleteCompletelyInactiveUsers() {
         LocalDateTime tenDaysAgo = LocalDateTime.now().minusDays(10);
         List<Long> inactiveUserIds = userRepository.findInactiveUserIds(tenDaysAgo);
 
-        if (inactiveUserIds.isEmpty()) return;
-
-        // Redis 삭제
-        for (Long userId : inactiveUserIds) {
-            userRefreshTokenRepository.findByUserId(userId)
-                    .ifPresent(token -> stringRedisTemplate.delete(token.getRefreshToken()));
+        if (inactiveUserIds.isEmpty()) {
+            log.debug("삭제할 비활성 사용자 없음");
+            return;
         }
 
-        // HQL 벌크삭제
-        entityManager.createQuery("DELETE FROM Users u WHERE u.id IN :ids")
-                .setParameter("ids", inactiveUserIds)
-                .executeUpdate();
+        // 1. Redis 삭제 (정확한 Repository 방식)
+        for (Long userId : inactiveUserIds) {
+            userRefreshTokenRepository.findByUserId(userId)
+                    .ifPresent(token -> {
+                        stringRedisTemplate.delete(token.getRefreshToken());
+                        log.debug("Redis 삭제: userId={}", userId);
+                    });
+        }
 
-        log.info("🗑️ 완전삭제 {}명 완료", inactiveUserIds.size());
+        // 2. 엔티티 로드 (Cascade 동작 준비)
+        List<Users> toDelete = userRepository.findAllById(inactiveUserIds);
+
+        // 3. 모든 컬렉션 clear (orphanRemoval + Cascade 트리거)
+        for (Users user : toDelete) {
+            user.getUsersLinkus().clear();
+            user.getUserAlarms().clear();
+            user.getUserFcmTokens().clear();
+            user.getCurations().clear();
+            user.getCurationLikes().clear();
+            user.getEmotionLogs().clear();
+            user.getFolderShareLinks().clear();
+            user.getRecentViewedLinkus().clear();
+            user.getUsersFoldersList().clear();
+            user.getUsersCategoryColorList().clear();
+            user.getPurposes().clear();
+            user.getInterests().clear();
+            user.getAuthAccounts().clear();
+        }
+
+        // 4. entityManager.remove (Cascade 실행!)
+        toDelete.forEach(entityManager::remove);
+
+        log.info("🗑️ Cascade 완전삭제 {}명 완료 (9개 자식테이블 포함)", toDelete.size());
     }
 
-    // 2. 테스트 메서드 (단일 사용자)
+    // 🔥 테스트 메서드 (단일)
     @Transactional
     public void testImmediateDelete(Long userId) {
-        if (userId == null) return;
+        if (userId == null) {
+            log.info("testImmediateDelete: userId 없음");
+            return;
+        }
 
+        // 1. Redis 삭제
         userRefreshTokenRepository.findByUserId(userId)
-                .ifPresent(token -> stringRedisTemplate.delete(token.getRefreshToken()));
+                .ifPresent(token -> {
+                    stringRedisTemplate.delete(token.getRefreshToken());
+                    log.debug("Redis 테스트삭제: userId={}", userId);
+                });
 
-        entityManager.createQuery("DELETE FROM Users u WHERE u.id = :userId")
-                .setParameter("userId", userId)
-                .executeUpdate();
+        // 2. 엔티티 로드
+        Optional<Users> userOpt = userRepository.findById(userId);
+        userOpt.ifPresent(user -> {
+            // 3. 컬렉션 clear (Cascade 트리거)
+            user.getUsersLinkus().clear();
+            user.getUserAlarms().clear();
+            user.getUserFcmTokens().clear();
+            user.getCurations().clear();
+            user.getCurationLikes().clear();
+            user.getEmotionLogs().clear();
+            user.getFolderShareLinks().clear();
+            user.getRecentViewedLinkus().clear();
+            user.getUsersFoldersList().clear();
+            user.getUsersCategoryColorList().clear();
+            user.getPurposes().clear();
+            user.getInterests().clear();
+            user.getAuthAccounts().clear();
 
-        log.warn("🧪 테스트삭제: userId={}", userId);
+            // 4. Cascade 삭제
+            entityManager.remove(user);
+            log.warn("🧪 테스트삭제 완료: userId={}", userId);
+        });
     }
+
 
 
 }
