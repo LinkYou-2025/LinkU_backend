@@ -1,4 +1,4 @@
-package com.umc.linkyou.config.security.oauth;
+package com.umc.linkyou.oauth;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
