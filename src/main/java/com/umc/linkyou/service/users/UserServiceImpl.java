@@ -501,13 +501,13 @@ public class UserServiceImpl implements UserService {
 
         // 3. 모든 컬렉션 clear (orphanRemoval + Cascade 트리거)
         for (Users user : toDelete) {
-            // 1 LinkuFolder FK 먼저 해결 (userLinkuId 참조)
+            // [중요] UsersLinku 내부에 있는 LinkuFolders를 먼저 clear
             user.getUsersLinkus().forEach(ul -> ul.getLinkuFolders().clear());
 
-            // 2 UsersLinku 삭제 (이제 FK 안전)
+            // 그 다음 UsersLinku 자체를 clear (orphanRemoval에 의해 삭제 트리거)
             user.getUsersLinkus().clear();
 
-            // 3 나머지 안전
+            // 나머지 컬렉션들 (CascadeType.ALL + orphanRemoval=true 설정 덕분에 clear만 해도 삭제됨)
             user.getUserAlarms().clear();
             user.getUserFcmTokens().clear();
             user.getCurations().clear();
@@ -547,9 +547,11 @@ public class UserServiceImpl implements UserService {
         Optional<Users> userOpt = userRepository.findById(userId);
         userOpt.ifPresent(user -> {
             user.getUsersLinkus().forEach(ul -> ul.getLinkuFolders().clear());
+
+            // 그 다음 UsersLinku 자체를 clear (orphanRemoval에 의해 삭제 트리거)
             user.getUsersLinkus().clear();
 
-            // 나머지
+            // 나머지 컬렉션들 (CascadeType.ALL + orphanRemoval=true 설정 덕분에 clear만 해도 삭제됨)
             user.getUserAlarms().clear();
             user.getUserFcmTokens().clear();
             user.getCurations().clear();

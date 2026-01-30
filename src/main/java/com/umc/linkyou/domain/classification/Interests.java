@@ -16,7 +16,7 @@ public class Interests {
     @Column(nullable = false)
     private String interest;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false) // 외래키 설정
     private Users user;
 
