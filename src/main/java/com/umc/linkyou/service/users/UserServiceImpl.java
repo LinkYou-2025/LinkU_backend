@@ -20,6 +20,7 @@ import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.*;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
+import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.categoryRepository.UsersCategoryColorRepository;
 import com.umc.linkyou.repository.classification.InterestRepository;
 import com.umc.linkyou.repository.userRepository.UserQueryRepository;
@@ -94,6 +95,8 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     StringRedisTemplate stringRedisTemplate;
+    @Autowired
+    private AuthAccountRepository authAccountRepository;
 
     private String key(String id){ return "refreshToken:" + id; }
 
@@ -487,7 +490,26 @@ public class UserServiceImpl implements UserService {
                     .map(u -> String.format("id=%d, email=%s, nickName=%s", u.getId(), u.getEmail(), u.getNickName()))
                     .collect(Collectors.joining("; "));
 
+            // 🔥 1️⃣ 모든 자식 테이블 삭제 (순서 중요!)
+            authAccountRepository.deleteByUserIdIn(userIds);
+            curationRepository.deleteByUserIdIn(userIds);
+            curationLikeRepository.deleteByUserIdIn(userIds);
+            emotionLogRepository.deleteByUserIdIn(userIds);
+            folderShareLinkRepository.deleteByCreatorIdIn(userIds);
+            interestRepository.deleteByUserIdIn(toDelete);
+            purposeRepository.deleteByUserIdIn(toDelete);
+            recentViewedLinkuRepository.deleteByUserIdIn(userIds);
+            situationLogRepository.deleteByUserIdIn(userIds);
+            usersCategoryColorRepository.deleteByUserIdIn(userIds);
+            usersFolderRepository.deleteByUserIn(toDelete);
+            usersLinkuRepository.deleteByUserIdIn(userIds);
+            userAlarmRepository.deleteByUserIdIn(userIds);
+            userFcmTokenRepository.deleteByUserIdIn(userIds);
+            userRefreshTokenRepository.deleteByUserIdIn(userIds);
+
+            // 2️⃣ 부모 테이블 삭제
             userRepository.deleteAll(toDelete);
+
 
             log.info("탈퇴 후 10일 경과 {}명 완전삭제 완료, 삭제유저: [{}]", toDelete.size(), infoList);
         }

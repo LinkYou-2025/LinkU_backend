@@ -28,6 +28,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client:3.3.3'
+
 	//implementation 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -71,10 +72,6 @@ dependencies {
 // AWS S3 연동
 	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 
-// SendGrid
-	dependencies {
-		implementation 'com.sendgrid:sendgrid-java:4.10.2'
-	}
 
 // JavaMail API 라이브러리
 	implementation 'com.sun.mail:jakarta.mail:2.0.1'
@@ -91,6 +88,13 @@ dependencies {
 	// Google Cloud Vertex AI (Gemini)
 	implementation 'com.google.cloud:google-cloud-vertexai:1.14.0'
 	implementation 'com.google.protobuf:protobuf-java:3.25.3'
+
+	//sendgrid
+	implementation 'com.sendgrid:sendgrid-java:4.10.2'
+
+	// REST Docs
+	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+	testImplementation 'org.springframework.restdocs:spring-restdocs-core'
 
 }
 
