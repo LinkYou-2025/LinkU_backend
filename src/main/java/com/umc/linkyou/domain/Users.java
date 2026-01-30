@@ -115,6 +115,9 @@ public class Users extends BaseEntity {
     @OneToMany(mappedBy = "creator", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<FolderShareLink> folderShareLinks = new ArrayList<>();
 
+    @Builder.Default
+    @OneToMany(mappedBy = "usersLinku", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<LinkuFolder> linkuFolders = new ArrayList<>();
 
     public void encodePassword(String password) {
         this.password = password;

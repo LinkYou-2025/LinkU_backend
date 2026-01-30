@@ -501,7 +501,13 @@ public class UserServiceImpl implements UserService {
 
         // 3. 모든 컬렉션 clear (orphanRemoval + Cascade 트리거)
         for (Users user : toDelete) {
+            // 1 LinkuFolder FK 먼저 해결 (userLinkuId 참조)
+            user.getUsersLinkus().forEach(ul -> ul.getLinkuFolders().clear());
+
+            // 2 UsersLinku 삭제 (이제 FK 안전)
             user.getUsersLinkus().clear();
+
+            // 3 나머지 안전
             user.getUserAlarms().clear();
             user.getUserFcmTokens().clear();
             user.getCurations().clear();
@@ -540,8 +546,10 @@ public class UserServiceImpl implements UserService {
         // 2. 엔티티 로드
         Optional<Users> userOpt = userRepository.findById(userId);
         userOpt.ifPresent(user -> {
-            // 3. 컬렉션 clear (Cascade 트리거)
+            user.getUsersLinkus().forEach(ul -> ul.getLinkuFolders().clear());
             user.getUsersLinkus().clear();
+
+            // 나머지
             user.getUserAlarms().clear();
             user.getUserFcmTokens().clear();
             user.getCurations().clear();
@@ -554,7 +562,6 @@ public class UserServiceImpl implements UserService {
             user.getPurposes().clear();
             user.getInterests().clear();
             user.getAuthAccounts().clear();
-
             // 4. Cascade 삭제
             entityManager.remove(user);
             log.warn("🧪 테스트삭제 완료: userId={}", userId);

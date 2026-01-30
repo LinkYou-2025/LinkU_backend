@@ -7,6 +7,9 @@ import com.umc.linkyou.domain.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Setter
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -37,6 +40,9 @@ public class UsersLinku extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "linku_id", nullable = false)
     private Linku linku;
+
+    @OneToMany(mappedBy = "usersLinku", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<LinkuFolder> linkuFolders = new ArrayList<>();
 
     @Builder.Default
     @Column(name = "is_ai_exist", nullable = false)
