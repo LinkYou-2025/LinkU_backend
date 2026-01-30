@@ -475,62 +475,44 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         return user;
     }
-    // 매일 새벽 3시 실행
+    // 1. 메인 스케줄러 (여러 사용자)
     @Scheduled(cron = "0 0 3 * * ?")
     @Transactional
     public void deleteCompletelyInactiveUsers() {
         LocalDateTime tenDaysAgo = LocalDateTime.now().minusDays(10);
-        List<Long> inactiveUserIds = userRepository.findInactiveUserIds(tenDaysAgo); // ID만 먼저
+        List<Long> inactiveUserIds = userRepository.findInactiveUserIds(tenDaysAgo);
 
         if (inactiveUserIds.isEmpty()) return;
 
-        // 1. Redis RefreshToken 먼저 삭제
+        // Redis 삭제
         for (Long userId : inactiveUserIds) {
-            Set<String> keys = stringRedisTemplate.keys("refreshToken:*:" + userId);
-            if (!keys.isEmpty()) {
-                stringRedisTemplate.delete(keys);
-                log.debug("Redis refreshToken 삭제: userId={}", userId);
-            }
+            userRefreshTokenRepository.findByUserId(userId)
+                    .ifPresent(token -> stringRedisTemplate.delete(token.getRefreshToken()));
         }
 
-        // 2. JPA 엔티티 로드 후 cascade 삭제
-        List<Users> toDelete = userRepository.findAllById(inactiveUserIds);
-        for (Users user : toDelete) {
-            // 모든 컬렉션 clear (orphanRemoval 보장)
-            user.getUsersLinkus().clear();
-            user.getUserAlarms().clear();
-            user.getUserFcmTokens().clear();
-            user.getCurations().clear();
-            user.getCurationLikes().clear();
-            user.getEmotionLogs().clear();
-            user.getFolderShareLinks().clear();
-            user.getRecentViewedLinkus().clear();
-            user.getUsersFoldersList().clear();
-            user.getUsersCategoryColorList().clear();
+        // HQL 벌크삭제
+        entityManager.createQuery("DELETE FROM Users u WHERE u.id IN :ids")
+                .setParameter("ids", inactiveUserIds)
+                .executeUpdate();
 
-            entityManager.remove(user); // Cascade 자동 실행!
-        }
-
-        log.info("완전삭제 {}명 완료: {}", inactiveUserIds.size(), inactiveUserIds);
+        log.info("🗑️ 완전삭제 {}명 완료", inactiveUserIds.size());
     }
 
-    // 🔥 테스트용 즉시 삭제 (운영에서는 @Profile("test")로 제한)
+    // 2. 테스트 메서드 (단일 사용자)
     @Transactional
     public void testImmediateDelete(Long userId) {
-        LocalDateTime testDate = LocalDateTime.parse("2025-12-30T18:46:23");
-        LocalDateTime tenDaysAgo = testDate.minusDays(10);
-        List<Users> toDelete = userRepository.findAllByStatusAndInactiveDateBefore("INACTIVE", tenDaysAgo);
-        if (!toDelete.isEmpty()) {
-            // 삭제 대상 사용자 정보(예: id, email, nickName) 로그 문자열 생성
-            String infoList = toDelete.stream()
-                    .map(u -> String.format("id=%d, email=%s, nickName=%s", u.getId(), u.getEmail(), u.getNickName()))
-                    .collect(Collectors.joining("; "));
+        if (userId == null) return;
 
-            userRepository.deleteAll(toDelete);
+        userRefreshTokenRepository.findByUserId(userId)
+                .ifPresent(token -> stringRedisTemplate.delete(token.getRefreshToken()));
 
-            log.info("탈퇴 후 10일 경과 {}명 완전삭제 완료, 삭제유저: [{}]", toDelete.size(), infoList);
-        }
+        entityManager.createQuery("DELETE FROM Users u WHERE u.id = :userId")
+                .setParameter("userId", userId)
+                .executeUpdate();
+
+        log.warn("🧪 테스트삭제: userId={}", userId);
     }
+
 
 }
 
