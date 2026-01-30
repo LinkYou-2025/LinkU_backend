@@ -51,12 +51,6 @@ public class Users extends BaseEntity {
     @OneToMany(mappedBy ="user", cascade = CascadeType.ALL)
     private List<Interests> interests = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<UsersFolder> usersFoldersList = new ArrayList<>();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<UsersCategoryColor> usersCategoryColorList = new ArrayList<>();
-
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private Role role = Role.USER;
@@ -69,6 +63,23 @@ public class Users extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String deleted_reason;
+
+    //CASCADE
+    @Builder.Default
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<UsersFolder> usersFoldersList = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<UsersCategoryColor> usersCategoryColorList = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RecentViewedLinku> recentViewedLinkus = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AuthAccount> authAccounts = new ArrayList<>();
 
     public void encodePassword(String password) {
         this.password = password;

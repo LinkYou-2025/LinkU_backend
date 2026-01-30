@@ -493,5 +493,23 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    // 🔥 테스트용 즉시 삭제 (운영에서는 @Profile("test")로 제한)
+    @Transactional
+    public void testImmediateDelete(Long userId) {
+        LocalDateTime testDate = LocalDateTime.parse("2025-12-30T18:46:23");
+        LocalDateTime tenDaysAgo = testDate.minusDays(10);
+        List<Users> toDelete = userRepository.findAllByStatusAndInactiveDateBefore("INACTIVE", tenDaysAgo);
+        if (!toDelete.isEmpty()) {
+            // 삭제 대상 사용자 정보(예: id, email, nickName) 로그 문자열 생성
+            String infoList = toDelete.stream()
+                    .map(u -> String.format("id=%d, email=%s, nickName=%s", u.getId(), u.getEmail(), u.getNickName()))
+                    .collect(Collectors.joining("; "));
+
+            userRepository.deleteAll(toDelete);
+
+            log.info("탈퇴 후 10일 경과 {}명 완전삭제 완료, 삭제유저: [{}]", toDelete.size(), infoList);
+        }
+    }
+
 }
 
