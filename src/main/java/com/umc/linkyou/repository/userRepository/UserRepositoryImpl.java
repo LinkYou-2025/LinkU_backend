@@ -67,4 +67,17 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                         .and(users.inactiveDate.before(beforeDateTime)))
                 .fetch();
     }
+
+    @Override
+    public List<Long> findInactiveUserIds(LocalDateTime beforeDateTime) {
+        return queryFactory
+                .select(users.id)  // ID만 select (최적화!)
+                .from(users)
+                .where(
+                        users.status.eq("INACTIVE")
+                                .and(users.inactiveDate.before(beforeDateTime))
+                )
+                .fetch();  // 단일 쿼리! N+1 없음
+    }
+
 }
