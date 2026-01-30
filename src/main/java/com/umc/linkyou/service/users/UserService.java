@@ -37,4 +37,6 @@ public interface UserService {
     Users withdrawUser(Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO);
 
     UserResponseDTO.TokenPair reissueRefreshToken(String refreshToken);
+
+    void testImmediateDelete(Long userId);
 }

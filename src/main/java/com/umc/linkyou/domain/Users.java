@@ -70,6 +70,12 @@ public class Users extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String deleted_reason;
 
+    //CASCADE
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RecentViewedLinku> recentViewedLinkus = new ArrayList<>();
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AuthAccount> authAccounts = new ArrayList<>();
+
     public void encodePassword(String password) {
         this.password = password;
     }

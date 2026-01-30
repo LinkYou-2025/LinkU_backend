@@ -4,6 +4,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.QDomain;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -12,6 +13,7 @@ import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
+@Primary
 public class DomainRepositoryImpl implements DomainRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
