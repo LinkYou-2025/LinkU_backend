@@ -7,8 +7,6 @@ import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.EmailVerification;
 import com.umc.linkyou.domain.UserRefreshToken;
-import com.umc.linkyou.domain.enums.Gender;
-import com.umc.linkyou.domain.enums.Interest;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.classification.Category;
@@ -32,8 +30,9 @@ import com.umc.linkyou.service.EmailService;
 import com.umc.linkyou.web.dto.EmailVerificationResponse;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
-//import io.swagger.v3.oas.annotations.servers.Server;
 import io.jsonwebtoken.Claims;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,7 +54,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
+    @PersistenceContext
+    private EntityManager entityManager;
     private static final String AUTH_CODE_PREFIX = "AuthCode ";
 
     private final UserRepository userRepository;
@@ -475,41 +475,93 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         return user;
     }
-    // 매일 새벽 3시 실행
+
     @Scheduled(cron = "0 0 3 * * ?")
     @Transactional
     public void deleteCompletelyInactiveUsers() {
         LocalDateTime tenDaysAgo = LocalDateTime.now().minusDays(10);
-        List<Users> toDelete = userRepository.findAllByStatusAndInactiveDateBefore("INACTIVE", tenDaysAgo);
-        if (!toDelete.isEmpty()) {
-            // 삭제 대상 사용자 정보(예: id, email, nickName) 로그 문자열 생성
-            String infoList = toDelete.stream()
-                    .map(u -> String.format("id=%d, email=%s, nickName=%s", u.getId(), u.getEmail(), u.getNickName()))
-                    .collect(Collectors.joining("; "));
+        List<Long> inactiveUserIds = userRepository.findInactiveUserIds(tenDaysAgo);
 
-            userRepository.deleteAll(toDelete);
-
-            log.info("탈퇴 후 10일 경과 {}명 완전삭제 완료, 삭제유저: [{}]", toDelete.size(), infoList);
+        if (inactiveUserIds.isEmpty()) {
+            log.debug("삭제할 비활성 사용자 없음");
+            return;
         }
+
+        // 1. Redis 삭제 (정확한 Repository 방식)
+        for (Long userId : inactiveUserIds) {
+            userRefreshTokenRepository.findByUserId(userId)
+                    .ifPresent(token -> {
+                        stringRedisTemplate.delete(token.getRefreshToken());
+                        log.debug("Redis 삭제: userId={}", userId);
+                    });
+        }
+
+        // 2. 엔티티 로드 (Cascade 동작 준비)
+        List<Users> toDelete = userRepository.findAllById(inactiveUserIds);
+
+        // 3. 모든 컬렉션 clear (orphanRemoval + Cascade 트리거)
+        for (Users user : toDelete) {
+            user.getUsersLinkus().clear();
+            user.getUserAlarms().clear();
+            user.getUserFcmTokens().clear();
+            user.getCurations().clear();
+            user.getCurationLikes().clear();
+            user.getEmotionLogs().clear();
+            user.getFolderShareLinks().clear();
+            user.getRecentViewedLinkus().clear();
+            user.getUsersFoldersList().clear();
+            user.getUsersCategoryColorList().clear();
+            user.getPurposes().clear();
+            user.getInterests().clear();
+            user.getAuthAccounts().clear();
+        }
+
+        // 4. entityManager.remove (Cascade 실행!)
+        toDelete.forEach(entityManager::remove);
+
+        log.info("🗑️ Cascade 완전삭제 {}명 완료 (9개 자식테이블 포함)", toDelete.size());
     }
 
-    // 🔥 테스트용 즉시 삭제 (운영에서는 @Profile("test")로 제한)
+    // 🔥 테스트 메서드 (단일)
     @Transactional
     public void testImmediateDelete(Long userId) {
-        LocalDateTime testDate = LocalDateTime.parse("2025-12-30T18:46:23");
-        LocalDateTime tenDaysAgo = testDate.minusDays(10);
-        List<Users> toDelete = userRepository.findAllByStatusAndInactiveDateBefore("INACTIVE", tenDaysAgo);
-        if (!toDelete.isEmpty()) {
-            // 삭제 대상 사용자 정보(예: id, email, nickName) 로그 문자열 생성
-            String infoList = toDelete.stream()
-                    .map(u -> String.format("id=%d, email=%s, nickName=%s", u.getId(), u.getEmail(), u.getNickName()))
-                    .collect(Collectors.joining("; "));
-
-            userRepository.deleteAll(toDelete);
-
-            log.info("탈퇴 후 10일 경과 {}명 완전삭제 완료, 삭제유저: [{}]", toDelete.size(), infoList);
+        if (userId == null) {
+            log.info("testImmediateDelete: userId 없음");
+            return;
         }
+
+        // 1. Redis 삭제
+        userRefreshTokenRepository.findByUserId(userId)
+                .ifPresent(token -> {
+                    stringRedisTemplate.delete(token.getRefreshToken());
+                    log.debug("Redis 테스트삭제: userId={}", userId);
+                });
+
+        // 2. 엔티티 로드
+        Optional<Users> userOpt = userRepository.findById(userId);
+        userOpt.ifPresent(user -> {
+            // 3. 컬렉션 clear (Cascade 트리거)
+            user.getUsersLinkus().clear();
+            user.getUserAlarms().clear();
+            user.getUserFcmTokens().clear();
+            user.getCurations().clear();
+            user.getCurationLikes().clear();
+            user.getEmotionLogs().clear();
+            user.getFolderShareLinks().clear();
+            user.getRecentViewedLinkus().clear();
+            user.getUsersFoldersList().clear();
+            user.getUsersCategoryColorList().clear();
+            user.getPurposes().clear();
+            user.getInterests().clear();
+            user.getAuthAccounts().clear();
+
+            // 4. Cascade 삭제
+            entityManager.remove(user);
+            log.warn("🧪 테스트삭제 완료: userId={}", userId);
+        });
     }
+
+
 
 }
 

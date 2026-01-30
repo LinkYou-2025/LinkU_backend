@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface UserRepositoryCustom {
     UserResponseDTO.UserInfoDTO findUserWithFoldersAndLinks(Long userId);
     List<Users> findAllByStatusAndInactiveDateBefore(String status, LocalDateTime beforeDateTime);
+    List<Long> findInactiveUserIds(LocalDateTime beforeDateTime);
 }

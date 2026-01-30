@@ -1,38 +1,30 @@
 package com.umc.linkyou.docs;
 
 import com.umc.linkyou.service.users.UserService;
-import com.umc.linkyou.service.users.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/admin/docs")
-@Profile("!prod")
-public class SchedulerTestController {  // 🔥 RequiredArgsConstructor 제거
+@RequestMapping("/admin/scheduler")
+@Profile({"!prod", "!test"})
+public class SchedulerTestController {
 
-    @Autowired  // 🔥 직접 주입
+    @Autowired
     private UserService userService;
 
-    @GetMapping("/scheduler/test")
-    public Map<String, Object> testDeleteInactiveUsers(
-            @RequestParam(defaultValue = "10") int daysAgo) {
+    @PostMapping("/test")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Map<String, Object> testDeleteInactive(
+            @RequestParam Long userId) {
 
-        ((UserServiceImpl) userService).deleteCompletelyInactiveUsers();
+        userService.testImmediateDelete(userId);
         return Map.of(
-                "message", "스케줄러 테스트 완료",
-                "daysThreshold", daysAgo,
-                "deletedCount", 3,
-                "sampleUserIds", List.of(1L, 2L, 3L)
+                "message", "사용자 삭제 완료",
+                "deletedUserId", userId
         );
-    }
-
-    @PostMapping("/scheduler/manual")
-    public Map<String, Object> manualSchedulerRun() {
-        ((UserServiceImpl) userService).deleteCompletelyInactiveUsers();
-        return Map.of("status", "스케줄러 수동 실행 완료");
     }
 }
