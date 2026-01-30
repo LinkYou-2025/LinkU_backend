@@ -8,6 +8,7 @@ import com.umc.linkyou.domain.enums.*;
 import com.umc.linkyou.domain.folder.FolderShareLink;
 import com.umc.linkyou.domain.log.EmotionLog;
 import com.umc.linkyou.domain.mapping.CurationLike;
+import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersAlarm;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
@@ -113,6 +114,10 @@ public class Users extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "creator", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<FolderShareLink> folderShareLinks = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "usersLinku.user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<LinkuFolder> linkuFolders = new ArrayList<>();
 
     public void encodePassword(String password) {
         this.password = password;
