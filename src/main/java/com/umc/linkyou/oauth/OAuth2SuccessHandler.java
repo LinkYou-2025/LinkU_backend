@@ -56,7 +56,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 URLEncoder.encode(accessToken, StandardCharsets.UTF_8)
         );
 
-        log.info("OAuth → 딥링크: {} (user={})", deepLinkUrl, email);
+        log.debug("OAuth → 딥링크: {} (user={})", deepLinkUrl, email);
         response.sendRedirect(deepLinkUrl);
     }
 }
