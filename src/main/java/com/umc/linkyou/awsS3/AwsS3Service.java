@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -44,10 +46,13 @@ public class AwsS3Service {
         }
 
         String fileName = createFileName(multipartFile.getOriginalFilename());
-        try (InputStream inputStream = multipartFile.getInputStream()) {
-            String safeContentType = Optional.ofNullable(multipartFile.getContentType())
-                    .orElse("image/jpeg");
-            byte[] resizedBytes = processImage(inputStream, safeContentType);
+        try {
+            // 바이트 검증
+            byte[] originalBytes = readToByteArray(multipartFile.getInputStream());
+            validateImageBytes(originalBytes); // 실제 이미지 검증
+
+            // ByteArrayInputStream으로 재생성 (InputStream 소모 방지)
+            byte[] resizedBytes = processImage(new ByteArrayInputStream(originalBytes));
 
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(resizedBytes.length);
@@ -69,11 +74,13 @@ public class AwsS3Service {
         }
 
         String fileName = folder + "/" + createFileName(multipartFile.getOriginalFilename());
-        try (InputStream inputStream = multipartFile.getInputStream()) {
+        try  {
+            // 바이트 검증
+            byte[] originalBytes = readToByteArray(multipartFile.getInputStream());
+            validateImageBytes(originalBytes); // 실제 이미지 검증
 
-            String safeContentType = Optional.ofNullable(multipartFile.getContentType())
-                    .orElse("image/jpeg");
-            byte[] resizedBytes = processImage(inputStream, safeContentType);
+            // ByteArrayInputStream으로 재생성 (InputStream 소모 방지)
+            byte[] resizedBytes = processImage(new ByteArrayInputStream(originalBytes));
 
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(resizedBytes.length);
@@ -166,19 +173,41 @@ public class AwsS3Service {
     /**
      * 이미지 리사이징 공통 처리 (최대 800x800, 비율 유지)
      */
-    private byte[] processImage(InputStream inputStream, String contentType) throws IOException {
-        if (!contentType.startsWith("image/")) {
-            throw new GeneralException(ErrorStatus._S3_INVALID_IMAGE);
-        }
-
+    private byte[] processImage(InputStream inputStream) throws IOException {
+        // contentType 검증 제거 (validateImageBytes에서 이미 완료)
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         Thumbnails.of(inputStream)
-                .size(800, 800)  // 긴 변 800px 이하, 비율 유지
+                .size(800, 800)
                 .outputQuality(0.85)
                 .outputFormat("jpg")
                 .toOutputStream(output);
-
         return output.toByteArray();
+    }
+
+    // InputStream을 byte[]로 변환
+    private byte[] readToByteArray(InputStream inputStream) throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        int nRead;
+        byte[] data = new byte[16384]; // 16KB 버퍼
+
+        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+            buffer.write(data, 0, nRead);
+        }
+        buffer.flush();
+        return buffer.toByteArray();
+    }
+
+    // 실제 바이트로 이미지 검증 (contentType 무시)
+    private void validateImageBytes(byte[] bytes) {
+        try {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(bytes));
+            if (image == null) {
+                throw new GeneralException(ErrorStatus._S3_INVALID_IMAGE);
+            }
+            log.debug("이미지 검증 성공: {}x{}", image.getWidth(), image.getHeight());
+        } catch (Exception e) {
+            throw new GeneralException(ErrorStatus._S3_INVALID_IMAGE);
+        }
     }
 
 }
