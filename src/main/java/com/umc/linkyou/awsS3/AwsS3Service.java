@@ -1,5 +1,6 @@
 package com.umc.linkyou.awsS3;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
@@ -46,50 +47,67 @@ public class AwsS3Service {
         }
 
         String fileName = createFileName(multipartFile.getOriginalFilename());
-        try {
-            // 바이트 검증
-            byte[] originalBytes = readToByteArray(multipartFile.getInputStream());
-            validateImageBytes(originalBytes); // 실제 이미지 검증
+        try (InputStream originalStream = multipartFile.getInputStream()) {
+            byte[] originalBytes = readToByteArray(originalStream);
+            validateImageBytes(originalBytes);
 
-            // ByteArrayInputStream으로 재생성 (InputStream 소모 방지)
-            byte[] resizedBytes = processImage(new ByteArrayInputStream(originalBytes));
+            try (InputStream resizedStream = new ByteArrayInputStream(originalBytes)) {
+                byte[] resizedBytes = processImage(resizedStream);
 
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(resizedBytes.length);
-            metadata.setContentType("image/jpeg");
+                ObjectMetadata metadata = new ObjectMetadata();
+                metadata.setContentLength(resizedBytes.length);
+                metadata.setContentType("image/jpeg");
 
-            amazonS3.putObject(new PutObjectRequest(bucket, fileName,
-                    new ByteArrayInputStream(resizedBytes), metadata));
+                // 🔥 컴파일 에러 해결: 단일 AmazonClientException catch
+                try {
+                    amazonS3.putObject(new PutObjectRequest(bucket, fileName,
+                            new ByteArrayInputStream(resizedBytes), metadata));
+                } catch (AmazonClientException e) {
+                    log.error("S3 업로드 실패 (클라이언트 오류): {}", fileName, e);
+                    throw new GeneralException(ErrorStatus._S3_UPLOAD_FAILED);
+                }
+            }
         } catch (IOException e) {
-            log.error("업로드 실패: {}", fileName, e);
+            log.error("업로드 IO 실패: {}", fileName, e);
             throw new GeneralException(ErrorStatus._S3_UPLOAD_FAILED);
         }
 
         return getFileUrl(fileName);
     }
 
+    /**
+     * 폴더 업로드 메서드 (두 번째 오버로드 - 완전 수정)
+     */
     public String uploadFile(MultipartFile multipartFile, String folder) {
         if (multipartFile == null || multipartFile.isEmpty()) {
             throw new GeneralException(ErrorStatus._S3_FILE_EMPTY);
         }
 
         String fileName = folder + "/" + createFileName(multipartFile.getOriginalFilename());
-        try  {
+        try (InputStream originalStream = multipartFile.getInputStream()) {
             // 바이트 검증
-            byte[] originalBytes = readToByteArray(multipartFile.getInputStream());
-            validateImageBytes(originalBytes); // 실제 이미지 검증
+            byte[] originalBytes = readToByteArray(originalStream);
+            validateImageBytes(originalBytes);
 
-            // ByteArrayInputStream으로 재생성 (InputStream 소모 방지)
-            byte[] resizedBytes = processImage(new ByteArrayInputStream(originalBytes));
+            // 리사이징 (자동 close)
+            try (InputStream resizedStream = new ByteArrayInputStream(originalBytes)) {
+                byte[] resizedBytes = processImage(resizedStream);
 
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(resizedBytes.length);
-            metadata.setContentType("image/jpeg");
+                ObjectMetadata metadata = new ObjectMetadata();
+                metadata.setContentLength(resizedBytes.length);
+                metadata.setContentType("image/jpeg");
 
-            amazonS3.putObject(new PutObjectRequest(bucket, fileName,
-                    new ByteArrayInputStream(resizedBytes), metadata));
+                //  AmazonClientException 단일 catch
+                try {
+                    amazonS3.putObject(new PutObjectRequest(bucket, fileName,
+                            new ByteArrayInputStream(resizedBytes), metadata));
+                } catch (AmazonClientException e) {
+                    log.error("S3 폴더 업로드 실패 (클라이언트 오류): {}", fileName, e);
+                    throw new GeneralException(ErrorStatus._S3_UPLOAD_FAILED);
+                }
+            }
         } catch (IOException e) {
-            log.error("폴더 업로드 실패: {}", fileName, e);
+            log.error("폴더 업로드 IO 실패: {}", fileName, e);
             throw new GeneralException(ErrorStatus._S3_UPLOAD_FAILED);
         }
 
