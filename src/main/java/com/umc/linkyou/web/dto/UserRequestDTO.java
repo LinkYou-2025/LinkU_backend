@@ -82,4 +82,30 @@ public class UserRequestDTO {
         @Schema(example = "회원탈퇴 이유에 대한 상세설명")
         private String reason;
     }
+
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SocialCompleteDTO {  // ← 신규 추가!
+
+        @Schema(description = "닉네임 (중복 불가)", example = "linkyou_user")
+        @NotBlank(message = "닉네임은 필수입니다")
+        private String nickName;
+
+        @Schema(description = "성별 (1=남성, 0=여성)", example = "1")
+        @NotNull(message = "성별은 필수입니다")
+        private Integer gender;
+
+        @Schema(description = "직업 ID", example = "1")
+        @NotNull(message = "직업은 필수입니다")
+        private Long jobId;
+
+        @Schema(description = "사용 목적 리스트", example = "[\"CAREER\", \"STUDY\"]")
+        private List<String> purposeList;
+
+        @Schema(description = "관심사 리스트", example = "[\"IT\", \"DESIGN\"]")
+        private List<String> interestList;
+    }
 }

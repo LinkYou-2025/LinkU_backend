@@ -2,6 +2,7 @@ package com.umc.linkyou.oauth;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.oauth.utils.CustomOAuth2User;
 import com.umc.linkyou.oauth.utils.GoogleUserInfoExtractor;
 import com.umc.linkyou.oauth.utils.KakaoUserInfoExtractor;
@@ -153,7 +154,7 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
                         .nickName(finalNickname)
                         .gender(null)
                         .role(Role.USER)
-                        .status("ACTIVE")
+                        .status(UserStatus.TEMP)
                         .build();
 
                 try {

@@ -7,6 +7,8 @@ import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.EmailVerification;
 import com.umc.linkyou.domain.UserRefreshToken;
+import com.umc.linkyou.domain.enums.Gender;
+import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.classification.Category;
@@ -209,6 +211,77 @@ public class UserServiceImpl implements UserService {
 
         return UserConverter.toLoginResultDTO(user, accessToken, refreshToken);
     }
+
+    @Override
+    @Transactional
+    public Users socialCompleteProfile(String email, UserRequestDTO.SocialCompleteDTO request) {
+        // 1. TEMP 사용자 조회
+        Users user = userRepository.findByEmailAndStatus(email, UserStatus.TEMP)
+                .orElseThrow(() -> new UserHandler(ErrorStatus._SOCIAL_PROFILE_EXPIRED));
+
+        // 2. 닉네임 중복 체크
+        validateNickNameNotDuplicate(request.getNickName());
+
+        // 3. 필수 정보 업데이트
+        user.setNickName(request.getNickName());
+        Gender gender = null;
+        switch (request.getGender()) {
+            case 1: gender = Gender.MALE; break;
+            case 2: gender = Gender.FEMALE; break;
+        }
+        user.setGender(gender);
+
+        Job job = jobRepository.findById(request.getJobId())
+                .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
+        user.setJob(job);
+
+        // 4. Purposes/Interests (기존 → 신규 교체)
+        purposeRepository.deleteAllByUser(user);
+        List<Purposes> purposes = request.getPurposeList().stream()
+                .map(p -> new Purposes(p, user)).toList();
+        purposeRepository.saveAll(purposes);
+
+        interestRepository.deleteAllByUser(user);
+        List<Interests> interests = request.getInterestList().stream()
+                .map(i -> new Interests(i, user)).toList();
+        interestRepository.saveAll(interests);
+
+        // 5. 상태 변경 → ACTIVE
+        user.setStatus(UserStatus.ACTIVE);
+
+        // 6. 저장 + 초기 폴더 생성
+        Users savedUser = userRepository.save(user);
+        initUserFolders(savedUser);  // 기존 joinUser 로직 추출
+
+        return savedUser;
+    }
+
+    // 기존 joinUser 로직을 메서드로 추출
+    private void initUserFolders(Users user) {
+        List<Category> categories = categoryRepository.findAll();
+        List<UsersCategoryColor> userColors = new ArrayList<>();
+
+        for (Category category : categories) {
+            Folder subFolder = folderRepository.save(Folder.builder()
+                    .folderName(category.getCategoryName())
+                    .category(category)
+                    .parentFolder(null)
+                    .build());
+
+            Fcolor defaultColor = category.getFcolor();
+            userColors.add(UsersCategoryColor.builder()
+                    .user(user).category(category).fcolor(defaultColor)
+                    .build());
+
+            usersFolderRepository.save(UsersFolder.builder()
+                    .user(user).folder(subFolder)
+                    .isOwner(true).isWriter(true).isViewer(true)
+                    .isBookmarked(false)
+                    .build());
+        }
+        usersCategoryColorRepository.saveAll(userColors);
+    }
+
 
     private String hmac(String token) {
         try {
@@ -469,7 +542,7 @@ public class UserServiceImpl implements UserService {
     public Users withdrawUser(Long userId,UserRequestDTO.DeleteReasonDTO deleteReasonDTO) {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
-        user.setStatus("INACTIVE");
+        user.setStatus(UserStatus.ACTIVE);
         user.setInactiveDate(LocalDateTime.now());
         user.setDeleted_reason(deleteReasonDTO.getReason());
         userRepository.save(user);

@@ -3,9 +3,11 @@ package com.umc.linkyou.web.controller;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.oauth.utils.CustomOAuth2User;
 import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.EmailVerificationResponse;
@@ -143,5 +145,16 @@ public class UserController {
 //        return ApiResponse.onSuccess("즉시 삭제 완료", "10일 경과 INACTIVE 사용자 CASCADE 삭제됨");
 //    }
 
+    @PostMapping("/social/complete")
+    public ApiResponse<Users> completeSocialProfile(
+            @RequestBody @Valid UserRequestDTO.SocialCompleteDTO request,
+            @AuthenticationPrincipal CustomOAuth2User oAuth2User) {
 
+        if (oAuth2User == null) {
+            throw new GeneralException(ErrorStatus._UNAUTHORIZED);
+        }
+
+        Users user = userService.socialCompleteProfile(oAuth2User.getEmail(), request);
+        return ApiResponse.onSuccess(user);
+    }
 }

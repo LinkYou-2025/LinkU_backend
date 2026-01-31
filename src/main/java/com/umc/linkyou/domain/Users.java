@@ -55,9 +55,9 @@ public class Users extends BaseEntity {
     @Builder.Default
     private Role role = Role.USER;
 
+    @Enumerated(EnumType.STRING)
     @Builder.Default
-    @Column(nullable = false)
-    private String status = "ACTIVE"; // "ACTIVE", "INACTIVE"
+    private UserStatus status = UserStatus.ACTIVE;
 
     private LocalDateTime inactiveDate;
 
