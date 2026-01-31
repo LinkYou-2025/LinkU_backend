@@ -36,27 +36,29 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // JWT 생성
         String accessToken = jwtTokenProvider.createAccessToken(email);
 
-        // path 파라미터
+        // session에서 targetPath 가져오기
         HttpSession session = request.getSession(false);
+
         String targetPath = null;
         if (session != null) {
             targetPath = (String) session.getAttribute("oauth_target_path");
-            session.removeAttribute("oauth_target_path");  // 보안: 사용후 삭제
+            session.removeAttribute("oauth_target_path");
+
+            // path를 통한 보안문제
+            if (targetPath != null && !targetPath.startsWith("/") || targetPath.length() > 100) {
+                targetPath = null;
+            }
         }
 
-// targetPath 있으면 리다이렉트
-        if (targetPath != null) {
-            response.sendRedirect(targetPath);
-            return;
-        }
-        // {baseurl}/auth?path=xxx&token=yyy
+
+        // 항상 딥링크 생성 (targetPath 포함)
         String deepLinkUrl = String.format("%s/auth?path=%s&token=%s",
                 deepLinkBaseUrl,
-                URLEncoder.encode(targetPath != null ? targetPath : "", StandardCharsets.UTF_8),  // 👈 targetPath로 변경
+                URLEncoder.encode(targetPath != null ? targetPath : "/", StandardCharsets.UTF_8),
                 URLEncoder.encode(accessToken, StandardCharsets.UTF_8)
         );
 
-        log.debug("OAuth → 딥링크: {} (user={})", deepLinkUrl, email);
+        log.info("OAuth → 딥링크: {} (user={})", deepLinkUrl, email);
         response.sendRedirect(deepLinkUrl);
     }
 }
