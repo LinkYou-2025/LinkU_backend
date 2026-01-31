@@ -1,12 +1,12 @@
-package com.umc.linkyou.config.security.oauth;
+package com.umc.linkyou.oauth;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.config.security.oauth.utils.CustomOAuth2User;
-import com.umc.linkyou.config.security.oauth.utils.GoogleUserInfoExtractor;
-import com.umc.linkyou.config.security.oauth.utils.KakaoUserInfoExtractor;
-import com.umc.linkyou.config.security.oauth.utils.NaverUserInfoExtractor;
-import com.umc.linkyou.config.security.oauth.utils.OAuth2UserInfoExtractor;
+import com.umc.linkyou.oauth.utils.CustomOAuth2User;
+import com.umc.linkyou.oauth.utils.GoogleUserInfoExtractor;
+import com.umc.linkyou.oauth.utils.KakaoUserInfoExtractor;
+import com.umc.linkyou.oauth.utils.NaverUserInfoExtractor;
+import com.umc.linkyou.oauth.utils.OAuth2UserInfoExtractor;
 import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
@@ -23,7 +23,6 @@ import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserServ
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
-import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

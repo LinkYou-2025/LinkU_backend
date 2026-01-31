@@ -2,8 +2,9 @@ package com.umc.linkyou.config.security;
 
 import com.umc.linkyou.config.security.jwt.JwtAuthenticationFilter;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
-import com.umc.linkyou.config.security.oauth.OAuth2TokenClient;
-import com.umc.linkyou.config.security.oauth.OAuth2UserServiceImpl;
+import com.umc.linkyou.oauth.OAuth2SuccessHandler;
+import com.umc.linkyou.oauth.OAuth2TokenClient;
+import com.umc.linkyou.oauth.OAuth2UserServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +29,7 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
     private final OAuth2UserServiceImpl oAuth2UserService;
     private final OAuth2TokenClient oAuth2TokenClient;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -78,7 +80,8 @@ public class SecurityConfig {
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(oAuth2UserService)
                         )
-                        .defaultSuccessUrl("/login/success", true)
+                        .successHandler(oAuth2SuccessHandler)
+//                        .defaultSuccessUrl("/login/success", true)
                 )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
                         UsernamePasswordAuthenticationFilter.class);
