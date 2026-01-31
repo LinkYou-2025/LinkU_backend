@@ -205,8 +205,13 @@ public class AwsS3Service {
                 throw new GeneralException(ErrorStatus._S3_INVALID_IMAGE);
             }
             log.debug("이미지 검증 성공: {}x{}", image.getWidth(), image.getHeight());
-        } catch (Exception e) {
+        } catch (IOException e) {
+            // IOException만 catch → 명확한 이미지 읽기 실패
+            log.error("이미지 파싱 실패", e);
             throw new GeneralException(ErrorStatus._S3_INVALID_IMAGE);
+        } catch (GeneralException e) {
+            // 이미 GeneralException이면 그대로 re-throw (재포장 방지)
+            throw e;
         }
     }
 
