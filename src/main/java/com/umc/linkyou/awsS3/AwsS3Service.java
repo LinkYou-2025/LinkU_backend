@@ -7,12 +7,15 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
@@ -40,14 +43,18 @@ public class AwsS3Service {
         }
 
         String fileName = createFileName(multipartFile.getOriginalFilename());
-        ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentLength(multipartFile.getSize());
-        metadata.setContentType(multipartFile.getContentType());
-
         try (InputStream inputStream = multipartFile.getInputStream()) {
-            amazonS3.putObject(new PutObjectRequest(bucket, fileName, inputStream, metadata));
+            byte[] resizedBytes = processImage(inputStream, multipartFile.getContentType());
+
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(resizedBytes.length);
+            metadata.setContentType("image/jpeg");
+
+            amazonS3.putObject(new PutObjectRequest(bucket, fileName,
+                    new ByteArrayInputStream(resizedBytes), metadata));
         } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 파일 업로드 실패");
+            log.error("업로드 실패: {}", fileName, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 업로드 실패");
         }
 
         return getFileUrl(fileName);
@@ -59,14 +66,18 @@ public class AwsS3Service {
         }
 
         String fileName = folder + "/" + createFileName(multipartFile.getOriginalFilename());
-        ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentLength(multipartFile.getSize());
-        metadata.setContentType(multipartFile.getContentType());
-
         try (InputStream inputStream = multipartFile.getInputStream()) {
-            amazonS3.putObject(new PutObjectRequest(bucket, fileName, inputStream, metadata));
+            byte[] resizedBytes = processImage(inputStream, multipartFile.getContentType());
+
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(resizedBytes.length);
+            metadata.setContentType("image/jpeg");
+
+            amazonS3.putObject(new PutObjectRequest(bucket, fileName,
+                    new ByteArrayInputStream(resizedBytes), metadata));
         } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 파일 업로드 실패");
+            log.error("폴더 업로드 실패: {}", fileName, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 업로드 실패");
         }
 
         return getFileUrl(fileName);
@@ -146,6 +157,22 @@ public class AwsS3Service {
         }
     }
 
+    /**
+     * 이미지 리사이징 공통 처리 (최대 800x800, 비율 유지)
+     */
+    private byte[] processImage(InputStream inputStream, String contentType) throws IOException {
+        if (!contentType.startsWith("image/")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이미지 파일만 지원합니다.");
+        }
 
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        Thumbnails.of(inputStream)
+                .size(800, 800)  // 긴 변 800px 이하, 비율 유지
+                .outputQuality(0.85)
+                .outputFormat("jpg")
+                .toOutputStream(output);
+
+        return output.toByteArray();
+    }
 
 }
