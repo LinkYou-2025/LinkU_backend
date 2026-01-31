@@ -80,8 +80,6 @@ dependencies {
 
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
-	//implementation 'org.springframework.boot:spring-boot-starter-scheduling'
-
 	//blue-green
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
@@ -96,6 +94,7 @@ dependencies {
 	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
 	testImplementation 'org.springframework.restdocs:spring-restdocs-core'
 
+	implementation 'net.coobird:thumbnailator:0.4.20'
 }
 
 clean {

@@ -2,7 +2,6 @@ package com.umc.linkyou.awsS3.controller;
 
 import com.umc.linkyou.awsS3.AwsS3Service;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;

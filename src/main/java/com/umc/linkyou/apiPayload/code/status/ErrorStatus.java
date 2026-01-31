@@ -19,6 +19,16 @@ public enum ErrorStatus implements BaseErrorCode {
     _INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "COMMON4011", "잘못된 토큰입니다."),
     _INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "COMMON4012", "잘못된 비밀번호입니다."),
 
+    // S3 관련 오류
+    _S3_FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "S3404", "S3 파일을 찾을 수 없습니다."),
+    _S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S35001", "S3 파일 업로드에 실패했습니다."),
+    _S3_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S35002", "S3 파일 삭제에 실패했습니다."),
+    _S3_INVALID_FILE(HttpStatus.BAD_REQUEST, "S34001", "유효하지 않은 파일입니다."),
+    _S3_INVALID_IMAGE(HttpStatus.BAD_REQUEST, "S34002", "이미지 파일만 업로드할 수 있습니다."),
+    _S3_INVALID_URL(HttpStatus.BAD_REQUEST, "S34003", "유효하지 않은 S3 URL입니다."),
+    _S3_FILE_EMPTY(HttpStatus.BAD_REQUEST, "S34004", "업로드할 파일이 없습니다."),
+    _S3_EXTRACT_URL_FAILED(HttpStatus.BAD_REQUEST, "S34005", "URL에서 파일명을 추출할 수 없습니다."),
+
     // 로그인 회원가입 에러
     _LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "USERS4013", "이메일 주소 또는 비밀번호를 다시 확인하세요."),
     _DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "USERS403", "중복된 닉네임입니다."),
