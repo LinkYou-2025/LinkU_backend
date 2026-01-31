@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -44,7 +45,9 @@ public class AwsS3Service {
 
         String fileName = createFileName(multipartFile.getOriginalFilename());
         try (InputStream inputStream = multipartFile.getInputStream()) {
-            byte[] resizedBytes = processImage(inputStream, multipartFile.getContentType());
+            String safeContentType = Optional.ofNullable(multipartFile.getContentType())
+                    .orElse("image/jpeg");
+            byte[] resizedBytes = processImage(inputStream, safeContentType);
 
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(resizedBytes.length);
@@ -67,7 +70,10 @@ public class AwsS3Service {
 
         String fileName = folder + "/" + createFileName(multipartFile.getOriginalFilename());
         try (InputStream inputStream = multipartFile.getInputStream()) {
-            byte[] resizedBytes = processImage(inputStream, multipartFile.getContentType());
+
+            String safeContentType = Optional.ofNullable(multipartFile.getContentType())
+                    .orElse("image/jpeg");
+            byte[] resizedBytes = processImage(inputStream, safeContentType);
 
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentLength(resizedBytes.length);
