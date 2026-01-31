@@ -1,7 +1,6 @@
 package com.umc.linkyou.awsS3;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -151,7 +150,7 @@ public class AwsS3Service {
     public void deleteFile(String fileName) {
         try {
             amazonS3.deleteObject(new DeleteObjectRequest(bucket, fileName));
-        } catch (AmazonServiceException e) {
+        } catch  (AmazonClientException e) {
             throw new GeneralException(ErrorStatus._S3_DELETE_FAILED);
         }
     }
