@@ -4,6 +4,7 @@ import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.oauth.utils.CustomOAuth2User;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;         // ← 추가!
@@ -36,12 +37,22 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String accessToken = jwtTokenProvider.createAccessToken(email);
 
         // path 파라미터
-        String path = request.getParameter("path");
+        HttpSession session = request.getSession(false);
+        String targetPath = null;
+        if (session != null) {
+            targetPath = (String) session.getAttribute("oauth_target_path");
+            session.removeAttribute("oauth_target_path");  // 보안: 사용후 삭제
+        }
 
+// targetPath 있으면 리다이렉트
+        if (targetPath != null) {
+            response.sendRedirect(targetPath);
+            return;
+        }
         // {baseurl}/auth?path=xxx&token=yyy
         String deepLinkUrl = String.format("%s/auth?path=%s&token=%s",
                 deepLinkBaseUrl,
-                URLEncoder.encode(path != null ? path : "", StandardCharsets.UTF_8),
+                URLEncoder.encode(targetPath != null ? targetPath : "", StandardCharsets.UTF_8),  // 👈 targetPath로 변경
                 URLEncoder.encode(accessToken, StandardCharsets.UTF_8)
         );
 
