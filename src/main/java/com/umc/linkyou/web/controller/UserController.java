@@ -145,16 +145,24 @@ public class UserController {
 //        return ApiResponse.onSuccess("즉시 삭제 완료", "10일 경과 INACTIVE 사용자 CASCADE 삭제됨");
 //    }
 
+    @Operation(
+            summary = "소셜 프로필 완성",
+            description = "OAuth 로그인 후 TEMP(소셜로그인) 상태 사용자의 프로필을 완성합니다.<br/>"
+                    + "닉네임, 성별, 직업, 목적, 관심사를 입력받아 status를 ACTIVE로 변경하고 초기 폴더를 생성합니다.<br/>"
+                    + "**Authorization 헤더에 OAUTH에서 받은 JWT 토큰 필요 (status=TEMP 사용자만 가능)**"
+    )
     @PostMapping("/social/complete")
-    public ApiResponse<Users> completeSocialProfile(
+    public ApiResponse<UserResponseDTO.JoinResultDTO> completeSocialProfile(
             @RequestBody @Valid UserRequestDTO.SocialCompleteDTO request,
-            @AuthenticationPrincipal CustomOAuth2User oAuth2User) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        if (oAuth2User == null) {
+        if (userDetails == null) {
             throw new GeneralException(ErrorStatus._UNAUTHORIZED);
         }
 
-        Users user = userService.socialCompleteProfile(oAuth2User.getEmail(), request);
-        return ApiResponse.onSuccess(user);
+        String email = userDetails.getUsername();
+
+        Users user = userService.socialCompleteProfile(email, request);
+        return ApiResponse.onSuccess(UserConverter.toJoinResultDTO(user));
     }
 }
