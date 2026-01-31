@@ -45,8 +45,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             session.removeAttribute("oauth_target_path");
 
             // path를 통한 보안문제
-            if (targetPath != null && !targetPath.startsWith("/") || targetPath.length() > 100) {
-                targetPath = null;
+            if (targetPath != null &&
+                    (!targetPath.startsWith("/") || targetPath.length() > 100)) {
+                targetPath = null;  // 안전하지 않음
             }
         }
 
