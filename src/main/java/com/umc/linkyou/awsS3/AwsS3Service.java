@@ -5,14 +5,14 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -39,7 +39,7 @@ public class AwsS3Service {
      */
     public String uploadFile(MultipartFile multipartFile) {
         if (multipartFile == null || multipartFile.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "업로드할 파일이 없습니다.");
+            throw new GeneralException(ErrorStatus._S3_FILE_EMPTY);
         }
 
         String fileName = createFileName(multipartFile.getOriginalFilename());
@@ -54,7 +54,7 @@ public class AwsS3Service {
                     new ByteArrayInputStream(resizedBytes), metadata));
         } catch (IOException e) {
             log.error("업로드 실패: {}", fileName, e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 업로드 실패");
+            throw new GeneralException(ErrorStatus._S3_UPLOAD_FAILED);
         }
 
         return getFileUrl(fileName);
@@ -62,7 +62,7 @@ public class AwsS3Service {
 
     public String uploadFile(MultipartFile multipartFile, String folder) {
         if (multipartFile == null || multipartFile.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "업로드할 파일이 없습니다.");
+            throw new GeneralException(ErrorStatus._S3_FILE_EMPTY);
         }
 
         String fileName = folder + "/" + createFileName(multipartFile.getOriginalFilename());
@@ -77,7 +77,7 @@ public class AwsS3Service {
                     new ByteArrayInputStream(resizedBytes), metadata));
         } catch (IOException e) {
             log.error("폴더 업로드 실패: {}", fileName, e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 업로드 실패");
+            throw new GeneralException(ErrorStatus._S3_UPLOAD_FAILED);
         }
 
         return getFileUrl(fileName);
@@ -99,7 +99,7 @@ public class AwsS3Service {
         try {
             return fileName.substring(fileName.lastIndexOf("."));
         } catch (StringIndexOutOfBoundsException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 파일 형식: " + fileName);
+            throw new GeneralException(ErrorStatus._S3_INVALID_FILE);
         }
     }
 
@@ -121,7 +121,7 @@ public class AwsS3Service {
         try {
             amazonS3.deleteObject(new DeleteObjectRequest(bucket, fileName));
         } catch (AmazonServiceException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 파일 삭제 실패");
+            throw new GeneralException(ErrorStatus._S3_DELETE_FAILED);
         }
     }
 
@@ -133,7 +133,7 @@ public class AwsS3Service {
             String fileName = extractFileNameFromUrl(fileUrl);
             amazonS3.deleteObject(new DeleteObjectRequest(bucket, fileName));
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 파일 삭제 실패");
+            throw new GeneralException(ErrorStatus._S3_DELETE_FAILED);
         }
     }
 
@@ -153,7 +153,7 @@ public class AwsS3Service {
             // 기존 S3 URL 호환
             return decodedUrl.substring(decodedUrl.indexOf(bucket) + bucket.length() + 1);
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "URL에서 파일명을 추출할 수 없습니다.");
+            throw new GeneralException(ErrorStatus._S3_EXTRACT_URL_FAILED);
         }
     }
 
@@ -162,7 +162,7 @@ public class AwsS3Service {
      */
     private byte[] processImage(InputStream inputStream, String contentType) throws IOException {
         if (!contentType.startsWith("image/")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이미지 파일만 지원합니다.");
+            throw new GeneralException(ErrorStatus._S3_INVALID_IMAGE);
         }
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
