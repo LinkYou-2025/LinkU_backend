@@ -150,7 +150,7 @@ public class UserController {
                     + "닉네임, 성별, 직업, 목적, 관심사를 입력받아 status를 ACTIVE로 변경하고 초기 폴더를 생성합니다.<br/>"
                     + "**Authorization 헤더에 OAUTH에서 받은 JWT 토큰 필요 (status=TEMP 사용자만 가능)**"
     )
-    @PostMapping("/social/complete")
+    @PatchMapping("/social/complete")
     public ApiResponse<UserResponseDTO.JoinResultDTO> completeSocialProfile(
             @RequestBody @Valid UserRequestDTO.SocialCompleteDTO request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
