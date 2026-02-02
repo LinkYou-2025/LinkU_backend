@@ -3,6 +3,7 @@ package com.umc.linkyou.converter;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.enums.Gender;
+import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 
@@ -24,7 +25,7 @@ public class UserConverter {
                 .password(request.getPassword())
                 .gender(gender)
                 .job(job)
-                .status("ACTIVE")
+                .status(UserStatus.ACTIVE)
                 .build();
     }
 

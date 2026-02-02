@@ -2,6 +2,7 @@ package com.umc.linkyou.web.dto;
 
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.enums.Gender;
+import com.umc.linkyou.domain.enums.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -29,7 +30,7 @@ public class UserResponseDTO {
         Long userId;
         String accessToken;
         String refreshToken; // 리프레시 토큰
-        String status;
+        UserStatus status;
         LocalDateTime inactiveDate;
     }
 
@@ -69,7 +70,7 @@ public class UserResponseDTO {
         Long userId;
         String nickname;
         LocalDateTime createdAt;
-        String status;
+        UserStatus status;
         LocalDateTime inactiveDate;
     }
     @Getter
