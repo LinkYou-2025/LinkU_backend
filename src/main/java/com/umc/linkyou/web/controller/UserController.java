@@ -7,7 +7,6 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.oauth.utils.CustomOAuth2User;
 import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.EmailVerificationResponse;

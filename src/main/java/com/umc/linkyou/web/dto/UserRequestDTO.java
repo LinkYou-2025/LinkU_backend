@@ -94,7 +94,7 @@ public class UserRequestDTO {
         @NotBlank(message = "닉네임은 필수입니다")
         private String nickName;
 
-        @Schema(description = "성별 (1=남성, 0=여성)", example = "1")
+        @Schema(description = "성별 (1=남성, 2=여성)", example = "1")
         @NotNull(message = "성별은 필수입니다")
         private Integer gender;
 
@@ -103,9 +103,11 @@ public class UserRequestDTO {
         private Long jobId;
 
         @Schema(description = "사용 목적 리스트", example = "[\"CAREER\", \"STUDY\"]")
+        @NotNull(message = "목적 리스트는 필수입니다")
         private List<String> purposeList;
 
         @Schema(description = "관심사 리스트", example = "[\"IT\", \"DESIGN\"]")
+        @NotNull(message = "관심사 리스트는 필수입니다")
         private List<String> interestList;
     }
 }

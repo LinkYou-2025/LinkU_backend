@@ -111,4 +111,4 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                         .fetchOne()
         );
     }
-    }
+}

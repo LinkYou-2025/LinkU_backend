@@ -542,7 +542,7 @@ public class UserServiceImpl implements UserService {
     public Users withdrawUser(Long userId,UserRequestDTO.DeleteReasonDTO deleteReasonDTO) {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
-        user.setStatus(UserStatus.ACTIVE);
+        user.setStatus(UserStatus.INACTIVE);
         user.setInactiveDate(LocalDateTime.now());
         user.setDeleted_reason(deleteReasonDTO.getReason());
         userRepository.save(user);
