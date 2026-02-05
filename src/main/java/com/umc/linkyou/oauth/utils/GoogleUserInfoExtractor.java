@@ -24,6 +24,6 @@ public class GoogleUserInfoExtractor implements OAuth2UserInfoExtractor {
 
     @Override
     public String getProfileImage(OAuth2User oAuth2User) {
-        return oAuth2User.getAttribute("picture");  // https://lh3.googleusercontent.com/...
+        return oAuth2User.getAttribute("picture");
     }
 }
