@@ -85,6 +85,9 @@ public class SecurityConfig {
                         .successHandler(oAuth2SuccessHandler)
 //                        .defaultSuccessUrl("/login/success", true)
                 )
+                .requiresChannel(channel -> channel
+                        .anyRequest().requiresSecure()
+                )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
                         UsernamePasswordAuthenticationFilter.class);
 
