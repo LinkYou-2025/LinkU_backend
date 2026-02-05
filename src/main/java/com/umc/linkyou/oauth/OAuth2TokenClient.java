@@ -66,10 +66,6 @@ public class OAuth2TokenClient implements OAuth2AccessTokenResponseClient<OAuth2
         String redirectUri = authorizationResponse.getRedirectUri();
 
 
-        // 1. 요청 직전 데이터 확인 로그 (이미 EXIST 확인하셨다면 이 부분은 검증용)
-        log.info("Kakao Token Request - ClientID: {}, Secret: {}, RedirectURI: {}",
-                clientId, (clientSecret != null ? "EXIST" : "NULL"), redirectUri);
-
         MultiValueMap<String, String> formParameters = new LinkedMultiValueMap<>();
         formParameters.add(GRANT_TYPE, AUTHORIZATION_CODE);
         formParameters.add(CLIENT_ID, clientId);
