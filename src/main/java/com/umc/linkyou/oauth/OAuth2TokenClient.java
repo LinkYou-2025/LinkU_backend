@@ -2,6 +2,7 @@ package com.umc.linkyou.oauth;
 
 import com.umc.linkyou.domain.enums.Provider;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -20,6 +21,7 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URI;
 import java.util.*;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class OAuth2TokenClient implements OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> {
@@ -63,6 +65,11 @@ public class OAuth2TokenClient implements OAuth2AccessTokenResponseClient<OAuth2
         String code = authorizationResponse.getCode();
         String redirectUri = authorizationResponse.getRedirectUri();
 
+
+        // 1. 요청 직전 데이터 확인 로그 (이미 EXIST 확인하셨다면 이 부분은 검증용)
+        log.info("Kakao Token Request - ClientID: {}, Secret: {}, RedirectURI: {}",
+                clientId, (clientSecret != null ? "EXIST" : "NULL"), redirectUri);
+
         MultiValueMap<String, String> formParameters = new LinkedMultiValueMap<>();
         formParameters.add(GRANT_TYPE, AUTHORIZATION_CODE);
         formParameters.add(CLIENT_ID, clientId);
@@ -81,15 +88,25 @@ public class OAuth2TokenClient implements OAuth2AccessTokenResponseClient<OAuth2
                 new RequestEntity<>(formParameters, headers,
                         org.springframework.http.HttpMethod.POST, URI.create(tokenUri));
 
-        ResponseEntity<Map<String, Object>> responseEntity =
-                restTemplate.exchange(requestEntity, new ParameterizedTypeReference<>() {});
+        // 2. try-catch로 감싸서 카카오의 에러 메시지를 가로챕니다.
+        try {
+            ResponseEntity<Map<String, Object>> responseEntity =
+                    restTemplate.exchange(requestEntity, new ParameterizedTypeReference<>() {});
 
-        Map<String, Object> body = responseEntity.getBody();
-        if (body == null || !body.containsKey(ACCESS_TOKEN)) {
-            throw new IllegalStateException("Invalid Kakao token response: missing access_token");
+            Map<String, Object> body = responseEntity.getBody();
+            if (body == null || !body.containsKey(ACCESS_TOKEN)) {
+                throw new IllegalStateException("Invalid Kakao token response: missing access_token");
+            }
+            return convertToAccessTokenResponse(body);
+
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            // 카카오 서버가 400, 401 에러를 던지면 이 로그가 찍힙니다.
+            log.error("##### KAKAO API ERROR RESPONSE #####");
+            log.error("Status Code: {}", e.getStatusCode());
+            log.error("Response Body: {}", e.getResponseBodyAsString()); // 여기에 KOE010 같은 코드가 나옵니다.
+            log.error("####################################");
+            throw e;
         }
-
-        return convertToAccessTokenResponse(body);
     }
 
     private OAuth2AccessTokenResponse convertToAccessTokenResponse(Map<String, Object> body) {
