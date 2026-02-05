@@ -48,90 +48,104 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
     @PersistenceContext
     private EntityManager entityManager;
 
+    //소셜 api에서 받은 OAuth 객체
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+        // 어느 소셜에서 보내는 지 확인
+        // Spring Security에서 파싱한다.
+        // 프론트가 OAuthConroller로 보낸다 -> 리다이렉트: /oauth2/authorization/{registrationId} → registrationId="kakao"
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         Provider provider = getProvider(registrationId);
 
-        OAuth2User oAuth2User = delegate.loadUser(userRequest);
-        OAuth2UserInfoExtractor extractor = getExtractor(provider);
+        // 소셜 API 요청 및 JSON Parsing
+        OAuth2User oAuth2User = delegate.loadUser(userRequest); //리다이렉트 요청이 들어오면 그걸 받아서 소셜 API호출
+        OAuth2UserInfoExtractor extractor = getExtractor(provider); //어떤 소셜인지에 따라 json파서 선택
 
+        //parsing된 값들
         String externalId = extractor.getExternalId(oAuth2User);
         String email = extractor.getEmail(oAuth2User);
         String name = extractor.getName(oAuth2User);
+        String profileImage = extractor.getProfileImage(oAuth2User);
 
-        boolean needsEmailUpdate = false;
+        // 이메일 검증
         if (email == null || email.isBlank()) {
-            if (provider == Provider.KAKAO) {
-                email = generateTemporaryEmail(provider, externalId);
-                needsEmailUpdate = true;
-            } else {
-
-                throw new GeneralException(ErrorStatus._SOCIAL_EMAIL_REQUIRED);
-            }
+            throw new GeneralException(ErrorStatus._SOCIAL_EMAIL_REQUIRED);  // 모든 소셜에서 이메일 필수!
         }
+        // 3가지 케이스에 따라 다르게 DB 접근 및 저장
+        // 케이스1) 소셜로그인한적이 있다. 새로 User, AuthAccount객체를 생성하지 않는다.
+        // 케이스2) JWT일반로그인이나 다른 소셜로그인을 한적 있지만 해당 소셜로그인을 한적 없다. 기존 User에 AuthAccount 객체를 생성하여 연결한다.
+        // 케이스3) JWT일반 로그인도 소셜로그인도 한 적이 없다. User, AuthAccount객체 모두 생성한다.
+        Users user = findOrCreateUser(email, name, provider, externalId, userRequest, profileImage);
+        boolean isNewUser = user.getStatus() == UserStatus.TEMP;
 
-        Users user;
-        AuthAccount authAccount;
-        boolean isNewUser = false;
-
-        Optional<AuthAccount> authAccountOpt =
-                authAccountRepository.findByProviderAndExternalId(provider, externalId);
-
-        if (authAccountOpt.isPresent()) {
-            authAccount = authAccountOpt.get();
-            user = authAccount.getUser();
-
-            // 기존 사용자 닉네임 업데이트 (중복 체크)
-            if (name != null && !name.equals(user.getNickName())) {
-                if (!usersRepository.existsByNickName(name)) {
-                    user.setNickName(name);
-                    log.info("기존 사용자 닉네임 업데이트: id={}, old={}, new={}",
-                            user.getId(), user.getNickName(), name);
-                } else {
-                    log.warn("닉네임 업데이트 스킵 (중복): userId={}, requested={}",
-                            user.getId(), name);
-                }
-            }
-
-            authAccount.updateToken(userRequest.getAccessToken().getTokenValue());
-        } else {
-            // 1. 이메일로 기존 사용자 조회
-            Optional<Users> existingUserOpt = usersRepository.findByEmail(email);
-
-            if (existingUserOpt.isPresent()) {
-                // 기존 사용자에 AuthAccount만 연결 (새 사용자 아님)
-                user = existingUserOpt.get();
-                log.info("기존 사용자에 소셜 계정 연결: userId={}, provider={}, email={}",
-                        user.getId(), provider, email);
-                createAuthAccount(user, provider, externalId, userRequest);
-                isNewUser = false;
-            } else {
-                // 진짜 새 사용자 생성
-                user = createNewUser(email, name);
-                isNewUser = true;
-                createAuthAccount(user, provider, externalId, userRequest);
-            }
-        }
-        boolean needsTermsAgreement = isNewUser;
-
-        Map<String, Object> attributesWithFlag = new HashMap<>(oAuth2User.getAttributes());
-        if (needsEmailUpdate) {
-            attributesWithFlag.put("needsEmailUpdate", true);
-            attributesWithFlag.put("temporaryEmail", email);
-        }
-        if (needsTermsAgreement) {
-            attributesWithFlag.put("needsTermsAgreement", true);
-        }
-
-        return new CustomOAuth2User(
-                Collections.singletonList(new SimpleGrantedAuthority(user.getRole().name())),
-                attributesWithFlag,
-                "email",
-                user.getEmail()
-        );
+        //OAuth 객체 반환
+        return createCustomOAuth2User(user, oAuth2User, isNewUser);
     }
 
+
+    /**
+     * 모든 사용자 처리 케이스를 한 메서드로!
+     */
+    private Users findOrCreateUser(String email, String name, Provider provider,
+                                   String externalId, OAuth2UserRequest userRequest, String profileImage) {
+        // 케이스 1: 이미 이 소셜 계정으로 로그인한 적 있음 (재로그인)
+        Optional<AuthAccount> authAccountOpt = authAccountRepository.findByProviderAndExternalId(provider, externalId);
+        if (authAccountOpt.isPresent()) {
+            return updateExistingUser(authAccountOpt.get(), name, profileImage, userRequest);
+        }
+
+        // 케이스 2: 이메일은 있지만 다른 소셜 계정 (소셜 연결)
+        Optional<Users> existingUserOpt = usersRepository.findByEmail(email);
+        if (existingUserOpt.isPresent()) {
+            Users user = existingUserOpt.get();
+            log.info("기존 사용자에 소셜 계정 연결: userId={}, provider={}, email={}",
+                    user.getId(), provider, email);
+            createAuthAccount(user, provider, externalId, userRequest, profileImage);
+            return user;
+        }
+
+        // 케이스 3: 완전 새로운 사용자
+        log.info("새 소셜 사용자 생성: provider={}, email={}", provider, email);
+        return createNewUserWithAccount(email, name, provider, externalId, userRequest, profileImage);
+    }
+    /** 1. 재로그인: 닉네임/프로필/토큰 업데이트 */
+    private Users updateExistingUser(AuthAccount authAccount, String name, String profileImage, OAuth2UserRequest userRequest) {
+        Users user = authAccount.getUser();
+
+        // 닉네임 업데이트 (Users 공통, 중복 체크)
+        if (name != null && !name.equals(user.getNickName()) && !usersRepository.existsByNickName(name)) {
+            user.setNickName(name);
+            log.info("기존 사용자 닉네임 업데이트: id={}, old={}, new={}",
+                    user.getId(), user.getNickName(), name);
+        }
+
+        // 프로필 이미지 업데이트 (AuthAccount 소셜별)
+        if (profileImage != null && !profileImage.equals(authAccount.getProfileImage())) {
+            authAccount.updateProfileImage(profileImage);
+            log.info("소셜 프로필 이미지 업데이트: provider={}, userId={}",
+                    authAccount.getProvider(), user.getId(), profileImage);
+        }
+
+        authAccount.updateToken(userRequest.getAccessToken().getTokenValue());
+        return user;
+    }
+    /** 2. 이메일이 있지만 다른 소셜로그인 계정 + 다른 곳에서도 쓰는 메서드*/
+    private AuthAccount createAuthAccount(Users user, Provider provider, String externalId, OAuth2UserRequest userRequest, String profileImage) {
+        try {
+            return authAccountRepository.save(
+                    AuthAccount.builder()
+                            .user(user)
+                            .provider(provider)
+                            .externalId(externalId)
+                            .profileImage(profileImage)
+                            .socialToken(userRequest.getAccessToken().getTokenValue())
+                            .build()
+            );
+        } catch (Exception e) {
+            log.error("AuthAccount 저장 실패: user.id={}, provider={}", user.getId(), provider, e);
+            throw new GeneralException(ErrorStatus._AUTH_ACCOUNT_SAVE_FAILED);
+        }
+    }
     private Users createNewUser(String email, String name) {
         try {
             String nickname;
@@ -164,7 +178,7 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
                     entityManager.flush();
                     return savedUser;
                 } catch (DataIntegrityViolationException e) {
-                    log.warn("닉네임 중복 (시도 {}/3): {}", i+1, finalNickname);
+                    log.warn("닉네임 중복 (시도 {}/3): {}", i + 1, finalNickname);
                     if (i == 2) {
                         log.error("닉네임 생성 완전 실패: email={}, 모든 후보 중복", email);
                         throw new GeneralException(ErrorStatus._DUPLICATE_NICKNAME);
@@ -178,27 +192,33 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
         }
     }
 
-    private AuthAccount createAuthAccount(Users user, Provider provider, String externalId, OAuth2UserRequest userRequest) {
-        try {
-            return authAccountRepository.save(
-                    AuthAccount.builder()
-                            .user(user)
-                            .provider(provider)
-                            .externalId(externalId)
-                            .socialToken(userRequest.getAccessToken().getTokenValue())
-                            .build()
-            );
-        } catch (Exception e) {
-            log.error("AuthAccount 저장 실패: user.id={}, provider={}", user.getId(), provider, e);
-            throw new GeneralException(ErrorStatus._AUTH_ACCOUNT_SAVE_FAILED);
-        }
+    /** 3.새 사용자 + AuthAccount 일괄 생성*/
+    private Users createNewUserWithAccount(String email, String name, Provider provider,
+                                           String externalId, OAuth2UserRequest userRequest, String profileImage) {
+        Users user = createNewUser(email, name);  // 기존 메서드 재사용
+        createAuthAccount(user, provider, externalId, userRequest, profileImage);
+        return user;
     }
+
+    /**Spring Security에 저잫할 Oauth 객체 생성*/
+    private CustomOAuth2User createCustomOAuth2User(Users user, OAuth2User oAuth2User, boolean isNewUser) {
+        Map<String, Object> attributes = new HashMap<>(oAuth2User.getAttributes());
+        if (isNewUser) {
+            attributes.put("needsTermsAgreement", true);
+        }
+        return new CustomOAuth2User(
+                Collections.singletonList(new SimpleGrantedAuthority(user.getRole().name())),
+                attributes, "email", user.getEmail()
+        );
+    }
+
+
 
     private Provider getProvider(String registrationId) {
         return switch (registrationId.toLowerCase()) {
             case "google" -> Provider.GOOGLE;
-            case "kakao"  -> Provider.KAKAO;
-            case "naver"  -> Provider.NAVER;
+            case "kakao" -> Provider.KAKAO;
+            case "naver" -> Provider.NAVER;
 
             default -> throw new GeneralException(ErrorStatus._SOCIAL_UNSUPPORTED_PROVIDER);
         };
@@ -207,17 +227,9 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
     private OAuth2UserInfoExtractor getExtractor(Provider provider) {
         return switch (provider) {
             case GOOGLE -> googleUserInfoExtractor;
-            case KAKAO  -> kakaoUserInfoExtractor;
-            case NAVER  -> naverUserInfoExtractor;
+            case KAKAO -> kakaoUserInfoExtractor;
+            case NAVER -> naverUserInfoExtractor;
             default -> throw new GeneralException(ErrorStatus._SOCIAL_UNSUPPORTED_PROVIDER);
         };
-    }
-
-
-    private String generateTemporaryEmail(Provider provider, String externalId) {
-        return String.format("%s_%s@%s.linkyou",
-                provider.name().toLowerCase(),
-                externalId,
-                provider.name().toLowerCase());
     }
 }

@@ -31,4 +31,12 @@ public class KakaoUserInfoExtractor implements OAuth2UserInfoExtractor {
         }
         return null;
     }
+    @Override
+    public String getProfileImage(OAuth2User oAuth2User) {
+        Map<String, Object> properties = oAuth2User.getAttribute("properties");
+        if (properties != null) {
+            return (String) properties.get("profile_image");
+        }
+        return null;
+    }
 }

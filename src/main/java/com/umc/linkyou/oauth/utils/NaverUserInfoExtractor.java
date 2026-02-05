@@ -38,4 +38,13 @@ public class NaverUserInfoExtractor implements OAuth2UserInfoExtractor {
         }
         return null;
     }
+
+    @Override
+    public String getProfileImage(OAuth2User oAuth2User) {
+        Map<String, Object> response = oAuth2User.getAttribute("response");
+        if (response != null) {
+            return (String) response.get("profile_image");  // http://static.naver.net/...
+        }
+        return null;
+    }
 }

@@ -9,4 +9,5 @@ public interface OAuth2UserInfoExtractor {
     String getEmail(OAuth2User oAuth2User);
 
     String getName(OAuth2User oAuth2User);
+    String getProfileImage(OAuth2User oAuth2User);
 }
