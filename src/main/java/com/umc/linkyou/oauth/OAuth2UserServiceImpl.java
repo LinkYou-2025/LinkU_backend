@@ -59,16 +59,10 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
         String externalId = extractor.getExternalId(oAuth2User);
         String email = extractor.getEmail(oAuth2User);
         String name = extractor.getName(oAuth2User);
+        String profileImage = extractor.getProfileImage(oAuth2User);
 
-        boolean needsEmailUpdate = false;
         if (email == null || email.isBlank()) {
-            if (provider == Provider.KAKAO) {
-                email = generateTemporaryEmail(provider, externalId);
-                needsEmailUpdate = true;
-            } else {
-
-                throw new GeneralException(ErrorStatus._SOCIAL_EMAIL_REQUIRED);
-            }
+            throw new GeneralException(ErrorStatus._SOCIAL_EMAIL_REQUIRED);  // 모든 소셜에서 이메일 필수!
         }
 
         Users user;
@@ -93,6 +87,11 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
                             user.getId(), name);
                 }
             }
+            if (profileImage != null && !profileImage.equals(authAccount.getProfileImage())) {
+                authAccount.updateProfileImage(profileImage);
+                log.info("소셜 프로필 이미지 업데이트: provider={}, userId={}, image={}",
+                        provider, user.getId(), profileImage);
+            }
 
             authAccount.updateToken(userRequest.getAccessToken().getTokenValue());
         } else {
@@ -104,22 +103,18 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
                 user = existingUserOpt.get();
                 log.info("기존 사용자에 소셜 계정 연결: userId={}, provider={}, email={}",
                         user.getId(), provider, email);
-                createAuthAccount(user, provider, externalId, userRequest);
+                createAuthAccount(user, provider, externalId, userRequest, profileImage);
                 isNewUser = false;
             } else {
                 // 진짜 새 사용자 생성
                 user = createNewUser(email, name);
                 isNewUser = true;
-                createAuthAccount(user, provider, externalId, userRequest);
+                createAuthAccount(user, provider, externalId, userRequest, profileImage);
             }
         }
         boolean needsTermsAgreement = isNewUser;
 
         Map<String, Object> attributesWithFlag = new HashMap<>(oAuth2User.getAttributes());
-        if (needsEmailUpdate) {
-            attributesWithFlag.put("needsEmailUpdate", true);
-            attributesWithFlag.put("temporaryEmail", email);
-        }
         if (needsTermsAgreement) {
             attributesWithFlag.put("needsTermsAgreement", true);
         }
@@ -178,13 +173,14 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
         }
     }
 
-    private AuthAccount createAuthAccount(Users user, Provider provider, String externalId, OAuth2UserRequest userRequest) {
+    private AuthAccount createAuthAccount(Users user, Provider provider, String externalId, OAuth2UserRequest userRequest, String profileImage) {
         try {
             return authAccountRepository.save(
                     AuthAccount.builder()
                             .user(user)
                             .provider(provider)
                             .externalId(externalId)
+                            .profileImage(profileImage)
                             .socialToken(userRequest.getAccessToken().getTokenValue())
                             .build()
             );
@@ -213,11 +209,4 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
         };
     }
 
-
-    private String generateTemporaryEmail(Provider provider, String externalId) {
-        return String.format("%s_%s@%s.linkyou",
-                provider.name().toLowerCase(),
-                externalId,
-                provider.name().toLowerCase());
-    }
 }
