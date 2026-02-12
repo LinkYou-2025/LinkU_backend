@@ -164,4 +164,20 @@ public class UserController {
         Users user = userService.socialCompleteProfile(email, request);
         return ApiResponse.onSuccess(UserConverter.toJoinResultDTO(user));
     }
+
+    // 전체 약관 한번에 동의
+    @Operation(
+            summary = "약관 동의",
+            description = "TERMS_OF_USE, PRIVACY_POLICY, MARKETING를 enum으로 입력받습니다."
+    )
+    @PostMapping("/terms/agree")
+    public ApiResponse<UserResponseDTO.TermsStatusDTO> termsAgreeBatch(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody @Valid UserRequestDTO.TermsAgreeDTO request
+    ){
+        UserResponseDTO.TermsStatusDTO result = userService.termsAgreeBatch(request,userDetails);
+        return ApiResponse.onSuccess(result);
+    }
+
+
 }

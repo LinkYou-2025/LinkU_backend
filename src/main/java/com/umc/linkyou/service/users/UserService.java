@@ -1,9 +1,11 @@
 package com.umc.linkyou.service.users;
 
+import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.web.dto.EmailVerificationResponse;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
+import jakarta.validation.Valid;
 
 public interface UserService {
 
@@ -41,4 +43,6 @@ public interface UserService {
     UserResponseDTO.TokenPair reissueRefreshToken(String refreshToken);
 
     void testImmediateDelete(Long userId);
+
+    UserResponseDTO.TermsStatusDTO termsAgreeBatch(UserRequestDTO.@Valid TermsAgreeDTO request, CustomUserDetails userDetails);
 }

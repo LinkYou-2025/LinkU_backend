@@ -3,9 +3,12 @@ package com.umc.linkyou.service.users;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
+import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
+import com.umc.linkyou.converter.TermsConverter;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.EmailVerification;
+import com.umc.linkyou.domain.TermsAgreement;
 import com.umc.linkyou.domain.UserRefreshToken;
 import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.UserStatus;
@@ -29,6 +32,7 @@ import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.JobRepository;
 import com.umc.linkyou.repository.classification.PurposeRepository;
 import com.umc.linkyou.service.EmailService;
+import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.EmailVerificationResponse;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
@@ -36,6 +40,7 @@ import io.jsonwebtoken.Claims;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,6 +92,8 @@ public class UserServiceImpl implements UserService {
 
     private final UserRefreshTokenRepository userRefreshTokenRepository;
 
+    private final UsersUtils usersUtils;
+    private final TermsAgreementRepository termsAgreementRepository;
 
     @Value("${jwt.token.expiration.refresh}")
     private long refreshTtlMs;
@@ -641,6 +648,19 @@ public class UserServiceImpl implements UserService {
         });
     }
 
+    //전체 동의 여부 반환
+    @Transactional
+    public UserResponseDTO.TermsStatusDTO termsAgreeBatch(UserRequestDTO.@Valid TermsAgreeDTO request, CustomUserDetails userDetails){
+        //1. token이 올바른지, 사용자가 존재하는지, 사용자가 있다면 activated 상태인지
+        Users user = usersUtils.validateUser(userDetails, userRepository);
+        // DTO → Entity 변환 + 저장
+        List<TermsAgreement> agreements = TermsConverter.toTermsAgreements(user, request);
+        termsAgreementRepository.saveAll(agreements);
+
+        // Entity → Response 변환
+        List<TermsAgreement> saved = termsAgreementRepository.findByUserId(user.getId());
+        return TermsConverter.toTermsStatusDTO(user.getId(), saved);
+    }
 
 }
 

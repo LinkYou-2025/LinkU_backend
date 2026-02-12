@@ -15,4 +15,5 @@ public interface UserRepositoryCustom {
     Optional<Users> findByEmailAndStatus(String email, UserStatus status);
     List<String> findAllPurposeNamesByUserId(Long userId);
     List<String> findAllInterestNamesByUserId(Long userId);
+    Optional<Users> findNotInactiveUserById(Long userId);
 }
