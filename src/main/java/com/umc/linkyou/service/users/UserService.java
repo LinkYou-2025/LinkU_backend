@@ -43,6 +43,4 @@ public interface UserService {
     UserResponseDTO.TokenPair reissueRefreshToken(String refreshToken);
 
     void testImmediateDelete(Long userId);
-
-    UserResponseDTO.TermsStatusDTO termsAgreeBatch(UserRequestDTO.@Valid TermsAgreeDTO request, CustomUserDetails userDetails);
 }

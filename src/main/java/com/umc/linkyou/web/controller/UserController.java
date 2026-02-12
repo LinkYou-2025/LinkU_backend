@@ -7,6 +7,7 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.service.users.TermsAgreementService;
 import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.EmailVerificationResponse;
@@ -29,6 +30,7 @@ public class UserController {
 
     private final UserService userService;
     private final UsersUtils usersUtils;
+    private final TermsAgreementService termsAgreementService;
 
     @Operation(
             summary = "회원 가입",
@@ -175,7 +177,7 @@ public class UserController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody @Valid UserRequestDTO.TermsAgreeDTO request
     ){
-        UserResponseDTO.TermsStatusDTO result = userService.termsAgreeBatch(request,userDetails);
+        UserResponseDTO.TermsStatusDTO result = termsAgreementService.termsAgreeBatch(request,userDetails);
         return ApiResponse.onSuccess(result);
     }
 
