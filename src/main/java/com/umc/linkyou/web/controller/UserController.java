@@ -180,6 +180,21 @@ public class UserController {
         UserResponseDTO.TermsStatusDTO result = termsAgreementService.termsAgreeBatch(request,userDetails);
         return ApiResponse.onSuccess(result);
     }
+    @PatchMapping("/terms/agree")
+    @Operation(summary = "약관 개별 변경")
+    public ApiResponse<UserResponseDTO.TermsStatusDTO> updateTermsAgree(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody @Valid UserRequestDTO.SingleTermUpdateDTO request) {
+        return ApiResponse.onSuccess(
+                termsAgreementService.updateTermsAgree(userDetails, request.getTermsType(), request.getIsAgreed())
+        );
+    }
 
+    @GetMapping("/terms/status")
+    @Operation(summary = "약관 상태 조회")
+    public ApiResponse<UserResponseDTO.TermsStatusDTO> getTermsStatus(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ApiResponse.onSuccess(termsAgreementService.getTermsStatus(userDetails));
+    }
 
 }

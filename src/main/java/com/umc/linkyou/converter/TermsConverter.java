@@ -8,6 +8,7 @@ import com.umc.linkyou.web.dto.UserResponseDTO;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -59,5 +60,20 @@ public class TermsConverter {
             case MARKETING -> false;
         };
     }
-
+    public static TermsAgreement toSingleTermAgreement(Users user, String termsTypeStr, boolean isAgreed) {
+        TermsType termsType = TermsType.valueOf(termsTypeStr);
+        return TermsAgreement.builder()
+                .user(user)
+                .termsType(termsType)
+                .isRequired(isRequiredTerms(termsType))
+                .termsVersion("v1.0")  // 기본 버전
+                .agreedAt(LocalDateTime.now())
+                .isAgreed(isAgreed)
+                .build();
+    }
+    //기존 레코드 업데이트
+    public static void updateAgreement(TermsAgreement agreement, boolean isAgreed) {
+        agreement.setIsAgreed(isAgreed);
+        agreement.setAgreedAt(LocalDateTime.now());
+    }
 }
