@@ -23,6 +23,7 @@ public class TermsAgreement extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private Users user;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "terms_type", length = 50, nullable = false)
     private TermsType termsType; // "TERMS_OF_USE", "PRIVACY_POLICY", "MARKETING"
 
