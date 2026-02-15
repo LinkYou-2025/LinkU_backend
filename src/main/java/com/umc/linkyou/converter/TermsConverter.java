@@ -9,6 +9,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -20,7 +21,9 @@ public class TermsConverter {
         return agreements.stream() //순서대로 계산
                 .collect(Collectors.toMap(
                         agreement -> agreement.getTermsType().name(), //Key: "TERMS_OF_USE"
-                        TermsAgreement::getIsAgreed  // Value: true/false
+                        TermsAgreement::getIsAgreed,  // Value: true/false
+                        (existing, replacement)->replacement, //이미 같은 TermsType으로 row가 있으면 최신값으로 변경
+                        LinkedHashMap::new
                 ));  // result: {"TERMS_OF_USE":true, "MARKETING":false}
     }
     //TermsStatus response 전체 빌드
