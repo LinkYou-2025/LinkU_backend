@@ -2,7 +2,7 @@ package com.umc.linkyou.service.users;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
+import com.umc.linkyou.apiPayload.exception.handler.UserHandler;;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.EmailVerification;
@@ -56,9 +56,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-    @PersistenceContext
-    private EntityManager entityManager;
-    private static final String AUTH_CODE_PREFIX = "AuthCode ";
 
     private final UserRepository userRepository;
 
@@ -86,7 +83,6 @@ public class UserServiceImpl implements UserService {
     private final UsersCategoryColorRepository usersCategoryColorRepository;
 
     private final UserRefreshTokenRepository userRefreshTokenRepository;
-
 
     @Value("${jwt.token.expiration.refresh}")
     private long refreshTtlMs;
@@ -640,6 +636,7 @@ public class UserServiceImpl implements UserService {
             log.warn("🧪 테스트삭제 완료: userId={}", userId);
         });
     }
+
 
 
 }

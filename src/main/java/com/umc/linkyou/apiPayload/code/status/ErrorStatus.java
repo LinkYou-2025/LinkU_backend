@@ -35,12 +35,12 @@ public enum ErrorStatus implements BaseErrorCode {
     _DUPLICATE_JOIN_REQUEST(HttpStatus.CONFLICT, "USERS403", "중복된 이메일입니다."),
     _VERIFICATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS404", "인증 코드 검증 실패"),
     _USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USERS404", "사용자를 찾을 수 없습니다."),
+    _USER_INACTIVE(HttpStatus.NOT_FOUND, "USERS4042", "사용자가 INACTIVE 임시 회원탈퇴 상태입니다."),
     _PURPOSE_NOT_PROVIDED(HttpStatus.NOT_FOUND, "USERS404", "목적을 선택해야합니다."),
     _INTEREST_NOT_PROVIDED(HttpStatus.NOT_FOUND, "USERS404", "관심 분야를 선택해야합니다."),
     _NO_SUCH_ALGORITHM(HttpStatus.INTERNAL_SERVER_ERROR, "USERS500", "인증 코드 생성 실패"),
     _SEND_MAIL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS500", "인증 코드 전송 실패"),
     //소셜로그인 관련
-    // 소셜로그인 관련 추가/수정
     _AUTH_ACCOUNT_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS5001", "소셜 계정 연결에 실패했습니다."),
     _USER_SOCIAL_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS5002", "소셜 사용자 생성에 실패했습니다."),
     _SOCIAL_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "USERS4003", "소셜 로그인에 이메일이 필요합니다."),

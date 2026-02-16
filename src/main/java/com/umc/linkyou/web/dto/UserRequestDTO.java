@@ -110,4 +110,27 @@ public class UserRequestDTO {
         @NotNull(message = "관심사 리스트는 필수입니다")
         private List<String> interestList;
     }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TermsAgreeDTO {
+        @Schema(example = "[\"TERMS_OF_USE\", \"PRIVACY_POLICY\", \"MARKETING\"]")
+        @NotNull(message = "약관 동의 목록은 필수입니다")
+        private List<String> termsTypes;
+
+        @Schema(example = "v1.0")
+        @NotNull(message = "약관 버전은 필수입니다")
+        private String termsVersion;
+    }
+    @Getter @Setter
+    public static class SingleTermUpdateDTO {
+        @Schema(example = "MARKETING")
+        @NotNull
+        private String termsType;
+
+        @Schema(example = "true")
+        private Boolean isAgreed;
+    }
 }

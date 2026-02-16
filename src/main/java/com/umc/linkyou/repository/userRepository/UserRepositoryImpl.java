@@ -111,4 +111,15 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                         .fetchOne()
         );
     }
+    @Override
+    public Optional<Users> findNotInactiveUserById(Long userId){
+        return Optional.ofNullable(
+                queryFactory.selectFrom(users)
+                        .where(
+                                users.id.eq(userId)
+                                        .and(users.status.ne(UserStatus.INACTIVE))
+                        )
+                        .fetchOne() //1개값 기대
+        );
+    }
 }

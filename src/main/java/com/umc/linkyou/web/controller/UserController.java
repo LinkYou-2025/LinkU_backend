@@ -7,6 +7,7 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.service.users.TermsAgreementService;
 import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.EmailVerificationResponse;
@@ -29,6 +30,7 @@ public class UserController {
 
     private final UserService userService;
     private final UsersUtils usersUtils;
+    private final TermsAgreementService termsAgreementService;
 
     @Operation(
             summary = "회원 가입",
@@ -164,4 +166,35 @@ public class UserController {
         Users user = userService.socialCompleteProfile(email, request);
         return ApiResponse.onSuccess(UserConverter.toJoinResultDTO(user));
     }
+
+    // 전체 약관 한번에 동의
+    @Operation(
+            summary = "약관 동의",
+            description = "TERMS_OF_USE, PRIVACY_POLICY, MARKETING를 enum으로 입력받습니다."
+    )
+    @PostMapping("/terms/agree")
+    public ApiResponse<UserResponseDTO.TermsStatusDTO> termsAgreeBatch(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody @Valid UserRequestDTO.TermsAgreeDTO request
+    ){
+        UserResponseDTO.TermsStatusDTO result = termsAgreementService.termsAgreeBatch(request,userDetails);
+        return ApiResponse.onSuccess(result);
+    }
+    @PatchMapping("/terms/agree")
+    @Operation(summary = "약관 개별 변경")
+    public ApiResponse<UserResponseDTO.TermsStatusDTO> updateTermsAgree(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody @Valid UserRequestDTO.SingleTermUpdateDTO request) {
+        return ApiResponse.onSuccess(
+                termsAgreementService.updateTermsAgree(userDetails, request.getTermsType(), request.getIsAgreed())
+        );
+    }
+
+    @GetMapping("/terms/status")
+    @Operation(summary = "약관 상태 조회")
+    public ApiResponse<UserResponseDTO.TermsStatusDTO> getTermsStatus(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ApiResponse.onSuccess(termsAgreementService.getTermsStatus(userDetails));
+    }
+
 }
