@@ -34,7 +34,7 @@ public class TermsConverter {
                 .filter(TermsAgreement::getIsRequired)
                 .toList();
         boolean allRequiredAgreed = !requiredList.isEmpty()
-                && requiredList.stream().allMatch(TermsAgreement::getIsRequired);
+                && requiredList.stream().allMatch(TermsAgreement::getIsAgreed);
         return UserResponseDTO.TermsStatusDTO.builder()
                 .userId(userId)
                 .termsStatus(termsStatus)
@@ -46,7 +46,7 @@ public class TermsConverter {
     public static List<TermsAgreement> toTermsAgreements(Users user, UserRequestDTO.TermsAgreeDTO request) {
         return request.getTermsTypes().stream()
                 .map(termsTypeStr -> {
-                    TermsType termsType = TermsType.valueOf(termsTypeStr);
+                    TermsType termsType = TermsType.fromString(termsTypeStr);
                     return TermsAgreement.builder()
                             .user(user)
                             .termsType(termsType)
@@ -67,7 +67,7 @@ public class TermsConverter {
         };
     }
     public static TermsAgreement toSingleTermAgreement(Users user, String termsTypeStr, boolean isAgreed) {
-        TermsType termsType = TermsType.valueOf(termsTypeStr);
+        TermsType termsType = TermsType.fromString(termsTypeStr);
         return TermsAgreement.builder()
                 .user(user)
                 .termsType(termsType)

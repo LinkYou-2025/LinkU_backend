@@ -29,6 +29,7 @@ public class TermsAgreement extends BaseEntity {
     private TermsType termsType; // "TERMS_OF_USE", "PRIVACY_POLICY", "MARKETING"
 
     @Column(name = "is_required", nullable = false)
+    @Builder.Default
     private Boolean isRequired = false; // true=필수, false=선택
 
     @Column(name = "terms_version", length = 10, nullable = false)
@@ -39,5 +40,6 @@ public class TermsAgreement extends BaseEntity {
 
     @Column(name = "is_agreed", nullable = false)
     @NotNull
+    @Builder.Default
     private Boolean isAgreed = true;
 }
