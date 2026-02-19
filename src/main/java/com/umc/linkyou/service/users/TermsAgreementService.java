@@ -10,7 +10,7 @@ import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -65,6 +65,7 @@ public class TermsAgreementService {
         return TermsConverter.toTermsStatusDTO(user.getId(), saved);
     }
 
+    @Transactional
     public UserResponseDTO.TermsStatusDTO updateTermsAgree(CustomUserDetails userDetails, @NotNull String termsTypeStr, Boolean isAgreed) {
         Users user = usersUtils.validateUser(userDetails, userRepository);
         TermsType termsType = TermsType.valueOf(termsTypeStr);
@@ -87,6 +88,7 @@ public class TermsAgreementService {
     }
 
     // GET /terms/status - 약관 상태 조회
+    @Transactional(readOnly = true)
     public UserResponseDTO.TermsStatusDTO getTermsStatus(CustomUserDetails userDetails) {
         Users user = usersUtils.validateUser(userDetails, userRepository);
 
