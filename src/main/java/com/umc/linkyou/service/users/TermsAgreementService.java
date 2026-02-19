@@ -34,7 +34,7 @@ public class TermsAgreementService {
     @Transactional
     public UserResponseDTO.TermsStatusDTO termsAgreeBatch(UserRequestDTO.@Valid TermsAgreeDTO request, CustomUserDetails userDetails){
         //1. 사용자 검증
-        Users user = usersUtils.validateUser(userDetails, userRepository);
+        Users user = usersUtils.validateUser(userDetails);
 
         //2. 기존 약관 동의 목록을 Terms Type  기준으로 매핑
         Map<TermsType,TermsAgreement> existingMap = termsAgreementRepository.findByUserId(user.getId())
@@ -67,7 +67,7 @@ public class TermsAgreementService {
 
     @Transactional
     public UserResponseDTO.TermsStatusDTO updateTermsAgree(CustomUserDetails userDetails, @NotNull String termsTypeStr, Boolean isAgreed) {
-        Users user = usersUtils.validateUser(userDetails, userRepository);
+        Users user = usersUtils.validateUser(userDetails);
         TermsType termsType = TermsType.valueOf(termsTypeStr);
         //기존 레코그 조회
         Optional<TermsAgreement> existing = termsAgreementRepository.findByUserIdAndTermsType(user.getId(), termsType);
@@ -90,7 +90,7 @@ public class TermsAgreementService {
     // GET /terms/status - 약관 상태 조회
     @Transactional(readOnly = true)
     public UserResponseDTO.TermsStatusDTO getTermsStatus(CustomUserDetails userDetails) {
-        Users user = usersUtils.validateUser(userDetails, userRepository);
+        Users user = usersUtils.validateUser(userDetails);
 
         List<TermsAgreement> agreements = termsAgreementRepository.findByUserId(user.getId());
         return TermsConverter.toTermsStatusDTO(user.getId(), agreements);
