@@ -68,7 +68,7 @@ public class TermsAgreementService {
     @Transactional
     public UserResponseDTO.TermsStatusDTO updateTermsAgree(CustomUserDetails userDetails, @NotNull String termsTypeStr, Boolean isAgreed) {
         Users user = usersUtils.validateUser(userDetails);
-        TermsType termsType = TermsType.valueOf(termsTypeStr);
+        TermsType termsType = TermsType.fromString(termsTypeStr);
         //기존 레코그 조회
         Optional<TermsAgreement> existing = termsAgreementRepository.findByUserIdAndTermsType(user.getId(), termsType);
 
