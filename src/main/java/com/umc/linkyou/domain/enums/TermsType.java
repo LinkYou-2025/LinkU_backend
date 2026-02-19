@@ -8,7 +8,10 @@ public enum TermsType {
     PRIVACY_POLICY,      // 개인정보처리방침
     MARKETING;          // 마케팅수신동의
     public static TermsType fromString(String value) {
-        try{
+        if (value == null) {
+            throw new GeneralException(ErrorStatus.INVALID_TERMS_TYPE);
+        }
+        try {
             return TermsType.valueOf(value);
         } catch (IllegalArgumentException e) {
             throw new GeneralException(ErrorStatus.INVALID_TERMS_TYPE);
