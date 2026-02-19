@@ -1,10 +1,9 @@
-package com.umc.linkyou.TitleImgParser;
+package com.umc.linkyou.titleImgParser;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.domain.classification.Domain;
-import com.umc.linkyou.repository.classification.domainRepository.DomainRepositoryCustom;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;

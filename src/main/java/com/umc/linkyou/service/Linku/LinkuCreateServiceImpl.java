@@ -1,6 +1,6 @@
 package com.umc.linkyou.service.Linku;
 
-import com.umc.linkyou.TitleImgParser.LinkToImageService;
+import com.umc.linkyou.titleImgParser.LinkToImageService;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awsS3.AwsS3Service;
