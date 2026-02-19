@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class TermsConverter {
+    public static final String CURRENT_TERMS_VERSION = "v1.0";
     //List<TermsAgreement> ->  Map<String, Boolean> 변환; key value형태로 변환해서 반환
     public static Map<String, Boolean> toTermsStatusMap(List<TermsAgreement> agreements) {
         return agreements.stream() //순서대로 계산
@@ -29,9 +30,11 @@ public class TermsConverter {
     //TermsStatus response 전체 빌드
     public static UserResponseDTO.TermsStatusDTO toTermsStatusDTO(Long userId, List<TermsAgreement> agreements) {
         Map<String, Boolean> termsStatus = toTermsStatusMap(agreements);
-        boolean allRequiredAgreed = agreements.stream()  //필수약관 중 isRequired가 true인 것만 필터링
+        List<TermsAgreement> requiredList = agreements.stream()
                 .filter(TermsAgreement::getIsRequired)
-                .allMatch(TermsAgreement::getIsAgreed); //모두 treu면 true
+                .toList();
+        boolean allRequiredAgreed = !requiredList.isEmpty()
+                && requiredList.stream().allMatch(TermsAgreement::getIsRequired);
         return UserResponseDTO.TermsStatusDTO.builder()
                 .userId(userId)
                 .termsStatus(termsStatus)
@@ -49,7 +52,7 @@ public class TermsConverter {
                             .termsType(termsType)
                             .isRequired(TermsConverter.isRequiredTerms(termsType))
                             .termsVersion(request.getTermsVersion())
-                            .agreedAt(java.time.LocalDateTime.now())
+                            .agreedAt(LocalDateTime.now())
                             .isAgreed(true)
                             .build();
                 })
@@ -69,7 +72,7 @@ public class TermsConverter {
                 .user(user)
                 .termsType(termsType)
                 .isRequired(isRequiredTerms(termsType))
-                .termsVersion("v1.0")  // 기본 버전
+                .termsVersion(CURRENT_TERMS_VERSION)  // 기본 버전
                 .agreedAt(LocalDateTime.now())
                 .isAgreed(isAgreed)
                 .build();

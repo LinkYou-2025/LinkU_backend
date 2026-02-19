@@ -117,7 +117,7 @@ public class UserResponseDTO {
         private Long userId;
 
         @Schema(description = "약관별 동의 상태 맵",
-                example = "{\"TERMS_OF_USE\":true,\"MARKETING\":true,\"EVENT_NOTICE\":false}")
+                example = "{\"TERMS_OF_USE\":true,\"MARKETING\":true,\"PRIVACY_POLICY\":false}")
         private Map<String, Boolean> termsStatus;
 
         @Schema(description = "필수 약관 모두 동의했는지 여부", example = "true")

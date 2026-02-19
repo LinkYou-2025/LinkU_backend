@@ -3,6 +3,7 @@ package com.umc.linkyou.domain;
 import com.umc.linkyou.domain.common.BaseEntity;
 import com.umc.linkyou.domain.enums.TermsType;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.time.LocalDateTime;
 
@@ -37,5 +38,6 @@ public class TermsAgreement extends BaseEntity {
     private LocalDateTime agreedAt;
 
     @Column(name = "is_agreed", nullable = false)
+    @NotNull
     private Boolean isAgreed = true;
 }
