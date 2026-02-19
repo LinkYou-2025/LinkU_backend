@@ -21,6 +21,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+@Table(
+    name = "terms_agreement",
+        uniqueConstraints={
+            @UniqueConstraint(
+                name = "uk_terms_agreements_user_type",
+                columnNames={"user_id", "terms_type"}
+        )
+        }
+)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
