@@ -19,6 +19,8 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -49,49 +51,69 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String provider = extractProvider(requestUri); // "kakao", "google", ...
 
 
-        // User 조회
-        Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("User not found: " + email));
 
-        String redirectUrl;
+        // User 조회 (방어적 처리)
+        Optional<Users> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            // 로그 남기고 FAIL 리다이렉트
+            log.warn("OAuth2SuccessHandler: userRepository.findByEmail returned empty for email={}, provider={}",
+                    email, provider);
 
-        if (user.getStatus() == UserStatus.TEMP) {
-            // TEMP: socialToken(accessToken)만 발급, refreshToken 없음
-            String socialToken = jwtTokenProvider.createAccessToken(email);
-
-            redirectUrl = String.format(
-                    "%s/auth?provider=%s&result=SUCCESS&status=TEMP&socialToken=%s",
-                    deepLinkBaseUrl,
-                    provider,
-                    URLEncoder.encode(socialToken, StandardCharsets.UTF_8)
-            );
-
-        } else if (user.getStatus() == UserStatus.ACTIVE) {
-            // ACTIVE: accessToken + refreshToken 발급
-            String accessToken  = jwtTokenProvider.createAccessToken(email);
-            String refreshToken = jwtTokenProvider.createRefreshToken(email);
-
-            // refreshToken 화이트리스트 저장 (기존 토큰 교체)
-            userRefreshTokenRepository.findByUserId(user.getId())
-                    .ifPresent(t -> userRefreshTokenRepository.deleteById(t.getRefreshToken()));
-
-            String id = hmac(jwtTokenProvider.normalizeStrict(refreshToken));
-            userRefreshTokenRepository.save(new UserRefreshToken(id, user.getId(), refreshTtlMs));
-
-            redirectUrl = String.format(
-                    "%s/auth?provider=%s&result=SUCCESS&status=ACTIVE&accessToken=%s&refreshToken=%s",
-                    deepLinkBaseUrl,
-                    provider,
-                    URLEncoder.encode(accessToken,  StandardCharsets.UTF_8),
-                    URLEncoder.encode(refreshToken, StandardCharsets.UTF_8)
-            );
-
-        } else {
-            // INACTIVE 등 기타 상태 → FAIL 처리
-            redirectUrl = String.format(
-                    "%s/auth?provider=%s&result=FAIL&errorCode=INACTIVE_USER",
+            String failUrl = String.format(
+                    "%s/auth?provider=%s&result=FAIL&errorCode=USER_NOT_FOUND",
                     deepLinkBaseUrl,
                     provider
+            );
+
+            response.sendRedirect(failUrl);
+            return;  // 예외 없이 종료
+        }
+
+        Users user = userOpt.get();
+        String redirectUrl;
+
+        try {
+            if (user.getStatus() == UserStatus.TEMP) {
+                String socialToken = jwtTokenProvider.createAccessToken(email);
+                redirectUrl = String.format(
+                        "%s/auth?provider=%s&result=SUCCESS&status=TEMP&socialToken=%s",
+                        deepLinkBaseUrl, provider,
+                        URLEncoder.encode(socialToken, StandardCharsets.UTF_8)
+                );
+
+            } else if (user.getStatus() == UserStatus.ACTIVE) {
+                String accessToken  = jwtTokenProvider.createAccessToken(email);
+                String refreshToken = jwtTokenProvider.createRefreshToken(email);
+
+                userRefreshTokenRepository.findByUserId(user.getId())
+                        .ifPresent(t -> userRefreshTokenRepository.deleteById(t.getRefreshToken()));
+
+                String id = hmac(jwtTokenProvider.normalizeStrict(refreshToken));
+                userRefreshTokenRepository.save(new UserRefreshToken(id, user.getId(), refreshTtlMs));
+
+                redirectUrl = String.format(
+                        "%s/auth?provider=%s&result=SUCCESS&status=ACTIVE&accessToken=%s&refreshToken=%s",
+                        deepLinkBaseUrl, provider,
+                        URLEncoder.encode(accessToken,  StandardCharsets.UTF_8),
+                        URLEncoder.encode(refreshToken, StandardCharsets.UTF_8)
+                );
+
+            } else {
+                redirectUrl = String.format(
+                        "%s/auth?provider=%s&result=FAIL&errorCode=INACTIVE_USER",
+                        deepLinkBaseUrl, provider
+                );
+            }
+
+            log.info("OAuth2 딥링크 리다이렉트: {} (user={}, status={})",
+                    redirectUrl.split("&accessToken")[0], email, user.getStatus());
+
+        } catch (Exception e) {
+            // 토큰 발급 / Redis 저장 중 예외 → 500 대신 FAIL 딥링크
+            log.error("OAuth2SuccessHandler: token generation failed for email={}, provider={}", email, provider, e);
+            redirectUrl = String.format(
+                    "%s/auth?provider=%s&result=FAIL&errorCode=TOKEN_GENERATION_FAILED",
+                    deepLinkBaseUrl, provider
             );
         }
 
