@@ -133,7 +133,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         try {
             var mac = javax.crypto.Mac.getInstance("HmacSHA256");
             mac.init(new javax.crypto.spec.SecretKeySpec(
-                    hmacSecret.getBytes(), "HmacSHA256"));
+                    hmacSecret.getBytes(StandardCharsets.UTF_8),  "HmacSHA256"));
             return java.util.HexFormat.of().formatHex(mac.doFinal(token.getBytes()));
         } catch (Exception e) {
             throw new IllegalStateException(e);
