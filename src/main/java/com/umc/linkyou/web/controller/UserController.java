@@ -95,8 +95,8 @@ public class UserController {
             summary = "마이페이지 조회",
             description = "사용자의 프로필 정보를 조회합니다."
     )
-    @GetMapping("/{userId}")
-    public ApiResponse<UserResponseDTO.UserProfileSummaryDto> getUserInfo(@AuthenticationPrincipal CustomUserDetails userDetails, @PathVariable("userId") Long userId) {
+    @GetMapping("/me")
+    public ApiResponse<UserResponseDTO.UserProfileSummaryDto> getUserInfo(@AuthenticationPrincipal CustomUserDetails userDetails) {
         Long newUserId = userDetails.getUsers().getId();  //보안 문제 때문에 추가함
         return ApiResponse.onSuccess(userService.userInfo(newUserId));
     }
