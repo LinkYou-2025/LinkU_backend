@@ -105,9 +105,6 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 );
             }
 
-            log.info("OAuth2 딥링크 리다이렉트: {} (user={}, status={})",
-                    redirectUrl.split("&accessToken")[0], email, user.getStatus());
-
         } catch (Exception e) {
             // 토큰 발급 / Redis 저장 중 예외 → 500 대신 FAIL 딥링크
             log.error("OAuth2SuccessHandler: token generation failed for email={}, provider={}", email, provider, e);
@@ -116,9 +113,6 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                     deepLinkBaseUrl, provider
             );
         }
-
-        log.info("OAuth2 딥링크 리다이렉트: {} (user={}, status={})",
-                redirectUrl.split("&accessToken")[0], email, user.getStatus());
         response.sendRedirect(redirectUrl);
     }
 
