@@ -8,7 +8,7 @@ import com.umc.linkyou.domain.classification.*;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.mapping.SituationJob;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.TitleImgParser.LinkToImageService;
+import com.umc.linkyou.titleImgParser.LinkToImageService;
 import com.umc.linkyou.openApiSummary.OpenAISummaryUtil;
 import com.umc.linkyou.openApiSummary.SummaryAnalysisResultDTO;
 import com.umc.linkyou.repository.*;
@@ -177,13 +177,13 @@ public class AiArticleServiceImpl implements AiArticleService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
         UsersLinku usersLinku = usersLinkuRepository.findByUserAndLinku(user, linku)
                 .orElse(null);
-        
+
         // UsersLinku가 없거나 isAiExist가 false인 경우 false로 처리
         if (usersLinku == null || usersLinku.getAiExist() == null || !usersLinku.getAiExist()) {
             // UsersLinku가 없으면 false로 처리하여 반환
             // usersLinku가 null이면 null로 전달하고, Converter에서 null 처리를 하도록 함
         }
-        
+
         Situation situation = article.getSituation();
         Emotion emotion = null;
         if (article.getAiFeelingId() != null)

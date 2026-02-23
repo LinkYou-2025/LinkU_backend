@@ -40,6 +40,8 @@ public enum ErrorStatus implements BaseErrorCode {
     _INTEREST_NOT_PROVIDED(HttpStatus.NOT_FOUND, "USERS404", "관심 분야를 선택해야합니다."),
     _NO_SUCH_ALGORITHM(HttpStatus.INTERNAL_SERVER_ERROR, "USERS500", "인증 코드 생성 실패"),
     _SEND_MAIL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS500", "인증 코드 전송 실패"),
+    INVALID_TERMS_TYPE(HttpStatus.BAD_REQUEST, "TERMS4001", "유효하지 않은 약관 타입입니다."),
+
     //소셜로그인 관련
     _AUTH_ACCOUNT_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS5001", "소셜 계정 연결에 실패했습니다."),
     _USER_SOCIAL_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS5002", "소셜 사용자 생성에 실패했습니다."),
@@ -92,8 +94,7 @@ public enum ErrorStatus implements BaseErrorCode {
     _INVALID_PERMISSION_TYPE(HttpStatus.BAD_REQUEST, "PERMISSION400", "유효하지 않은 권한 타입입니다."),
     INVITATION_CREATOR_CANNOT_ACCEPT(HttpStatus.FORBIDDEN, "FOLDER_CREATOR403", "초대 생성자는 자신의 링크로 참여할 수 없습니다."),
     // 북마크 관련 오류
-    _FOLDER_BOOKMARK_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_BOOKMARK404", "해당 유저의 북마크 정보가 존재하지 않습니다."),
-    ;
+    _FOLDER_BOOKMARK_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_BOOKMARK404", "해당 유저의 북마크 정보가 존재하지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

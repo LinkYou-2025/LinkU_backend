@@ -5,10 +5,13 @@ import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.repository.userRepository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class UsersUtils {
+    private final UserRepository userRepository;
 
     public Long getAuthenticatedUserId(CustomUserDetails userDetails) {
         if (userDetails == null) {
@@ -22,7 +25,8 @@ public class UsersUtils {
         }
         return userDetails.getEmail();
     }
-    public Users validateUser(CustomUserDetails userDetails, UserRepository userRepository) {
+    //token이 올바른지, 사용자가 존재하는지, 사용자가 있다면 activated 상태인지
+    public Users validateUser(CustomUserDetails userDetails) {
         if (userDetails == null) {
             throw new UserHandler(ErrorStatus._INVALID_TOKEN);
         }

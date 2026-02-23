@@ -3,11 +3,20 @@ package com.umc.linkyou.domain;
 import com.umc.linkyou.domain.common.BaseEntity;
 import com.umc.linkyou.domain.enums.TermsType;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "terms_agreements")
+@Table(
+        name = "terms_agreement",
+        uniqueConstraints={
+                @UniqueConstraint(
+                        name = "uk_terms_agreements_user_type",
+                        columnNames={"user_id", "terms_type"}
+                )
+        }
+)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -28,6 +37,7 @@ public class TermsAgreement extends BaseEntity {
     private TermsType termsType; // "TERMS_OF_USE", "PRIVACY_POLICY", "MARKETING"
 
     @Column(name = "is_required", nullable = false)
+    @Builder.Default
     private Boolean isRequired = false; // true=필수, false=선택
 
     @Column(name = "terms_version", length = 10, nullable = false)
@@ -37,5 +47,7 @@ public class TermsAgreement extends BaseEntity {
     private LocalDateTime agreedAt;
 
     @Column(name = "is_agreed", nullable = false)
+    @NotNull
+    @Builder.Default
     private Boolean isAgreed = true;
 }
