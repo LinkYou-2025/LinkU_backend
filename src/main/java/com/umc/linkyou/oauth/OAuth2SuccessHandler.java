@@ -30,8 +30,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final UserRepository userRepository;
     private final UserRefreshTokenRepository userRefreshTokenRepository;
 
-    @Value("${app.deeplink.base-url}")
-    private String deepLinkBaseUrl;
+//    @Value("${app.deeplink.base-url}")
+//    private String deepLinkBaseUrl;
+
+    @Value("${app.deeplink.android-scheme}")
+    private String androidScheme;
 
     @Value("${jwt.token.expiration.refresh}")
     private long refreshTtlMs;
@@ -61,7 +64,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
             String failUrl = String.format(
                     "%s/auth?provider=%s&result=FAIL&errorCode=USER_NOT_FOUND",
-                    deepLinkBaseUrl,
+                    androidScheme,
                     provider
             );
 
@@ -77,7 +80,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 String socialToken = jwtTokenProvider.createAccessToken(email);
                 redirectUrl = String.format(
                         "%s/auth?provider=%s&result=SUCCESS&status=TEMP&socialToken=%s",
-                        deepLinkBaseUrl, provider,
+                        androidScheme, provider,
                         URLEncoder.encode(socialToken, StandardCharsets.UTF_8)
                 );
 
@@ -93,7 +96,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
                 redirectUrl = String.format(
                         "%s/auth?provider=%s&result=SUCCESS&status=ACTIVE&accessToken=%s&refreshToken=%s",
-                        deepLinkBaseUrl, provider,
+                        androidScheme, provider,
                         URLEncoder.encode(accessToken,  StandardCharsets.UTF_8),
                         URLEncoder.encode(refreshToken, StandardCharsets.UTF_8)
                 );
@@ -101,7 +104,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             } else {
                 redirectUrl = String.format(
                         "%s/auth?provider=%s&result=FAIL&errorCode=INACTIVE_USER",
-                        deepLinkBaseUrl, provider
+                        androidScheme,provider
                 );
             }
 
@@ -110,7 +113,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             log.error("OAuth2SuccessHandler: token generation failed for email={}, provider={}", email, provider, e);
             redirectUrl = String.format(
                     "%s/auth?provider=%s&result=FAIL&errorCode=TOKEN_GENERATION_FAILED",
-                    deepLinkBaseUrl, provider
+                    androidScheme, provider
             );
         }
         response.sendRedirect(redirectUrl);
