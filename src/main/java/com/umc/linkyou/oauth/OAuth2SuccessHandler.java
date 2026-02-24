@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,8 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
@@ -29,6 +32,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final UserRefreshTokenRepository userRefreshTokenRepository;
+    private final StringRedisTemplate stringRedisTemplate; // ← 신규 추가
 
     @Value("${app.deeplink.base-url}")
     private String deepLinkBaseUrl;
@@ -39,6 +43,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Value("${jwt.hmac-secret}")
     private String hmacSecret;
 
+    private static final long AUTH_CODE_TTL_SECONDS = 30L; // 1회용 코드 유효시간
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
                                         HttpServletResponse response,
@@ -46,27 +52,17 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         CustomOAuth2User oAuth2User = (CustomOAuth2User) authentication.getPrincipal();
         String email = oAuth2User.getEmail();
-        // provider 파라미터 추출 (session 또는 request-uri 기반)
-        String requestUri = request.getRequestURI(); // /login/oauth2/code/kakao
-        String provider = extractProvider(requestUri); // "kakao", "google", ...
+        String requestUri = request.getRequestURI();
+        String provider = extractProvider(requestUri);
 
-
-
-        // User 조회 (방어적 처리)
         Optional<Users> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            // 로그 남기고 FAIL 리다이렉트
             log.warn("OAuth2SuccessHandler: userRepository.findByEmail returned empty for email={}, provider={}",
                     email, provider);
-
-            String failUrl = String.format(
+            response.sendRedirect(String.format(
                     "%s/auth?provider=%s&result=FAIL&errorCode=USER_NOT_FOUND",
-                    deepLinkBaseUrl,
-                    provider
-            );
-
-            response.sendRedirect(failUrl);
-            return;  // 예외 없이 종료
+                    deepLinkBaseUrl, provider));
+            return;
         }
 
         Users user = userOpt.get();
@@ -74,6 +70,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         try {
             if (user.getStatus() == UserStatus.TEMP) {
+                // TEMP: socialToken은 추가정보 입력용 → 보안 민감도 낮아서 기존 유지
                 String socialToken = jwtTokenProvider.createAccessToken(email);
                 redirectUrl = String.format(
                         "%s/auth?provider=%s&result=SUCCESS&status=TEMP&socialToken=%s",
@@ -85,17 +82,23 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 String accessToken  = jwtTokenProvider.createAccessToken(email);
                 String refreshToken = jwtTokenProvider.createRefreshToken(email);
 
+                // refreshToken 화이트리스트 저장
                 userRefreshTokenRepository.findByUserId(user.getId())
                         .ifPresent(t -> userRefreshTokenRepository.deleteById(t.getRefreshToken()));
-
                 String id = hmac(jwtTokenProvider.normalizeStrict(refreshToken));
                 userRefreshTokenRepository.save(new UserRefreshToken(id, user.getId(), refreshTtlMs));
 
+                // 1회용 코드 생성 → Redis에 토큰 임시 저장 (30초 TTL)
+                String code = UUID.randomUUID().toString().replace("-", "");
+                String redisKey = "auth:code:" + code;
+                String redisValue = accessToken + "::" + refreshToken;
+                stringRedisTemplate.opsForValue().set(redisKey, redisValue, AUTH_CODE_TTL_SECONDS, TimeUnit.SECONDS);
+
+                // URL엔 code만 노출
                 redirectUrl = String.format(
-                        "%s/auth?provider=%s&result=SUCCESS&status=ACTIVE&accessToken=%s&refreshToken=%s",
+                        "%s/auth?provider=%s&result=SUCCESS&status=ACTIVE&code=%s",
                         deepLinkBaseUrl, provider,
-                        URLEncoder.encode(accessToken,  StandardCharsets.UTF_8),
-                        URLEncoder.encode(refreshToken, StandardCharsets.UTF_8)
+                        URLEncoder.encode(code, StandardCharsets.UTF_8)
                 );
 
             } else {
@@ -106,29 +109,30 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             }
 
         } catch (Exception e) {
-            // 토큰 발급 / Redis 저장 중 예외 → 500 대신 FAIL 딥링크
             log.error("OAuth2SuccessHandler: token generation failed for email={}, provider={}", email, provider, e);
             redirectUrl = String.format(
                     "%s/auth?provider=%s&result=FAIL&errorCode=TOKEN_GENERATION_FAILED",
                     deepLinkBaseUrl, provider
             );
         }
+
+        log.info("OAuth2 딥링크 리다이렉트: {} (user={}, status={})",
+                redirectUrl, email, user.getStatus());
         response.sendRedirect(redirectUrl);
     }
 
-    /** /login/oauth2/code/{provider} URI에서 provider 추출 */
     private String extractProvider(String requestUri) {
         if (requestUri == null) return "unknown";
         String[] parts = requestUri.split("/");
-        return parts[parts.length - 1]; // 마지막 세그먼트
+        return parts[parts.length - 1];
     }
 
     private String hmac(String token) {
         try {
             var mac = javax.crypto.Mac.getInstance("HmacSHA256");
             mac.init(new javax.crypto.spec.SecretKeySpec(
-                    hmacSecret.getBytes(StandardCharsets.UTF_8),  "HmacSHA256"));
-            return java.util.HexFormat.of().formatHex(mac.doFinal(token.getBytes()));
+                    hmacSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            return java.util.HexFormat.of().formatHex(mac.doFinal(token.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
