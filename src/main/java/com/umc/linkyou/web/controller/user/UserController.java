@@ -1,4 +1,4 @@
-package com.umc.linkyou.web.controller;
+package com.umc.linkyou.web.controller.user;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
