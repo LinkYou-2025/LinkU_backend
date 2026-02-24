@@ -5,6 +5,7 @@ import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.oauth.OAuth2SuccessHandler;
 import com.umc.linkyou.oauth.OAuth2TokenClient;
 import com.umc.linkyou.oauth.OAuth2UserServiceImpl;
+import com.umc.linkyou.oauth.RedisAuthorizationRequestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +15,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizationRequestRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -33,6 +33,8 @@ public class SecurityConfig {
     private final OAuth2TokenClient oAuth2TokenClient;
     @Lazy
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final RedisAuthorizationRequestRepository redisAuthorizationRequestRepository;
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -68,9 +70,7 @@ public class SecurityConfig {
                         .authorizationEndpoint(authorization -> authorization
                                 .baseUri("/oauth2/authorization")
                                 // STATELESS여도 OAuth2 state는 세션에 저장하도록 명시
-                                .authorizationRequestRepository(
-                                        new HttpSessionOAuth2AuthorizationRequestRepository()
-                                )
+                                .authorizationRequestRepository(redisAuthorizationRequestRepository)
                         )
                         .redirectionEndpoint(redirection -> redirection
                                 .baseUri("/login/oauth2/code/*")

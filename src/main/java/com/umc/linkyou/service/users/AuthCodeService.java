@@ -17,15 +17,13 @@ public class AuthCodeService {
 
     public UserResponseDTO.TokenPair exchangeCode(String code) {
         String redisKey = AUTH_CODE_KEY + code;
-        String token = stringRedisTemplate.opsForValue().get(redisKey);
+        String token = stringRedisTemplate.opsForValue().getAndDelete(redisKey);
 
-        if (token == null) {
-            log.warn("AuthCodeService: 유효하지 않거나 만료된 code={}", code);
+        String[] tokens = token.split("::");
+        if (tokens.length != 2) {
+            log.error("AuthCodeService: Redis 토큰 형식 오류 code={}, token={}", code, token);
             throw new GeneralException(ErrorStatus._INVALID_AUTH_CODE);
         }
-
-        stringRedisTemplate.delete(redisKey); //1회용 즉시 삭제
-        String[] tokens = token.split("::");
         return new UserResponseDTO.TokenPair(tokens[0], tokens[1]);
 
     }
