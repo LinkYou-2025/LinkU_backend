@@ -32,7 +32,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final UserRefreshTokenRepository userRefreshTokenRepository;
-    private final StringRedisTemplate stringRedisTemplate; // ← 신규 추가
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Value("${app.deeplink.base-url}")
     private String deepLinkBaseUrl;
@@ -57,8 +57,6 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         Optional<Users> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            log.warn("OAuth2SuccessHandler: userRepository.findByEmail returned empty for email={}, provider={}",
-                    email, provider);
             response.sendRedirect(String.format(
                     "%s/auth?provider=%s&result=FAIL&errorCode=USER_NOT_FOUND",
                     deepLinkBaseUrl, provider));
@@ -109,15 +107,12 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             }
 
         } catch (Exception e) {
-            log.error("OAuth2SuccessHandler: token generation failed for email={}, provider={}", email, provider, e);
             redirectUrl = String.format(
                     "%s/auth?provider=%s&result=FAIL&errorCode=TOKEN_GENERATION_FAILED",
                     deepLinkBaseUrl, provider
             );
         }
 
-        log.info("OAuth2 딥링크 리다이렉트: {} (user={}, status={})",
-                redirectUrl, email, user.getStatus());
         response.sendRedirect(redirectUrl);
     }
 
