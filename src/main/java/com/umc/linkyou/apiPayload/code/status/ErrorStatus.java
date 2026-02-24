@@ -43,12 +43,14 @@ public enum ErrorStatus implements BaseErrorCode {
     INVALID_TERMS_TYPE(HttpStatus.BAD_REQUEST, "TERMS4001", "유효하지 않은 약관 타입입니다."),
 
     //소셜로그인 관련
-    _AUTH_ACCOUNT_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS5001", "소셜 계정 연결에 실패했습니다."),
-    _USER_SOCIAL_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS5002", "소셜 사용자 생성에 실패했습니다."),
-    _SOCIAL_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "USERS4003", "소셜 로그인에 이메일이 필요합니다."),
-    _SOCIAL_UNSUPPORTED_PROVIDER(HttpStatus.BAD_REQUEST, "USERS4004", "지원하지 않는 소셜 제공자입니다."),
-    _SOCIAL_PROFILE_EXPIRED(HttpStatus.BAD_REQUEST, "USERS4005", "임시 프로필이 만료되었습니다."),
-    _SOCIAL_PROFILE_NOT_REQUIRED(HttpStatus.BAD_REQUEST, "USERS4006", "임시 프로필이 필요하지 않습니다."),
+    _AUTH_ACCOUNT_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "OAUTH5001", "소셜 계정 연결에 실패했습니다."),
+    _USER_SOCIAL_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "OAUTH5002", "소셜 사용자 생성에 실패했습니다."),
+    _SOCIAL_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "OAUTH4003", "소셜 로그인에 이메일이 필요합니다."),
+    _SOCIAL_UNSUPPORTED_PROVIDER(HttpStatus.BAD_REQUEST, "OAUTH4004", "지원하지 않는 소셜 제공자입니다."),
+    _SOCIAL_PROFILE_EXPIRED(HttpStatus.BAD_REQUEST, "OAUTH4005", "임시 프로필이 만료되었습니다."),
+    _SOCIAL_PROFILE_NOT_REQUIRED(HttpStatus.BAD_REQUEST, "OAUTH4006", "임시 프로필이 필요하지 않습니다."),
+    _INVALID_AUTH_CODE(HttpStatus.BAD_REQUEST, "OAUTH4007", "유효하지 않거나 만료된 인증 코드"),
+
     //링큐 관련 코드
     _LINKU_VIDEO_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "LINKU4001", "영상 링크는 저장할 수 없습니다."),
     _LINKU_INVALID_URL(HttpStatus.BAD_REQUEST, "LINKU4002", "유효하지 않은 링크입니다."),
@@ -94,7 +96,7 @@ public enum ErrorStatus implements BaseErrorCode {
     _INVALID_PERMISSION_TYPE(HttpStatus.BAD_REQUEST, "PERMISSION400", "유효하지 않은 권한 타입입니다."),
     INVITATION_CREATOR_CANNOT_ACCEPT(HttpStatus.FORBIDDEN, "FOLDER_CREATOR403", "초대 생성자는 자신의 링크로 참여할 수 없습니다."),
     // 북마크 관련 오류
-    _FOLDER_BOOKMARK_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_BOOKMARK404", "해당 유저의 북마크 정보가 존재하지 않습니다.");
+    _FOLDER_BOOKMARK_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_BOOKMARK404", "해당 유저의 북마크 정보가 존재하지 않습니다."), ;
 
     private final HttpStatus httpStatus;
     private final String code;

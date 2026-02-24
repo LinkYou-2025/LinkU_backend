@@ -5,6 +5,7 @@ import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.oauth.OAuth2SuccessHandler;
 import com.umc.linkyou.oauth.OAuth2TokenClient;
 import com.umc.linkyou.oauth.OAuth2UserServiceImpl;
+import com.umc.linkyou.oauth.RedisAuthorizationRequestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,6 +33,8 @@ public class SecurityConfig {
     private final OAuth2TokenClient oAuth2TokenClient;
     @Lazy
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final RedisAuthorizationRequestRepository redisAuthorizationRequestRepository;
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -42,7 +45,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/", "/css/**",
-                                "/api/users/**",
+                                "/api/v1/users/**",
                                 "/swagger-ui/**", "/v3/api-docs/**",
                                 "/*.well-known/**",
                                 "/open/**",
@@ -60,30 +63,25 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .formLogin(form -> form.disable())
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // ← IF_REQUIRED → STATELESS
                 )
+
                 .oauth2Login(oauth2 -> oauth2
-                        // /oauth2/authorization/{registrationId} 진입 URI
                         .authorizationEndpoint(authorization -> authorization
                                 .baseUri("/oauth2/authorization")
+                                // STATELESS여도 OAuth2 state는 세션에 저장하도록 명시
+                                .authorizationRequestRepository(redisAuthorizationRequestRepository)
                         )
-
-                        // /login/oauth2/code/{registrationId} 콜백 URI 패턴 (페이지 매핑 X, 콜백 전용)
                         .redirectionEndpoint(redirection -> redirection
                                 .baseUri("/login/oauth2/code/*")
                         )
-
-                        // Authorization Code → Access Token 교환 시 사용할 클라이언트
                         .tokenEndpoint(token -> token
                                 .accessTokenResponseClient(oAuth2TokenClient)
                         )
-
-                        // Access Token → userInfo 조회 후 Users/AuthAccount 매핑
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(oAuth2UserService)
                         )
                         .successHandler(oAuth2SuccessHandler)
-//                        .defaultSuccessUrl("/login/success", true)
                 )
                 .requiresChannel(channel -> channel
                         .anyRequest().requiresSecure()
