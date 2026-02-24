@@ -8,6 +8,7 @@ import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.EmailVerification;
 import com.umc.linkyou.domain.UserRefreshToken;
 import com.umc.linkyou.domain.enums.Gender;
+import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.folder.Folder;
@@ -312,7 +313,7 @@ public class UserServiceImpl implements UserService {
         userRefreshTokenRepository.save(new UserRefreshToken(newId, saved.getUserId(), refreshTtlMs));
 
         // 5) 새 Access 발급
-        String newAccess = jwtTokenProvider.createAccessToken(email);
+        String newAccess = jwtTokenProvider.createAccessToken(email, Provider.GENERAL.name());
         return new UserResponseDTO.TokenPair(newAccess, newRefresh);
     }
 

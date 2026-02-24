@@ -1,11 +1,14 @@
 package com.umc.linkyou.oauth;
 
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
+import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.UserRefreshToken;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.oauth.utils.CustomOAuth2User;
 import com.umc.linkyou.repository.UserRefreshTokenRepository;
+import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -33,6 +36,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final UserRepository userRepository;
     private final UserRefreshTokenRepository userRefreshTokenRepository;
     private final StringRedisTemplate stringRedisTemplate;
+    private final AuthAccountRepository authAccountRepository;
 
     @Value("${app.deeplink.base-url}")
     private String deepLinkBaseUrl;
@@ -52,24 +56,27 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         CustomOAuth2User oAuth2User = (CustomOAuth2User) authentication.getPrincipal();
         String email = oAuth2User.getEmail();
-        String requestUri = request.getRequestURI();
-        String provider = extractProvider(requestUri);
+        String externalId = oAuth2User.getExternalId();
+        String provider   = oAuth2User.getProvider();
 
-        Optional<Users> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
+        Optional<AuthAccount> authAccountOpt = authAccountRepository
+                .findByProviderAndExternalId(Provider.valueOf(provider), externalId);
+
+        if (authAccountOpt.isEmpty()) {
+            log.warn("AuthAccount not found: provider={}, externalId={}", provider, externalId);
             response.sendRedirect(String.format(
                     "%s/auth?provider=%s&result=FAIL&errorCode=USER_NOT_FOUND",
                     deepLinkBaseUrl, provider));
             return;
         }
 
-        Users user = userOpt.get();
+        Users user = authAccountOpt.get().getUser();
         String redirectUrl;
 
         try {
             if (user.getStatus() == UserStatus.TEMP) {
                 // TEMP: socialToken은 추가정보 입력용 → 보안 민감도 낮아서 기존 유지
-                String socialToken = jwtTokenProvider.createAccessToken(email);
+                String socialToken = jwtTokenProvider.createAccessToken(email, provider);
                 redirectUrl = String.format(
                         "%s/auth?provider=%s&result=SUCCESS&status=TEMP&socialToken=%s",
                         deepLinkBaseUrl, provider,
@@ -77,7 +84,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 );
 
             } else if (user.getStatus() == UserStatus.ACTIVE) {
-                String accessToken  = jwtTokenProvider.createAccessToken(email);
+                String accessToken  = jwtTokenProvider.createAccessToken(email, provider);
                 String refreshToken = jwtTokenProvider.createRefreshToken(email);
 
                 // refreshToken 화이트리스트 저장

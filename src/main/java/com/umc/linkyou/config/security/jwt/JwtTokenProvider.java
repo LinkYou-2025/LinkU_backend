@@ -150,9 +150,10 @@ public class JwtTokenProvider {
     }
 
     // 액세스 토큰 생성 (subject 기반)
-    public String createAccessToken(String subject) {
+    public String createAccessToken(String subject, String provider) {
         return Jwts.builder()
                 .setSubject(subject)
+                .claim("provider", provider)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getExpiration().getAccess()))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
