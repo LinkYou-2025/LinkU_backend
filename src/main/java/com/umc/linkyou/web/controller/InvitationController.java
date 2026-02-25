@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.service.folder.share.InvitationService;
 import com.umc.linkyou.utils.UsersUtils;
+import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.folder.share.InvitationInfoResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,8 +14,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "invitation-controller", description = "초대 관련 API")
+@ApiV1
 @RestController
-@RequestMapping("/api/invitations")
+@RequestMapping("/invitations")
 @RequiredArgsConstructor
 public class InvitationController {
 

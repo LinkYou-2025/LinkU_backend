@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.service.category.CategoryService;
+import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.category.CategoryListResponseDTO;
 import com.umc.linkyou.web.dto.category.UpdateCategoryColorRequestDTO;
 import com.umc.linkyou.web.dto.category.UserCategoryColorResponseDTO;
@@ -18,8 +19,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @Tag(name = "category-controller", description = "카테고리 관련 API")
+@ApiV1
 @RestController
-@RequestMapping("/api/categories")
+@RequestMapping("/categories")
 @RequiredArgsConstructor
 public class CategoryController {
     private final CategoryService categoryService;

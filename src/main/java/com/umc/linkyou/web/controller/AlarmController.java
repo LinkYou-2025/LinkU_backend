@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.service.alarm.AlarmService;
 import com.umc.linkyou.utils.UsersUtils;
+import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,9 +15,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @Tag(name = "alarm-controller", description = "알림 관련 API")
+@ApiV1
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/alarm")
+@RequestMapping("/alarm")
 public class AlarmController {
 
     private final AlarmService alarmService;

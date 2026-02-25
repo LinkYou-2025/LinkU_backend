@@ -11,6 +11,7 @@ import com.umc.linkyou.service.Linku.LinkuRecommendService;
 import com.umc.linkyou.service.Linku.LinkuSearchService;
 import com.umc.linkyou.service.Linku.LinkuService;
 import com.umc.linkyou.utils.UsersUtils;
+import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
@@ -27,8 +28,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @Tag(name = "linku-controller", description = "링크(Linku) 관련 API")
+@ApiV1
 @RestController
-@RequestMapping("/api/linku")
+@RequestMapping("/linku")
 @RequiredArgsConstructor
 public class LinkuController {
 

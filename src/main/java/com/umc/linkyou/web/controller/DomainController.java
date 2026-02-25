@@ -5,6 +5,7 @@ import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.DomainConverter;
 import com.umc.linkyou.service.domain.DomainService;
 import com.umc.linkyou.utils.UsersUtils;
+import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.DomainDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,8 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "domain-controller", description = "도메인 관련 API")
+@ApiV1
 @RestController
-@RequestMapping("/api/domain")
+@RequestMapping("/domain")
 @RequiredArgsConstructor
 public class DomainController {
 
