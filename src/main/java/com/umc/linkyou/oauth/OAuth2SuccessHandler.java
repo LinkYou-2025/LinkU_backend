@@ -27,6 +27,22 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * OAuth2 인증 성공 후 처리 플로우
+ *
+ * ① CustomOAuth2User에서 email, externalId, provider 추출 (소셜 프로필 기반)
+ * ② provider null/blank 체크 → 실패 시 FAIL/INVALID_PROVIDER 리다이렉트
+ * ③ Provider.valueOf()로 enum 변환 → 알 수 없는 provider면 FAIL/INVALID_PROVIDER 리다이렉트
+ * ④ externalId null/blank 체크 → 실패 시 FAIL/INVALID_EXTERNAL_ID 리다이렉트
+ * ⑤ (provider + externalId)로 AuthAccount 조회 → 없으면 FAIL/USER_NOT_FOUND 리다이렉트
+ * ⑥ DB에서 확정된 Users 레코드 추출 → confirmedEmail 사용 (소셜 프로필 email 대신)
+ * ⑦ UserStatus 분기
+ *    - TEMP   : socialToken 발급 → 추가 프로필 입력 페이지로 리다이렉트
+ *    - ACTIVE : accessToken + refreshToken 발급 → 1회용 code(30초 TTL)로 간접 전달
+ *    - 그 외  : FAIL/INACTIVE_USER 리다이렉트
+ * ⑧ 예외 발생 시 FAIL/TOKEN_GENERATION_FAILED 리다이렉트
+ */
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -75,6 +91,13 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                     deepLinkBaseUrl, provider));
             return;
         }
+        if (externalId == null || externalId.isBlank()) {
+            log.warn("OAuth2SuccessHandler: externalId is null or blank, provider={}, email={}", provider, email);
+            response.sendRedirect(String.format(
+                    "%s/auth?provider=%s&result=FAIL&errorCode=INVALID_EXTERNAL_ID",
+                    deepLinkBaseUrl, provider));
+            return;
+        }
 
         Optional<AuthAccount> authAccountOpt = authAccountRepository
                 .findByProviderAndExternalId(providerEnum, externalId);
@@ -88,12 +111,13 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         }
 
         Users user = authAccountOpt.get().getUser();
+        String confirmedEmail = user.getEmail();
         String redirectUrl;
 
         try {
             if (user.getStatus() == UserStatus.TEMP) {
                 // TEMP: socialToken은 추가정보 입력용 → 보안 민감도 낮아서 기존 유지
-                String socialToken = jwtTokenProvider.createAccessToken(email, provider);
+                String socialToken = jwtTokenProvider.createAccessToken(confirmedEmail, provider);
                 redirectUrl = String.format(
                         "%s/auth?provider=%s&result=SUCCESS&status=TEMP&socialToken=%s",
                         deepLinkBaseUrl, provider,
@@ -101,8 +125,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 );
 
             } else if (user.getStatus() == UserStatus.ACTIVE) {
-                String accessToken  = jwtTokenProvider.createAccessToken(email, provider);
-                String refreshToken = jwtTokenProvider.createRefreshToken(email);
+                String accessToken  = jwtTokenProvider.createAccessToken(confirmedEmail, provider);
+                String refreshToken = jwtTokenProvider.createRefreshToken(confirmedEmail);
 
                 // refreshToken 화이트리스트 저장
                 userRefreshTokenRepository.findByUserId(user.getId())
