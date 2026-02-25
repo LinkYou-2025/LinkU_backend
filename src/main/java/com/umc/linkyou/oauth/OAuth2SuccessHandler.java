@@ -58,9 +58,26 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String email = oAuth2User.getEmail();
         String externalId = oAuth2User.getExternalId();
         String provider   = oAuth2User.getProvider();
+        if (provider == null || provider.isBlank()) {
+            log.warn("OAuth2SuccessHandler: provider is null or blank, email={}", email);
+            response.sendRedirect(String.format(
+                    "%s/auth?provider=unknown&result=FAIL&errorCode=INVALID_PROVIDER",
+                    deepLinkBaseUrl));
+            return;
+        }
+        Provider providerEnum;
+        try {
+            providerEnum = Provider.valueOf(provider);
+        } catch (IllegalArgumentException e) {
+            log.warn("OAuth2SuccessHandler: unknown provider={}, email={}", provider, email);
+            response.sendRedirect(String.format(
+                    "%s/auth?provider=%s&result=FAIL&errorCode=INVALID_PROVIDER",
+                    deepLinkBaseUrl, provider));
+            return;
+        }
 
         Optional<AuthAccount> authAccountOpt = authAccountRepository
-                .findByProviderAndExternalId(Provider.valueOf(provider), externalId);
+                .findByProviderAndExternalId(providerEnum, externalId);
 
         if (authAccountOpt.isEmpty()) {
             log.warn("AuthAccount not found: provider={}, externalId={}", provider, externalId);
