@@ -18,7 +18,7 @@ public interface UserService {
     void validateNickNameNotDuplicate(String nickname);
 
     // 마이페이지 조회
-    UserResponseDTO.UserProfileSummaryDto userInfo(Long id);
+    UserResponseDTO.UserProfileSummaryDto userInfo(Long userId, String loginProvider);
 
     // 마이페이지 수정
     void updateUserProfile(Long userId, UserRequestDTO.UpdateProfileDTO updateDTO);

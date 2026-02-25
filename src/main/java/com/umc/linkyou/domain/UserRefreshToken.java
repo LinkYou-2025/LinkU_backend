@@ -19,12 +19,15 @@ public class UserRefreshToken {
     @Indexed
     private Long userId;
 
+    private String provider;
+
     @TimeToLive(unit = TimeUnit.MILLISECONDS)
     private Long ttl;
 
-    public UserRefreshToken(String refreshToken, Long userId, Long ttl) {
+    public UserRefreshToken(String refreshToken, Long userId, String provider, Long ttl) {
         this.refreshToken = refreshToken;
         this.userId = userId;
+        this.provider = provider;
         this.ttl = ttl;
     }
 }

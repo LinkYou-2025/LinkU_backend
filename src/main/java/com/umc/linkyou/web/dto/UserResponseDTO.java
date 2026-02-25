@@ -82,7 +82,9 @@ public class UserResponseDTO {
         private final Job job;
         private final Long myLinku;
         private final Long myFolder;
-        private final Long myAiLinku;   // Boolean → Long
+        private final Long myAiLinku;
+        @Setter
+        private String loginProvider;
         private List<String> purposes;
         private List<String> interests;
 
@@ -104,6 +106,7 @@ public class UserResponseDTO {
             this.myAiLinku  = aiLinkCount;   // 여기서 Long 그대로 대입
             this.purposes   = java.util.Collections.emptyList();
             this.interests  = java.util.Collections.emptyList();
+            this.loginProvider = null;
         }
     }
 

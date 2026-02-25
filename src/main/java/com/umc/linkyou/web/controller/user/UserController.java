@@ -99,8 +99,9 @@ public class UserController {
     )
     @GetMapping("/me")
     public ApiResponse<UserResponseDTO.UserProfileSummaryDto> getUserInfo(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        Long newUserId = userDetails.getUsers().getId();  //보안 문제 때문에 추가함
-        return ApiResponse.onSuccess(userService.userInfo(newUserId));
+        Long userId = userDetails.getUsers().getId();
+        String loginProvider = userDetails.getProvider();
+        return ApiResponse.onSuccess(userService.userInfo(userId,loginProvider));
     }
 
     @Operation(

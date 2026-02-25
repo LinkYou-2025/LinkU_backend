@@ -195,15 +195,16 @@ public class UserServiceImpl implements UserService {
                 Collections.singleton(() -> user.getRole().name())
         );
 
-        String accessToken = jwtTokenProvider.generateToken(authentication);
+        String accessToken = jwtTokenProvider.createAccessToken(user.getEmail(), Provider.GENERAL.name());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
 
         // 리프레시 토큰이 이미 있으면 토큰을 갱신하고 없으면 토큰을 추가
         userRefreshTokenRepository.findByUserId(user.getId())
                 .ifPresent(t -> userRefreshTokenRepository.deleteById(t.getRefreshToken()));
         String id = hmac(jwtTokenProvider.normalizeStrict(refreshToken));
-        userRefreshTokenRepository.save(new UserRefreshToken(id, user.getId(), refreshTtlMs));
-
+        userRefreshTokenRepository.save(
+                new UserRefreshToken(id, user.getId(), Provider.GENERAL.name(), refreshTtlMs)
+        );
         return UserConverter.toLoginResultDTO(user, accessToken, refreshToken);
     }
 
@@ -306,14 +307,20 @@ public class UserServiceImpl implements UserService {
         var saved = userRefreshTokenRepository.findById(oldId)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._UNAUTHORIZED));
 
-        // 4) (권장) 로테이션: 이전 토큰 삭제 → 새 토큰 저장(※ DB 접근 없음)
+        // 저장된 provider 꺼내기
+        String provider = saved.getProvider() != null
+                ? saved.getProvider()
+                : Provider.GENERAL.name(); // null 방어 (기존 레코드 호환)
+
         String newRefresh = jwtTokenProvider.createRefreshToken(email);
         String newId = hmac(jwtTokenProvider.normalizeStrict(newRefresh));
         userRefreshTokenRepository.deleteById(oldId);
-        userRefreshTokenRepository.save(new UserRefreshToken(newId, saved.getUserId(), refreshTtlMs));
+        userRefreshTokenRepository.save(
+                new UserRefreshToken(newId, saved.getUserId(), provider, refreshTtlMs) // provider 유지
+        );
 
-        // 5) 새 Access 발급
-        String newAccess = jwtTokenProvider.createAccessToken(email, Provider.GENERAL.name());
+        // 원래 provider로 재발급
+        String newAccess = jwtTokenProvider.createAccessToken(email, provider);
         return new UserResponseDTO.TokenPair(newAccess, newRefresh);
     }
 
@@ -407,13 +414,16 @@ public class UserServiceImpl implements UserService {
 
     // 마이페이지 조회
     @Override
-    public UserResponseDTO.UserProfileSummaryDto userInfo(Long userId){
+    public UserResponseDTO.UserProfileSummaryDto userInfo(Long userId, String loginProvider) {
         UserResponseDTO.UserProfileSummaryDto s = userQueryRepository.findUserProfileSummary(userId);
         List<String> purposes  = purposeRepository.findAllPurposeNamesByUserId(userId);
         List<String> interests = interestRepository.findAllInterestNamesByUserId(userId);
 
-        return UserConverter.toUserInfoDTO(s, purposes, interests);
+        UserResponseDTO.UserProfileSummaryDto result = UserConverter.toUserInfoDTO(s, purposes, interests);
+        result.setLoginProvider(loginProvider);
+        return result;
     }
+
 
     // 마이페이지 수정
     @Override

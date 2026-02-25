@@ -91,8 +91,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 userRefreshTokenRepository.findByUserId(user.getId())
                         .ifPresent(t -> userRefreshTokenRepository.deleteById(t.getRefreshToken()));
                 String id = hmac(jwtTokenProvider.normalizeStrict(refreshToken));
-                userRefreshTokenRepository.save(new UserRefreshToken(id, user.getId(), refreshTtlMs));
-
+                userRefreshTokenRepository.save(
+                        new UserRefreshToken(id, user.getId(), provider, refreshTtlMs) // provider = "KAKAO", "GOOGLE"
+                );
                 // 1회용 코드 생성 → Redis에 토큰 임시 저장 (30초 TTL)
                 String code = UUID.randomUUID().toString().replace("-", "");
                 String redisKey = "auth:code:" + code;
