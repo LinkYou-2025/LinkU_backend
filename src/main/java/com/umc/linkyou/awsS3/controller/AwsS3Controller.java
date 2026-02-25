@@ -1,11 +1,13 @@
 package com.umc.linkyou.awsS3.controller;
 
 import com.umc.linkyou.awsS3.AwsS3Service;
+import com.umc.linkyou.validation.annotation.ApiV1;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+@@ApiV1
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/s3")
