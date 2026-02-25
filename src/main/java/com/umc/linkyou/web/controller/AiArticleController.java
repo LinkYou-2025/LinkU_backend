@@ -7,6 +7,7 @@ import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.service.AiArticleService;
 import com.umc.linkyou.utils.UsersUtils;
+import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.AiArticleResponsetDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,8 +16,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "ai-article-controller", description = "AI 기사 관련 API")
+@ApiV1
 @RestController
-@RequestMapping("/api/aiarticle")
+@RequestMapping("/aiarticle")
 @RequiredArgsConstructor
 public class AiArticleController {
 

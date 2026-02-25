@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.service.folder.FolderService;
+import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.folder.*;
 import com.umc.linkyou.web.dto.folder.linku.FolderLinkusResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,8 +17,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @Tag(name = "folder-controller", description = "폴더 관련 API")
+@ApiV1
 @RestController
-@RequestMapping("/api/folders")
+@RequestMapping("/folders")
 @RequiredArgsConstructor
 public class FolderController {
     private final FolderService folderService;

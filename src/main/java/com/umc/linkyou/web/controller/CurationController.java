@@ -1,6 +1,7 @@
 package com.umc.linkyou.web.controller;
 
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
+import com.umc.linkyou.validation.annotation.ApiV1;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.service.curation.CurationLikeService;
@@ -23,9 +24,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Tag(name = "curation-controller", description = "큐레이션 관련 API")
+@ApiV1
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/curations")
+@RequestMapping("/curations")
 public class CurationController {
 
     private final CurationTopLogService curationTopLogService;

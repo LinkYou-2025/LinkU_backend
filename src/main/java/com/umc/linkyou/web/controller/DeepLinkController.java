@@ -1,5 +1,6 @@
 package com.umc.linkyou.web.controller;
 
+import com.umc.linkyou.validation.annotation.ApiV1;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

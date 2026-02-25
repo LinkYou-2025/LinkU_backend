@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.service.folder.shared.SharedFolderService;
+import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.folder.FolderListResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
@@ -19,8 +20,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @Tag(name = "shared-folder-controller", description = "공유 받은 폴더 관련 API")
+@ApiV1
 @RestController
-@RequestMapping("/api/folders/shared")
+@RequestMapping("/folders/shared")
 @RequiredArgsConstructor
 public class SharedFolderController {
     private final SharedFolderService sharedFolderService;
