@@ -77,11 +77,12 @@ public class JwtTokenProvider {
         Claims claims = validateAndParseAccess(token).getBody();
         String email = claims.getSubject();
         // String role = claims.get("role", String.class);
+        String provider = claims.get("provider", String.class);
 
         // Users users = ... // 이메일로 Users 엔티티 조회
         Users users = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("해당 이메일을 가진 유저가 존재하지 않습니다: " + email));
-        CustomUserDetails principal = new CustomUserDetails(users);
+        CustomUserDetails principal = new CustomUserDetails(users,provider);
 
         return new UsernamePasswordAuthenticationToken(principal, token, principal.getAuthorities());
     }
