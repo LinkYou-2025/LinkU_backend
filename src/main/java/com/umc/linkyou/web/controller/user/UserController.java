@@ -99,7 +99,7 @@ public class UserController {
     )
     @GetMapping("/me")
     public ApiResponse<UserResponseDTO.UserProfileSummaryDto> getUserInfo(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        Long userId = userDetails.getUsers().getId();
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         String loginProvider = userDetails.getProvider();
         return ApiResponse.onSuccess(userService.userInfo(userId,loginProvider));
     }
