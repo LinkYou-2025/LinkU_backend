@@ -11,11 +11,17 @@ import java.util.Collection;
 public class CustomUserDetails implements UserDetails {
 
     private Users users;
+    private String provider;
 
     public CustomUserDetails(Users users){
         this.users = users;
     }
 
+    public CustomUserDetails(Users users, String provider) {
+        this.users = users;
+        this.provider = provider;
+    }
+    public String getProvider() { return provider; }
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Collection<GrantedAuthority> collection = new ArrayList<>();

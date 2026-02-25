@@ -79,7 +79,7 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
         boolean isNewUser = user.getStatus() == UserStatus.TEMP;
 
         //OAuth 객체 반환
-        return createCustomOAuth2User(user, oAuth2User, isNewUser);
+        return createCustomOAuth2User(user, oAuth2User, isNewUser, externalId, provider);
     }
 
 
@@ -201,14 +201,15 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
     }
 
     /**Spring Security에 저잫할 Oauth 객체 생성*/
-    private CustomOAuth2User createCustomOAuth2User(Users user, OAuth2User oAuth2User, boolean isNewUser) {
+    private CustomOAuth2User createCustomOAuth2User(Users user, OAuth2User oAuth2User, boolean isNewUser
+            ,String externalId, Provider provider) {
         Map<String, Object> attributes = new HashMap<>(oAuth2User.getAttributes());
         if (isNewUser) {
             attributes.put("needsTermsAgreement", true);
         }
         return new CustomOAuth2User(
                 Collections.singletonList(new SimpleGrantedAuthority(user.getRole().name())),
-                attributes, "email", user.getEmail()
+                attributes, "email", user.getEmail(), externalId, provider.name()
         );
     }
 
