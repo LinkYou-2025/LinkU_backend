@@ -4,9 +4,9 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
+import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.EmailVerification;
-import com.umc.linkyou.domain.UserRefreshToken;
 import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
@@ -37,9 +37,7 @@ import io.jsonwebtoken.Claims;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -81,7 +79,7 @@ public class UserServiceImpl implements UserService {
 
     private final UsersCategoryColorRepository usersCategoryColorRepository;
 
-    private final UserRefreshTokenRepository userRefreshTokenRepository;
+    private final RefreshTokenManager refreshTokenManager;
 
     @Value("${jwt.token.expiration.refresh}")
     private long refreshTtlMs;
@@ -89,17 +87,6 @@ public class UserServiceImpl implements UserService {
     @Value("${jwt.hmac-secret}")
     private String hmacSecret;
 
-    @Autowired
-    StringRedisTemplate stringRedisTemplate;
-
-    private String key(String id){ return "refreshToken:" + id; }
-
-    private void logKey(String id){
-        String k = key(id);
-        Long pttl = stringRedisTemplate.getExpire(k, java.util.concurrent.TimeUnit.MILLISECONDS);
-        Map<Object,Object> map = stringRedisTemplate.opsForHash().entries(k);
-        log.debug("[redis] key={}, pttl(ms)={}, fields={}", k, pttl, map.keySet());
-    }
 
     @Override
     @Transactional
@@ -179,6 +166,7 @@ public class UserServiceImpl implements UserService {
         return newUser;
     }
 
+    //일반 회원 로그인
     @Override
     @Transactional
     public UserResponseDTO.LoginResultDTO loginUser(UserRequestDTO.LoginRequestDTO request) {
@@ -199,12 +187,8 @@ public class UserServiceImpl implements UserService {
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
 
         // 리프레시 토큰이 이미 있으면 토큰을 갱신하고 없으면 토큰을 추가
-        userRefreshTokenRepository.findByUserId(user.getId())
-                .ifPresent(t -> userRefreshTokenRepository.deleteById(t.getRefreshToken()));
-        String id = hmac(jwtTokenProvider.normalizeStrict(refreshToken));
-        userRefreshTokenRepository.save(
-                new UserRefreshToken(id, user.getId(), Provider.GENERAL.name(), refreshTtlMs)
-        );
+        String tokenId =  jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
+        refreshTokenManager.saveToken(user.getId(), tokenId, Provider.GENERAL.name(), refreshTtlMs);
         return UserConverter.toLoginResultDTO(user, accessToken, refreshToken);
     }
 
@@ -279,14 +263,6 @@ public class UserServiceImpl implements UserService {
     }
 
 
-    private String hmac(String token) {
-        try {
-            var mac = javax.crypto.Mac.getInstance("HmacSHA256");
-            mac.init(new javax.crypto.spec.SecretKeySpec(hmacSecret.getBytes(), "HmacSHA256"));
-            return java.util.HexFormat.of().formatHex(mac.doFinal(token.getBytes()));
-        } catch (Exception e) { throw new IllegalStateException(e); }
-    }
-
     public UserResponseDTO.TokenPair reissueRefreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new GeneralException(ErrorStatus._BAD_REQUEST);
@@ -298,26 +274,19 @@ public class UserServiceImpl implements UserService {
         jwtTokenProvider.validateRefreshToken(raw);
 
         // 2) 이메일 파싱(액세스 토큰 재발급용)
-        jwtTokenProvider.validateRefreshToken(raw);
         Claims claims = jwtTokenProvider.validateAndParseRefresh(refreshToken).getBody();
         String email = claims.getSubject();
-
+        Long userId = userRepository.findByEmail(email)
+                .map(Users::getId)
+                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
         // 3) 화이트리스트 확인
-        String oldId = hmac(raw);
-        var saved = userRefreshTokenRepository.findById(oldId)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._UNAUTHORIZED));
-
+        String oldId = jwtTokenProvider.hmac(raw);
         // 저장된 provider 꺼내기
-        String provider = saved.getProvider() != null
-                ? saved.getProvider()
-                : Provider.GENERAL.name(); // null 방어 (기존 레코드 호환)
-
+        String provider = refreshTokenManager.getProvider(userId, oldId);
+        refreshTokenManager.deleteToken(userId, oldId);
         String newRefresh = jwtTokenProvider.createRefreshToken(email);
-        String newId = hmac(jwtTokenProvider.normalizeStrict(newRefresh));
-        userRefreshTokenRepository.deleteById(oldId);
-        userRefreshTokenRepository.save(
-                new UserRefreshToken(newId, saved.getUserId(), provider, refreshTtlMs) // provider 유지
-        );
+        String newId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(newRefresh));
+        refreshTokenManager.saveToken(userId, newId, provider, refreshTtlMs);
 
         // 원래 provider로 재발급
         String newAccess = jwtTokenProvider.createAccessToken(email, provider);
@@ -566,11 +535,7 @@ public class UserServiceImpl implements UserService {
 
         // 1. Redis 삭제
         for (Long userId : inactiveUserIds) {
-            userRefreshTokenRepository.findByUserId(userId)
-                    .ifPresent(token -> {
-                        stringRedisTemplate.delete(token.getRefreshToken());
-                        log.debug("Redis 삭제: userId={}", userId);
-                    });
+            refreshTokenManager.deleteAllTokens(userId);
         }
 
         // 2. 엔티티 로드
@@ -614,11 +579,8 @@ public class UserServiceImpl implements UserService {
         }
 
         // 1. Redis 삭제
-        userRefreshTokenRepository.findByUserId(userId)
-                .ifPresent(token -> {
-                    stringRedisTemplate.delete(token.getRefreshToken());
-                    log.debug("Redis 테스트삭제: userId={}", userId);
-                });
+        refreshTokenManager.deleteAllTokens(userId);
+        log.debug("Redis 테스트삭제: userId={}", userId);
 
         // 2. 엔티티 로드 및 정리
         userRepository.findById(userId).ifPresent(user -> {

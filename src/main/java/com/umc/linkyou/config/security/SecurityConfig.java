@@ -84,9 +84,9 @@ public class SecurityConfig {
                         )
                         .successHandler(oAuth2SuccessHandler)
                 )
-                .requiresChannel(channel -> channel
-                        .anyRequest().requiresSecure()
-                )
+//                .requiresChannel(channel -> channel
+//                        .anyRequest().requiresSecure()
+//                )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
                         UsernamePasswordAuthenticationFilter.class);
 

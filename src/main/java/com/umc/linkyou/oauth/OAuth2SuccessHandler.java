@@ -1,15 +1,13 @@
 package com.umc.linkyou.oauth;
 
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
+import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
 import com.umc.linkyou.domain.AuthAccount;
-import com.umc.linkyou.domain.UserRefreshToken;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.oauth.utils.CustomOAuth2User;
-import com.umc.linkyou.repository.UserRefreshTokenRepository;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
-import com.umc.linkyou.repository.userRepository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -49,8 +47,7 @@ import java.util.concurrent.TimeUnit;
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserRepository userRepository;
-    private final UserRefreshTokenRepository userRefreshTokenRepository;
+    private final RefreshTokenManager refreshTokenManager;
     private final StringRedisTemplate stringRedisTemplate;
     private final AuthAccountRepository authAccountRepository;
 
@@ -128,13 +125,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 String accessToken  = jwtTokenProvider.createAccessToken(confirmedEmail, provider);
                 String refreshToken = jwtTokenProvider.createRefreshToken(confirmedEmail);
 
-                // refreshToken 화이트리스트 저장
-                userRefreshTokenRepository.findByUserId(user.getId())
-                        .ifPresent(t -> userRefreshTokenRepository.deleteById(t.getRefreshToken()));
-                String id = hmac(jwtTokenProvider.normalizeStrict(refreshToken));
-                userRefreshTokenRepository.save(
-                        new UserRefreshToken(id, user.getId(), provider, refreshTtlMs) // provider = "KAKAO", "GOOGLE"
-                );
+                // 토큰 개수 3개로 제한
+                String tokenId = hmac(jwtTokenProvider.normalizeStrict(refreshToken));
+                refreshTokenManager.saveToken(user.getId(), tokenId, provider, refreshTtlMs);
                 // 1회용 코드 생성 → Redis에 토큰 임시 저장 (30초 TTL)
                 String code = UUID.randomUUID().toString().replace("-", "");
                 String redisKey = "auth:code:" + code;
