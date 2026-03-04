@@ -273,22 +273,24 @@ public class UserServiceImpl implements UserService {
         // 1) 서명/만료 검증
         jwtTokenProvider.validateRefreshToken(raw);
 
-        // 2) 이메일 파싱(액세스 토큰 재발급용)
-        Claims claims = jwtTokenProvider.validateAndParseRefresh(refreshToken).getBody();
+        // 2) 이메일 파싱
+        Claims claims = jwtTokenProvider.validateAndParseRefresh(raw).getBody();
         String email = claims.getSubject();
         Long userId = userRepository.findByEmail(email)
                 .map(Users::getId)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
-        // 3) 화이트리스트 확인
+
         String oldId = jwtTokenProvider.hmac(raw);
-        // 저장된 provider 꺼내기
-        String provider = refreshTokenManager.getProvider(userId, oldId);
-        refreshTokenManager.deleteToken(userId, oldId);
+
+        // 3) provider 조회 + 토큰 삭제를 원자적으로 처리 (TOCTOU 방지)
+        String provider = refreshTokenManager.consumeToken(userId, oldId)
+                .orElseThrow(() -> new UserHandler(ErrorStatus._INVALID_TOKEN));
+
+        // 4) 새 토큰 발급 및 저장
         String newRefresh = jwtTokenProvider.createRefreshToken(email);
         String newId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(newRefresh));
         refreshTokenManager.saveToken(userId, newId, provider, refreshTtlMs);
 
-        // 원래 provider로 재발급
         String newAccess = jwtTokenProvider.createAccessToken(email, provider);
         return new UserResponseDTO.TokenPair(newAccess, newRefresh);
     }

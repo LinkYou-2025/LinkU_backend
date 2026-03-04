@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -108,4 +109,39 @@ public class RefreshTokenManager {
         String key = "sessions:" + userId;
         redisTemplate.delete(key);
     }
+
+    // HGET으로 value 읽고 HDEL로 삭제를 원자적으로 처리
+    private static final String CONSUME_TOKEN_SCRIPT = """
+    local key = KEYS[1]
+    local field = ARGV[1]
+    
+    local value = redis.call('HGET', key, field)
+    if value == false then
+        return nil
+    end
+    redis.call('HDEL', key, field)
+    return value
+""";
+
+    // provider를 반환하면서 동시에 토큰을 삭제 (원자적)
+    public Optional<String> consumeToken(Long userId, String tokenId) {
+        String key = "sessions:" + userId;
+
+        String raw = redisTemplate.execute(
+                new DefaultRedisScript<>(CONSUME_TOKEN_SCRIPT, String.class),
+                List.of(key),
+                tokenId
+        );
+
+        if (raw == null) return Optional.empty();
+
+        try {
+            Map<String, Object> map = objectMapper.readValue(raw, Map.class);
+            String provider = (String) map.getOrDefault("provider", Provider.GENERAL.name());
+            return Optional.of(provider);
+        } catch (Exception e) {
+            return Optional.of(Provider.GENERAL.name());
+        }
+    }
+
 }
