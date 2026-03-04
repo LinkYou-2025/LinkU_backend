@@ -93,15 +93,21 @@ public class RefreshTokenManager {
     }
 
     // getProvider: 재발급 시 provider 꺼내기
-    public String getProvider(Long userId, String tokenId) {
+    public Optional<String> getProvider(Long userId, String tokenId) {
         String key = "sessions:" + userId;
         Object val = redisTemplate.opsForHash().get(key, tokenId);
-        if (val == null) return Provider.GENERAL.name();
+
+        if (val == null) return Optional.empty();
+
         try {
             Map<String, Object> map = objectMapper.readValue(val.toString(), Map.class);
-            return (String) map.getOrDefault("provider", Provider.GENERAL.name());
+            String provider = (String) map.get("provider");
+
+            if (provider == null || provider.isBlank()) return Optional.empty();
+
+            return Optional.of(provider);
         } catch (Exception e) {
-            return Provider.GENERAL.name();
+            return Optional.empty();
         }
     }
 
@@ -137,10 +143,11 @@ public class RefreshTokenManager {
 
         try {
             Map<String, Object> map = objectMapper.readValue(raw, Map.class);
-            String provider = (String) map.getOrDefault("provider", Provider.GENERAL.name());
+            String provider = (String) map.get("provider");
+            if (provider == null || provider.isBlank()) return Optional.empty();
             return Optional.of(provider);
         } catch (Exception e) {
-            return Optional.of(Provider.GENERAL.name());
+            return Optional.empty();
         }
     }
 
