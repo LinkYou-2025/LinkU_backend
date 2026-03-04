@@ -3,9 +3,7 @@ package com.umc.linkyou.config.security.jwt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
-import com.umc.linkyou.domain.UserRefreshToken;
 import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.repository.UserRefreshTokenRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -40,7 +38,7 @@ public class JwtTokenProvider {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final UserRefreshTokenRepository userRefreshTokenRepository;
+    private final RefreshTokenManager refreshTokenManager;
 
     @Value("${jwt.hmac-secret}")
     private String hmacSecret;
@@ -114,7 +112,7 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    private String hmac(String token) {
+    public String hmac(String token) {
         try {
             var mac = javax.crypto.Mac.getInstance("HmacSHA256");
             mac.init(new javax.crypto.spec.SecretKeySpec(hmacSecret.getBytes(StandardCharsets.UTF_8),  "HmacSHA256"));
@@ -133,19 +131,16 @@ public class JwtTokenProvider {
         Claims claims = jws.getBody();
         String email = claims.getSubject();
 
-        // 3) 화이트리스트 키 = HMAC(normalized token)
-        String id = hmac(raw); // ※ JwtTokenProvider 안에 hmac(secret) 구현 필요
-
-        // 4) Redis 화이트리스트에 키가 존재하는지 확인
-        UserRefreshToken saved = userRefreshTokenRepository.findById(id)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._INVALID_TOKEN));
-
-        // 5) (권장) 토큰 소유자 일치 검증
+        // 3) 토큰 소유자 userId 조회
         Long expectedUserId = userRepository.findByEmail(email)
                 .map(Users::getId)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
 
-        if (!saved.getUserId().equals(expectedUserId)) {
+        // 4) HMAC id 생성
+        String id = hmac(raw);
+
+        // 5) Redis Hash 화이트리스트에 키가 존재하는지 확인
+        if (!refreshTokenManager.validateToken(expectedUserId, id)) {
             throw new UserHandler(ErrorStatus._INVALID_TOKEN);
         }
     }
@@ -199,5 +194,7 @@ public class JwtTokenProvider {
                 Map.class
         ).get("sub").toString();
     }
+
+
 
 }
