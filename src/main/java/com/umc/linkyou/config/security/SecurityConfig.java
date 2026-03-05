@@ -50,6 +50,7 @@ public class SecurityConfig {
                                 "/*.well-known/**",
                                 "/open/**",
                                 "/actuator/**",
+                                "/api/auth/mobile/**",
                                 "/error/**"
 //                                ,"/oauth2/**",          // 소셜 로그인 진입점 (/oauth2/authorization/{registrationId})
 //                                "/api/oauth2/**",     // 소셜 로그인 에러, 성공 콜백
