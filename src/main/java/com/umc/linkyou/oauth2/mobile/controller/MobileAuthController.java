@@ -26,7 +26,7 @@ public class MobileAuthController {
     @PostMapping("/google")
     public ApiResponse<MobileLoginResponse> googleLogin(@Valid @RequestBody MobileLoginRequest request) {
         MobileLoginResponse result = googleService.login(request.token());
-        return ApiResponse.onSuccess(result);  // ✅ 표준 형식!
+        return ApiResponse.onSuccess(result);
     }
 
 }

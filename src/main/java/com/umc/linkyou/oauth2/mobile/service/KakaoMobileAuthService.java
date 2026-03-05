@@ -34,17 +34,18 @@ public class KakaoMobileAuthService implements MobileAuthService {
                 info.email(), info.name(), info.externalId(),
                 info.profileImage(), Provider.KAKAO);  // Provider.KAKAO
 
+        String resolvedEmail = (user.getEmail() != null) ? user.getEmail() : info.email();
         if (user.getStatus() == UserStatus.TEMP) {
             return MobileLoginResponse.builder()
                     .userId(user.getId())
-                    .accessToken(jwtTokenProvider.createAccessToken(info.email(), Provider.KAKAO.name()))
+                    .accessToken(jwtTokenProvider.createAccessToken(resolvedEmail, Provider.KAKAO.name()))
                     .refreshToken(null)
                     .status(UserStatus.TEMP)
                     .build();
         }
 
-        String accessTokenJwt = jwtTokenProvider.createAccessToken(info.email(), Provider.KAKAO.name());
-        String refreshToken = jwtTokenProvider.createRefreshToken(info.email());
+        String accessTokenJwt = jwtTokenProvider.createAccessToken(resolvedEmail, Provider.KAKAO.name());
+        String refreshToken = jwtTokenProvider.createRefreshToken(resolvedEmail);
         String tokenId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
         refreshTokenManager.saveToken(user.getId(), tokenId, Provider.KAKAO.name(), refreshTtlMs);
 

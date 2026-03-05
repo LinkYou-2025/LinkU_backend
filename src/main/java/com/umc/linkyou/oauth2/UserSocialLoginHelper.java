@@ -33,6 +33,7 @@ public class UserSocialLoginHelper {
     public Users findOrCreateUser(String email, String name, String externalId,
                                   String profileImage, Provider provider, String socialToken) {
 
+        validateRequiredIdentifiers(email, externalId, provider);
         Optional<AuthAccount> authAccountOpt =
                 authAccountRepository.findByProviderAndExternalId(provider, externalId);
         /** 1. 재로그인: 닉네임/프로필/토큰 업데이트 */
@@ -60,13 +61,11 @@ public class UserSocialLoginHelper {
         Optional<Users> existingUserOpt = userRepository.findByEmail(email);
         if (existingUserOpt.isPresent()) {
             Users user = existingUserOpt.get();
-            log.info("기존 사용자에 소셜 계정 연결: userId={}, provider={}", user.getId(), provider);
             saveAuthAccount(user, provider, externalId, profileImage, socialToken);
             return user;
         }
 
         /** 3.완전 신규 사용자 + AuthAccount 일괄 생성*/
-        log.info("새 소셜 사용자 생성: provider={}, email={}", provider, email);
         return createNewUserWithAccount(email, name, provider, externalId, profileImage, socialToken);
     }
 
@@ -121,6 +120,20 @@ public class UserSocialLoginHelper {
         } catch (Exception e) {
             log.error("AuthAccount 저장 실패: userId={}, provider={}", user.getId(), provider, e);
             throw new GeneralException(ErrorStatus._AUTH_ACCOUNT_SAVE_FAILED);
+        }
+    }
+    private void validateRequiredIdentifiers(String email, String externalId, Provider provider) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new GeneralException(ErrorStatus._SOCIAL_EMAIL_REQUIRED);
+        }
+        if (!email.contains("@")) {
+            throw new GeneralException(ErrorStatus._INVALID_EMAIL_FORMAT);
+        }
+        if (externalId == null || externalId.trim().isEmpty()) {
+            throw new GeneralException(ErrorStatus._SOCIAL_EXTERNAL_ID_REQUIRED);
+        }
+        if (provider == null) {
+            throw new GeneralException(ErrorStatus._SOCIAL_UNSUPPORTED_PROVIDER);
         }
     }
 }

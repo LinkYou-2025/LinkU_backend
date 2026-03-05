@@ -36,12 +36,18 @@ public class KakaoTokenClient {
             Map<String, Object> body = response.getBody();
             if (body == null) throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
 
-            String externalId = String.valueOf(body.get("id"));
+            Object idObj = body.get("id");
+            if (idObj == null || idObj.toString().trim().isEmpty()) {
+                throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
+            }
+            String externalId = idObj.toString();
 
             @SuppressWarnings("unchecked")
             Map<String, Object> kakaoAccount = (Map<String, Object>) body.get("kakao_account");
+            if (kakaoAccount == null) throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
             @SuppressWarnings("unchecked")
             Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+            if (profile == null) throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
 
             String email = (String) kakaoAccount.get("email");
             String name = (String) profile.get("nickname");
@@ -52,8 +58,9 @@ public class KakaoTokenClient {
             }
 
             return new KakaoUserInfo(externalId, email, name, profileImage);
-
-        } catch (Exception e) {
+        } catch (GeneralException e) {
+            throw e;  // 명시적 재throw (호출자 일관성)
+    } catch (Exception e) {
             log.error("카카오 사용자 정보 조회 실패", e);
             throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
         }
