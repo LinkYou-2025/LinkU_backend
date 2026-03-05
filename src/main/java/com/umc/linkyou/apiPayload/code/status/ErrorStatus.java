@@ -49,12 +49,14 @@ public enum ErrorStatus implements BaseErrorCode {
     _SOCIAL_UNSUPPORTED_PROVIDER(HttpStatus.BAD_REQUEST, "OAUTH4004", "지원하지 않는 소셜 제공자입니다."),
     _SOCIAL_PROFILE_EXPIRED(HttpStatus.BAD_REQUEST, "OAUTH4005", "임시 프로필이 만료되었습니다."),
     _SOCIAL_PROFILE_NOT_REQUIRED(HttpStatus.BAD_REQUEST, "OAUTH4006", "임시 프로필이 필요하지 않습니다."),
-    _INVALID_AUTH_CODE(HttpStatus.BAD_REQUEST, "OAUTH4007", "유효하지 않거나 만료된 인증 코드"),
-
+    _INVALID_AUTH_CODE(HttpStatus.BAD_REQUEST, "OAUTH4007", "웹:유효하지 않거나 만료된 인증 코드"),
+    _INVALID_ID_TOKEN(HttpStatus.BAD_REQUEST, "OAUTH4008", "앱:유효하지 않거나 만료된 ID 토큰"),
     //링큐 관련 코드
     _LINKU_VIDEO_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "LINKU4001", "영상 링크는 저장할 수 없습니다."),
     _LINKU_INVALID_URL(HttpStatus.BAD_REQUEST, "LINKU4002", "유효하지 않은 링크입니다."),
     _USER_LINKU_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU404", "user_linku 테이블을 찾기 못했습니다." ),
+    _SOCIAL_EXTERNAL_ID_REQUIRED(HttpStatus.BAD_REQUEST, "OAUTH4009", "소셜 계정 ID가 필요합니다."),
+    _INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "OAUTH4010", "올바른 이메일 형식이 아닙니다."),
     //OPENAI관련 오류
     _AI_PARSE_ERROR(HttpStatus.BAD_REQUEST, "OPENAI5001", "AI 응답 파싱에 실패했습니다."),
     _AI_INVALID_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR, "OPENAI5002", "AI 응답이 예상한 형식이 아닙니다."),
