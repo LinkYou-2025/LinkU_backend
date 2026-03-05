@@ -42,9 +42,13 @@ public class UserSocialLoginHelper {
             Users user = authAccount.getUser();
 
             // 닉네임 업데이트 (중복 아닐 때만)
-            if (name != null && !name.equals(user.getNickName())
-                    && !userRepository.existsByNickName(name)) {
-                user.setNickName(name);
+            if (name != null) {
+                String trimmedName = name.trim();
+                if (!trimmedName.isEmpty()  // 공백만 있는 이름 차단
+                        && !trimmedName.equals(user.getNickName())  // trim 후 비교
+                        && !userRepository.existsByNickName(trimmedName)) {  // trim 저장
+                    user.setNickName(trimmedName);  // 공백 제거된 이름 저장
+                }
             }
             // 프로필 이미지 업데이트
             if (profileImage != null && !profileImage.equals(authAccount.getProfileImage())) {

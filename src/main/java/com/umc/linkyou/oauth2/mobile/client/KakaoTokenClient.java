@@ -23,13 +23,17 @@ public class KakaoTokenClient {
     public record KakaoUserInfo(String externalId, String email, String name, String profileImage) {}
 
     public KakaoUserInfo getUserInfo(String accessToken) {
+        if (accessToken == null || accessToken.trim().isEmpty()) {
+            throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
+        }
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-
         try {
+
+            headers.setBearerAuth(accessToken.trim());  // trim으로 공백 제거
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
             ResponseEntity<Map> response = restTemplate.exchange(
                     USER_INFO_URL, HttpMethod.GET, entity, Map.class);
 
@@ -47,11 +51,10 @@ public class KakaoTokenClient {
             if (kakaoAccount == null) throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
             @SuppressWarnings("unchecked")
             Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
-            if (profile == null) throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
+            String name = profile != null ? (String) profile.get("nickname") : null;
+            String profileImage = profile != null ? (String) profile.get("profile_image_url") : null;
 
             String email = (String) kakaoAccount.get("email");
-            String name = (String) profile.get("nickname");
-            String profileImage = (String) profile.get("profile_image_url");
 
             if (email == null || email.isBlank()) {
                 throw new GeneralException(ErrorStatus._SOCIAL_EMAIL_REQUIRED);

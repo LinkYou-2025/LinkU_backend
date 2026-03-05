@@ -1,5 +1,7 @@
 package com.umc.linkyou.oauth2.mobile.service;
 
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
 import com.umc.linkyou.domain.Users;
@@ -27,14 +29,19 @@ public class KakaoMobileAuthService implements MobileAuthService {
     private long refreshTtlMs;
 
     @Override
-    public MobileLoginResponse login(String accessToken) {  // idToken → accessToken
+    public MobileLoginResponse login(String accessToken) {
         KakaoTokenClient.KakaoUserInfo info = kakaoTokenClient.getUserInfo(accessToken);
 
         Users user = userSocialLoginHelper.findOrCreateUser(
                 info.email(), info.name(), info.externalId(),
-                info.profileImage(), Provider.KAKAO);  // Provider.KAKAO
+                info.profileImage(), Provider.KAKAO);
 
         String resolvedEmail = (user.getEmail() != null) ? user.getEmail() : info.email();
+
+        if (user.getStatus() == UserStatus.INACTIVE) {
+            throw new GeneralException(ErrorStatus._USER_INACTIVE);
+        }
+
         if (user.getStatus() == UserStatus.TEMP) {
             return MobileLoginResponse.builder()
                     .userId(user.getId())
@@ -44,6 +51,7 @@ public class KakaoMobileAuthService implements MobileAuthService {
                     .build();
         }
 
+        // ACTIVE 사용자만 풀 토큰 발급
         String accessTokenJwt = jwtTokenProvider.createAccessToken(resolvedEmail, Provider.KAKAO.name());
         String refreshToken = jwtTokenProvider.createRefreshToken(resolvedEmail);
         String tokenId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
@@ -56,4 +64,5 @@ public class KakaoMobileAuthService implements MobileAuthService {
                 .status(UserStatus.ACTIVE)
                 .build();
     }
+
 }
