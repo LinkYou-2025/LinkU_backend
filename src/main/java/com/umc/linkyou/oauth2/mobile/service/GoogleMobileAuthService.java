@@ -38,14 +38,14 @@ public class GoogleMobileAuthService implements MobileAuthService {
         if (user.getStatus() == UserStatus.TEMP) {
             return MobileLoginResponse.builder()
                     .userId(user.getId())
-                    .accessToken(jwtTokenProvider.createAccessToken(email, Provider.GOOGLE.name()))
+                    .accessToken(jwtTokenProvider.createAccessToken(user.getEmail(), Provider.GOOGLE.name()))
                     .refreshToken(null)
                     .status(UserStatus.TEMP)
                     .build();
         }
 
-        String accessToken = jwtTokenProvider.createAccessToken(email, Provider.GOOGLE.name());
-        String refreshToken = jwtTokenProvider.createRefreshToken(email);  //
+        String accessToken = jwtTokenProvider.createAccessToken(user.getEmail(), Provider.GOOGLE.name());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());  //
         String tokenId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
         refreshTokenManager.saveToken(user.getId(), tokenId, Provider.GOOGLE.name(), refreshTtlMs);
 
