@@ -1,4 +1,4 @@
-package com.umc.linkyou.oauth;
+package com.umc.linkyou.oauth2;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;

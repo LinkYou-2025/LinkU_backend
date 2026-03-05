@@ -1,5 +1,5 @@
 
-package com.umc.linkyou.oauth.utils;
+package com.umc.linkyou.oauth2.utils;
 
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;

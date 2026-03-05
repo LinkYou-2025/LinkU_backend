@@ -1,4 +1,4 @@
-package com.umc.linkyou.oauth.web;
+package com.umc.linkyou.oauth2.web;
 
 import com.umc.linkyou.domain.enums.Provider;
 import lombok.RequiredArgsConstructor;

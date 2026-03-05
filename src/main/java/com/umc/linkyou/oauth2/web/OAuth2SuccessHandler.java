@@ -1,4 +1,4 @@
-package com.umc.linkyou.oauth.web;
+package com.umc.linkyou.oauth2.web;
 
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
@@ -6,7 +6,7 @@ import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
-import com.umc.linkyou.oauth.utils.CustomOAuth2User;
+import com.umc.linkyou.oauth2.utils.CustomOAuth2User;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
