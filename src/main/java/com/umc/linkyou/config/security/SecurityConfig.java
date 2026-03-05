@@ -2,13 +2,9 @@ package com.umc.linkyou.config.security;
 
 import com.umc.linkyou.config.security.jwt.JwtAuthenticationFilter;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
-import com.umc.linkyou.oauth2.web.OAuth2SuccessHandler;
-import com.umc.linkyou.oauth2.web.OAuth2TokenClient;
-import com.umc.linkyou.oauth2.web.OAuth2UserServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
