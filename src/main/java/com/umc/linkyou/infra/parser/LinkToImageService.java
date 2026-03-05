@@ -1,4 +1,4 @@
-package com.umc.linkyou.titleImgParser;
+package com.umc.linkyou.infra.parser;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

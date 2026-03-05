@@ -2,7 +2,7 @@ package com.umc.linkyou.service.domain;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.awsS3.AwsS3Service;
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.converter.DomainConverter;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;

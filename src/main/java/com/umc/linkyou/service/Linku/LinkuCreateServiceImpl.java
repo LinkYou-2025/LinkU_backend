@@ -1,9 +1,9 @@
 package com.umc.linkyou.service.Linku;
 
-import com.umc.linkyou.titleImgParser.LinkToImageService;
+import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.awsS3.AwsS3Service;
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.converter.AiArticleConverter;
 import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.converter.LinkuConverter;
@@ -18,7 +18,7 @@ import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
-import com.umc.linkyou.aiCategoryClassifier.OpenAICategoryClassifier;
+import com.umc.linkyou.infra.ai.classifier.OpenAICategoryClassifier;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
