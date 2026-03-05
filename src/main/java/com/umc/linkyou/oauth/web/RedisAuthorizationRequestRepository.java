@@ -1,4 +1,4 @@
-package com.umc.linkyou.oauth;
+package com.umc.linkyou.oauth.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;

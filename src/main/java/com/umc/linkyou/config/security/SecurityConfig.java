@@ -2,10 +2,10 @@ package com.umc.linkyou.config.security;
 
 import com.umc.linkyou.config.security.jwt.JwtAuthenticationFilter;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
-import com.umc.linkyou.oauth.OAuth2SuccessHandler;
-import com.umc.linkyou.oauth.OAuth2TokenClient;
-import com.umc.linkyou.oauth.OAuth2UserServiceImpl;
-import com.umc.linkyou.oauth.RedisAuthorizationRequestRepository;
+import com.umc.linkyou.oauth.web.OAuth2SuccessHandler;
+import com.umc.linkyou.oauth.web.OAuth2TokenClient;
+import com.umc.linkyou.oauth.web.OAuth2UserServiceImpl;
+import com.umc.linkyou.oauth.web.RedisAuthorizationRequestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

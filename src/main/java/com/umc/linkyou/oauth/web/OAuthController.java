@@ -1,4 +1,4 @@
-package com.umc.linkyou.oauth;
+package com.umc.linkyou.oauth.web;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
