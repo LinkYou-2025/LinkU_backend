@@ -82,7 +82,10 @@ public class UserSocialLoginHelper {
         //닉네임 생성 전략: 소셜 이름 우선 사용 -> 이름 없으면 이메일 도메인
         String base = (name != null && !name.isBlank())
                 ? name  // 소셜 이름 우선
-                : email.substring(0, email.indexOf("@"))  // "user@gmail.com" → "user"
+                : (email.contains("@")
+                    ? email.substring(0, email.indexOf("@"))
+                : email)
+                // "user@gmail.com" → "user"
                 .replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
         if (base.isBlank()) base = "user";  // 안전장치
 
