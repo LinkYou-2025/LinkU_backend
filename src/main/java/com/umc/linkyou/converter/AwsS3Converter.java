@@ -1,6 +1,6 @@
 package com.umc.linkyou.converter;
 
-import com.umc.linkyou.awsS3.AwsS3Service;
+import com.umc.linkyou.awss3.AwsS3Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;

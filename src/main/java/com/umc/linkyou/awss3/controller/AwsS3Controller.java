@@ -1,6 +1,6 @@
-package com.umc.linkyou.awsS3.controller;
+package com.umc.linkyou.awss3.controller;
 
-import com.umc.linkyou.awsS3.AwsS3Service;
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

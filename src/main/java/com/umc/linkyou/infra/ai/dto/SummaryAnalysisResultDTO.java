@@ -1,4 +1,4 @@
-package com.umc.linkyou.openApiSummary;
+package com.umc.linkyou.infra.ai.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
