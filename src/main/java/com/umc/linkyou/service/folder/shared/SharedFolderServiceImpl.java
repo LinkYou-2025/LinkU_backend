@@ -9,6 +9,8 @@ import com.umc.linkyou.web.dto.folder.FolderListResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.*;
+
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -27,7 +29,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
     // 공유받은 폴더 트리 조회
     public List<SharedFolderTreeResponseDTO> getSharedFolderTree(Long userId) {
         // 유저 id로 공유 받은 폴더 리스트
-        List<Folder> sharedFolders = usersFolderRepository.findSharedFolders(userId);
+        List<Folder> sharedFolders = usersFolderRepository.findAllSharedFolders(userId);
 
         // 공유 폴더가 없으면 즉시 빈 결과 반환
         if (sharedFolders.isEmpty()) {
@@ -79,25 +81,9 @@ public class SharedFolderServiceImpl implements SharedFolderService {
         return result;
     }
 
-    // 폴더 트리
-    private FolderTreeResponseDTO buildTreeFromMap(Folder folder, Map<Long, List<Folder>> parentChildMap, Long userId) {
-        FolderTreeResponseDTO dto = folderConverter.toFolderTreeDTO(folder, userId);
-
-        List<Folder> childFolders = parentChildMap.get(folder.getFolderId());
-        if (childFolders != null && !childFolders.isEmpty()) {
-            List<FolderTreeResponseDTO> childDTOs = childFolders.stream()
-                    .map(child -> buildTreeFromMap(child, parentChildMap, userId))
-                    .collect(Collectors.toList());
-            dto.setChildren(childDTOs);
-        } else {
-            dto.setChildren(null);
-        }
-        return dto;
-    }
-
     public List<FolderListResponseDTO> getSharedFolders(Long userId) {
         // 유저 폴더 테이블에서 isOwner가 false고 isViewer가 true인 폴더들 조회
-        List<Folder> folders = usersFolderRepository.findSharedFolders(userId);
+        List<Folder> folders = usersFolderRepository.findAllSharedFolders(userId);
 
         return folders.stream()
                 .map(folder -> FolderListResponseDTO.builder()
