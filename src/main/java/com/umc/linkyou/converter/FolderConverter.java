@@ -4,16 +4,14 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
-import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-@RequiredArgsConstructor
+import java.util.Map;
+
 @Component
 public class FolderConverter {
-    private final UsersFolderRepository usersFolderRepository;
 
     public FolderResponseDTO toFolderResponseDTO(Folder folder) {
         if (folder == null) {
@@ -31,11 +29,12 @@ public class FolderConverter {
                 .build();
     }
 
-    public FolderTreeResponseDTO toFolderTreeDTO(Folder folder, Long userId) {
+    public FolderTreeResponseDTO toFolderTreeDTO(Folder folder, Map<Long, Boolean> bookmarkMap) {
         FolderTreeResponseDTO dto = new FolderTreeResponseDTO();
 
         dto.setFolderId(folder.getFolderId());
         dto.setFolderName(folder.getFolderName());
+        dto.setIsBookmarked(bookmarkMap.getOrDefault(folder.getFolderId(), false));
 
         Category category = folder.getCategory();
         if (category != null) {
@@ -49,9 +48,10 @@ public class FolderConverter {
         return Folder.builder()
                 .category(category)
                 .folderName(category.getCategoryName())
-                .parentFolder(null)  // 필요 시 상위 폴더 지정
+                .parentFolder(null)
                 .build();
     }
+
     public UsersFolder toUsersFolder(Users user, Folder folder) {
         return UsersFolder.builder()
                 .user(user)
@@ -63,4 +63,3 @@ public class FolderConverter {
                 .build();
     }
 }
-

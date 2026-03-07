@@ -136,6 +136,13 @@ public class FolderServiceImpl implements FolderService {
         // 유저 모든 폴더 조회
         List<UsersFolder> allFolders = usersFolderRepository.findAllByUserId(userId);
 
+        // folderId → isBookmarked 맵
+        Map<Long, Boolean> bookmarkMap = allFolders.stream()
+                .collect(Collectors.toMap(
+                        uf -> uf.getFolder().getFolderId(),
+                        UsersFolder::getIsBookmarked
+                ));
+
         // parentFolderId → 자식 Folder 목록 맵
         Map<Long, List<Folder>> childMap = allFolders.stream()
                 .filter(uf -> uf.getFolder().getParentFolder() != null)
@@ -144,20 +151,20 @@ public class FolderServiceImpl implements FolderService {
                         Collectors.mapping(UsersFolder::getFolder, Collectors.toList())
                 ));
 
-        // 중분류부터 재귀적로 트리 구성
+        // 중분류부터 재귀적으로 트리 구성
         return allFolders.stream()
                 .filter(uf -> uf.getFolder().getParentFolder() == null)
-                .map(uf -> buildTreeFromMap(uf.getFolder(), childMap, userId))
+                .map(uf -> buildTreeFromMap(uf.getFolder(), childMap, bookmarkMap))
                 .collect(Collectors.toList());
     }
 
-    private FolderTreeResponseDTO buildTreeFromMap(Folder folder, Map<Long, List<Folder>> parentChildMap, Long userId) {
-        FolderTreeResponseDTO dto = folderConverter.toFolderTreeDTO(folder, userId);
+    private FolderTreeResponseDTO buildTreeFromMap(Folder folder, Map<Long, List<Folder>> parentChildMap, Map<Long, Boolean> bookmarkMap) {
+        FolderTreeResponseDTO dto = folderConverter.toFolderTreeDTO(folder, bookmarkMap);
 
         List<Folder> childFolders = parentChildMap.get(folder.getFolderId());
         if (childFolders != null && !childFolders.isEmpty()) {
             List<FolderTreeResponseDTO> childDTOs = childFolders.stream()
-                    .map(child -> buildTreeFromMap(child, parentChildMap, userId))
+                    .map(child -> buildTreeFromMap(child, parentChildMap, bookmarkMap))
                     .collect(Collectors.toList());
             dto.setChildren(childDTOs);
         } else {
@@ -170,11 +177,20 @@ public class FolderServiceImpl implements FolderService {
     public List<FolderListResponseDTO> getParentFolders(Long userId) {
         List<UsersFolder> parentFolders = usersFolderRepository.findParentFolders(userId);
 
+        List<Long> folderIds = parentFolders.stream()
+                .map(uf -> uf.getFolder().getFolderId())
+                .toList();
+
+        Set<Long> sharedFolderIds = folderIds.isEmpty()
+                ? Collections.emptySet()
+                : usersFolderRepository.findAllSharedFolderIdsIn(folderIds);
+
         return parentFolders.stream()
                 .map(usersFolder -> FolderListResponseDTO.builder()
                         .folderId(usersFolder.getFolder().getFolderId())
                         .folderName(usersFolder.getFolder().getFolderName())
                         .isBookmarked(usersFolder.getIsBookmarked())
+                        .isSharing(sharedFolderIds.contains(usersFolder.getFolder().getFolderId()) ? "share" : "private")
                         .build())
                 .collect(Collectors.toList());
     }
@@ -245,7 +261,9 @@ public class FolderServiceImpl implements FolderService {
                 ));
 
         // 공유 중인 폴더 ID들만 Set으로 가져옴
-        Set<Long> sharedFolderIds = usersFolderRepository.findAllSharedFolderIdsIn(subFolderIds);
+        Set<Long> sharedFolderIds = subFolderIds.isEmpty()
+                ? Collections.emptySet()
+                : usersFolderRepository.findAllSharedFolderIdsIn(subFolderIds);
 
         // 하위 폴더 DTO 변환
         List<FolderSummaryDTO> subfolderDtos = subFolders.stream()
@@ -287,9 +305,7 @@ public class FolderServiceImpl implements FolderService {
                             ? link.getAiArticle().getKeyword()
                             : null
             );
-            dto.setLinkuImageUrl(
-                    usersLinku.getImageUrl()
-            );
+            dto.setLinkuImageUrl(usersLinku.getImageUrl());
             dto.setCreatedAt(link.getCreatedAt().toString());
             return dto;
         }).toList();

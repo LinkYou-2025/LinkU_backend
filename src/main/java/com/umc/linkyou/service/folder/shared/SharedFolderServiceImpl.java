@@ -1,5 +1,7 @@
 package com.umc.linkyou.service.folder.shared;
 
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.folder.Folder;
@@ -10,9 +12,7 @@ import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.*;
 
-
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -40,6 +40,14 @@ public class SharedFolderServiceImpl implements SharedFolderService {
         List<Long> folderIdList = sharedFolders.stream()
                 .map(Folder::getFolderId)
                 .collect(Collectors.toList());
+
+        // 북마크 상태 일괄 조회
+        Map<Long, Boolean> bookmarkMap = usersFolderRepository.findAllByUserIdAndFolderIdIn(userId, folderIdList).stream()
+                .collect(Collectors.toMap(
+                        uf -> uf.getFolder().getFolderId(),
+                        UsersFolder::getIsBookmarked
+                ));
+
         // 폴더 주인 찾기
         List<UsersFolder> ownerMappings = usersFolderRepository.findOwnersByFolderIdIn(folderIdList);
         Map<Long, Users> folderOwnerMap = ownerMappings.stream()
@@ -58,7 +66,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
                     return owner.getId();
                 }));
 
-      List<SharedFolderTreeResponseDTO> result = new ArrayList<>();
+        List<SharedFolderTreeResponseDTO> result = new ArrayList<>();
         for (Map.Entry<Long, List<Folder>> entry : userIdFolderMap.entrySet()) {
             Long ownerId = entry.getKey();
             List<Folder> folders = entry.getValue();
@@ -66,7 +74,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
             String nickname = owner != null ? owner.getNickName() : "닉네임 없음";
 
             List<FolderTreeResponseDTO> folderDTOs = folders.stream()
-                    .map(folder -> folderConverter.toFolderTreeDTO(folder, userId))
+                    .map(folder -> folderConverter.toFolderTreeDTO(folder, bookmarkMap))
                     .collect(Collectors.toList());
 
             SharedFolderTreeResponseDTO dto = SharedFolderTreeResponseDTO.builder()
@@ -98,7 +106,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
         // 폴더 조회
         UsersFolder usersFolder = usersFolderRepository
                 .findByUserIdAndFolderId(userId, folderId)
-                .orElseThrow(() -> new AccessDeniedException("공유 폴더가 없습니다."));
+                .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
 
         // 유저 폴더 테이블에서 삭제
         usersFolderRepository.delete(usersFolder);
@@ -107,4 +115,3 @@ public class SharedFolderServiceImpl implements SharedFolderService {
         return folderConverter.toFolderResponseDTO(folder);
     }
 }
-
