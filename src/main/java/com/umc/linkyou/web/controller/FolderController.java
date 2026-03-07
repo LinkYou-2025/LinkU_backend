@@ -10,7 +10,6 @@ import com.umc.linkyou.web.dto.folder.linku.FolderLinkusResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -57,12 +56,12 @@ public class FolderController {
             description = "소분류 폴더를 삭제합니다."
     )
     @DeleteMapping("/subfolders/{folderId}")
-    public ResponseEntity<FolderResponseDTO> deleteFolder(
+    public ApiResponse<FolderResponseDTO> deleteFolder(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId
     ) {
         FolderResponseDTO response = folderService.deleteFolder(userDetails.getUsers().getId(), folderId);
-        return ResponseEntity.ok(response);
+        return ApiResponse.of(SuccessStatus._FOLDER_DELETE_OK, response);
     }
 
     @Operation(
