@@ -11,11 +11,9 @@ import com.umc.linkyou.repository.FolderShareLinkRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
-import com.umc.linkyou.web.dto.folder.share.ShareFolderRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -96,16 +94,16 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         link.deactivate();
     }
 
-    // 폴더 뷰어 조회
+    // 폴더 viewer and writer 조회
     public List<ViewerResponseDTO> getViewers(Long userId, Long folderId) {
         boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
         if (!isOwner) {
             throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
-        List<UsersFolder> viewers = usersFolderRepository.findByFolderFolderIdAndIsViewerTrue(folderId);
+        List<UsersFolder> participants = usersFolderRepository.findAllParticipantsByFolderId(folderId);
 
-        return viewers.stream()
+        return participants.stream()
                 .map(uf -> {
                     ViewerResponseDTO dto = new ViewerResponseDTO();
                     dto.setUserId(uf.getUser().getId());
@@ -127,8 +125,6 @@ public class ShareFolderServiceImpl implements ShareFolderService {
                     return dto;
                 })
                 .toList();
-
-
     }
 
     // 유저의 폴더 권한 수정
@@ -190,9 +186,9 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(folderId)
                 .ifPresent(FolderShareLink::deactivate);
 
-        // 뷰어들 조회
+        // member(viewer and writer) 조회
         List<UsersFolder> mappings =
-                usersFolderRepository.searchViewers(folderId);
+                usersFolderRepository.findAllParticipantsByFolderId(folderId);
 
         // 권한 박탈
         mappings.forEach(uf -> {
