@@ -25,5 +25,5 @@ public interface FolderService {
     BookmarkUpdateResponseDTO updateBookmark(Long userId, Long folderId, Boolean isBookmarked);
 
     // 폴더 내부 링크, 폴더 목록 조회
-    FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor);
+    FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort);
 }

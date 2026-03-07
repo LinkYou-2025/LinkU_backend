@@ -127,10 +127,11 @@ public class FolderController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId,
             @RequestParam(defaultValue = "20") int limit,
-            @RequestParam(required = false) String cursor
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "name") String sort
     ) {
         FolderLinkusResponseDTO response = folderService.getFolderLinkus(
-                userDetails.getUsers().getId(), folderId, limit, cursor);
+                userDetails.getUsers().getId(), folderId, limit, cursor, sort);
         return ApiResponse.of(SuccessStatus._FOLDER_LINK_OK, response);
     }
 }
