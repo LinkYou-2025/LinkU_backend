@@ -40,7 +40,7 @@ public enum SuccessStatus implements BaseCode {
     _FOLDER_SHARE_OK(HttpStatus.OK, "FOLDER_SHARE200", "폴더를 공유했습니다."),
     _FOLDER_UNSHARE_OK(HttpStatus.OK, "FOLDER_UNSHARE200", "폴더를 비공개로 전환했습니다."),
     _FOLDER_SHARED_OK(HttpStatus.OK, "FOLDER_SHARED200", "공유 받은 폴더 목록 조회를 성공했습니다."),
-    _FOLDER_MEMBERS_OK(HttpStatus.OK, "FOLDER_MEMBERS200", "폴더 뷰어 목록 조회를 성공했습니다"),
+    _FOLDER_MEMBERS_OK(HttpStatus.OK, "FOLDER_MEMBERS200", "폴더 참여자 목록 조회를 성공했습니다"),
     _FOLDER_PERMISSION_OK(HttpStatus.OK, "FOLDER_PERMISSION200", "폴더 권한 수정을 성공했습니다."),
 
     // 북마크 관련 응답
