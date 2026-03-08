@@ -174,8 +174,12 @@ public class FolderServiceImpl implements FolderService {
     }
 
     // 중분류 폴더 목록 조회
-    public List<FolderListResponseDTO> getParentFolders(Long userId) {
+    public List<FolderListResponseDTO> getParentFolders(Long userId, String sort) {
         List<UsersFolder> parentFolders = usersFolderRepository.findParentFolders(userId);
+
+        Comparator<UsersFolder> comparator = "updatedAt".equals(sort)
+                ? Comparator.comparing((UsersFolder uf) -> uf.getFolder().getUpdatedAt()).reversed()
+                : Comparator.comparing(uf -> uf.getFolder().getFolderName());
 
         List<Long> folderIds = parentFolders.stream()
                 .map(uf -> uf.getFolder().getFolderId())
@@ -186,6 +190,7 @@ public class FolderServiceImpl implements FolderService {
                 : usersFolderRepository.findAllSharedFolderIdsIn(folderIds);
 
         return parentFolders.stream()
+                .sorted(comparator)
                 .map(usersFolder -> FolderListResponseDTO.builder()
                         .folderId(usersFolder.getFolder().getFolderId())
                         .folderName(usersFolder.getFolder().getFolderName())

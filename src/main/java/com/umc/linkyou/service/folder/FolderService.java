@@ -16,7 +16,7 @@ public interface FolderService {
     List<FolderTreeResponseDTO> getMyFolderTree(Long userId);
 
     // 중분류 폴더 목록 조회
-    List<FolderListResponseDTO> getParentFolders(Long userId);
+    List<FolderListResponseDTO> getParentFolders(Long userId, String sort);
 
     // 자식 폴더 목록 조회
     List<FolderListResponseDTO> getSubFolders(Long userId, Long parentFolderId);
