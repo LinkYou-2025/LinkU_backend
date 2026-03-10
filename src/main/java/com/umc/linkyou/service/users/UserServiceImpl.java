@@ -6,6 +6,7 @@ import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
 import com.umc.linkyou.converter.UserConverter;
+import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.EmailVerification;
 import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.Provider;
@@ -98,7 +99,7 @@ public class UserServiceImpl implements UserService {
             throw new UserHandler(ErrorStatus._DUPLICATE_NICKNAME);
         }
 
-        if(userRepository.findByEmail(request.getEmail()).isPresent()){
+        if (authAccountRepository.existsByProviderAndExternalId(Provider.GENERAL, request.getEmail())){
             throw new UserHandler(ErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
         // Job 엔티티를 DB에서 조회
@@ -133,6 +134,12 @@ public class UserServiceImpl implements UserService {
 
         //return userRepository.save(newUser);
         newUser = userRepository.save(newUser);
+
+        authAccountRepository.save(AuthAccount.builder()
+                .user(newUser)
+                .provider(Provider.GENERAL)
+                .externalId(request.getEmail())  // email을 externalId로 저장
+                .build());
 
         // 중분류 폴더 생성
         List<Category> categories = categoryRepository.findAll();
@@ -173,8 +180,10 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponseDTO.LoginResultDTO loginUser(UserRequestDTO.LoginRequestDTO request) {
-        Users user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(()-> new UserHandler(ErrorStatus._LOGIN_FAILED));
+        Users user = authAccountRepository.findUserByEmailAndProvider(request.getEmail(), Provider.GENERAL)
+                .orElseThrow(() -> new UserHandler(ErrorStatus._LOGIN_FAILED));
+
+        Long userId = user.getId();
 
         // 소셜 전용 계정 차단 (GENERAL AuthAccount 없음)
         boolean hasGeneralAccount = authAccountRepository.existsByUserIdAndProvider(
@@ -188,13 +197,19 @@ public class UserServiceImpl implements UserService {
             throw new UserHandler(ErrorStatus._LOGIN_FAILED);
         }
 
+        String email = authAccountRepository.findByUserIdAndProvider(userId, Provider.GENERAL)
+                .map(AuthAccount::getEmail)
+                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
+
         Authentication authentication = new UsernamePasswordAuthenticationToken(
-                user.getEmail(), null,
+                email, null,
                 Collections.singleton(() -> user.getRole().name())
         );
 
-        String accessToken = jwtTokenProvider.createAccessToken(user.getEmail(), Provider.GENERAL.name());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
+
+
+        String accessToken = jwtTokenProvider.createAccessToken(email, Provider.GENERAL.name());
+        String refreshToken = jwtTokenProvider.createRefreshToken(email);
 
         // 리프레시 토큰이 이미 있으면 토큰을 갱신하고 없으면 토큰을 추가
         String tokenId =  jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
@@ -286,7 +301,7 @@ public class UserServiceImpl implements UserService {
         // 2) 이메일 파싱
         Claims claims = jwtTokenProvider.validateAndParseRefresh(raw).getBody();
         String email = claims.getSubject();
-        Long userId = userRepository.findByEmail(email)
+        Long userId = authAccountRepository.findUserByEmail(email)
                 .map(Users::getId)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
 
@@ -344,9 +359,8 @@ public class UserServiceImpl implements UserService {
     }
 
     private void checkDuplicatedEmail(String email) {
-        Optional<Users> user = userRepository.findByEmail(email);
-        if (user.isPresent()) {
-            log.debug("MemberServiceImpl.checkDuplicatedEmail exception occur email: {}", email);
+        if (authAccountRepository.existsByEmail(email)) {
+            log.debug("checkDuplicatedEmail exception occur email: {}", email);
             throw new UserHandler(ErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
     }
@@ -494,7 +508,7 @@ public class UserServiceImpl implements UserService {
     // 임시 비밀번호 전송
     @Override
     public void sendTempPassword(String toEmail) {
-        Users user = userRepository.findByEmail(toEmail)
+        Users user = authAccountRepository.findUserByEmail(toEmail)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
 
         String tempPassword = this.createPassword();

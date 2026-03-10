@@ -19,12 +19,6 @@ public class UsersUtils {
         }
         return userDetails.getUsers().getId();
     }
-    public String getAuthenticatedUserEmail(CustomUserDetails userDetails) {
-        if (userDetails == null) {
-            throw new UserHandler(ErrorStatus._INVALID_TOKEN);
-        }
-        return userDetails.getEmail();
-    }
     //token이 올바른지, 사용자가 존재하는지, 사용자가 있다면 activated 상태인지
     public Users validateUser(CustomUserDetails userDetails) {
         if (userDetails == null) {

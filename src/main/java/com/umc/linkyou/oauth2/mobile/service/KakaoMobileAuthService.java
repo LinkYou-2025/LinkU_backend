@@ -4,12 +4,14 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
+import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.oauth2.UserSocialLoginHelper;
 import com.umc.linkyou.oauth2.mobile.client.KakaoTokenClient;
 import com.umc.linkyou.oauth2.mobile.dto.MobileLoginResponse;
+import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +28,7 @@ public class KakaoMobileAuthService implements MobileAuthService {
     private final UserSocialLoginHelper userSocialLoginHelper;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenManager refreshTokenManager;
+    private final AuthAccountRepository authAccountRepository;
 
     @Value("${jwt.token.expiration.refresh}")
     private long refreshTtlMs;
@@ -39,7 +42,9 @@ public class KakaoMobileAuthService implements MobileAuthService {
                 info.email(), info.name(), info.externalId(),
                 info.profileImage(), Provider.KAKAO);
 
-        String resolvedEmail = (user.getEmail() != null) ? user.getEmail() : info.email();
+        String resolvedEmail = authAccountRepository.findByUserIdAndProvider(user.getId(), Provider.KAKAO)
+                .map(AuthAccount::getEmail)
+                .orElse(info.email());
 
         if (user.getStatus() == UserStatus.INACTIVE) {
             throw new GeneralException(ErrorStatus._USER_INACTIVE);

@@ -24,6 +24,9 @@ public class AuthAccount extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private Users user;
 
+    @Column(nullable = false, unique = true)
+    private String email;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false, length = 50)
     private Provider provider;   // GOOGLE, KAKAO 등

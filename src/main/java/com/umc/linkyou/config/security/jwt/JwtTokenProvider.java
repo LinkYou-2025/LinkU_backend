@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -35,6 +36,7 @@ public class JwtTokenProvider {
     private final JwtProperties jwtProperties;
 
     private final UserRepository userRepository;
+    private final AuthAccountRepository authAccountRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -78,7 +80,7 @@ public class JwtTokenProvider {
         String provider = claims.get("provider", String.class);
 
         // Users users = ... // 이메일로 Users 엔티티 조회
-        Users users = userRepository.findByEmail(email)
+        Users users = authAccountRepository.findUserByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("해당 이메일을 가진 유저가 존재하지 않습니다: " + email));
         CustomUserDetails principal = new CustomUserDetails(users,provider);
 
@@ -132,10 +134,9 @@ public class JwtTokenProvider {
         String email = claims.getSubject();
 
         // 3) 토큰 소유자 userId 조회
-        Long expectedUserId = userRepository.findByEmail(email)
+        Long expectedUserId = authAccountRepository.findUserByEmail(email)
                 .map(Users::getId)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
-
         // 4) HMAC id 생성
         String id = hmac(raw);
 
