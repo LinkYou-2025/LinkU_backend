@@ -21,6 +21,7 @@ import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.*;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
+import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.categoryRepository.UsersCategoryColorRepository;
 import com.umc.linkyou.repository.classification.InterestRepository;
 import com.umc.linkyou.repository.userRepository.UserQueryRepository;
@@ -80,6 +81,8 @@ public class UserServiceImpl implements UserService {
     private final UsersCategoryColorRepository usersCategoryColorRepository;
 
     private final RefreshTokenManager refreshTokenManager;
+
+    private final AuthAccountRepository authAccountRepository;
 
     @Value("${jwt.token.expiration.refresh}")
     private long refreshTtlMs;
@@ -172,6 +175,13 @@ public class UserServiceImpl implements UserService {
     public UserResponseDTO.LoginResultDTO loginUser(UserRequestDTO.LoginRequestDTO request) {
         Users user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(()-> new UserHandler(ErrorStatus._LOGIN_FAILED));
+
+        // 소셜 전용 계정 차단 (GENERAL AuthAccount 없음)
+        boolean hasGeneralAccount = authAccountRepository.existsByUserIdAndProvider((
+                user.getId(), Provider.GENERAL);
+        if (!hasGeneralAccount) {
+            throw new UserHandler(ErrorStatus._SOCIAL_ACCOUNT_ONLY);
+        }
 
         // social login은 password null, jwt login은 password null이면 error(NPE 방지 코드)
         if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {

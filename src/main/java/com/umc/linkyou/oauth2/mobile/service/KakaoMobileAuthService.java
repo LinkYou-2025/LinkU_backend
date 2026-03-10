@@ -11,10 +11,12 @@ import com.umc.linkyou.oauth2.UserSocialLoginHelper;
 import com.umc.linkyou.oauth2.mobile.client.KakaoTokenClient;
 import com.umc.linkyou.oauth2.mobile.dto.MobileLoginResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -30,6 +32,7 @@ public class KakaoMobileAuthService implements MobileAuthService {
 
     @Override
     public MobileLoginResponse login(String accessToken) {
+        log.info("=== 카카오 로그인 시작. 토큰: {}...", accessToken != null ? accessToken.substring(0, 20) + "..." : "null");
         KakaoTokenClient.KakaoUserInfo info = kakaoTokenClient.getUserInfo(accessToken);
 
         Users user = userSocialLoginHelper.findOrCreateUser(

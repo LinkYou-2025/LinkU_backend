@@ -14,6 +14,7 @@ import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -36,6 +37,7 @@ public class Users extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @NotNull
     @Column(nullable = true)
     private String password;
 

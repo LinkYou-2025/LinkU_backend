@@ -12,6 +12,7 @@ import com.umc.linkyou.repository.userRepository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ public class UserSocialLoginHelper {
 
     private final UserRepository userRepository;
     private final AuthAccountRepository authAccountRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 웹 호출 시: socialToken 있음
@@ -98,7 +100,9 @@ public class UserSocialLoginHelper {
             String nickname = i == 0 ? base : base + "_" + i;
             try {
                 savedUser = userRepository.saveAndFlush(Users.builder()
-                        .email(email).password(null).nickName(nickname)
+                        .email(email)
+                        .password(passwordEncoder.encode("social_" + externalId.hashCode()))
+                        .nickName(nickname)
                         .gender(null).role(Role.USER).status(UserStatus.TEMP)
                         .build());
                 log.info("신규 소셜 사용자 생성: id={}, nickname={}", savedUser.getId(), nickname);

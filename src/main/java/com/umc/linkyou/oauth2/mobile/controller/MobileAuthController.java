@@ -11,16 +11,18 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @Tag(name = "Mobile Auth", description = "모바일 소셜 로그인 API")
 @ApiV1
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/auth/mobile")
+@RequestMapping("/auth/mobile")
 public class MobileAuthController {
 
     private final GoogleMobileAuthService googleService;
@@ -37,6 +39,7 @@ public class MobileAuthController {
     @Operation(summary = "카카오 로그인 (앱)", description = "카카오 SDK에서 받은 **accessToken** 전달")
     @PostMapping("/kakao")
     public ApiResponse<MobileLoginResponse> kakaoLogin(@Valid @RequestBody MobileLoginRequest request) {
+        log.info("✅ 카카오 컨트롤러 HIT! 토큰: {}", request.token().substring(0, 20));
         MobileLoginResponse result = kakaoService.login(request.token());
         return ApiResponse.onSuccess(result);
     }
