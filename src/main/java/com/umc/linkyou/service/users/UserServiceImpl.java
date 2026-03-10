@@ -94,75 +94,93 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public Users joinUser(UserRequestDTO.JoinDTO request){
+    public Users joinUser(UserRequestDTO.JoinDTO request) {
+        // 1. 닉네임 중복 체크
         if (userRepository.findByNickName(request.getNickName()).isPresent()) {
             throw new UserHandler(ErrorStatus._DUPLICATE_NICKNAME);
         }
 
-        if (authAccountRepository.existsByProviderAndExternalId(Provider.GENERAL, request.getEmail())){
+        // 2. 현재 시도하는 경로(GENERAL)로 이미 가입된 계정이 있는지 체크
+        if (authAccountRepository.existsByProviderAndExternalId(Provider.GENERAL, request.getEmail())) {
             throw new UserHandler(ErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
-        // Job 엔티티를 DB에서 조회
-        Job job = jobRepository.findById(request.getJobId())
-                .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
 
-        Users newUser = UserConverter.toUser(request,job);
-        newUser.encodePassword(passwordEncoder.encode(request.getPassword()));
+        // 3. 기존 유저 통합 로직: 이메일로 가입된 다른 소셜 계정이 있는지 확인
+        Users user = authAccountRepository.findUserByEmail(request.getEmail())
+                .orElseGet(() -> {
+                    // 3-1. 기존 유저가 아예 없으면 새로 생성
+                    Job job = jobRepository.findById(request.getJobId())
+                            .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
 
-        List<String> purposeNames = request.getPurposeList(); // 프론트에서 받은 enum 이름 리스트
+                    Users newUser = UserConverter.toUser(request, job);
+                    // 일반 로그인용 비밀번호 인코딩
+                    newUser.encodePassword(passwordEncoder.encode(request.getPassword()));
 
-        final Users savedUser = newUser;
+                    // Purposes / Interests 설정
+                    setupPurposesAndInterests(newUser, request);
 
-        List<Purposes> purposeList = purposeNames.stream()
-                .map(name -> {
-                    String purpose = name;
-                    return new Purposes(purpose, savedUser);
-                })
-                .toList();
+                    return userRepository.save(newUser);
+                });
 
-        List<String> interestNames = request.getInterestList(); // 프론트에서 받은 enum 이름 리스트
+        // 4. 기존 유저가 소셜 유저였다면, 일반 로그인용 비밀번호가 없을 수 있으므로 업데이트
+        if (user.getPassword() == null || user.getPassword().startsWith("social_")) {
+            user.encodePassword(passwordEncoder.encode(request.getPassword()));
+        }
 
-        List<Interests> interestList = interestNames.stream()
-                .map(name -> {
-                    String interest = name; // 문자열 → enum
-                    return new Interests(interest, savedUser);
-                })
-                .toList();
-
-        newUser.setPurposes(purposeList);
-        newUser.setInterests(interestList);
-
-        //return userRepository.save(newUser);
-        newUser = userRepository.save(newUser);
-
+        // 5. 일반(GENERAL) 가입 정보(AuthAccount) 저장
         authAccountRepository.save(AuthAccount.builder()
-                .user(newUser)
+                .user(user)
                 .provider(Provider.GENERAL)
-                .externalId(request.getEmail())  // email을 externalId로 저장
+                .externalId(request.getEmail())
+                .email(request.getEmail())
                 .build());
 
-        // 중분류 폴더 생성
+        // 6. 상태 업데이트 및 초기 폴더 설정
+        // 기존 유저가 있더라도 폴더가 없는 경우(TEMP 상태 등)를 대비해 체크 후 초기화
+        if (user.getStatus() == UserStatus.TEMP || user.getUsersFoldersList().isEmpty()) {
+            initUserFolders(user);
+            user.setStatus(UserStatus.ACTIVE);
+        }
+
+        return user;
+    }
+
+    // 중복 코드 방지를 위한 Purposes/Interests 설정 헬퍼 메서드
+    private void setupPurposesAndInterests(Users user, UserRequestDTO.JoinDTO request) {
+        List<Purposes> purposeList = request.getPurposeList().stream()
+                .map(name -> new Purposes(name, user)).toList();
+
+        List<Interests> interestList = request.getInterestList().stream()
+                .map(name -> new Interests(name, user)).toList();
+
+        user.setPurposes(purposeList);
+        user.setInterests(interestList);
+    }
+
+    // 초기 폴더 생성 메서드 (color_code 에러 방지 반영)
+    private void initUserFolders(Users user) {
         List<Category> categories = categoryRepository.findAll();
         List<UsersCategoryColor> userColors = new ArrayList<>();
 
         for (Category category : categories) {
+            // 중분류 폴더 생성
             Folder subFolder = folderRepository.save(Folder.builder()
                     .folderName(category.getCategoryName())
                     .category(category)
                     .parentFolder(null)
                     .build());
 
-            // 기본 카테고리 색상으로 설정
+            // 기본 카테고리 색상 설정
             Fcolor defaultColor = category.getFcolor();
             userColors.add(UsersCategoryColor.builder()
-                    .user(newUser)
+                    .user(user)
                     .category(category)
                     .fcolor(defaultColor)
                     .build());
 
             // UsersFolder 매핑
             usersFolderRepository.save(UsersFolder.builder()
-                    .user(newUser)
+                    .user(user)
                     .folder(subFolder)
                     .isOwner(true)
                     .isWriter(true)
@@ -170,12 +188,8 @@ public class UserServiceImpl implements UserService {
                     .isBookmarked(false)
                     .build());
         }
-
         usersCategoryColorRepository.saveAll(userColors);
-
-        return newUser;
     }
-
     //일반 회원 로그인
     @Override
     @Transactional
@@ -259,32 +273,6 @@ public class UserServiceImpl implements UserService {
         initUserFolders(savedUser);  // 기존 joinUser 로직 추출
 
         return savedUser;
-    }
-
-    // 기존 joinUser 로직을 메서드로 추출
-    private void initUserFolders(Users user) {
-        List<Category> categories = categoryRepository.findAll();
-        List<UsersCategoryColor> userColors = new ArrayList<>();
-
-        for (Category category : categories) {
-            Folder subFolder = folderRepository.save(Folder.builder()
-                    .folderName(category.getCategoryName())
-                    .category(category)
-                    .parentFolder(null)
-                    .build());
-
-            Fcolor defaultColor = category.getFcolor();
-            userColors.add(UsersCategoryColor.builder()
-                    .user(user).category(category).fcolor(defaultColor)
-                    .build());
-
-            usersFolderRepository.save(UsersFolder.builder()
-                    .user(user).folder(subFolder)
-                    .isOwner(true).isWriter(true).isViewer(true)
-                    .isBookmarked(false)
-                    .build());
-        }
-        usersCategoryColorRepository.saveAll(userColors);
     }
 
 

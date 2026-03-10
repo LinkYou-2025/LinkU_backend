@@ -47,6 +47,16 @@ public class AuthAccountRepositoryImpl implements AuthAccountRepositoryCustom {
                 .fetchOne();
         return Optional.ofNullable(result);
     }
+    @Override
+    public Optional<Users> findUserByEmail(String email) {
+        return Optional.ofNullable(queryFactory
+                .select(authAccount.user)  // QAuthAccount.user 직접 select (private 무관)
+                .from(authAccount)
+                .where(authAccount.email.eq(email))
+                .fetchOne());
+    }
+
+
 }
 
 

@@ -11,7 +11,7 @@ public interface AuthAccountRepositoryCustom {
     Optional<AuthAccount> findByProviderAndExternalId(Provider provider, String externalId);
     // UserId만 반환하는 심플한 메서드
     Optional<Long> findUserIdByEmailAndProvider(String email, Provider provider);
-
+    Optional<Users> findUserByEmail(String email);
     // 또는 User 엔티티만 (email은 input으로 충분)
     Optional<Users> findUserByEmailAndProvider(String email, Provider provider);
 
