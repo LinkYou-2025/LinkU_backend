@@ -177,7 +177,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(()-> new UserHandler(ErrorStatus._LOGIN_FAILED));
 
         // 소셜 전용 계정 차단 (GENERAL AuthAccount 없음)
-        boolean hasGeneralAccount = authAccountRepository.existsByUserIdAndProvider((
+        boolean hasGeneralAccount = authAccountRepository.existsByUserIdAndProvider(
                 user.getId(), Provider.GENERAL);
         if (!hasGeneralAccount) {
             throw new UserHandler(ErrorStatus._SOCIAL_ACCOUNT_ONLY);
