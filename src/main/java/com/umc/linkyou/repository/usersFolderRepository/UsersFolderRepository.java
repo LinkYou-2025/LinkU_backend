@@ -1,5 +1,6 @@
 package com.umc.linkyou.repository.usersFolderRepository;
 
+import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import jakarta.persistence.LockModeType;
@@ -33,7 +34,9 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
         left join fetch f.parentFolder
         where uf.user.id = :userId
         """)
-    List<UsersFolder> findAllByUserId(@Param("userId") Long userId);
+    List<UsersFolder> findAllByUserId(
+            @Param("userId") Long userId
+    );
 
     // 유저의 중분류(루트) 폴더 조회
     @Query("""
@@ -43,7 +46,9 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
         where uf.user.id = :userId
             and f.parentFolder is null
         """)
-    List<UsersFolder> findParentFolders(@Param("userId") Long userId);
+    List<UsersFolder> findParentFolders(
+            @Param("userId") Long userId
+    );
 
     // 특정 폴더-유저 정보 조회
     @Query("""
@@ -77,7 +82,9 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
         where uf.folder.folderId = :folderId
             and uf.isOwner = true
         """)
-    Optional<UsersFolder> findOwnerByFolderId(@Param("folderId") Long folderId);
+    Optional<UsersFolder> findOwnerByFolderId(
+            @Param("folderId") Long folderId
+    );
 
     // 여러 폴더의 소유자 목록 일괄 조회
     @Query("""
@@ -87,7 +94,9 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
         where uf.folder.folderId in :folderIds
             and uf.isOwner = true
         """)
-    List<UsersFolder> findOwnersByFolderIdIn(@Param("folderIds") List<Long> folderIds);
+    List<UsersFolder> findOwnersByFolderIdIn(
+            @Param("folderIds") List<Long> folderIds
+    );
 
     // 폴더 소유자 여부 확인
     @Query("""
@@ -97,16 +106,22 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
             and uf.folder.folderId = :folderId
             and uf.isOwner = true
         """)
-    boolean existsFolderOwner(@Param("userId") Long userId, @Param("folderId") Long folderId);
+    boolean existsFolderOwner(
+            @Param("userId") Long userId,
+            @Param("folderId") Long folderId
+    );
 
-    // 다른 유저에게 공유 된 폴더인지 확인
+    // 다른 유저에게 공유 된 폴더인지 확인 (활성 권한이 있는 멤버가 존재하는 경우만)
     @Query("""
         select DISTINCT uf.folder.folderId
         from UsersFolder uf
         where uf.folder.folderId IN :folderIds
           and uf.isOwner = false
+          and (uf.isViewer = true or uf.isWriter = true)
     """)
-    Set<Long> findAllSharedFolderIdsIn(@Param("folderIds") List<Long> folderIds);
+    Set<Long> findAllSharedFolderIdsIn(
+            @Param("folderIds") List<Long> folderIds
+    );
 
     // 공유 받은 폴더 찾기
     @Query("""
@@ -116,7 +131,9 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
             and uf.isOwner = false
             and uf.isViewer = true
         """)
-    List<Folder> findAllSharedFolders(@Param("userId") Long userId);
+    List<Folder> findAllSharedFolders(
+            @Param("userId") Long userId
+    );
 
     // veiwer and writer 찾기 except owner
     @Query("""
@@ -127,7 +144,9 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
             and uf.isOwner = false
             and (uf.isViewer = true or uf.isWriter = true)
         """)
-    List<UsersFolder> findAllParticipantsByFolderId(@Param("folderId") Long folderId);
+    List<UsersFolder> findAllParticipantsByFolderId(
+            @Param("folderId") Long folderId
+    );
 
     // 유저가 해당 폴더에 활성화된 권한(뷰어/편집자)이 있는지 확인
     @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -138,14 +157,20 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
             and uf.folder.folderId = :folderId
             and (uf.isViewer = true OR uf.isWriter = true)
         """)
-    boolean existsActiveMember(@Param("userId") Long userId, @Param("folderId") Long folderId);
+    boolean existsActiveMember(
+            @Param("userId") Long userId,
+            @Param("folderId") Long folderId
+    );
 
-    // TODO: 서원에게 확인 받고 삭제 예정
     @Query("""
         select uf.folder
         from UsersFolder uf
         where uf.user.id = :userId
-        and uf.folder.folderName = :folderName
+          and uf.folder.category = :category
+          and uf.folder.parentFolder is null
         """)
-    Optional<Folder> findFolderByUserIdAndFolderName(@Param("userId") Long userId, @Param("folderName") String folderName);
+    Optional<Folder> findFolderByUserIdAndCategory(
+            @Param("userId") Long userId,
+            @Param("category") Category category
+    );
 }

@@ -29,6 +29,14 @@ public class FolderConverter {
                 .build();
     }
 
+    public FolderResponseDTO toFolderResponseDTO(Folder folder, Boolean isBookmarked) {
+        FolderResponseDTO dto = toFolderResponseDTO(folder);
+        if (dto != null) {
+            dto.setIsBookmarked(isBookmarked);
+        }
+        return dto;
+    }
+
     public FolderTreeResponseDTO toFolderTreeDTO(Folder folder, Map<Long, Boolean> bookmarkMap) {
         FolderTreeResponseDTO dto = new FolderTreeResponseDTO();
 
@@ -57,8 +65,8 @@ public class FolderConverter {
                 .user(user)
                 .folder(folder)
                 .isOwner(true)
-                .isViewer(true)
-                .isWriter(true)
+                .isViewer(false)
+                .isWriter(false)
                 .isBookmarked(false)
                 .build();
     }
