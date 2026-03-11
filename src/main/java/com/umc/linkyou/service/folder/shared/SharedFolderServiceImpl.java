@@ -10,6 +10,7 @@ import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.web.dto.folder.FolderListResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
+import com.umc.linkyou.web.dto.folder.share.SharedFolderGroupResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.*;
 
 import lombok.RequiredArgsConstructor;
@@ -26,8 +27,8 @@ public class SharedFolderServiceImpl implements SharedFolderService {
     private final UsersFolderRepository usersFolderRepository;
     private final FolderConverter folderConverter;
 
-    // 공유받은 폴더 트리 조회
-    public List<SharedFolderTreeResponseDTO> getSharedFolderTree(Long userId) {
+    // 공유받은 폴더 목록 조회 (소유자별 그룹핑)
+    public List<SharedFolderGroupResponseDTO> getSharedFoldersByOwner(Long userId) {
         // 유저 id로 공유 받은 폴더 리스트
         List<Folder> sharedFolders = usersFolderRepository.findAllSharedFolders(userId);
 
@@ -66,7 +67,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
                     return owner.getId();
                 }));
 
-        List<SharedFolderTreeResponseDTO> result = new ArrayList<>();
+        List<SharedFolderGroupResponseDTO> result = new ArrayList<>();
         for (Map.Entry<Long, List<Folder>> entry : userIdFolderMap.entrySet()) {
             Long ownerId = entry.getKey();
             List<Folder> folders = entry.getValue();
@@ -77,7 +78,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
                     .map(folder -> folderConverter.toFolderTreeDTO(folder, bookmarkMap))
                     .collect(Collectors.toList());
 
-            SharedFolderTreeResponseDTO dto = SharedFolderTreeResponseDTO.builder()
+            SharedFolderGroupResponseDTO dto = SharedFolderGroupResponseDTO.builder()
                     .userId(ownerId)
                     .nickname(nickname)
                     .folders(folderDTOs)

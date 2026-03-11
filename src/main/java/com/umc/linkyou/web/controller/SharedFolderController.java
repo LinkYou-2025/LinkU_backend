@@ -9,7 +9,7 @@ import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.folder.FolderListResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
-import com.umc.linkyou.web.dto.folder.share.SharedFolderTreeResponseDTO;
+import com.umc.linkyou.web.dto.folder.share.SharedFolderGroupResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -28,16 +28,15 @@ public class SharedFolderController {
     private final SharedFolderService sharedFolderService;
 
     @Operation(
-            summary = "공유 받은 폴더 트리 조회",
-            description = "사용자가 공유 받은 모든 폴더를 트리 구조로 조회합니다."
+            summary = "공유 받은 폴더 목록 조회",
+            description = "사용자가 공유 받은 폴더를 소유자별로 그룹핑하여 조회합니다."
     )
     @GetMapping
-    public ApiResponse<List<SharedFolderTreeResponseDTO>> getSharedFolders(
+    public ApiResponse<List<SharedFolderGroupResponseDTO>> getSharedFoldersByOwner(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        // 유저 폴더 테이블에서 isOwner가 false고 isViewer가 true인 폴더들 조회
-        List<SharedFolderTreeResponseDTO> folderTree = sharedFolderService.getSharedFolderTree(userDetails.getUsers().getId());
-        return ApiResponse.of(SuccessStatus._FOLDER_SHARED_OK, folderTree);
+        List<SharedFolderGroupResponseDTO> result = sharedFolderService.getSharedFoldersByOwner(userDetails.getUsers().getId());
+        return ApiResponse.of(SuccessStatus._FOLDER_SHARED_OK, result);
     }
 
     @Operation(
