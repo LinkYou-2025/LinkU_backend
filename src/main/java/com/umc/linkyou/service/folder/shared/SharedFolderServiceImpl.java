@@ -109,6 +109,11 @@ public class SharedFolderServiceImpl implements SharedFolderService {
                 .findByUserIdAndFolderId(userId, folderId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
 
+        // 소유자는 이 API로 삭제 불가 (소유자는 FolderController.deleteFolder 사용)
+        if (Boolean.TRUE.equals(usersFolder.getIsOwner())) {
+            throw new GeneralException(ErrorStatus._FOLDER_DELETE_FORBIDDEN);
+        }
+
         // 유저 폴더 테이블에서 삭제
         usersFolderRepository.delete(usersFolder);
 
