@@ -64,7 +64,8 @@ public class UserSocialLoginHelper {
         }
 
         /** 2. 이메일이 있지만 다른 소셜로그인 계정 */
-        Optional<Users> existingUserOpt = authAccountRepository.findUserByEmail(email);
+        Optional<Users> existingUserOpt = authAccountRepository
+                .findUserByEmailAndProvider(email, provider);
         if (existingUserOpt.isPresent()) {
             Users user = existingUserOpt.get();
             saveAuthAccount(user, provider, externalId, profileImage, socialToken, email);

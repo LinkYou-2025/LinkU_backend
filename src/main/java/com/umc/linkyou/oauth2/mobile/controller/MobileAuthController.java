@@ -39,7 +39,6 @@ public class MobileAuthController {
     @Operation(summary = "카카오 로그인 (앱)", description = "카카오 SDK에서 받은 **accessToken** 전달")
     @PostMapping("/kakao")
     public ApiResponse<MobileLoginResponse> kakaoLogin(@Valid @RequestBody MobileLoginRequest request) {
-        log.info("✅ 카카오 컨트롤러 HIT! 토큰: {}", request.token().substring(0, 20));
         MobileLoginResponse result = kakaoService.login(request.token());
         return ApiResponse.onSuccess(result);
     }

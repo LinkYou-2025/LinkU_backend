@@ -13,6 +13,7 @@ import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.converter.EmailConverter;
 import com.umc.linkyou.domain.EmailVerification;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.repository.EmailRepository;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
@@ -187,7 +188,7 @@ public class EmailService {
 
     // 임시 비밀번호 저장
     public void savePassword(String toEmail, String password) {
-        Users user = authAccountRepository.findUserByEmail(toEmail)
+        Users user = authAccountRepository.findUserByEmailAndProvider(toEmail, Provider.GENERAL)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
 
         String encodedPassword = passwordEncoder.encode(password);

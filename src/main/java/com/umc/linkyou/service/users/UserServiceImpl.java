@@ -106,7 +106,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // 3. 기존 유저 통합 로직: 이메일로 가입된 다른 소셜 계정이 있는지 확인
-        Users user = authAccountRepository.findUserByEmail(request.getEmail())
+        Users user = authAccountRepository.findUserByEmailAndProvider(request.getEmail(), Provider.GENERAL)
                 .orElseGet(() -> {
                     // 3-1. 기존 유저가 아예 없으면 새로 생성
                     Job job = jobRepository.findById(request.getJobId())
@@ -285,14 +285,16 @@ public class UserServiceImpl implements UserService {
         // 2) 이메일 파싱
         Claims claims = jwtTokenProvider.validateAndParseRefresh(raw).getBody();
         String email = claims.getSubject();
-        Long userId = authAccountRepository.findUserByEmail(email)
+        String providerStr = claims.get("provider", String.class);  // String 그대로!
+
+        Long userId = authAccountRepository.findUserByEmailAndProvider(email,Provider.valueOf(providerStr))
                 .map(Users::getId)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
 
         String oldId = jwtTokenProvider.hmac(raw);
 
-        // 3) provider 조회 + 토큰 삭제를 원자적으로 처리 (TOCTOU 방지)
-        String provider = refreshTokenManager.consumeToken(userId, oldId)
+        // 3) provider 조회
+        String provider = refreshTokenManager.consumeToken(userId, oldId)  // 여기서 provider 반환
                 .orElseThrow(() -> new UserHandler(ErrorStatus._INVALID_TOKEN));
 
         // 4) 새 토큰 발급 및 저장
@@ -492,7 +494,7 @@ public class UserServiceImpl implements UserService {
     // 임시 비밀번호 전송
     @Override
     public void sendTempPassword(String toEmail) {
-        Users user = authAccountRepository.findUserByEmail(toEmail)
+        Users user = authAccountRepository.findUserByEmailAndProvider(toEmail, Provider.GENERAL)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
 
         String tempPassword = this.createPassword();

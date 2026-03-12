@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import io.jsonwebtoken.*;
@@ -76,14 +77,12 @@ public class JwtTokenProvider {
     public Authentication getAuthentication(String token) {
         Claims claims = validateAndParseAccess(token).getBody();
         String email = claims.getSubject();
-        // String role = claims.get("role", String.class);
-        String provider = claims.get("provider", String.class);
+        String providerStr = claims.get("provider", String.class);  // String 그대로!
 
-        // Users users = ... // 이메일로 Users 엔티티 조회
-        Users users = authAccountRepository.findUserByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("해당 이메일을 가진 유저가 존재하지 않습니다: " + email));
-        CustomUserDetails principal = new CustomUserDetails(users,provider);
+        Users users = authAccountRepository.findUserByEmailAndProvider(email, Provider.valueOf(providerStr))
+                .orElseThrow(() -> new UsernameNotFoundException(email + "/" + providerStr));
 
+        CustomUserDetails principal = new CustomUserDetails(users, providerStr);
         return new UsernamePasswordAuthenticationToken(principal, token, principal.getAuthorities());
     }
 
@@ -133,8 +132,10 @@ public class JwtTokenProvider {
         Claims claims = jws.getBody();
         String email = claims.getSubject();
 
+        String providerStr = claims.get("provider", String.class);  // String 그대로!
+
         // 3) 토큰 소유자 userId 조회
-        Long expectedUserId = authAccountRepository.findUserByEmail(email)
+        Long expectedUserId = authAccountRepository.findUserByEmailAndProvider(email, Provider.valueOf(providerStr))
                 .map(Users::getId)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
         // 4) HMAC id 생성

@@ -35,7 +35,6 @@ public class KakaoMobileAuthService implements MobileAuthService {
 
     @Override
     public MobileLoginResponse login(String accessToken) {
-        log.info("=== 카카오 로그인 시작. 토큰: {}...", accessToken != null ? accessToken.substring(0, 20) + "..." : "null");
         KakaoTokenClient.KakaoUserInfo info = kakaoTokenClient.getUserInfo(accessToken);
 
         Users user = userSocialLoginHelper.findOrCreateUser(
