@@ -72,7 +72,8 @@ public class AuthAccountRepositoryImpl implements AuthAccountRepositoryCustom {
     @Override
     public Optional<String> findEmailByUserIdAndProvider(Long userId, Provider provider) {
         return Optional.ofNullable(
-                select(authAccount.email)
+                queryFactory
+                        .select(authAccount.email)
                         .from(authAccount)
                         .where(authAccount.user.id.eq(userId)
                                 .and(authAccount.provider.eq(provider)))
