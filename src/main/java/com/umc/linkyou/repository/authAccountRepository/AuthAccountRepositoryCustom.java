@@ -16,4 +16,5 @@ public interface AuthAccountRepositoryCustom {
     Optional<Users> findUserByEmailAndProvider(String email, Provider provider);
     Optional<Users> findUserByEmailExcludingProvider(String email, Provider provider);
 
+    Optional<String> findEmailByUserIdAndProvider(Long userId, Provider provider);
 }

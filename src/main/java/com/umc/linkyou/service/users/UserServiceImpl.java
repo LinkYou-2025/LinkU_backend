@@ -397,10 +397,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponseDTO.UserProfileSummaryDto userInfo(Long userId, String loginProvider) {
         UserResponseDTO.UserProfileSummaryDto s = userQueryRepository.findUserProfileSummary(userId);
+        String currentEmail = authAccountRepository.findEmailByUserIdAndProvider(userId, Provider.valueOf(loginProvider))
+                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
+
         List<String> purposes  = purposeRepository.findAllPurposeNamesByUserId(userId);
         List<String> interests = interestRepository.findAllInterestNamesByUserId(userId);
 
-        UserResponseDTO.UserProfileSummaryDto result = UserConverter.toUserInfoDTO(s, purposes, interests);
+        UserResponseDTO.UserProfileSummaryDto result = UserConverter.toUserInfoDTO(s, currentEmail, purposes, interests);
         result.setLoginProvider(loginProvider);
         return result;
     }
