@@ -42,7 +42,7 @@ public class UserQueryRepository {
                 .from(u)
                 .leftJoin(u.authAccounts, authAccount)
                 .where(u.id.eq(userId))
-                .fetchOne();
+                .fetchFirst();
     }
 
 
