@@ -233,11 +233,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public Users socialCompleteProfile(String email, UserRequestDTO.SocialCompleteDTO request) {
-        // 1. TEMP 사용자 조회
-        Users user = userRepository.findByEmailAndStatus(email, UserStatus.TEMP)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._SOCIAL_PROFILE_EXPIRED));
-
+    public Users socialCompleteProfile(Users user, UserRequestDTO.SocialCompleteDTO request) {
         // 2. 닉네임 중복 체크
         validateNickNameNotDuplicate(request.getNickName());
 
