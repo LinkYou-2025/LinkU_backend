@@ -36,7 +36,6 @@ public class Users extends BaseEntity {
 
 
     @NotNull
-    @Column(nullable = true)
     private String password;
 
     @Column(nullable = false, unique = true)
