@@ -56,7 +56,15 @@ public class AuthAccountRepositoryImpl implements AuthAccountRepositoryCustom {
                 .fetchOne());
     }
 
-
+    @Override
+    public Optional<Users> findUserByEmailExcludingProvider(String email, Provider provider) {
+        return Optional.ofNullable(queryFactory
+                .select(authAccount.user)
+                .from(authAccount)
+                .where(authAccount.email.eq(email)
+                        .and(authAccount.provider.ne(provider)))  // 다른 provider만!
+                .fetchFirst());
+    }
 
 
 }

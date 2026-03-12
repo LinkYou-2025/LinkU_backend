@@ -14,5 +14,6 @@ public interface AuthAccountRepositoryCustom {
     Optional<Users> findUserByEmail(String email);
     // 또는 User 엔티티만 (email은 input으로 충분)
     Optional<Users> findUserByEmailAndProvider(String email, Provider provider);
+    Optional<Users> findUserByEmailExcludingProvider(String email, Provider provider);
 
 }

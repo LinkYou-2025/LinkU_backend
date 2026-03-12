@@ -134,6 +134,10 @@ public class JwtTokenProvider {
 
         String providerStr = claims.get("provider", String.class);  // String 그대로!
 
+        if (providerStr == null || providerStr.isBlank()) {
+            throw new UserHandler(ErrorStatus._INVALID_TOKEN);
+        }
+
         // 3) 토큰 소유자 userId 조회
         Long expectedUserId = authAccountRepository.findUserByEmailAndProvider(email, Provider.valueOf(providerStr))
                 .map(Users::getId)
