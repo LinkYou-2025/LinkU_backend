@@ -81,37 +81,6 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                 .fetch();  // 단일 쿼리! N+1 없음
     }
 
-    public List<String> findAllPurposeNamesByUserId(Long userId) {
-        QPurposes p = QPurposes.purposes;
-
-        return queryFactory
-                .select(p.purpose)
-                .from(p)
-                .where(p.user.id.eq(userId))
-                .fetch();
-    }
-
-    public List<String> findAllInterestNamesByUserId(Long userId) {
-        QInterests i = QInterests.interests;
-
-        return queryFactory
-                .select(i.interest)
-                .from(i)
-                .where(i.user.id.eq(userId))
-                .fetch();
-    }
-    @Override
-    public Optional<Users> findByEmailAndStatus(String email, UserStatus status) {
-        Users result = queryFactory
-                .selectFrom(users)
-                .leftJoin(users.authAccounts, authAccount)
-                .where(
-                        authAccount.email.eq(email)
-                                .and(users.status.eq(status))
-                )
-                .fetchOne();
-        return Optional.ofNullable(result);
-    }
     @Override
     public Optional<Users> findNotInactiveUserById(Long userId){
         return Optional.ofNullable(
