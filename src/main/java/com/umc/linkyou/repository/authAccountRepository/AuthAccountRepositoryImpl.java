@@ -10,6 +10,9 @@ import com.umc.linkyou.domain.enums.Provider;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Optional;
+
+import static org.jsoup.select.Selector.select;
+
 @RequiredArgsConstructor
 public class AuthAccountRepositoryImpl implements AuthAccountRepositoryCustom {
     private final JPAQueryFactory queryFactory;
@@ -65,6 +68,18 @@ public class AuthAccountRepositoryImpl implements AuthAccountRepositoryCustom {
                         .and(authAccount.provider.ne(provider)))  // 다른 provider만!
                 .fetchFirst());
     }
+
+    @Override
+    public Optional<String> findEmailByUserIdAndProvider(Long userId, Provider provider) {
+        return Optional.ofNullable(
+                select(authAccount.email)
+                        .from(authAccount)
+                        .where(authAccount.user.id.eq(userId)
+                                .and(authAccount.provider.eq(provider)))
+                        .fetchOne()
+        );
+    }
+
 
 
 }
