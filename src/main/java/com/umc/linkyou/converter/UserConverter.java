@@ -21,7 +21,6 @@ public class UserConverter {
 
         return new Users().builder()
                 .nickName(request.getNickName())
-                .email(request.getEmail())
                 .password(request.getPassword())
                 .gender(gender)
                 .job(job)

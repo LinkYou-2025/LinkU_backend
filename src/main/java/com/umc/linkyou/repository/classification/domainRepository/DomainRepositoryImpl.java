@@ -4,6 +4,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.QDomain;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;

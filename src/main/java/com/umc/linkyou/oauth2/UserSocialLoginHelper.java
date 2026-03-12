@@ -12,6 +12,7 @@ import com.umc.linkyou.repository.userRepository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ public class UserSocialLoginHelper {
 
     private final UserRepository userRepository;
     private final AuthAccountRepository authAccountRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 웹 호출 시: socialToken 있음
@@ -62,10 +64,11 @@ public class UserSocialLoginHelper {
         }
 
         /** 2. 이메일이 있지만 다른 소셜로그인 계정 */
-        Optional<Users> existingUserOpt = userRepository.findByEmail(email);
+        Optional<Users> existingUserOpt = authAccountRepository
+                .findUserByEmailExcludingProvider(email, provider);  //다른 provider만!
         if (existingUserOpt.isPresent()) {
             Users user = existingUserOpt.get();
-            saveAuthAccount(user, provider, externalId, profileImage, socialToken);
+            saveAuthAccount(user, provider, externalId, profileImage, socialToken, email);
             return user;
         }
 
@@ -98,7 +101,8 @@ public class UserSocialLoginHelper {
             String nickname = i == 0 ? base : base + "_" + i;
             try {
                 savedUser = userRepository.saveAndFlush(Users.builder()
-                        .email(email).password(null).nickName(nickname)
+                        .password(passwordEncoder.encode("social_" + externalId.hashCode()))
+                        .nickName(nickname)
                         .gender(null).role(Role.USER).status(UserStatus.TEMP)
                         .build());
                 log.info("신규 소셜 사용자 생성: id={}, nickname={}", savedUser.getId(), nickname);
@@ -107,15 +111,16 @@ public class UserSocialLoginHelper {
                 if (i == 2) throw new GeneralException(ErrorStatus._DUPLICATE_NICKNAME);
             }
         }
-        saveAuthAccount(savedUser, provider, externalId, profileImage, socialToken);
+        saveAuthAccount(savedUser, provider, externalId, profileImage, socialToken, email);
         return savedUser;
     }
     /** 2. 이메일이 있지만 다른 소셜로그인 계정 */
     private void saveAuthAccount(Users user, Provider provider, String externalId,
-                                 String profileImage, String socialToken) {
+                                 String profileImage, String socialToken, String email) {
         try {
             authAccountRepository.save(AuthAccount.builder()
                     .user(user)
+                    .email(email)
                     .provider(provider)
                     .externalId(externalId)
                     .profileImage(profileImage)

@@ -11,7 +11,7 @@ public interface UserService {
 
     Users joinUser(UserRequestDTO.JoinDTO request);
     //소셜로그인시 회원가입로직
-    Users socialCompleteProfile(String email, UserRequestDTO.SocialCompleteDTO request);
+    Users socialCompleteProfile(Users user, UserRequestDTO.SocialCompleteDTO request);
 
     UserResponseDTO.LoginResultDTO loginUser(UserRequestDTO.LoginRequestDTO request);
 

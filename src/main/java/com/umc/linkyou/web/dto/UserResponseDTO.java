@@ -87,27 +87,6 @@ public class UserResponseDTO {
         private String loginProvider;
         private List<String> purposes;
         private List<String> interests;
-
-        public UserProfileSummaryDto(
-                String nickName,
-                String email,
-                Gender gender,
-                Job job,
-                Long linkCount,
-                Long folderCount,
-                Long aiLinkCount   // Boolean → Long
-        ) {
-            this.nickName   = nickName;
-            this.email      = email;
-            this.gender     = gender;
-            this.job        = job;
-            this.myLinku    = linkCount;
-            this.myFolder   = folderCount;
-            this.myAiLinku  = aiLinkCount;   // 여기서 Long 그대로 대입
-            this.purposes   = java.util.Collections.emptyList();
-            this.interests  = java.util.Collections.emptyList();
-            this.loginProvider = null;
-        }
     }
 
     @Getter @Setter
