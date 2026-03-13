@@ -90,6 +90,7 @@ public enum ErrorStatus implements BaseErrorCode {
     _FOLDER_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "FOLDER_DELETE403", "해당하는 폴더의 삭제 권한이 없습니다."),
     _FOLDER_ACCESS_FORBIDDEN(HttpStatus.FORBIDDEN, "FOLDER_ACCESS403", "해당 폴더에 접근 권한이 없습니다."),
     _FOLDER_NAME_CONFLICT(HttpStatus.CONFLICT, "FOLDER_NAME409", "카테고리명과 동일한 폴더명은 사용할 수 없습니다."),
+    _FOLDER_INVALID_CURSOR(HttpStatus.BAD_REQUEST, "FOLDER_CURSOR400", "유효하지 않은 커서 값입니다."),
 
     // 공유 폴더 관련 응답
     _FOLDER_PERMISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_PERMISSION404", "해당 유저의 폴더 권한 정보를 찾을 수 없습니다."),

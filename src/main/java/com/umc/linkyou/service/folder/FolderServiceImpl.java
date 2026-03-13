@@ -299,8 +299,17 @@ public class FolderServiceImpl implements FolderService {
                     return dto;
                 }).toList();
 
-        // 커서: 없으면 Long.MAX_VALUE
-        Long cursorId = (cursor == null) ? Long.MAX_VALUE : Long.parseLong(cursor);
+        // 커서: 없으면 Long.MAX_VALUE, 숫자가 아니면 400 반환
+        Long cursorId;
+        if (cursor == null) {
+            cursorId = Long.MAX_VALUE;
+        } else {
+            try {
+                cursorId = Long.parseLong(cursor);
+            } catch (NumberFormatException e) {
+                throw new GeneralException(ErrorStatus._FOLDER_INVALID_CURSOR);
+            }
+        }
 
         // DB에서 limit + 1개를 가져옴
         PageRequest pageRequest = PageRequest.of(0, limit + 1);
