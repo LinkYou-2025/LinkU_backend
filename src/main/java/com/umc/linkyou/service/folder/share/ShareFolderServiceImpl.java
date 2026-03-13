@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -116,20 +115,20 @@ public class ShareFolderServiceImpl implements ShareFolderService {
 
     // 유저의 폴더 권한 수정
     public ShareFolderResponseDTO updateViewerPermission(Long userId, Long folderId, Long userFolderId, FolderPermissionRequestDTO request) {
+        // 요청자가 폴더 소유자인지 확인
+        if (!usersFolderRepository.existsFolderOwner(userId, folderId)) {
+            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+        }
+
         UsersFolder usersFolder = usersFolderRepository.findById(userFolderId).orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_FOUND));
 
         if (!usersFolder.getFolder().getFolderId().equals(folderId)) {
             throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
-        // 오너일 경우 권한 변경 불가
+        // 오너의 권한은 변경 불가
         if (usersFolder.getPermissionType() == PermissionType.OWNER) {
             throw new GeneralException(ErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED);
-        }
-
-        Optional<UsersFolder> ownerUsersFolder = usersFolderRepository.findOwnerByFolderId(folderId);
-        if (ownerUsersFolder.isPresent() && !ownerUsersFolder.get().getUser().getId().equals(userId)) {
-            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
         PermissionType permission = request.getPermission();

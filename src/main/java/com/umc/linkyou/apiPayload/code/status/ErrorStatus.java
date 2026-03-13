@@ -85,6 +85,7 @@ public enum ErrorStatus implements BaseErrorCode {
     _FOLDER_PARENT_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_PARENT404", "폴더의 부모 폴더가 없습니다."),
     _FOLDER_CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_CATEGORY404", "폴더의 카테고리가 없습니다."),
     _FOLDER_CREATE_DUPLICATE(HttpStatus.CONFLICT, "FOLDER_CATEGORY404", "중복된 폴더명입니다."),
+    _FOLDER_CREATE_FORBIDDEN(HttpStatus.FORBIDDEN, "FOLDER_CREATE403", "해당하는 폴더를 생성할 권한이 없습니다."),
     _FOLDER_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "FOLDER_UPDATE403", "해당하는 폴더의 수정 권한이 없습니다."),
     _FOLDER_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "FOLDER_DELETE403", "해당하는 폴더의 삭제 권한이 없습니다."),
     _FOLDER_ACCESS_FORBIDDEN(HttpStatus.FORBIDDEN, "FOLDER_ACCESS403", "해당 폴더에 접근 권한이 없습니다."),

@@ -3,9 +3,7 @@ package com.umc.linkyou.repository.usersFolderRepository;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
-import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -114,6 +112,22 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
             @Param("folderId") Long folderId
     );
 
+    // 폴더 소유자 또는 편집자 여부 확인 (하위 폴더 생성 권한)
+    @Query("""
+        select count(uf) > 0
+        from UsersFolder uf
+        where uf.user.id = :userId
+            and uf.folder.folderId = :folderId
+            and uf.permissionType in (
+                com.umc.linkyou.domain.enums.PermissionType.OWNER,
+                com.umc.linkyou.domain.enums.PermissionType.WRITER
+            )
+        """)
+    boolean existsFolderOwnerOrWriter(
+            @Param("userId") Long userId,
+            @Param("folderId") Long folderId
+    );
+
     // 다른 유저에게 공유 된 폴더인지 확인 (활성 권한이 있는 멤버가 존재하는 경우만)
     @Query("""
         select DISTINCT uf.folder.folderId
@@ -158,7 +172,6 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
     );
 
     // 유저가 해당 폴더에 활성화된 권한(뷰어/편집자)이 있는지 확인
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         select COUNT(uf) > 0
         from UsersFolder uf
