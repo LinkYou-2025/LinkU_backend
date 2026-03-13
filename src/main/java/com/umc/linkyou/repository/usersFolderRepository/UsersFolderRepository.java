@@ -193,6 +193,7 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
         where uf.user.id = :userId
           and uf.folder.category = :category
           and uf.folder.parentFolder is null
+          and uf.permissionType = com.umc.linkyou.domain.enums.PermissionType.OWNER
         """)
     Optional<Folder> findFolderByUserIdAndCategory(
             @Param("userId") Long userId,
