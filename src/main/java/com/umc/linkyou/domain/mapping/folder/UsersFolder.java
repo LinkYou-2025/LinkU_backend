@@ -10,7 +10,6 @@ import lombok.*;
 @Entity
 @Table(name = "users_folder")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -20,10 +19,12 @@ public class UsersFolder extends BaseEntity {
     @Column(name = "users_folder_id")
     private Long userFolderId;
 
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(name = "permission_type", nullable = false)
     private PermissionType permissionType;
 
+    @Setter
     private Boolean isBookmarked = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
