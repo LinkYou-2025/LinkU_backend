@@ -276,14 +276,15 @@ public class FolderServiceImpl implements FolderService {
         List<Folder> subFolders = folderRepository.findAllByParentFolderId(folderId, folderSort);
         List<Long> subFolderIds = subFolders.stream().map(Folder::getFolderId).toList();
 
-        // 현재 페이지의 폴더들에 대해 북마크 상태 일괄 조회
-        Map<Long, Boolean> bookmarkMap = usersFolderRepository.findAllByUserIdAndFolderIdIn(userId, subFolderIds).stream()
-                .collect(Collectors.toMap(
-                        uf -> uf.getFolder().getFolderId(),
-                        UsersFolder::getIsBookmarked
-                ));
+        // 현재 페이지의 폴더들에 대해 북마크 상태 및 공유 여부 일괄 조회 (빈 리스트면 DB 호출 생략)
+        Map<Long, Boolean> bookmarkMap = subFolderIds.isEmpty()
+                ? Collections.emptyMap()
+                : usersFolderRepository.findAllByUserIdAndFolderIdIn(userId, subFolderIds).stream()
+                        .collect(Collectors.toMap(
+                                uf -> uf.getFolder().getFolderId(),
+                                UsersFolder::getIsBookmarked
+                        ));
 
-        // 공유 중인 폴더 ID들만 Set으로 가져옴
         Set<Long> sharedFolderIds = subFolderIds.isEmpty()
                 ? Collections.emptySet()
                 : usersFolderRepository.findAllSharedFolderIdsIn(subFolderIds);

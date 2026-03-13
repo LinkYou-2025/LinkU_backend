@@ -16,6 +16,7 @@ import com.umc.linkyou.web.dto.folder.share.*;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class SharedFolderServiceImpl implements SharedFolderService {
     private final UsersFolderRepository usersFolderRepository;
     private final FolderConverter folderConverter;
@@ -104,6 +106,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
     }
 
     // 공유 받은 폴더 삭제
+    @Transactional
     public FolderResponseDTO deleteSharedFolder(Long userId, Long folderId) {
         // 폴더 조회
         UsersFolder usersFolder = usersFolderRepository
