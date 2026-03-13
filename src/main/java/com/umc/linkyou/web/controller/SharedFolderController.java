@@ -6,9 +6,7 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.service.folder.shared.SharedFolderService;
 import com.umc.linkyou.validation.annotation.ApiV1;
-import com.umc.linkyou.web.dto.folder.FolderListResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
-import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.SharedFolderGroupResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,10 +30,10 @@ public class SharedFolderController {
             description = "사용자가 공유 받은 폴더를 소유자별로 그룹핑하여 조회합니다."
     )
     @GetMapping
-    public ApiResponse<List<SharedFolderGroupResponseDTO>> getSharedFoldersByOwner(
+    public ApiResponse<List<SharedFolderGroupResponseDTO>> getSharedFolders(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        List<SharedFolderGroupResponseDTO> result = sharedFolderService.getSharedFoldersByOwner(userDetails.getUsers().getId());
+        List<SharedFolderGroupResponseDTO> result = sharedFolderService.getSharedFolders(userDetails.getUsers().getId());
         return ApiResponse.of(SuccessStatus._FOLDER_SHARED_OK, result);
     }
 

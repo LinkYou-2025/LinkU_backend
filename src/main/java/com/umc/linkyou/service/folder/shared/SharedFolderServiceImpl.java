@@ -8,7 +8,6 @@ import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
-import com.umc.linkyou.web.dto.folder.FolderListResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.SharedFolderGroupResponseDTO;
@@ -31,7 +30,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
     private final FolderConverter folderConverter;
 
     // 공유받은 폴더 목록 조회 (소유자별 그룹핑)
-    public List<SharedFolderGroupResponseDTO> getSharedFoldersByOwner(Long userId) {
+    public List<SharedFolderGroupResponseDTO> getSharedFolders(Long userId) {
         // 유저 id로 공유 받은 폴더 리스트
         List<Folder> sharedFolders = usersFolderRepository.findAllSharedFolders(userId);
 
@@ -91,18 +90,6 @@ public class SharedFolderServiceImpl implements SharedFolderService {
         }
 
         return result;
-    }
-
-    public List<FolderListResponseDTO> getSharedFolders(Long userId) {
-        // 유저 폴더 테이블에서 isOwner가 false고 isViewer가 true인 폴더들 조회
-        List<Folder> folders = usersFolderRepository.findAllSharedFolders(userId);
-
-        return folders.stream()
-                .map(folder -> FolderListResponseDTO.builder()
-                        .folderId(folder.getFolderId())
-                        .folderName(folder.getFolderName())
-                        .build())
-                .collect(Collectors.toList());
     }
 
     // 공유 받은 폴더 삭제
