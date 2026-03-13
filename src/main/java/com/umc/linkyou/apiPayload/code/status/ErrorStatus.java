@@ -44,13 +44,12 @@ public enum ErrorStatus implements BaseErrorCode {
 
     //소셜로그인 관련
     _AUTH_ACCOUNT_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "OAUTH5001", "소셜 계정 연결에 실패했습니다."),
-    _USER_SOCIAL_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "OAUTH5002", "소셜 사용자 생성에 실패했습니다."),
     _SOCIAL_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "OAUTH4003", "소셜 로그인에 이메일이 필요합니다."),
     _SOCIAL_UNSUPPORTED_PROVIDER(HttpStatus.BAD_REQUEST, "OAUTH4004", "지원하지 않는 소셜 제공자입니다."),
     _SOCIAL_PROFILE_EXPIRED(HttpStatus.BAD_REQUEST, "OAUTH4005", "임시 프로필이 만료되었습니다."),
-    _SOCIAL_PROFILE_NOT_REQUIRED(HttpStatus.BAD_REQUEST, "OAUTH4006", "임시 프로필이 필요하지 않습니다."),
-    _INVALID_AUTH_CODE(HttpStatus.BAD_REQUEST, "OAUTH4007", "웹:유효하지 않거나 만료된 인증 코드"),
-    _INVALID_ID_TOKEN(HttpStatus.BAD_REQUEST, "OAUTH4008", "앱:유효하지 않거나 만료된 ID 토큰"),
+    _INVALID_ID_TOKEN(HttpStatus.BAD_REQUEST, "OAUTH4008", "유효하지 않거나 만료된 ID 토큰"),
+    _SOCIAL_ACCOUNT_ONLY(HttpStatus.UNAUTHORIZED, "USERS4014", "소셜 전용 계정입니다. 소셜 로그인을 이용하세요."),
+
     //링큐 관련 코드
     _LINKU_VIDEO_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "LINKU4001", "영상 링크는 저장할 수 없습니다."),
     _LINKU_INVALID_URL(HttpStatus.BAD_REQUEST, "LINKU4002", "유효하지 않은 링크입니다."),

@@ -6,6 +6,7 @@ import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
 import com.umc.linkyou.converter.UserConverter;
+import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.EmailVerification;
 import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.PermissionType;
@@ -22,6 +23,7 @@ import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.*;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
+import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.categoryRepository.UsersCategoryColorRepository;
 import com.umc.linkyou.repository.classification.InterestRepository;
 import com.umc.linkyou.repository.userRepository.UserQueryRepository;
@@ -82,6 +84,8 @@ public class UserServiceImpl implements UserService {
 
     private final RefreshTokenManager refreshTokenManager;
 
+    private final AuthAccountRepository authAccountRepository;
+
     @Value("${jwt.token.expiration.refresh}")
     private long refreshTtlMs;
 
@@ -91,99 +95,134 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public Users joinUser(UserRequestDTO.JoinDTO request){
+    public Users joinUser(UserRequestDTO.JoinDTO request) {
+        // 1. 닉네임 중복 체크
         if (userRepository.findByNickName(request.getNickName()).isPresent()) {
             throw new UserHandler(ErrorStatus._DUPLICATE_NICKNAME);
         }
 
-        if(userRepository.findByEmail(request.getEmail()).isPresent()){
+        // 2. 현재 시도하는 경로(GENERAL)로 이미 가입된 계정이 있는지 체크
+        if (authAccountRepository.existsByProviderAndExternalId(Provider.GENERAL, request.getEmail())) {
             throw new UserHandler(ErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
-        // Job 엔티티를 DB에서 조회
-        Job job = jobRepository.findById(request.getJobId())
-                .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
 
-        Users newUser = UserConverter.toUser(request,job);
-        newUser.encodePassword(passwordEncoder.encode(request.getPassword()));
+        // 3. 기존 유저 통합 로직: 이메일로 가입된 다른 소셜 계정이 있는지 확인
+        Users user = authAccountRepository.findUserByEmailAndProvider(request.getEmail(), Provider.GENERAL)
+                .orElseGet(() -> {
+                    // 3-1. 기존 유저가 아예 없으면 새로 생성
+                    Job job = jobRepository.findById(request.getJobId())
+                            .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
 
-        List<String> purposeNames = request.getPurposeList(); // 프론트에서 받은 enum 이름 리스트
+                    Users newUser = UserConverter.toUser(request, job);
+                    // 일반 로그인용 비밀번호 인코딩
+                    newUser.encodePassword(passwordEncoder.encode(request.getPassword()));
 
-        final Users savedUser = newUser;
+                    // Purposes / Interests 설정
+                    setupPurposesAndInterests(newUser, request);
 
-        List<Purposes> purposeList = purposeNames.stream()
-                .map(name -> {
-                    String purpose = name;
-                    return new Purposes(purpose, savedUser);
-                })
-                .toList();
+                    return userRepository.save(newUser);
+                });
 
-        List<String> interestNames = request.getInterestList(); // 프론트에서 받은 enum 이름 리스트
+        // 4. 기존 유저가 소셜 유저였다면, 일반 로그인용 비밀번호가 없을 수 있으므로 업데이트
+        if (user.getPassword() == null || user.getPassword().startsWith("social_")) {
+            user.encodePassword(passwordEncoder.encode(request.getPassword()));
+        }
 
-        List<Interests> interestList = interestNames.stream()
-                .map(name -> {
-                    String interest = name; // 문자열 → enum
-                    return new Interests(interest, savedUser);
-                })
-                .toList();
+        // 5. 일반(GENERAL) 가입 정보(AuthAccount) 저장
+        authAccountRepository.save(AuthAccount.builder()
+                .user(user)
+                .provider(Provider.GENERAL)
+                .externalId(request.getEmail())
+                .email(request.getEmail())
+                .build());
 
-        newUser.setPurposes(purposeList);
-        newUser.setInterests(interestList);
+        // 6. 상태 업데이트 및 초기 폴더 설정
+        // 기존 유저가 있더라도 폴더가 없는 경우(TEMP 상태 등)를 대비해 체크 후 초기화
+        if (user.getStatus() == UserStatus.TEMP || user.getUsersFoldersList().isEmpty()) {
+            initUserFolders(user);
+            user.setStatus(UserStatus.ACTIVE);
+        }
 
-        //return userRepository.save(newUser);
-        newUser = userRepository.save(newUser);
+        return user;
+    }
 
-        // 중분류 폴더 생성
+    // 중복 코드 방지를 위한 Purposes/Interests 설정 헬퍼 메서드
+    private void setupPurposesAndInterests(Users user, UserRequestDTO.JoinDTO request) {
+        List<Purposes> purposeList = request.getPurposeList().stream()
+                .map(name -> new Purposes(name, user)).toList();
+
+        List<Interests> interestList = request.getInterestList().stream()
+                .map(name -> new Interests(name, user)).toList();
+
+        user.setPurposes(purposeList);
+        user.setInterests(interestList);
+    }
+
+    // 초기 폴더 생성 메서드 (color_code 에러 방지 반영)
+    private void initUserFolders(Users user) {
         List<Category> categories = categoryRepository.findAll();
         List<UsersCategoryColor> userColors = new ArrayList<>();
 
         for (Category category : categories) {
+            // 중분류 폴더 생성
             Folder subFolder = folderRepository.save(Folder.builder()
                     .folderName(category.getCategoryName())
                     .category(category)
                     .parentFolder(null)
                     .build());
 
-            // 기본 카테고리 색상으로 설정
+            // 기본 카테고리 색상 설정
             Fcolor defaultColor = category.getFcolor();
             userColors.add(UsersCategoryColor.builder()
-                    .user(newUser)
+                    .user(user)
                     .category(category)
                     .fcolor(defaultColor)
                     .build());
 
             // UsersFolder 매핑
             usersFolderRepository.save(UsersFolder.builder()
-                    .user(newUser)
+                    .user(user)
                     .folder(subFolder)
                     .permissionType(PermissionType.OWNER)
                     .isBookmarked(false)
                     .build());
         }
-
         usersCategoryColorRepository.saveAll(userColors);
-
-        return newUser;
     }
-
     //일반 회원 로그인
     @Override
     @Transactional
     public UserResponseDTO.LoginResultDTO loginUser(UserRequestDTO.LoginRequestDTO request) {
-        Users user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(()-> new UserHandler(ErrorStatus._LOGIN_FAILED));
+        Users user = authAccountRepository.findUserByEmailAndProvider(request.getEmail(), Provider.GENERAL)
+                .orElseThrow(() -> new UserHandler(ErrorStatus._LOGIN_FAILED));
+
+        Long userId = user.getId();
+
+        // 소셜 전용 계정 차단 (GENERAL AuthAccount 없음)
+        boolean hasGeneralAccount = authAccountRepository.existsByUserIdAndProvider(
+                user.getId(), Provider.GENERAL);
+        if (!hasGeneralAccount) {
+            throw new UserHandler(ErrorStatus._SOCIAL_ACCOUNT_ONLY);
+        }
 
         // social login은 password null, jwt login은 password null이면 error(NPE 방지 코드)
         if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new UserHandler(ErrorStatus._LOGIN_FAILED);
         }
 
+        String email = authAccountRepository.findByUserIdAndProvider(userId, Provider.GENERAL)
+                .map(AuthAccount::getEmail)
+                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
+
         Authentication authentication = new UsernamePasswordAuthenticationToken(
-                user.getEmail(), null,
+                email, null,
                 Collections.singleton(() -> user.getRole().name())
         );
 
-        String accessToken = jwtTokenProvider.createAccessToken(user.getEmail(), Provider.GENERAL.name());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
+
+
+        String accessToken = jwtTokenProvider.createAccessToken(email, Provider.GENERAL.name());
+        String refreshToken = jwtTokenProvider.createRefreshToken(email);
 
         // 리프레시 토큰이 이미 있으면 토큰을 갱신하고 없으면 토큰을 추가
         String tokenId =  jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
@@ -193,11 +232,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public Users socialCompleteProfile(String email, UserRequestDTO.SocialCompleteDTO request) {
-        // 1. TEMP 사용자 조회
-        Users user = userRepository.findByEmailAndStatus(email, UserStatus.TEMP)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._SOCIAL_PROFILE_EXPIRED));
-
+    public Users socialCompleteProfile(Users user, UserRequestDTO.SocialCompleteDTO request) {
         // 2. 닉네임 중복 체크
         validateNickNameNotDuplicate(request.getNickName());
 
@@ -235,32 +270,6 @@ public class UserServiceImpl implements UserService {
         return savedUser;
     }
 
-    // 기존 joinUser 로직을 메서드로 추출
-    private void initUserFolders(Users user) {
-        List<Category> categories = categoryRepository.findAll();
-        List<UsersCategoryColor> userColors = new ArrayList<>();
-
-        for (Category category : categories) {
-            Folder subFolder = folderRepository.save(Folder.builder()
-                    .folderName(category.getCategoryName())
-                    .category(category)
-                    .parentFolder(null)
-                    .build());
-
-            Fcolor defaultColor = category.getFcolor();
-            userColors.add(UsersCategoryColor.builder()
-                    .user(user).category(category).fcolor(defaultColor)
-                    .build());
-
-            usersFolderRepository.save(UsersFolder.builder()
-                    .user(user).folder(subFolder)
-                    .permissionType(PermissionType.OWNER)
-                    .isBookmarked(false)
-                    .build());
-        }
-        usersCategoryColorRepository.saveAll(userColors);
-    }
-
 
     public UserResponseDTO.TokenPair reissueRefreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -275,14 +284,16 @@ public class UserServiceImpl implements UserService {
         // 2) 이메일 파싱
         Claims claims = jwtTokenProvider.validateAndParseRefresh(raw).getBody();
         String email = claims.getSubject();
-        Long userId = userRepository.findByEmail(email)
+        String providerStr = claims.get("provider", String.class);  // String 그대로!
+
+        Long userId = authAccountRepository.findUserByEmailAndProvider(email,Provider.valueOf(providerStr))
                 .map(Users::getId)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
 
         String oldId = jwtTokenProvider.hmac(raw);
 
-        // 3) provider 조회 + 토큰 삭제를 원자적으로 처리 (TOCTOU 방지)
-        String provider = refreshTokenManager.consumeToken(userId, oldId)
+        // 3) provider 조회
+        String provider = refreshTokenManager.consumeToken(userId, oldId)  // 여기서 provider 반환
                 .orElseThrow(() -> new UserHandler(ErrorStatus._INVALID_TOKEN));
 
         // 4) 새 토큰 발급 및 저장
@@ -333,9 +344,8 @@ public class UserServiceImpl implements UserService {
     }
 
     private void checkDuplicatedEmail(String email) {
-        Optional<Users> user = userRepository.findByEmail(email);
-        if (user.isPresent()) {
-            log.debug("MemberServiceImpl.checkDuplicatedEmail exception occur email: {}", email);
+        if (authAccountRepository.existsByEmail(email)) {
+            log.debug("checkDuplicatedEmail exception occur email: {}", email);
             throw new UserHandler(ErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
     }
@@ -386,10 +396,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponseDTO.UserProfileSummaryDto userInfo(Long userId, String loginProvider) {
         UserResponseDTO.UserProfileSummaryDto s = userQueryRepository.findUserProfileSummary(userId);
+        String currentEmail = authAccountRepository.findEmailByUserIdAndProvider(userId, Provider.valueOf(loginProvider))
+                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
+
         List<String> purposes  = purposeRepository.findAllPurposeNamesByUserId(userId);
         List<String> interests = interestRepository.findAllInterestNamesByUserId(userId);
 
-        UserResponseDTO.UserProfileSummaryDto result = UserConverter.toUserInfoDTO(s, purposes, interests);
+        UserResponseDTO.UserProfileSummaryDto result = UserConverter.toUserInfoDTO(s, currentEmail, purposes, interests);
         result.setLoginProvider(loginProvider);
         return result;
     }
@@ -483,7 +496,7 @@ public class UserServiceImpl implements UserService {
     // 임시 비밀번호 전송
     @Override
     public void sendTempPassword(String toEmail) {
-        Users user = userRepository.findByEmail(toEmail)
+        Users user = authAccountRepository.findUserByEmailAndProvider(toEmail, Provider.GENERAL)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
 
         String tempPassword = this.createPassword();

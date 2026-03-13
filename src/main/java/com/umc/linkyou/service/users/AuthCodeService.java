@@ -22,7 +22,7 @@ public class AuthCodeService {
         String[] tokens = token.split("::");
         if (tokens.length != 2) {
             log.error("AuthCodeService: Redis 토큰 형식 오류 code={}, token={}", code, token);
-            throw new GeneralException(ErrorStatus._INVALID_AUTH_CODE);
+            throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
         }
         return new UserResponseDTO.TokenPair(tokens[0], tokens[1]);
 

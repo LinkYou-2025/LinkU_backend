@@ -13,7 +13,9 @@ import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.converter.EmailConverter;
 import com.umc.linkyou.domain.EmailVerification;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.repository.EmailRepository;
+import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -42,11 +44,11 @@ public class EmailService {
     private final EmailRepository emailRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthAccountRepository authAccountRepository;
 
     @Value("${spring.sendgrid.from}")
     private String fromEmail;
 
-    // 다이나믹 템플릿 ID & 로고 URL (S3 공개 URL)
     @Value("${spring.sendgrid.templates.verify-id}")
     private String verifyTemplateId;
 
@@ -89,7 +91,7 @@ public class EmailService {
     }
 
     /**
-     * ✅ 신규: 다이나믹 템플릿(HTML)로 인증 메일 전송
+     * 신규: 다이나믹 템플릿(HTML)로 인증 메일 전송
      * 템플릿 변수: nickname, code, expiresInMinutes, year, logoUrl, (옵션) verifyUrl
      */
     public void sendVerificationEmailTemplate(String toEmail,
@@ -123,7 +125,7 @@ public class EmailService {
             throw new UserHandler(ErrorStatus._SEND_MAIL_FAILED);
         }
     }
-    /** ✅ 임시 비밀번호 템플릿 메일 전송 */
+    /**  임시 비밀번호 템플릿 메일 전송 */
     public void sendTempPasswordTemplate(String toEmail,
                                          String nickname,
                                          String tempPassword,
@@ -186,17 +188,11 @@ public class EmailService {
 
     // 임시 비밀번호 저장
     public void savePassword(String toEmail, String password) {
-        Optional<Users> optionalUser = userRepository.findByEmail(toEmail);
+        Users user = authAccountRepository.findUserByEmailAndProvider(toEmail, Provider.GENERAL)
+                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
 
-        if (optionalUser.isPresent()) {
-            Users user = optionalUser.get();
-
-            String encodedPassword = passwordEncoder.encode(password);
-
-            user.setPassword(encodedPassword);
-            userRepository.save(user);
-        } else {
-            throw new UserHandler(ErrorStatus._USER_NOT_FOUND);
-        }
+        String encodedPassword = passwordEncoder.encode(password);
+        user.setPassword(encodedPassword);
+        userRepository.save(user);
     }
 }

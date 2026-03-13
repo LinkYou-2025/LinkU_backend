@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -75,6 +76,7 @@ public class UserResponseDTO {
     @Getter
     @AllArgsConstructor
     @Builder
+    @Setter
     public static class UserProfileSummaryDto {
         private final String nickName;
         private final String email;
@@ -83,32 +85,25 @@ public class UserResponseDTO {
         private final Long myLinku;
         private final Long myFolder;
         private final Long myAiLinku;
-        @Setter
         private String loginProvider;
         private List<String> purposes;
         private List<String> interests;
-
-        public UserProfileSummaryDto(
-                String nickName,
-                String email,
-                Gender gender,
-                Job job,
-                Long linkCount,
-                Long folderCount,
-                Long aiLinkCount   // Boolean → Long
-        ) {
-            this.nickName   = nickName;
-            this.email      = email;
-            this.gender     = gender;
-            this.job        = job;
-            this.myLinku    = linkCount;
-            this.myFolder   = folderCount;
-            this.myAiLinku  = aiLinkCount;   // 여기서 Long 그대로 대입
-            this.purposes   = java.util.Collections.emptyList();
-            this.interests  = java.util.Collections.emptyList();
+        //QueryDSL 7개 파라미터용 생성자
+        public UserProfileSummaryDto(String nickName, String email, Gender gender, Job job,
+                                     Long myLinku, Long myFolder, Long myAiLinku) {
+            this.nickName = nickName;
+            this.email = email;
+            this.gender = gender;
+            this.job = job;
+            this.myLinku = myLinku;
+            this.myFolder = myFolder;
+            this.myAiLinku = myAiLinku;
             this.loginProvider = null;
+            this.purposes = Collections.emptyList();
+            this.interests = Collections.emptyList();
         }
     }
+
 
     @Getter @Setter
     @Builder
