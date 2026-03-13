@@ -26,25 +26,27 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
             @Param("folderId") Long folderId
     );
 
-    // 유저가 속한 모든 폴더 관계 조회
+    // 유저가 속한 모든 폴더 관계 조회 (활성 권한이 있는 경우만)
     @Query("""
         select uf
         from UsersFolder uf
         join fetch uf.folder f
         left join fetch f.parentFolder
         where uf.user.id = :userId
+            and (uf.isOwner = true or uf.isViewer = true or uf.isWriter = true)
         """)
     List<UsersFolder> findAllByUserId(
             @Param("userId") Long userId
     );
 
-    // 유저의 중분류(루트) 폴더 조회
+    // 유저의 중분류(루트) 폴더 조회 (활성 권한이 있는 경우만)
     @Query("""
         select uf
         from UsersFolder uf
         join fetch uf.folder f
         where uf.user.id = :userId
             and f.parentFolder is null
+            and (uf.isOwner = true or uf.isViewer = true or uf.isWriter = true)
         """)
     List<UsersFolder> findParentFolders(
             @Param("userId") Long userId
@@ -62,12 +64,13 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
             @Param("folderIds") List<Long> folderIds
     );
 
-    // 유저 id랑 부모 폴더id로 찾기
+    // 유저 id랑 부모 폴더id로 찾기 (활성 권한이 있는 경우만)
     @Query("""
         select uf.folder
         from UsersFolder uf
         where uf.user.id = :userId
             and uf.folder.parentFolder.folderId = :parentFolderId
+            and (uf.isOwner = true or uf.isViewer = true or uf.isWriter = true)
         """)
     List<Folder> findAllByUserIdAndParentFolderId(
             @Param("userId") Long userId,
