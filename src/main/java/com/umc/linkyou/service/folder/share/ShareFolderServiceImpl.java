@@ -94,6 +94,7 @@ public class ShareFolderServiceImpl implements ShareFolderService {
     }
 
     // 폴더 viewer and writer 조회
+    @Transactional(readOnly = true)
     public List<ViewerResponseDTO> getViewers(Long userId, Long folderId) {
         boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
         if (!isOwner) {

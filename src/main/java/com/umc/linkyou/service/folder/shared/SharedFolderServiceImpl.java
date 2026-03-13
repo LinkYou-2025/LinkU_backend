@@ -65,7 +65,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
                 .collect(Collectors.groupingBy(folder -> {
                     Users owner = folderOwnerMap.get(folder.getFolderId());
                     if (owner == null) {
-                        throw new IllegalStateException("공유폴더의 소유자 정보가 없습니다: folderId=" + folder.getFolderId());
+                        throw new GeneralException(ErrorStatus._FOLDER_OWNER_NOT_FOUND);
                     }
                     return owner.getId();
                 }));

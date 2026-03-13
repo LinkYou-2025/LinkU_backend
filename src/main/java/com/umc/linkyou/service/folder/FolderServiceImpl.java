@@ -19,17 +19,18 @@ import com.umc.linkyou.web.dto.folder.*;
 import com.umc.linkyou.web.dto.folder.linku.FolderLinkusResponseDTO;
 import com.umc.linkyou.web.dto.folder.linku.FolderSummaryDTO;
 import com.umc.linkyou.web.dto.folder.linku.LinkuSummaryDTO;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class FolderServiceImpl implements FolderService {
     private final FolderRepository folderRepository;
     private final CategoryRepository categoryRepository;
@@ -253,7 +254,7 @@ public class FolderServiceImpl implements FolderService {
                 .build();
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     // 폴더 내부 링크, 폴더 목록 조회
     public FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort) {
         // check folder exist
