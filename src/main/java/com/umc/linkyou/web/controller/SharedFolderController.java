@@ -2,16 +2,13 @@ package com.umc.linkyou.web.controller;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.service.folder.shared.SharedFolderService;
 import com.umc.linkyou.validation.annotation.ApiV1;
-import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.SharedFolderGroupResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,12 +39,11 @@ public class SharedFolderController {
             description = "공유 받은 폴더를 자신의 목록에서 제거합니다. (폴더 자체는 삭제되지 않습니다)"
     )
     @DeleteMapping("/{folderId}")
-    public ResponseEntity<FolderResponseDTO> deleteSharedFolder(
+    public ApiResponse<Void> deleteSharedFolder(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId
     ) {
-        // 유저 폴더 테이블에서 삭제
-        FolderResponseDTO response = sharedFolderService.deleteSharedFolder(userDetails.getUsers().getId(), folderId);
-        return ResponseEntity.ok(response);
+        sharedFolderService.deleteSharedFolder(userDetails.getUsers().getId(), folderId);
+        return ApiResponse.of(SuccessStatus._FOLDER_DELETE_OK, null);
     }
 }

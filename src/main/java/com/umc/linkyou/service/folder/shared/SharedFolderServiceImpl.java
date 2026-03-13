@@ -94,7 +94,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
 
     // 공유 받은 폴더 삭제
     @Transactional
-    public FolderResponseDTO deleteSharedFolder(Long userId, Long folderId) {
+    public void deleteSharedFolder(Long userId, Long folderId) {
         // 폴더 조회
         UsersFolder usersFolder = usersFolderRepository
                 .findByUserIdAndFolderId(userId, folderId)
@@ -107,8 +107,5 @@ public class SharedFolderServiceImpl implements SharedFolderService {
 
         // 유저 폴더 테이블에서 삭제
         usersFolderRepository.delete(usersFolder);
-
-        Folder folder = usersFolder.getFolder();
-        return folderConverter.toFolderResponseDTO(folder);
     }
 }

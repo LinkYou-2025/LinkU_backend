@@ -1,6 +1,5 @@
 package com.umc.linkyou.service.folder.shared;
 
-import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.*;
 
 import java.util.List;
@@ -10,5 +9,5 @@ public interface SharedFolderService {
     List<SharedFolderGroupResponseDTO> getSharedFolders(Long userId);
 
     // 공유 받은 폴더 삭제
-    FolderResponseDTO deleteSharedFolder(Long userId, Long folderId);
+    void deleteSharedFolder(Long userId, Long folderId);
 }
