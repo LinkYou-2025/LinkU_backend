@@ -108,20 +108,7 @@ public class ShareFolderServiceImpl implements ShareFolderService {
                     ViewerResponseDTO dto = new ViewerResponseDTO();
                     dto.setUserId(uf.getUser().getId());
                     dto.setUserName(uf.getUser().getNickName());
-
-                    // 실제 권한 계산 -> dto에 실제 반환되는 권한 명시
-                    String permission;
-                    if (Boolean.TRUE.equals(uf.getIsOwner())) {
-                        permission = "OWNER";
-                    } else if (Boolean.TRUE.equals(uf.getIsWriter())) {
-                        permission = "WRITER";
-                    } else if (Boolean.TRUE.equals(uf.getIsViewer())) {
-                        permission = "VIEWER";
-                    } else {
-                        permission = "NONE";
-                    }
-                    dto.setPermission(permission);
-
+                    dto.setPermission(uf.getPermissionType().name());
                     return dto;
                 })
                 .toList();
@@ -136,7 +123,7 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         }
 
         // 오너일 경우 권한 변경 불가
-        if (Boolean.TRUE.equals(usersFolder.getIsOwner())) {
+        if (usersFolder.getPermissionType() == PermissionType.OWNER) {
             throw new GeneralException(ErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED);
         }
 
@@ -147,22 +134,12 @@ public class ShareFolderServiceImpl implements ShareFolderService {
 
         PermissionType permission = request.getPermission();
 
-        switch (permission) {
-            case VIEWER:
-                usersFolder.setIsWriter(false);
-                usersFolder.setIsViewer(true);
-                break;
-            case WRITER:
-                usersFolder.setIsWriter(true);
-                usersFolder.setIsViewer(true);
-                break;
-            case NONE:
-                usersFolder.setIsWriter(false);
-                usersFolder.setIsViewer(false);
-                break;
-            default:
-                throw new GeneralException(ErrorStatus._INVALID_PERMISSION_TYPE);
+        // OWNER 권한으로 변경은 허용하지 않음
+        if (permission == PermissionType.OWNER) {
+            throw new GeneralException(ErrorStatus._INVALID_PERMISSION_TYPE);
         }
+
+        usersFolder.setPermissionType(permission);
         usersFolderRepository.save(usersFolder);
 
         return ShareFolderResponseDTO.builder()
@@ -191,10 +168,7 @@ public class ShareFolderServiceImpl implements ShareFolderService {
                 usersFolderRepository.findAllParticipantsByFolderId(folderId);
 
         // 권한 박탈
-        mappings.forEach(uf -> {
-            uf.setIsViewer(false);
-            uf.setIsWriter(false);
-        });
+        mappings.forEach(uf -> uf.setPermissionType(PermissionType.NONE));
 
         usersFolderRepository.saveAll(mappings);
 

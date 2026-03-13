@@ -33,7 +33,7 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
         join fetch uf.folder f
         left join fetch f.parentFolder
         where uf.user.id = :userId
-            and (uf.isOwner = true or uf.isViewer = true or uf.isWriter = true)
+            and uf.permissionType <> com.umc.linkyou.domain.enums.PermissionType.NONE
         """)
     List<UsersFolder> findAllByUserId(
             @Param("userId") Long userId
@@ -46,7 +46,7 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
         join fetch uf.folder f
         where uf.user.id = :userId
             and f.parentFolder is null
-            and (uf.isOwner = true or uf.isViewer = true or uf.isWriter = true)
+            and uf.permissionType <> com.umc.linkyou.domain.enums.PermissionType.NONE
         """)
     List<UsersFolder> findParentFolders(
             @Param("userId") Long userId
@@ -70,7 +70,7 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
         from UsersFolder uf
         where uf.user.id = :userId
             and uf.folder.parentFolder.folderId = :parentFolderId
-            and (uf.isOwner = true or uf.isViewer = true or uf.isWriter = true)
+            and uf.permissionType <> com.umc.linkyou.domain.enums.PermissionType.NONE
         """)
     List<Folder> findAllByUserIdAndParentFolderId(
             @Param("userId") Long userId,
@@ -78,12 +78,12 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
     );
 
     // 폴더의 소유자 정보 조회
-    @Query(""" 
+    @Query("""
         select uf
         from UsersFolder uf
         join fetch uf.user
         where uf.folder.folderId = :folderId
-            and uf.isOwner = true
+            and uf.permissionType = com.umc.linkyou.domain.enums.PermissionType.OWNER
         """)
     Optional<UsersFolder> findOwnerByFolderId(
             @Param("folderId") Long folderId
@@ -95,7 +95,7 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
         from UsersFolder uf
         join fetch uf.user
         where uf.folder.folderId in :folderIds
-            and uf.isOwner = true
+            and uf.permissionType = com.umc.linkyou.domain.enums.PermissionType.OWNER
         """)
     List<UsersFolder> findOwnersByFolderIdIn(
             @Param("folderIds") List<Long> folderIds
@@ -107,7 +107,7 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
         from UsersFolder uf
         where uf.user.id = :userId
             and uf.folder.folderId = :folderId
-            and uf.isOwner = true
+            and uf.permissionType = com.umc.linkyou.domain.enums.PermissionType.OWNER
         """)
     boolean existsFolderOwner(
             @Param("userId") Long userId,
@@ -119,33 +119,39 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
         select DISTINCT uf.folder.folderId
         from UsersFolder uf
         where uf.folder.folderId IN :folderIds
-          and uf.isOwner = false
-          and (uf.isViewer = true or uf.isWriter = true)
+          and uf.permissionType in (
+              com.umc.linkyou.domain.enums.PermissionType.VIEWER,
+              com.umc.linkyou.domain.enums.PermissionType.WRITER
+          )
     """)
     Set<Long> findAllSharedFolderIdsIn(
             @Param("folderIds") List<Long> folderIds
     );
 
-    // 공유 받은 폴더 찾기
+    // 공유 받은 폴더 찾기 (VIEWER 또는 WRITER 권한)
     @Query("""
         select uf.folder
         from UsersFolder uf
         where uf.user.id = :userId
-            and uf.isOwner = false
-            and uf.isViewer = true
+            and uf.permissionType in (
+                com.umc.linkyou.domain.enums.PermissionType.VIEWER,
+                com.umc.linkyou.domain.enums.PermissionType.WRITER
+            )
         """)
     List<Folder> findAllSharedFolders(
             @Param("userId") Long userId
     );
 
-    // veiwer and writer 찾기 except owner
+    // viewer and writer 찾기 except owner
     @Query("""
         select uf
         from UsersFolder uf
         join fetch uf.user
         where uf.folder.folderId = :folderId
-            and uf.isOwner = false
-            and (uf.isViewer = true or uf.isWriter = true)
+            and uf.permissionType in (
+                com.umc.linkyou.domain.enums.PermissionType.VIEWER,
+                com.umc.linkyou.domain.enums.PermissionType.WRITER
+            )
         """)
     List<UsersFolder> findAllParticipantsByFolderId(
             @Param("folderId") Long folderId
@@ -158,7 +164,10 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
         from UsersFolder uf
         where uf.user.id = :userId
             and uf.folder.folderId = :folderId
-            and (uf.isViewer = true OR uf.isWriter = true)
+            and uf.permissionType in (
+                com.umc.linkyou.domain.enums.PermissionType.VIEWER,
+                com.umc.linkyou.domain.enums.PermissionType.WRITER
+            )
         """)
     boolean existsActiveMember(
             @Param("userId") Long userId,

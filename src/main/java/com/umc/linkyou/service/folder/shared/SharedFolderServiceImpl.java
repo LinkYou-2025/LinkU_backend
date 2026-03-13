@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.folder.Folder;
+import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.web.dto.folder.FolderListResponseDTO;
@@ -110,7 +111,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
 
         // 소유자는 이 API로 삭제 불가 (소유자는 FolderController.deleteFolder 사용)
-        if (Boolean.TRUE.equals(usersFolder.getIsOwner())) {
+        if (usersFolder.getPermissionType() == PermissionType.OWNER) {
             throw new GeneralException(ErrorStatus._FOLDER_DELETE_FORBIDDEN);
         }
 

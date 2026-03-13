@@ -8,6 +8,7 @@ import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
@@ -66,16 +67,14 @@ public class FolderServiceImpl implements FolderService {
                 .parentFolder(parent).build();
         folderRepository.save(folder);
 
-        // 유저폴더 매핑 테이블에 저장 및 소유자 true
+        // 유저폴더 매핑 테이블에 저장 및 소유자 등록
         usersFolderRepository.save(UsersFolder.builder()
                 .user(userRepository
                         .findById(userId)
                         .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND)))
                 .folder(folder)
-                .isOwner(true)
+                .permissionType(PermissionType.OWNER)
                 .isBookmarked(false)
-                .isWriter(true)
-                .isViewer(false)
                 .build());
 
         return FolderResponseDTO.builder()
@@ -99,7 +98,7 @@ public class FolderServiceImpl implements FolderService {
         // 주인 여부 확인
         UsersFolder usersFolder = usersFolderRepository.findByUserIdAndFolderId(userId, folderId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_UPDATE_FORBIDDEN));
-        if (!usersFolder.getIsOwner()) {
+        if (usersFolder.getPermissionType() != PermissionType.OWNER) {
             throw new GeneralException(ErrorStatus._FOLDER_UPDATE_FORBIDDEN);
         }
 

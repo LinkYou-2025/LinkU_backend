@@ -8,6 +8,7 @@ import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.EmailVerification;
 import com.umc.linkyou.domain.enums.Gender;
+import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.domain.folder.Fcolor;
@@ -154,9 +155,7 @@ public class UserServiceImpl implements UserService {
             usersFolderRepository.save(UsersFolder.builder()
                     .user(newUser)
                     .folder(subFolder)
-                    .isOwner(true)
-                    .isWriter(true)
-                    .isViewer(true)
+                    .permissionType(PermissionType.OWNER)
                     .isBookmarked(false)
                     .build());
         }
@@ -255,7 +254,7 @@ public class UserServiceImpl implements UserService {
 
             usersFolderRepository.save(UsersFolder.builder()
                     .user(user).folder(subFolder)
-                    .isOwner(true).isWriter(true).isViewer(true)
+                    .permissionType(PermissionType.OWNER)
                     .isBookmarked(false)
                     .build());
         }

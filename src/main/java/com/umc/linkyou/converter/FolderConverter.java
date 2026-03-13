@@ -2,6 +2,7 @@ package com.umc.linkyou.converter;
 
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Category;
+import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
@@ -64,9 +65,7 @@ public class FolderConverter {
         return UsersFolder.builder()
                 .user(user)
                 .folder(folder)
-                .isOwner(true)
-                .isViewer(false)
-                .isWriter(false)
+                .permissionType(PermissionType.OWNER)
                 .isBookmarked(false)
                 .build();
     }
