@@ -204,12 +204,19 @@ public class UserServiceImpl implements UserService {
 
         // 3. 필수 정보 업데이트
         user.setNickName(request.getNickName());
-        Gender gender = null;
-        switch (request.getGender()) {
-            case 1: gender = Gender.MALE; break;
-            case 2: gender = Gender.FEMALE; break;
+
+        Integer genderCode = request.getGender();
+        if (genderCode == null || (genderCode != 1 && genderCode != 2)) {
+            throw new GeneralException(ErrorStatus._INVALID_GENDER);
         }
+
+        Gender gender = switch (genderCode) {
+            case 1 -> Gender.MALE;
+            case 2 -> Gender.FEMALE;
+            default -> throw new GeneralException(ErrorStatus._INVALID_GENDER);
+        };
         user.setGender(gender);
+
 
         Job job = jobRepository.findById(request.getJobId())
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
