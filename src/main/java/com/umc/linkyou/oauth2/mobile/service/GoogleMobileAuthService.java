@@ -3,12 +3,14 @@ package com.umc.linkyou.oauth2.mobile.service;
 
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
+import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.oauth2.UserSocialLoginHelper;
 import com.umc.linkyou.oauth2.mobile.client.GoogleTokenVerifier;
 import com.umc.linkyou.oauth2.mobile.dto.MobileLoginResponse;
+import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import org.springframework.beans.factory.annotation.Value;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class GoogleMobileAuthService implements MobileAuthService {
     private final UserSocialLoginHelper userSocialLoginHelper;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenManager refreshTokenManager;
+    private final AuthAccountRepository authAccountRepository;
 
     @Value("${jwt.token.expiration.refresh}")
     private long refreshTtlMs;
@@ -34,18 +37,20 @@ public class GoogleMobileAuthService implements MobileAuthService {
         Users user = userSocialLoginHelper.findOrCreateUser(
                 info.email(), info.name(), info.externalId(),
                 info.profileImage(), Provider.GOOGLE);
-
+        String resolvedEmail = authAccountRepository.findByUserIdAndProvider(user.getId(), Provider.GOOGLE)
+                .map(AuthAccount::getEmail)
+                .orElse(email);
         if (user.getStatus() == UserStatus.TEMP) {
             return MobileLoginResponse.builder()
                     .userId(user.getId())
-                    .accessToken(jwtTokenProvider.createAccessToken(user.getEmail(), Provider.GOOGLE.name()))
+                    .accessToken(jwtTokenProvider.createAccessToken(resolvedEmail, Provider.GOOGLE.name()))
                     .refreshToken(null)
                     .status(UserStatus.TEMP)
                     .build();
         }
 
-        String accessToken = jwtTokenProvider.createAccessToken(user.getEmail(), Provider.GOOGLE.name());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());  //
+        String accessToken = jwtTokenProvider.createAccessToken(resolvedEmail, Provider.GOOGLE.name());
+        String refreshToken = jwtTokenProvider.createRefreshToken(resolvedEmail);  //
         String tokenId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
         refreshTokenManager.saveToken(user.getId(), tokenId, Provider.GOOGLE.name(), refreshTtlMs);
 

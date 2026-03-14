@@ -159,15 +159,10 @@ public class UserController {
     public ApiResponse<UserResponseDTO.JoinResultDTO> completeSocialProfile(
             @RequestBody @Valid UserRequestDTO.SocialCompleteDTO request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Users user = usersUtils.validateTempUser(userDetails);
+        Users updatedUser = userService.socialCompleteProfile(user, request);
 
-        if (userDetails == null) {
-            throw new GeneralException(ErrorStatus._UNAUTHORIZED);
-        }
-
-        String email = userDetails.getUsername();
-
-        Users user = userService.socialCompleteProfile(email, request);
-        return ApiResponse.onSuccess(UserConverter.toJoinResultDTO(user));
+        return ApiResponse.onSuccess(UserConverter.toJoinResultDTO(updatedUser));
     }
 
     // 전체 약관 한번에 동의

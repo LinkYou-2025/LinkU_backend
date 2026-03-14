@@ -2,6 +2,7 @@ package com.umc.linkyou.converter;
 
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Category;
+import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
@@ -27,6 +28,14 @@ public class FolderConverter {
                 .createdAt(folder.getCreatedAt())
                 .updatedAt(folder.getUpdatedAt())
                 .build();
+    }
+
+    public FolderResponseDTO toFolderResponseDTO(Folder folder, Boolean isBookmarked) {
+        FolderResponseDTO dto = toFolderResponseDTO(folder);
+        if (dto != null) {
+            dto.setIsBookmarked(isBookmarked);
+        }
+        return dto;
     }
 
     public FolderTreeResponseDTO toFolderTreeDTO(Folder folder, Map<Long, Boolean> bookmarkMap) {
@@ -56,9 +65,7 @@ public class FolderConverter {
         return UsersFolder.builder()
                 .user(user)
                 .folder(folder)
-                .isOwner(true)
-                .isViewer(true)
-                .isWriter(true)
+                .permissionType(PermissionType.OWNER)
                 .isBookmarked(false)
                 .build();
     }

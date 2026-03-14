@@ -95,6 +95,7 @@ public class ShareFolderServiceImpl implements ShareFolderService {
     }
 
     // 폴더 viewer and writer 조회
+    @Transactional(readOnly = true)
     public List<ViewerResponseDTO> getViewers(Long userId, Long folderId) {
         boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
         if (!isOwner) {
@@ -108,20 +109,7 @@ public class ShareFolderServiceImpl implements ShareFolderService {
                     ViewerResponseDTO dto = new ViewerResponseDTO();
                     dto.setUserId(uf.getUser().getId());
                     dto.setUserName(uf.getUser().getNickName());
-
-                    // 실제 권한 계산 -> dto에 실제 반환되는 권한 명시
-                    String permission;
-                    if (Boolean.TRUE.equals(uf.getIsOwner())) {
-                        permission = "OWNER";
-                    } else if (Boolean.TRUE.equals(uf.getIsWriter())) {
-                        permission = "WRITER";
-                    } else if (Boolean.TRUE.equals(uf.getIsViewer())) {
-                        permission = "VIEWER";
-                    } else {
-                        permission = "NONE";
-                    }
-                    dto.setPermission(permission);
-
+                    dto.setPermission(uf.getPermissionType().name());
                     return dto;
                 })
                 .toList();
@@ -129,40 +117,30 @@ public class ShareFolderServiceImpl implements ShareFolderService {
 
     // 유저의 폴더 권한 수정
     public ShareFolderResponseDTO updateViewerPermission(Long userId, Long folderId, Long userFolderId, FolderPermissionRequestDTO request) {
+        // 요청자가 폴더 소유자인지 확인
+        if (!usersFolderRepository.existsFolderOwner(userId, folderId)) {
+            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+        }
+
         UsersFolder usersFolder = usersFolderRepository.findById(userFolderId).orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_FOUND));
 
         if (!usersFolder.getFolder().getFolderId().equals(folderId)) {
             throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
-        // 오너일 경우 권한 변경 불가
-        if (Boolean.TRUE.equals(usersFolder.getIsOwner())) {
+        // 오너의 권한은 변경 불가
+        if (usersFolder.getPermissionType() == PermissionType.OWNER) {
             throw new GeneralException(ErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED);
-        }
-
-        Optional<UsersFolder> ownerUsersFolder = usersFolderRepository.findOwnerByFolderId(folderId);
-        if (ownerUsersFolder.isPresent() && !ownerUsersFolder.get().getUser().getId().equals(userId)) {
-            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
         PermissionType permission = request.getPermission();
 
-        switch (permission) {
-            case VIEWER:
-                usersFolder.setIsWriter(false);
-                usersFolder.setIsViewer(true);
-                break;
-            case WRITER:
-                usersFolder.setIsWriter(true);
-                usersFolder.setIsViewer(true);
-                break;
-            case NONE:
-                usersFolder.setIsWriter(false);
-                usersFolder.setIsViewer(false);
-                break;
-            default:
-                throw new GeneralException(ErrorStatus._INVALID_PERMISSION_TYPE);
+        // OWNER 권한으로 변경은 허용하지 않음
+        if (permission == PermissionType.OWNER) {
+            throw new GeneralException(ErrorStatus._INVALID_PERMISSION_TYPE);
         }
+
+        usersFolder.setPermissionType(permission);
         usersFolderRepository.save(usersFolder);
 
         return ShareFolderResponseDTO.builder()
@@ -191,10 +169,7 @@ public class ShareFolderServiceImpl implements ShareFolderService {
                 usersFolderRepository.findAllParticipantsByFolderId(folderId);
 
         // 권한 박탈
-        mappings.forEach(uf -> {
-            uf.setIsViewer(false);
-            uf.setIsWriter(false);
-        });
+        mappings.forEach(uf -> uf.setPermissionType(PermissionType.NONE));
 
         usersFolderRepository.saveAll(mappings);
 

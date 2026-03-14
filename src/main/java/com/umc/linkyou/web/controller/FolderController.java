@@ -9,8 +9,10 @@ import com.umc.linkyou.web.dto.folder.*;
 import com.umc.linkyou.web.dto.folder.linku.FolderLinkusResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +22,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/folders")
 @RequiredArgsConstructor
+@Validated
 public class FolderController {
     private final FolderService folderService;
 
@@ -56,12 +59,12 @@ public class FolderController {
             description = "소분류 폴더를 삭제합니다."
     )
     @DeleteMapping("/subfolders/{folderId}")
-    public ApiResponse<FolderResponseDTO> deleteFolder(
+    public ApiResponse<Void> deleteFolder(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId
     ) {
-        FolderResponseDTO response = folderService.deleteFolder(userDetails.getUsers().getId(), folderId);
-        return ApiResponse.of(SuccessStatus._FOLDER_DELETE_OK, response);
+        folderService.deleteFolder(userDetails.getUsers().getId(), folderId);
+        return ApiResponse.of(SuccessStatus._FOLDER_DELETE_OK, null);
     }
 
     @Operation(
@@ -126,7 +129,7 @@ public class FolderController {
     public ApiResponse<FolderLinkusResponseDTO> getFolderLinkus(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId,
-            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(defaultValue = "20") @Min(1) int limit,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "name") String sort
     ) {
