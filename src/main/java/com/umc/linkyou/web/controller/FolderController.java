@@ -81,13 +81,14 @@ public class FolderController {
 
     @Operation(
             summary = "중분류 폴더 조회",
-            description = "사용자의 모든 중분류 폴더 목록을 조회합니다."
+            description = "사용자의 모든 중분류 폴더 목록을 조회합니다. sort: name(가나다순, 기본값), updatedAt(최근 수정순)"
     )
     @GetMapping("/parentFolders")
     public ApiResponse<List<FolderListResponseDTO>> getParentFolderList(
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(defaultValue = "name") String sort
     ) {
-        List<FolderListResponseDTO> folderList = folderService.getParentFolders(userDetails.getUsers().getId());
+        List<FolderListResponseDTO> folderList = folderService.getParentFolders(userDetails.getUsers().getId(), sort);
         return ApiResponse.of(SuccessStatus._FOLDER_PARENT_OK, folderList);
     }
 
