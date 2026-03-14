@@ -13,11 +13,15 @@ import java.util.List;
 public class UserConverter {
     public static Users toUser(UserRequestDTO.JoinDTO request, Job job){
         Gender gender = null;
-        switch(request.getGender()){
-            case 1: gender = Gender.MALE; break;
-            case 2: gender = Gender.FEMALE; break;
-            //case 3: gender = Gender.NONE; break;
+        Integer genderCode = request.getGender();
+
+        if (genderCode != null) {
+            switch(genderCode){
+                case 1: gender = Gender.MALE; break;
+                case 2: gender = Gender.FEMALE; break;
+            }
         }
+
 
         return new Users().builder()
                 .nickName(request.getNickName())
