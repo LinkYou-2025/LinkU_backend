@@ -96,6 +96,8 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public Users joinUser(UserRequestDTO.JoinDTO request) {
+
+        log.info("=== gender 확인: {} ==={}", request.getGender(),request);
         // 1. 닉네임 중복 체크
         if (userRepository.findByNickName(request.getNickName()).isPresent()) {
             throw new UserHandler(ErrorStatus._DUPLICATE_NICKNAME);

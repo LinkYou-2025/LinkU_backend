@@ -1,29 +1,33 @@
 package com.umc.linkyou.converter;
 
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 public class UserConverter {
     public static Users toUser(UserRequestDTO.JoinDTO request, Job job){
-        Gender gender = null;
-        Integer genderCode = request.getGender();
+        log.info("toUser gender input: {}", request.getGender());
 
-        if (genderCode != null) {
-            switch(genderCode){
-                case 1: gender = Gender.MALE; break;
-                case 2: gender = Gender.FEMALE; break;
-            }
+        Integer genderInt = request.getGender();
+        if (genderInt == null || (genderInt != 1 && genderInt != 2)) {
+            log.error("Invalid gender: {}", genderInt);
+            throw new GeneralException(ErrorStatus._INVALID_GENDER);
         }
 
-
-        return new Users().builder()
+        // 2. 🔥 올바른 변환
+        Gender gender = genderInt == 1 ? Gender.MALE : Gender.FEMALE;
+        log.info("Converted gender: {}", gender);
+        return Users.builder()
                 .nickName(request.getNickName())
                 .password(request.getPassword())
                 .gender(gender)
@@ -41,7 +45,7 @@ public class UserConverter {
 
     public static UserResponseDTO.LoginResultDTO toLoginResultDTO(Users user, String accessToken, String refreshToken) {
 
-        return new UserResponseDTO.LoginResultDTO().builder()
+        return UserResponseDTO.LoginResultDTO.builder()
                 .userId(user.getId())
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)

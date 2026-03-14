@@ -36,7 +36,7 @@ public class UserController {
 
     @Operation(
             summary = "회원 가입",
-            description = "새로운 사용자를 등록합니다. 이메일, 비밀번호, 닉네임, 성별, 직업, 목적, 관심사 등을 입력받습니다."
+            description = "새로운 사용자를 등록합니다. 이메일, 비밀번호, 닉네임, 성별(남자1,여자2), 직업, 목적, 관심사 등을 입력받습니다."
     )
     @PostMapping("/join")
     public ApiResponse<UserResponseDTO.JoinResultDTO> join(@RequestBody @Valid UserRequestDTO.JoinDTO request){

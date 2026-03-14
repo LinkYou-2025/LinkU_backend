@@ -34,7 +34,7 @@ public class UserRequestDTO {
         @NotBlank
         String password;
 
-        @Schema(example = "0")
+        @Schema(example = "1")
         @NotNull
         Integer gender;
 
