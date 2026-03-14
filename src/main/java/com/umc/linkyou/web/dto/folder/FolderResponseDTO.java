@@ -15,6 +15,7 @@ import java.util.List;
 public class FolderResponseDTO {
     private Long folderId;
     private String folderName;
+    private Boolean isBookmarked;
     private Long categoryId;
     private String categoryName;
     private Long parentFolderId;

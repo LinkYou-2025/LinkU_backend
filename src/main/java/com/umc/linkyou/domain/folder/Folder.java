@@ -13,7 +13,6 @@ import java.util.List;
 @Entity
 @Table(name = "folder")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -22,6 +21,7 @@ public class Folder extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long folderId;
 
+    @Setter
     @Column(length = 255, nullable = false)
     private String folderName;
 

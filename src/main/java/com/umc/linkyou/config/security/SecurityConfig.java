@@ -2,14 +2,9 @@ package com.umc.linkyou.config.security;
 
 import com.umc.linkyou.config.security.jwt.JwtAuthenticationFilter;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
-import com.umc.linkyou.oauth.OAuth2SuccessHandler;
-import com.umc.linkyou.oauth.OAuth2TokenClient;
-import com.umc.linkyou.oauth.OAuth2UserServiceImpl;
-import com.umc.linkyou.oauth.RedisAuthorizationRequestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -29,11 +24,11 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final OAuth2UserServiceImpl oAuth2UserService;
-    private final OAuth2TokenClient oAuth2TokenClient;
-    @Lazy
-    private final OAuth2SuccessHandler oAuth2SuccessHandler;
-    private final RedisAuthorizationRequestRepository redisAuthorizationRequestRepository;
+//    private final OAuth2UserServiceImpl oAuth2UserService;
+//    private final OAuth2TokenClient oAuth2TokenClient;
+//    @Lazy
+//    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+//    private final RedisAuthorizationRequestRepository redisAuthorizationRequestRepository;
 
 
     @Bean
@@ -50,13 +45,14 @@ public class SecurityConfig {
                                 "/swagger-ui/**", "/v3/api-docs/**",
                                 "/*.well-known/**",
                                 "/open/**",
-                                "/oauth2/**",          // 소셜 로그인 진입점 (/oauth2/authorization/{registrationId})
-                                "/api/oauth2/**",     // 소셜 로그인 에러, 성공 콜백 등
                                 "/actuator/**",
-                                "/error/**",
-                                "/login/kakao",
-                                "/login/google",
-                                "/login/naver"
+                                "/api/v1/auth/mobile/**",
+                                "/error/**"
+//                                ,"/oauth2/**",          // 소셜 로그인 진입점 (/oauth2/authorization/{registrationId})
+//                                "/api/oauth2/**",     // 소셜 로그인 에러, 성공 콜백
+//                                "/login/kakao",
+//                                "/login/google",
+//                                "/login/naver"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
@@ -67,23 +63,23 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // ← IF_REQUIRED → STATELESS
                 )
 
-                .oauth2Login(oauth2 -> oauth2
-                        .authorizationEndpoint(authorization -> authorization
-                                .baseUri("/oauth2/authorization")
-                                // STATELESS여도 OAuth2 state는 세션에 저장하도록 명시
-                                .authorizationRequestRepository(redisAuthorizationRequestRepository)
-                        )
-                        .redirectionEndpoint(redirection -> redirection
-                                .baseUri("/login/oauth2/code/*")
-                        )
-                        .tokenEndpoint(token -> token
-                                .accessTokenResponseClient(oAuth2TokenClient)
-                        )
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .userService(oAuth2UserService)
-                        )
-                        .successHandler(oAuth2SuccessHandler)
-                )
+//                .oauth2Login(oauth2 -> oauth2
+//                        .authorizationEndpoint(authorization -> authorization
+//                                .baseUri("/oauth2/authorization")
+//                                // STATELESS여도 OAuth2 state는 세션에 저장하도록 명시
+//                                .authorizationRequestRepository(redisAuthorizationRequestRepository)
+//                        )
+//                        .redirectionEndpoint(redirection -> redirection
+//                                .baseUri("/login/oauth2/code/*")
+//                        )
+//                        .tokenEndpoint(token -> token
+//                                .accessTokenResponseClient(oAuth2TokenClient)
+//                        )
+//                        .userInfoEndpoint(userInfo -> userInfo
+//                                .userService(oAuth2UserService)
+//                        )
+//                        .successHandler(oAuth2SuccessHandler)
+//                )
 //                .requiresChannel(channel -> channel
 //                        .anyRequest().requiresSecure()
 //                )

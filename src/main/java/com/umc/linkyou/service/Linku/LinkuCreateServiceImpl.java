@@ -1,11 +1,10 @@
 package com.umc.linkyou.service.Linku;
 
-import com.umc.linkyou.titleImgParser.LinkToImageService;
+import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.awsS3.AwsS3Service;
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.converter.AiArticleConverter;
-import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.Linku;
@@ -17,10 +16,9 @@ import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.domain.mapping.folder.UsersFolder;
-import com.umc.linkyou.aiCategoryClassifier.OpenAICategoryClassifier;
+import com.umc.linkyou.infra.ai.classifier.OpenAICategoryClassifier;
 import com.umc.linkyou.repository.EmotionRepository;
-import com.umc.linkyou.repository.FolderRepository.FolderRepository;
+import com.umc.linkyou.service.folder.FolderService;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
@@ -29,7 +27,6 @@ import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.utils.UrlUtils;
 import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
@@ -51,12 +48,10 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
     private final DomainRepository domainRepository;
     private final LinkuFolderRepository linkuFolderRepository;
     private final UsersLinkuRepository usersLinkuRepository;
-    private final FolderRepository folderRepository;
     private final UserRepository userRepository;
     private final AwsS3Service awsS3Service;
     private final LinkToImageService linkToImageService;
     private final SituationRepository situationRepository;
-    private final UsersFolderRepository usersFolderRepository;
     private final AiArticleRepository aiArticleRepository;
 
     private static final Long DEFAULT_CATEGORY_ID = 16L;
@@ -66,7 +61,7 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
 
     private final SituationCategoryService situationCategoryService;
     private final OpenAICategoryClassifier openAiCategoryClassifier;
-    private final FolderConverter folderConverter;
+    private final FolderService folderService;
     private final AiArticleConverter aiArticleConverter;
 
     @Override
@@ -105,8 +100,8 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
         // 9-1) 링크 생성 후 "최근 열람 링크"에도 기록 추가
         updateRecentViewedLinku(userId, linku.getLinkuId());
 
-        // 10) 폴더 조회 또는 신규 생성
-        Folder folder = findOrCreateFolder(userId, category);
+        // 10) 폴더 조회
+        Folder folder = folderService.findFolder(userId, category);
 
         // 11) LinkuFolder 생성 & 저장
         LinkuFolder linkuFolder = LinkuConverter.toLinkuFolder(folder, usersLinku);
@@ -200,17 +195,6 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
     public UsersLinku createUsersLinku(Users user, Linku linku, Emotion emotion, String memo, String imageUrl) {
         UsersLinku usersLinku = LinkuConverter.toUsersLinku(user, linku, emotion, memo, imageUrl);
         return usersLinkuRepository.save(usersLinku);
-    }
-
-    public Folder findOrCreateFolder(Long userId, Category category) {
-        return usersFolderRepository.findFolderByUserIdAndFolderName(userId, category.getCategoryName())
-                .orElseGet(() -> {
-                    Folder newFolder = folderConverter.toFolder(category);
-                    folderRepository.save(newFolder);
-                    UsersFolder newUsersFolder = folderConverter.toUsersFolder(userRepository.getReferenceById(userId), newFolder);
-                    usersFolderRepository.save(newUsersFolder);
-                    return newFolder;
-                });
     }
 
     // 최근 열람 링크 기록 추가 메서드는 필요에 따라 아래에 구현

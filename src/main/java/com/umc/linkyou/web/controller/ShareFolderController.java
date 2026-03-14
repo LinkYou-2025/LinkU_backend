@@ -54,8 +54,8 @@ public class ShareFolderController {
     }
 
     @Operation(
-            summary = "폴더 뷰어 조회",
-            description = "공유된 폴더의 뷰어 목록을 조회합니다."
+            summary = "폴더 멤버 조회",
+            description = "공유된 폴더의 멤버 목록을 조회합니다."
     )
     @GetMapping("/{folderId}/members")
     public ApiResponse<List<ViewerResponseDTO>> getFolderViewers(

@@ -2,10 +2,7 @@ package com.umc.linkyou.repository.userRepository;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.umc.linkyou.domain.QAiArticle;
-import com.umc.linkyou.domain.QLinku;
-import com.umc.linkyou.domain.QUsers;
-import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.*;
 import com.umc.linkyou.domain.classification.QInterests;
 import com.umc.linkyou.domain.classification.QJob;
 import com.umc.linkyou.domain.classification.QPurposes;
@@ -30,6 +27,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
     private final QUsers users = QUsers.users;
     private final QUsersLinku usersLinku = QUsersLinku.usersLinku;
     private final QUsersFolder usersFolder = QUsersFolder.usersFolder;
+    private final QAuthAccount authAccount = QAuthAccount.authAccount;
 //    private final QLinku linku = QLinku.linku1;
 //    private final QAiArticle aiArticle = QAiArticle.aiArticle;
 //    private final QFolder folder = QFolder.folder;
@@ -83,34 +81,6 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
                 .fetch();  // 단일 쿼리! N+1 없음
     }
 
-    public List<String> findAllPurposeNamesByUserId(Long userId) {
-        QPurposes p = QPurposes.purposes;
-
-        return queryFactory
-                .select(p.purpose)
-                .from(p)
-                .where(p.user.id.eq(userId))
-                .fetch();
-    }
-
-    public List<String> findAllInterestNamesByUserId(Long userId) {
-        QInterests i = QInterests.interests;
-
-        return queryFactory
-                .select(i.interest)
-                .from(i)
-                .where(i.user.id.eq(userId))
-                .fetch();
-    }
-    @Override
-    public Optional<Users> findByEmailAndStatus(String email, UserStatus status) {
-        return Optional.ofNullable(
-                queryFactory.selectFrom(users)
-                        .where(users.email.eq(email)
-                                .and(users.status.eq(status)))
-                        .fetchOne()
-        );
-    }
     @Override
     public Optional<Users> findNotInactiveUserById(Long userId){
         return Optional.ofNullable(

@@ -8,89 +8,92 @@ import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
-import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.web.dto.folder.*;
 import com.umc.linkyou.web.dto.folder.linku.FolderLinkusResponseDTO;
 import com.umc.linkyou.web.dto.folder.linku.FolderSummaryDTO;
 import com.umc.linkyou.web.dto.folder.linku.LinkuSummaryDTO;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class FolderServiceImpl implements FolderService {
     private final FolderRepository folderRepository;
+    private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final UsersFolderRepository usersFolderRepository;
     private final LinkuFolderRepository linkuFolderRepository;
     private final FolderConverter folderConverter;
 
-    // 폴더 생성
+    // 하위 폴더 생성
     @Transactional
     public FolderResponseDTO createFolder(Long userId, Long parentFolderId, FolderCreateRequestDTO req) {
-        // 부모 폴더 조회
         Folder parent = folderRepository.findById(parentFolderId).orElse(null);
 
-        // 부모 카테고리 조회
+        // 부모 폴더 존재 확인
         if (parent == null) {
             throw new GeneralException(ErrorStatus._FOLDER_PARENT_NOT_FOUND);
         }
-        Category category = parent.getCategory();
-        if (category == null) {
-            throw new GeneralException(ErrorStatus._FOLDER_CATEGORY_NOT_FOUND);
+
+        // 부모 폴더에 대한 생성 권한 확인 (소유자 또는 편집자만 가능)
+        if (!usersFolderRepository.existsFolderOwnerOrWriter(userId, parentFolderId)) {
+            throw new GeneralException(ErrorStatus._FOLDER_CREATE_FORBIDDEN);
         }
 
-        // 중복 폴더명 검사 (카테고리 내부)
-        boolean exists = usersFolderRepository.existsUserFolderNameInCategory(
-                userId,
-                req.getFolderName(),
-                category
-        );
+        // 카테고리명과 동일한 이름 사용 방지
+        if (categoryRepository.existsByCategoryName(req.getFolderName())) {
+            throw new GeneralException(ErrorStatus._FOLDER_NAME_CONFLICT);
+        }
 
-        if (exists) {
+        // 해당 부모 아래 중복 이름 체크
+        boolean isDuplicate = folderRepository.existsByParentIdAndName(parentFolderId, req.getFolderName());
+
+        if (isDuplicate) {
             throw new GeneralException(ErrorStatus._FOLDER_CREATE_DUPLICATE);
         }
 
         // 폴더 테이블에 저장
         Folder folder = Folder.builder()
                 .folderName(req.getFolderName())
-                .category(category)
+                .category(parent.getCategory())
                 .parentFolder(parent).build();
         folderRepository.save(folder);
 
-        // 유저폴더 매핑 테이블에 저장 및 소유자 true
+        // 유저폴더 매핑 테이블에 저장 및 소유자 등록
         usersFolderRepository.save(UsersFolder.builder()
                 .user(userRepository
                         .findById(userId)
-                        .orElseThrow())
+                        .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND)))
                 .folder(folder)
-                .isOwner(true)
+                .permissionType(PermissionType.OWNER)
                 .isBookmarked(false)
-                .isWriter(true)
-                .isViewer(false)
                 .build());
 
         return FolderResponseDTO.builder()
                 .folderId(folder.getFolderId())
                 .folderName(folder.getFolderName())
-                .categoryId(category.getCategoryId())
-                .categoryName(category.getCategoryName())
+                .isBookmarked(false)
+                .categoryId(parent.getCategory().getCategoryId())
+                .categoryName(parent.getCategory().getCategoryName())
                 .parentFolderId(parent.getFolderId())
                 .createdAt(folder.getCreatedAt())
                 .updatedAt(folder.getUpdatedAt())
-                .build();    }
+                .build();
+    }
 
     // 폴더 이름 수정
     @Transactional
@@ -99,20 +102,40 @@ public class FolderServiceImpl implements FolderService {
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
 
         // 주인 여부 확인
-        boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
-        if (!isOwner) {
+        UsersFolder usersFolder = usersFolderRepository.findByUserIdAndFolderId(userId, folderId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_UPDATE_FORBIDDEN));
+        if (usersFolder.getPermissionType() != PermissionType.OWNER) {
             throw new GeneralException(ErrorStatus._FOLDER_UPDATE_FORBIDDEN);
         }
 
-        if (req.getFolderName() != null) folder.setFolderName(req.getFolderName());
-        folder.setUpdatedAt(LocalDateTime.now());
+        if (req.getFolderName() != null)
+        {
+            // 부모 폴더 존재 확인
+            if (folder.getParentFolder() == null) {
+                throw new GeneralException(ErrorStatus._FOLDER_PARENT_NOT_FOUND);
+            }
 
-        return folderConverter.toFolderResponseDTO(folder);
+            // 카테고리명과 동일한 이름 사용 방지
+            if (categoryRepository.existsByCategoryName(req.getFolderName())) {
+                throw new GeneralException(ErrorStatus._FOLDER_NAME_CONFLICT);
+            }
+
+            // 해당 부모 아래 중복 이름 체크
+            boolean isDuplicate = folderRepository.existsByParentIdAndName(folder.getParentFolder().getFolderId(), req.getFolderName());
+
+            if (isDuplicate) {
+                throw new GeneralException(ErrorStatus._FOLDER_CREATE_DUPLICATE);
+            }
+
+            folder.setFolderName(req.getFolderName());
+        }
+
+        return folderConverter.toFolderResponseDTO(folder, usersFolder.getIsBookmarked());
     }
 
     // 폴더 삭제
     @Transactional
-    public FolderResponseDTO deleteFolder(Long userId, Long folderId) {
+    public void deleteFolder(Long userId, Long folderId) {
         // 폴더 조회
         Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
 
@@ -123,33 +146,42 @@ public class FolderServiceImpl implements FolderService {
         }
 
         folderRepository.delete(folder);
-
-        return folderConverter.toFolderResponseDTO(folder);
     }
 
     // 내 폴더 목록(트리) 조회
     public List<FolderTreeResponseDTO> getMyFolderTree(Long userId) {
         // 유저 모든 폴더 조회
-        List<Folder> allFolders = usersFolderRepository.searchFolders(userId, null, null, null, null, false);
+        List<UsersFolder> allFolders = usersFolderRepository.findAllByUserId(userId);
 
-        // 트리 구성, key = 중분류 폴더 ID, value = 하위 폴더
-        Map<Long, List<Folder>> parentChildMap = allFolders.stream()
-                .collect(Collectors.groupingBy(folder ->
-                        folder.getParentFolder() != null ? folder.getParentFolder().getFolderId() : 0L));
+        // folderId → isBookmarked 맵
+        Map<Long, Boolean> bookmarkMap = allFolders.stream()
+                .collect(Collectors.toMap(
+                        uf -> uf.getFolder().getFolderId(),
+                        UsersFolder::getIsBookmarked
+                ));
 
-        // 중분류부터 재귀적로 트리 구성
-        return parentChildMap.getOrDefault(0L, new ArrayList<>()).stream()
-                .map(folder -> buildTreeFromMap(folder, parentChildMap, userId))
+        // parentFolderId → 자식 Folder 목록 맵
+        Map<Long, List<Folder>> childMap = allFolders.stream()
+                .filter(uf -> uf.getFolder().getParentFolder() != null)
+                .collect(Collectors.groupingBy(
+                        uf -> uf.getFolder().getParentFolder().getFolderId(),
+                        Collectors.mapping(UsersFolder::getFolder, Collectors.toList())
+                ));
+
+        // 중분류부터 재귀적으로 트리 구성
+        return allFolders.stream()
+                .filter(uf -> uf.getFolder().getParentFolder() == null)
+                .map(uf -> buildTreeFromMap(uf.getFolder(), childMap, bookmarkMap))
                 .collect(Collectors.toList());
     }
 
-    private FolderTreeResponseDTO buildTreeFromMap(Folder folder, Map<Long, List<Folder>> parentChildMap, Long userId) {
-        FolderTreeResponseDTO dto = folderConverter.toFolderTreeDTO(folder, userId);
+    private FolderTreeResponseDTO buildTreeFromMap(Folder folder, Map<Long, List<Folder>> parentChildMap, Map<Long, Boolean> bookmarkMap) {
+        FolderTreeResponseDTO dto = folderConverter.toFolderTreeDTO(folder, bookmarkMap);
 
         List<Folder> childFolders = parentChildMap.get(folder.getFolderId());
         if (childFolders != null && !childFolders.isEmpty()) {
             List<FolderTreeResponseDTO> childDTOs = childFolders.stream()
-                    .map(child -> buildTreeFromMap(child, parentChildMap, userId))
+                    .map(child -> buildTreeFromMap(child, parentChildMap, bookmarkMap))
                     .collect(Collectors.toList());
             dto.setChildren(childDTOs);
         } else {
@@ -159,42 +191,58 @@ public class FolderServiceImpl implements FolderService {
     }
 
     // 중분류 폴더 목록 조회
-    public List<FolderListResponseDTO> getParentFolders(Long userId) {
+    public List<FolderListResponseDTO> getParentFolders(Long userId, String sort) {
         List<UsersFolder> parentFolders = usersFolderRepository.findParentFolders(userId);
 
+        Comparator<UsersFolder> comparator = "updatedAt".equals(sort)
+                ? Comparator.comparing((UsersFolder uf) -> uf.getFolder().getUpdatedAt()).reversed()
+                : Comparator.comparing(uf -> uf.getFolder().getFolderName());
+
+        List<Long> folderIds = parentFolders.stream()
+                .map(uf -> uf.getFolder().getFolderId())
+                .toList();
+
+        Set<Long> sharedFolderIds = folderIds.isEmpty()
+                ? Collections.emptySet()
+                : usersFolderRepository.findAllSharedFolderIdsIn(folderIds);
+
         return parentFolders.stream()
+                .sorted(comparator)
                 .map(usersFolder -> FolderListResponseDTO.builder()
                         .folderId(usersFolder.getFolder().getFolderId())
                         .folderName(usersFolder.getFolder().getFolderName())
                         .isBookmarked(usersFolder.getIsBookmarked())
+                        .isSharing(sharedFolderIds.contains(usersFolder.getFolder().getFolderId()) ? "share" : "private")
                         .build())
                 .collect(Collectors.toList());
     }
 
     // 자식 폴더 목록 조회
     public List<FolderListResponseDTO> getSubFolders(Long userId, Long parentFolderId) {
-        List<Folder> subFolders = usersFolderRepository.searchFolders(userId, null, parentFolderId, null, null, false);
+        List<Folder> subFolders = usersFolderRepository.findAllByUserIdAndParentFolderId(userId, parentFolderId);
 
-        List<UsersFolder> us = usersFolderRepository.findFolders(userId);
+        if (subFolders.isEmpty()) return Collections.emptyList();
 
-        Map<Long, Boolean> bookmarkMap = us.stream()
+        List<Long> subFolderIds = subFolders.stream().map(Folder::getFolderId).toList();
+
+        // 해당 하위 폴더들의 북마크 상태만 조회 (전체 조회 대신 최적화)
+        Map<Long, Boolean> bookmarkMap = usersFolderRepository.findAllByUserIdAndFolderIdIn(userId, subFolderIds).stream()
                 .collect(Collectors.toMap(
                         uf -> uf.getFolder().getFolderId(),
                         UsersFolder::getIsBookmarked
                 ));
 
-        return subFolders.stream()
-                .map(folder -> {
-                    boolean isBookmarked = bookmarkMap.getOrDefault(folder.getFolderId(), Boolean.FALSE);
+        // 공유 중인 폴더 ID 일괄 조회 (N+1 제거)
+        Set<Long> sharedFolderIds = usersFolderRepository.findAllSharedFolderIdsIn(subFolderIds);
 
-                    return FolderListResponseDTO.builder()
-                            .folderId(folder.getFolderId())
-                            .folderName(folder.getFolderName())
-                            .parentFolderId(parentFolderId)
-                            .isBookmarked(isBookmarked)
-                            .isSharing(getSharingStatus(folder.getFolderId()))
-                            .build();
-                })
+        return subFolders.stream()
+                .map(folder -> FolderListResponseDTO.builder()
+                        .folderId(folder.getFolderId())
+                        .folderName(folder.getFolderName())
+                        .parentFolderId(parentFolderId)
+                        .isBookmarked(bookmarkMap.getOrDefault(folder.getFolderId(), Boolean.FALSE))
+                        .isSharing(sharedFolderIds.contains(folder.getFolderId()) ? "share" : "private")
+                        .build())
                 .collect(Collectors.toList());
     }
 
@@ -211,45 +259,78 @@ public class FolderServiceImpl implements FolderService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     // 폴더 내부 링크, 폴더 목록 조회
-    public FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor) {
+    public FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort) {
+        // check folder exist
         Folder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
 
-        List<UsersFolder> us = usersFolderRepository.findFolders(userId);
+        // 접근 권한 확인 (소유자 또는 활성 공유 멤버)
+        boolean hasAccess = usersFolderRepository.existsFolderOwner(userId, folderId)
+                || usersFolderRepository.existsActiveMember(userId, folderId);
+        if (!hasAccess) {
+            throw new GeneralException(ErrorStatus._FOLDER_ACCESS_FORBIDDEN);
+        }
 
-        Map<Long, Boolean> bookmarkMap = us.stream()
-                .collect(Collectors.toMap(
-                        uf -> uf.getFolder().getFolderId(),
-                        UsersFolder::getIsBookmarked
-                ));
+        // 정렬 기준: "updatedAt" → 최근 수정순, 그 외 → 가나다순
+        Sort folderSort = "updatedAt".equals(sort)
+                ? Sort.by(Sort.Direction.DESC, "updatedAt")
+                : Sort.by(Sort.Direction.ASC, "folderName");
 
-        List<Folder> subFolders = folderRepository.findByParentFolder_FolderId(folderId);
+        // 소분류 폴더 목록 조회
+        List<Folder> subFolders = folderRepository.findAllByParentFolderId(folderId, folderSort);
+        List<Long> subFolderIds = subFolders.stream().map(Folder::getFolderId).toList();
+
+        // 현재 페이지의 폴더들에 대해 북마크 상태 및 공유 여부 일괄 조회 (빈 리스트면 DB 호출 생략)
+        Map<Long, Boolean> bookmarkMap = subFolderIds.isEmpty()
+                ? Collections.emptyMap()
+                : usersFolderRepository.findAllByUserIdAndFolderIdIn(userId, subFolderIds).stream()
+                        .collect(Collectors.toMap(
+                                uf -> uf.getFolder().getFolderId(),
+                                UsersFolder::getIsBookmarked
+                        ));
+
+        Set<Long> sharedFolderIds = subFolderIds.isEmpty()
+                ? Collections.emptySet()
+                : usersFolderRepository.findAllSharedFolderIdsIn(subFolderIds);
+
+        // 하위 폴더 DTO 변환
         List<FolderSummaryDTO> subfolderDtos = subFolders.stream()
                 .map(f -> {
-                    boolean isBookmarked = bookmarkMap.getOrDefault(f.getFolderId(), Boolean.FALSE);
-
                     FolderSummaryDTO dto = new FolderSummaryDTO();
                     dto.setFolderId(f.getFolderId());
                     dto.setFolderName(f.getFolderName());
-                    dto.setIsBookmarked(isBookmarked);
-                    dto.setIsSharing(getSharingStatus(f.getFolderId()));
+                    dto.setIsBookmarked(bookmarkMap.getOrDefault(f.getFolderId(), false));
+                    dto.setIsSharing(sharedFolderIds.contains(f.getFolderId()) ? "share" : "private");
                     return dto;
                 }).toList();
 
-        // 커서: 없으면 Long.MAX_VALUE
-        Long cursorId = (cursor == null) ? Long.MAX_VALUE : Long.parseLong(cursor);
+        // 커서: 없으면 Long.MAX_VALUE, 숫자가 아니면 400 반환
+        Long cursorId;
+        if (cursor == null) {
+            cursorId = Long.MAX_VALUE;
+        } else {
+            try {
+                cursorId = Long.parseLong(cursor);
+            } catch (NumberFormatException e) {
+                throw new GeneralException(ErrorStatus._FOLDER_INVALID_CURSOR);
+            }
+        }
 
-        // 링크 매핑(폴더 내부의 링크만) → LinkuFolder 리스트 반환 받아야 함
-        List<LinkuFolder> linkuFolders = linkuFolderRepository.findByFolder(folder);
-        List<Linku> linkus = linkuFolders.stream()
-                .map(lf -> lf.getUsersLinku().getLinku())
-                .filter(linku -> linku.getLinkuId() < cursorId)
-                .sorted(Comparator.comparing(Linku::getLinkuId).reversed())
-                .limit(limit)
-                .toList();
+        // DB에서 limit + 1개를 가져옴
+        PageRequest pageRequest = PageRequest.of(0, limit + 1);
+        List<LinkuFolder> linkuFolders = linkuFolderRepository.findWithCursor(folderId, cursorId, pageRequest);
 
-        List<LinkuSummaryDTO> linkDtos = linkuFolders.stream().map(lf -> {
+        // 다음 커서 계산
+        boolean hasNext = linkuFolders.size() > limit;
+        List<LinkuFolder> resultList = hasNext ? linkuFolders.subList(0, limit) : linkuFolders;
+
+        String nextCursor = hasNext
+                ? String.valueOf(resultList.get(resultList.size() - 1).getUsersLinku().getLinku().getLinkuId())
+                : null;
+
+        List<LinkuSummaryDTO> linkDtos = resultList.stream().map(lf -> {
             UsersLinku usersLinku = lf.getUsersLinku();
             Linku link = usersLinku.getLinku();
 
@@ -263,39 +344,23 @@ public class FolderServiceImpl implements FolderService {
                             ? link.getAiArticle().getKeyword()
                             : null
             );
-            dto.setLinkuImageUrl(
-                    usersLinku.getImageUrl()
-            );
+            dto.setLinkuImageUrl(usersLinku.getImageUrl());
             dto.setCreatedAt(link.getCreatedAt().toString());
             return dto;
         }).toList();
 
-        String newCursor = (linkus.size() == limit)
-                ? String.valueOf(linkus.get(linkus.size() - 1).getLinkuId())
-                : null;
-
         FolderLinkusResponseDTO resp = new FolderLinkusResponseDTO();
         resp.setFolders(subfolderDtos);
         resp.setLinks(linkDtos);
-        resp.setNextCursor(newCursor);
+        resp.setNextCursor(nextCursor);
 
         return resp;
     }
 
-    // 공유 상태 확인
-    public String getSharingStatus(Long folderId) {
-        List<UsersFolder> relations = usersFolderRepository.findNonOwnerRelations(folderId);
-
-        if (relations.isEmpty()) {
-            // 개인 소유
-            return "personal";
-        } else if (relations.stream().anyMatch(UsersFolder::getIsViewer)) {
-            // 공유 상태
-            return "share";
-        } else {
-            // 공유 된 이력은 있지만 지금은 비공개
-            return "protect";
-        }
+    // 유저의 카테고리에 해당하는 중분류 폴더 조회
+    public Folder findFolder(Long userId, Category category) {
+        return usersFolderRepository.findFolderByUserIdAndCategory(userId, category)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
     }
 
 }

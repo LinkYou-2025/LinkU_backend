@@ -9,9 +9,10 @@ import com.umc.linkyou.web.dto.folder.*;
 import com.umc.linkyou.web.dto.folder.linku.FolderLinkusResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +22,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/folders")
 @RequiredArgsConstructor
+@Validated
 public class FolderController {
     private final FolderService folderService;
 
@@ -57,12 +59,12 @@ public class FolderController {
             description = "소분류 폴더를 삭제합니다."
     )
     @DeleteMapping("/subfolders/{folderId}")
-    public ResponseEntity<FolderResponseDTO> deleteFolder(
+    public ApiResponse<Void> deleteFolder(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId
     ) {
-        FolderResponseDTO response = folderService.deleteFolder(userDetails.getUsers().getId(), folderId);
-        return ResponseEntity.ok(response);
+        folderService.deleteFolder(userDetails.getUsers().getId(), folderId);
+        return ApiResponse.of(SuccessStatus._FOLDER_DELETE_OK, null);
     }
 
     @Operation(
@@ -79,13 +81,14 @@ public class FolderController {
 
     @Operation(
             summary = "중분류 폴더 조회",
-            description = "사용자의 모든 중분류 폴더 목록을 조회합니다."
+            description = "사용자의 모든 중분류 폴더 목록을 조회합니다. sort: name(가나다순, 기본값), updatedAt(최근 수정순)"
     )
     @GetMapping("/parentFolders")
     public ApiResponse<List<FolderListResponseDTO>> getParentFolderList(
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(defaultValue = "name") String sort
     ) {
-        List<FolderListResponseDTO> folderList = folderService.getParentFolders(userDetails.getUsers().getId());
+        List<FolderListResponseDTO> folderList = folderService.getParentFolders(userDetails.getUsers().getId(), sort);
         return ApiResponse.of(SuccessStatus._FOLDER_PARENT_OK, folderList);
     }
 
@@ -126,11 +129,12 @@ public class FolderController {
     public ApiResponse<FolderLinkusResponseDTO> getFolderLinkus(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId,
-            @RequestParam(defaultValue = "20") int limit,
-            @RequestParam(required = false) String cursor
+            @RequestParam(defaultValue = "20") @Min(1) int limit,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "name") String sort
     ) {
         FolderLinkusResponseDTO response = folderService.getFolderLinkus(
-                userDetails.getUsers().getId(), folderId, limit, cursor);
+                userDetails.getUsers().getId(), folderId, limit, cursor, sort);
         return ApiResponse.of(SuccessStatus._FOLDER_LINK_OK, response);
     }
 }

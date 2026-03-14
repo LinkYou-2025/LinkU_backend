@@ -21,7 +21,6 @@ public class UserConverter {
 
         return new Users().builder()
                 .nickName(request.getNickName())
-                .email(request.getEmail())
                 .password(request.getPassword())
                 .gender(gender)
                 .job(job)
@@ -49,12 +48,13 @@ public class UserConverter {
 
     public static UserResponseDTO.UserProfileSummaryDto toUserInfoDTO(
             UserResponseDTO.UserProfileSummaryDto s,
+            String email,
             List<String> purposes,
             List<String> interests
     ) {
         return UserResponseDTO.UserProfileSummaryDto.builder()
                 .nickName(s.getNickName())
-                .email(s.getEmail())
+                .email(email != null ? email : s.getEmail())  // 우선순위: 인자 > 기존
                 .gender(s.getGender())
                 .job(s.getJob())
                 .myLinku(s.getMyLinku())

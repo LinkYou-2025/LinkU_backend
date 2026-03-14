@@ -14,4 +14,3 @@ public class FolderListResponseDTO {
     private Boolean isBookmarked;
     private String isSharing;
 }
-

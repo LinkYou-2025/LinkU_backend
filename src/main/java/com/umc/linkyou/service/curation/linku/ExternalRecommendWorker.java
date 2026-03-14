@@ -1,6 +1,6 @@
 package com.umc.linkyou.service.curation.linku;
 
-import com.umc.linkyou.titleImgParser.LinkToImageService;
+import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
 import com.umc.linkyou.domain.log.CurationTopLog;
