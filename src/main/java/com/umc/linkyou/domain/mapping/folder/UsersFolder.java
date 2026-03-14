@@ -2,6 +2,7 @@ package com.umc.linkyou.domain.mapping.folder;
 
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.common.BaseEntity;
+import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.Folder;
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,7 +10,6 @@ import lombok.*;
 @Entity
 @Table(name = "users_folder")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -19,10 +19,12 @@ public class UsersFolder extends BaseEntity {
     @Column(name = "users_folder_id")
     private Long userFolderId;
 
-    private Boolean isOwner;
-    private Boolean isViewer;
-    private Boolean isWriter;
+    @Setter
+    @Enumerated(EnumType.STRING)
+    @Column(name = "permission_type", nullable = false)
+    private PermissionType permissionType;
 
+    @Setter
     private Boolean isBookmarked = false;
 
     @ManyToOne(fetch = FetchType.LAZY)

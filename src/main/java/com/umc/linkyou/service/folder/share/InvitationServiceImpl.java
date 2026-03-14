@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.folder.Folder;
+import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.FolderShareLink;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.FolderShareLinkRepository;
@@ -69,9 +70,7 @@ public class InvitationServiceImpl implements InvitationService {
         UsersFolder newMember = UsersFolder.builder()
                 .user(user)
                 .folder(folder)
-                .isOwner(false)
-                .isViewer(true)
-                .isWriter(false)
+                .permissionType(PermissionType.VIEWER)
                 .isBookmarked(false)
                 .build();
 

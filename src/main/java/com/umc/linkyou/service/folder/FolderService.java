@@ -1,5 +1,7 @@
 package com.umc.linkyou.service.folder;
 
+import com.umc.linkyou.domain.classification.Category;
+import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.web.dto.folder.*;
 import com.umc.linkyou.web.dto.folder.linku.FolderLinkusResponseDTO;
 
@@ -10,7 +12,7 @@ public interface FolderService {
 
     FolderResponseDTO updateFolder(Long userId, Long folderId, FolderUpdateRequestDTO req);
 
-    FolderResponseDTO deleteFolder(Long userId, Long folderId);
+    void deleteFolder(Long userId, Long folderId);
 
     // 폴더 트리 전체 조회
     List<FolderTreeResponseDTO> getMyFolderTree(Long userId);
@@ -25,5 +27,8 @@ public interface FolderService {
     BookmarkUpdateResponseDTO updateBookmark(Long userId, Long folderId, Boolean isBookmarked);
 
     // 폴더 내부 링크, 폴더 목록 조회
-    FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor);
+    FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort);
+
+    // 유저의 카테고리에 해당하는 중분류 폴더 조회
+    Folder findFolder(Long userId, Category category);
 }
