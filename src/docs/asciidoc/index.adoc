@@ -1,0 +1,27 @@
+= LinkU API 명세서
+:doctype: book
+:icons: font
+:source-highlighter: highlightjs
+:toc: left
+:toclevels: 2
+:sectlinks:
+
+== Test API
+
+=== 테스트 GET 호출
+==== 요청
+include::{snippets}/test-get/http-request.adoc[]
+==== 응답
+include::{snippets}/test-get/http-response.adoc[]
+==== 응답 필드
+include::{snippets}/test-get/response-fields.adoc[]
+
+---
+
+=== 테스트 POST Body 호출
+==== 요청
+include::{snippets}/test-post-body/http-request.adoc[]
+==== 요청 필드
+include::{snippets}/test-post-body/request-fields.adoc[]
+==== 응답
+include::{snippets}/test-post-body/http-response.adoc[]
