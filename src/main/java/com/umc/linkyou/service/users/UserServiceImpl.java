@@ -120,7 +120,8 @@ public class UserServiceImpl implements UserService {
                     newUser.encodePassword(passwordEncoder.encode(request.getPassword()));
 
                     // Purposes / Interests 설정
-                    setupPurposesAndInterests(newUser, request);
+                    setupUserPurposes(newUser, request.getPurposeList());
+                    setupUserInterests(newUser, request.getInterestList());
 
                     return userRepository.save(newUser);
                 });
@@ -149,15 +150,26 @@ public class UserServiceImpl implements UserService {
     }
 
     // 중복 코드 방지를 위한 Purposes/Interests 설정 헬퍼 메서드
-    private void setupPurposesAndInterests(Users user, UserRequestDTO.JoinDTO request) {
-        List<Purposes> purposeList = request.getPurposeList().stream()
-                .map(name -> new Purposes(name, user)).toList();
+// 1. 목적(Purpose) 설정 전용
+    private void setupUserPurposes(Users user, List<String> purposeNames) {
+        purposeRepository.deleteAllByUser(user);
+        if (purposeNames != null && !purposeNames.isEmpty()) {
+            List<Purposes> purposeList = purposeNames.stream()
+                    .map(name -> new Purposes(name, user))
+                    .toList();
+            purposeRepository.saveAll(purposeList);
+        }
+    }
 
-        List<Interests> interestList = request.getInterestList().stream()
-                .map(name -> new Interests(name, user)).toList();
-
-        user.setPurposes(purposeList);
-        user.setInterests(interestList);
+    // 2. 관심사(Interest) 설정 전용
+    private void setupUserInterests(Users user, List<String> interestNames) {
+        interestRepository.deleteAllByUser(user);
+        if (interestNames != null && !interestNames.isEmpty()) {
+            List<Interests> interestList = interestNames.stream()
+                    .map(name -> new Interests(name, user))
+                    .toList();
+            interestRepository.saveAll(interestList);
+        }
     }
 
     // 초기 폴더 생성 메서드 (color_code 에러 방지 반영)
@@ -258,16 +270,10 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
         user.setJob(job);
 
-        // 4. Purposes/Interests (기존 → 신규 교체)
-        purposeRepository.deleteAllByUser(user);
-        List<Purposes> purposes = request.getPurposeList().stream()
-                .map(p -> new Purposes(p, user)).toList();
-        purposeRepository.saveAll(purposes);
 
-        interestRepository.deleteAllByUser(user);
-        List<Interests> interests = request.getInterestList().stream()
-                .map(i -> new Interests(i, user)).toList();
-        interestRepository.saveAll(interests);
+        // Purposes / Interests 설정
+        setupUserPurposes(user, request.getPurposeList());
+        setupUserInterests(user, request.getInterestList());
 
         // 5. 상태 변경 → ACTIVE
         user.setStatus(UserStatus.ACTIVE);
@@ -434,19 +440,8 @@ public class UserServiceImpl implements UserService {
             user.setNickName(request.getNickname());
         }
 
-        // 기존 목적 리스트 삭제 후 신규 목적 저장
-        purposeRepository.deleteAllByUser(user);
-        List<Purposes> newPurposes = request.getPurposes().stream()
-                .map(purpose -> new Purposes(purpose, user))
-                .collect(Collectors.toList());
-        purposeRepository.saveAll(newPurposes);
-
-        // 기존 관심사 리스트 삭제 후 신규 관심사 저장
-        interestRepository.deleteAllByUser(user);
-        List<Interests> newInterests = request.getInterests().stream()
-                .map(interest -> new Interests(interest, user))
-                .collect(Collectors.toList());
-        interestRepository.saveAll(newInterests);
+        setupUserPurposes(user, request.getPurposes());
+        setupUserInterests(user, request.getInterests());
 
         userRepository.save(user);
     }
