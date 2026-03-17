@@ -10,6 +10,8 @@ import com.sendgrid.helpers.mail.objects.Email;
 import com.sendgrid.helpers.mail.objects.Personalization;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
+import com.umc.linkyou.config.properties.AwsProperties;
+import com.umc.linkyou.config.properties.SendGridProperties;
 import com.umc.linkyou.converter.EmailConverter;
 import com.umc.linkyou.domain.EmailVerification;
 import com.umc.linkyou.domain.Users;
@@ -46,49 +48,9 @@ public class EmailService {
     private final PasswordEncoder passwordEncoder;
     private final AuthAccountRepository authAccountRepository;
 
-    @Value("${spring.sendgrid.from}")
-    private String fromEmail;
+    private final SendGridProperties sendGridProperties;
+    private final AwsProperties awsProperties;
 
-    @Value("${spring.sendgrid.templates.verify-id}")
-    private String verifyTemplateId;
-
-    @Value("${spring.sendgrid.templates.temp-id}")
-    private String tempTemplateId;
-
-    @Value("${cloud.aws.s3.base-url}")
-    private String s3BaseUrl;
-
-    public void sendEmail(String toEmail,
-                          String title,
-                          String text) {
-        // SMTP 과정
-        //SimpleMailMessage emailForm = createEmailForm(toEmail, title, text);
-
-        // 보내는 사람
-        Email from = new Email(fromEmail);
-
-        // 제목
-        String subject = title;
-
-        // 받는 사람
-        Email to = new Email(toEmail);
-
-        // 내용
-        Content content = new Content("text/plain", text);
-
-        // 발신자, 제목, 수신자, 내용을 합쳐 Mail 객체 생성
-        Mail mail = new Mail(from, subject, to, content);
-
-        try {
-            // SMTP 과정
-            //emailSender.send(emailForm);
-            send(mail);
-            log.info("메일 전송 성공: {}", toEmail);
-        } catch (IOException e) {
-            log.error("메일 전송 중 오류 발생 toEmail: {}, title: {}, text: {}", toEmail, title, text, e);
-            throw new UserHandler(ErrorStatus._SEND_MAIL_FAILED);
-        }
-    }
 
     /**
      * 신규: 다이나믹 템플릿(HTML)로 인증 메일 전송
@@ -101,10 +63,10 @@ public class EmailService {
         try {
             Mail mail = new Mail();
             // From 표시 이름 추가
-            mail.setFrom(new Email(fromEmail, "Link You"));
+            mail.setFrom(new Email(sendGridProperties.getFrom(), "Link You"));
 
             // 템플릿 ID 지정
-            mail.setTemplateId(verifyTemplateId);
+            mail.setTemplateId(sendGridProperties.getTemplates().getVerifyId());
 
             // 수신자 & 템플릿 변수
             Personalization p = new Personalization();
@@ -113,7 +75,7 @@ public class EmailService {
             p.addDynamicTemplateData("code", code);
             p.addDynamicTemplateData("expiresInMinutes", expiresInMinutes);
             p.addDynamicTemplateData("year", Year.now().getValue());
-            p.addDynamicTemplateData("logoUrl", s3BaseUrl + "/linkuLogo/logo_white.png");
+            p.addDynamicTemplateData("logoUrl", awsProperties.getCloudfront().getDomain() + "/linkuLogo/logo_white.png");
 
             mail.addPersonalization(p);
 
@@ -132,10 +94,10 @@ public class EmailService {
                                          int expiresInMinutes) {
         try {
             Mail mail = new Mail();
-            mail.setFrom(new Email(fromEmail, "Link You"));
+            mail.setFrom(new Email(sendGridProperties.getFrom(), "Link You"));
 
             // 템플릿 ID 지정
-            mail.setTemplateId(tempTemplateId);
+            mail.setTemplateId(sendGridProperties.getTemplates().getVerifyId());
 
             // 동적 데이터 세팅 (HTML의 핸들바와 일치)
             Personalization p = new Personalization();
@@ -144,7 +106,7 @@ public class EmailService {
             p.addDynamicTemplateData("tempPassword", tempPassword);
             p.addDynamicTemplateData("expiresInMinutes", expiresInMinutes);
             p.addDynamicTemplateData("year", Year.now().getValue());
-            p.addDynamicTemplateData("logoUrl", s3BaseUrl + "/linkuLogo/logo_white.png");
+            p.addDynamicTemplateData("logoUrl", awsProperties.getCloudfront().getDomain() + "/linkuLogo/logo_white.png");
 
             mail.addPersonalization(p);
 
