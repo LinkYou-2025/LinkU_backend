@@ -138,7 +138,9 @@ asciidoctor {
 	baseDirFollowsSourceFile()
 	inputs.dir snippetsDir
 	dependsOn test
-	options.fork = false
+	onlyIf {
+		snippetsDir.exists()
+	}
 }
 
 bootJar {
