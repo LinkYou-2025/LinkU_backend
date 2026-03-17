@@ -25,3 +25,39 @@ include::{snippets}/test-post-body/http-request.adoc[]
 include::{snippets}/test-post-body/request-fields.adoc[]
 ==== 응답
 include::{snippets}/test-post-body/http-response.adoc[]
+
+---
+== User API
+
+=== 일반 회원가입
+==== 요청
+include::{snippets}/user/join/http-request.adoc[]
+==== 요청 필드
+include::{snippets}/user/join/request-fields.adoc[]
+==== 응답
+include::{snippets}/user/join/http-response.adoc[]
+==== 응답 필드
+include::{snippets}/user/join/response-fields.adoc[]
+
+
+=== 소셜 프로필 완성
+==== 요청
+include::{snippets}/user/social-complete/http-request.adoc[]
+==== 요청 필드
+include::{snippets}/user/social-complete/request-fields.adoc[]
+==== 응답
+include::{snippets}/user/social-complete/http-response.adoc[]
+==== 응답 필드
+include::{snippets}/user/social-complete/response-fields.adoc[]
+
+== Auth API
+
+=== 카카오 로그인 (모바일)
+==== 요청
+include::{snippets}/auth/mobile/kakao/http-request.adoc[]
+==== 요청 필드
+include::{snippets}/auth/mobile/kakao/request-fields.adoc[]
+==== 응답
+include::{snippets}/auth/mobile/kakao/http-response.adoc[]
+==== 응답 필드
+include::{snippets}/auth/mobile/kakao/response-fields.adoc[]
