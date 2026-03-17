@@ -7,6 +7,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.config.properties.AwsProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
@@ -28,11 +29,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AwsS3Service {
 
-    @Value("${cloud.aws.s3.bucket}")
-    private String bucket;
-
-    @Value("${cloud.aws.cloudfront.domain}")
-    private String cloudfrontDomain;
+    private final AwsProperties awsProperties;
 
     private final AmazonS3 amazonS3;
 
@@ -58,7 +55,7 @@ public class AwsS3Service {
 
                 // 🔥 컴파일 에러 해결: 단일 AmazonClientException catch
                 try {
-                    amazonS3.putObject(new PutObjectRequest(bucket, fileName,
+                    amazonS3.putObject(new PutObjectRequest(awsProperties.getS3().getBucket(),  fileName,
                             new ByteArrayInputStream(resizedBytes), metadata));
                 } catch (AmazonClientException e) {
                     log.error("S3 업로드 실패 (클라이언트 오류): {}", fileName, e);
@@ -97,7 +94,7 @@ public class AwsS3Service {
 
                 //  AmazonClientException 단일 catch
                 try {
-                    amazonS3.putObject(new PutObjectRequest(bucket, fileName,
+                    amazonS3.putObject(new PutObjectRequest(awsProperties.getS3().getBucket(),  fileName,
                             new ByteArrayInputStream(resizedBytes), metadata));
                 } catch (AmazonClientException e) {
                     log.error("S3 폴더 업로드 실패 (클라이언트 오류): {}", fileName, e);
@@ -136,19 +133,17 @@ public class AwsS3Service {
      * S3에 업로드된 파일의 URL 반환
      */
     public String getFileUrl(String fileName) {
-        String domain = cloudfrontDomain.trim().endsWith("/")
-                ? cloudfrontDomain.substring(0, cloudfrontDomain.length() - 1)
-                : cloudfrontDomain;
+        String domain = awsProperties.getCloudfront().getDomain().trim();
+        domain = domain.endsWith("/") ? domain.substring(0, domain.length() - 1) : domain;
         String key = fileName.startsWith("/") ? fileName.substring(1) : fileName;
         return domain + "/" + key;
     }
-
     /**
      * 파일명 기준으로 파일 삭제
      */
     public void deleteFile(String fileName) {
         try {
-            amazonS3.deleteObject(new DeleteObjectRequest(bucket, fileName));
+            amazonS3.deleteObject(new DeleteObjectRequest(awsProperties.getS3().getBucket(), fileName));
         } catch  (AmazonClientException e) {
             throw new GeneralException(ErrorStatus._S3_DELETE_FAILED);
         }
@@ -160,7 +155,7 @@ public class AwsS3Service {
     public void deleteFileByUrl(String fileUrl) {
         try {
             String fileName = extractFileNameFromUrl(fileUrl);
-            amazonS3.deleteObject(new DeleteObjectRequest(bucket, fileName));
+            amazonS3.deleteObject(new DeleteObjectRequest(awsProperties.getS3().getBucket(), fileName));
         } catch (Exception e) {
             throw new GeneralException(ErrorStatus._S3_DELETE_FAILED);
         }
@@ -173,14 +168,15 @@ public class AwsS3Service {
         try {
             String decodedUrl = URLDecoder.decode(url, "UTF-8");
             // CloudFront 도메인 이후 전체 경로 반환 (= S3 키)
-            String domainSuffix = cloudfrontDomain.endsWith("/")
-                    ? cloudfrontDomain
-                    : cloudfrontDomain + "/";
+            String domainSuffix = awsProperties.getCloudfront().getDomain().endsWith("/")  // ← 교체
+                    ? awsProperties.getCloudfront().getDomain()
+                    : awsProperties.getCloudfront().getDomain() + "/";
             if (decodedUrl.startsWith(domainSuffix)) {
                 return decodedUrl.substring(domainSuffix.length());
             }
             // 기존 S3 URL 호환
-            return decodedUrl.substring(decodedUrl.indexOf(bucket) + bucket.length() + 1);
+            String bucketName = awsProperties.getS3().getBucket();  // ← bucket 교체
+            return decodedUrl.substring(decodedUrl.indexOf(bucketName) + bucketName.length() + 1);
         } catch (Exception e) {
             throw new GeneralException(ErrorStatus._S3_EXTRACT_URL_FAILED);
         }
