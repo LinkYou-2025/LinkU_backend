@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -38,28 +39,24 @@ public class UserSocialLoginHelper {
         validateRequiredIdentifiers(email, externalId, provider);
         Optional<AuthAccount> authAccountOpt =
                 authAccountRepository.findByProviderAndExternalId(provider, externalId);
-        /** 1. 재로그인: 닉네임/프로필/토큰 업데이트 */
+        /** 1. 재로그인: 소셜로그인 정보로 동기화하지만, 닉네임 유니크 보장 */
         if (authAccountOpt.isPresent()) {
             AuthAccount authAccount = authAccountOpt.get();
             Users user = authAccount.getUser();
 
-            // 닉네임 업데이트 (중복 아닐 때만)
-            if (name != null) {
-                String trimmedName = name.trim();
-                if (!trimmedName.isEmpty()  // 공백만 있는 이름 차단
-                        && !trimmedName.equals(user.getNickName())  // trim 후 비교
-                        && !userRepository.existsByNickName(trimmedName)) {  // trim 저장
-                    user.setNickName(trimmedName);  // 공백 제거된 이름 저장
-                }
+            // 닉네임 무조건 동기화 (단, 값이 다를 때만 실행하여 쿼리 절약)
+            if (name != null && !name.trim().equals(user.getNickName())) {
+                String uniqueNickname = generateUniqueNickname(name.trim(), email);
+                user.setNickName(uniqueNickname);
+                log.debug("기존 사용자 닉네임 동기화: userId={}, nickname={}", user.getId(), uniqueNickname);
             }
-            // 프로필 이미지 업데이트
+
+            // 프로필 이미지 무조건 동기화
             if (profileImage != null && !profileImage.equals(authAccount.getProfileImage())) {
                 authAccount.updateProfileImage(profileImage);
             }
-            // 웹 socialToken 업데이트 (모바일은 null이라 업데이트 안 됨)
-            if (socialToken != null) {
-                authAccount.updateToken(socialToken);
-            }
+
+            if (socialToken != null) authAccount.updateToken(socialToken);
             return user;
         }
 
@@ -85,32 +82,18 @@ public class UserSocialLoginHelper {
     /** 3.완전 신규 사용자 + AuthAccount 일괄 생성*/
     private Users createNewUserWithAccount(String email, String name, Provider provider,
                                            String externalId, String profileImage, String socialToken) {
-        //닉네임 생성 전략: 소셜 이름 우선 사용 -> 이름 없으면 이메일 도메인
-        String base = (name != null && !name.isBlank())
-                ? name  // 소셜 이름 우선
-                : (email.contains("@")
-                    ? email.substring(0, email.indexOf("@"))
-                : email)
-                // "user@gmail.com" → "user"
-                .replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
-        if (base.isBlank()) base = "user";  // 안전장치
 
-        Users savedUser = null;
-        // 닉네임 중복 시 번호 붙이기
-        for (int i = 0; i < 3; i++) {
-            String nickname = i == 0 ? base : base + "_" + i;
-            try {
-                savedUser = userRepository.saveAndFlush(Users.builder()
-                        .password(passwordEncoder.encode("social_" + externalId.hashCode()))
-                        .nickName(nickname)
-                        .gender(null).role(Role.USER).status(UserStatus.TEMP)
-                        .build());
-                log.info("신규 소셜 사용자 생성: id={}, nickname={}", savedUser.getId(), nickname);
-                break;
-            } catch (DataIntegrityViolationException e) {
-                if (i == 2) throw new GeneralException(ErrorStatus._DUPLICATE_NICKNAME);
-            }
-        }
+        String uniqueNickname = generateUniqueNickname(name, email);
+
+        Users savedUser = userRepository.saveAndFlush(Users.builder()
+                .password(passwordEncoder.encode("social_" + externalId.hashCode()))
+                .nickName(uniqueNickname)
+                .gender(null)
+                .role(Role.USER)
+                .status(UserStatus.TEMP)
+                .build());
+
+        log.info("신규 소셜 사용자 생성: id={}, nickname={}", savedUser.getId(), uniqueNickname);
         saveAuthAccount(savedUser, provider, externalId, profileImage, socialToken, email);
         return savedUser;
     }
@@ -144,6 +127,42 @@ public class UserSocialLoginHelper {
         if (provider == null) {
             throw new GeneralException(ErrorStatus._SOCIAL_UNSUPPORTED_PROVIDER);
         }
+    }
+
+    /**
+     * 서비스 내 유니크한 닉네임을 생성하는 로직 (기존 로직 분리)
+     */
+    private String generateUniqueNickname(String name, String email) {
+        // 1. 소셜로그인에서 입력받은 닉네임으로 생성 -> 이름이 없으면 이메일의 앞부분(아이디로) -> user
+        String base = (name != null && !name.isBlank())
+                ? name
+                : (email != null && email.contains("@") ? email.substring(0, email.indexOf("@")) : "user");
+
+        // 특수문자 제거 및 소문자화
+        base = base.replaceAll("[^a-zA-Z0-9가-힣]", "").toLowerCase();
+        if (base.isBlank()) base = "user";
+
+        // 2. [1차 시도] 숫자 붙이기 (base, base_1 ~ base_9)
+        for (int i = 0; i < 10; i++) {
+            String candidate = (i == 0) ? base : base + "_" + i;
+            if (!userRepository.existsByNickName(candidate)) {
+                return candidate;
+            }
+        }
+
+        // 3. [2차 시도] 10번 다 찼다면 랜덤 문자열 붙여서 중복 체크 (4회 루프)
+        log.info("닉네임 숫자 중복 초과로 랜덤 루프 진입: base={}", base);
+        for (int j = 0; j < 4; j++) {
+            String randomSuffix = UUID.randomUUID().toString().substring(0, 5);
+            String randomCandidate = base + "_" + randomSuffix;
+
+            if (!userRepository.existsByNickName(randomCandidate)) {
+                return randomCandidate;
+            }
+        }
+
+        // 4. [최후의 수단] 4번의 랜덤 체크조차 실패했다면 (확률 극히 낮음) 그냥 마지막 생성값 반환
+        return base + "_" + UUID.randomUUID().toString().substring(0, 8);
     }
 }
 
