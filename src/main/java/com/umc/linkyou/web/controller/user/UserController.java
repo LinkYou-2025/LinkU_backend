@@ -9,6 +9,7 @@ import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.service.users.TermsAgreementService;
 import com.umc.linkyou.service.users.UserService;
+import com.umc.linkyou.service.users.UserWithdrawService;
 import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.EmailVerificationResponse;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final UserWithdrawService userWithdrawService;
     private final UsersUtils usersUtils;
     private final TermsAgreementService termsAgreementService;
 
@@ -138,7 +140,7 @@ public class UserController {
      ,@RequestBody UserRequestDTO.DeleteReasonDTO deleteReasonDTO
     ) {
         Long userId = usersUtils.getAuthenticatedUserId(userDetails);
-        Users user = userService.withdrawUser(userId,deleteReasonDTO);
+        Users user = userWithdrawService.withdrawUser(userId,deleteReasonDTO);
         return ApiResponse.onSuccess(UserConverter.toWithDrawalResultDTO(user));
     }
 //    @Operation(summary = "🧪 테스트: 즉시 완전 삭제", description = "10일 경과 INACTIVE 사용자 즉시 삭제")
