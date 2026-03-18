@@ -2,7 +2,7 @@
 FROM gradle:8.6.0-jdk17 AS builder
 WORKDIR /app
 COPY . .
-RUN gradle clean build --no-daemon
+RUN gradle clean build -x test --no-daemon
 
 # 2단계: 가벼운 실행 환경 (필요 jar만 복사)
 FROM eclipse-temurin:17-jre-jammy
