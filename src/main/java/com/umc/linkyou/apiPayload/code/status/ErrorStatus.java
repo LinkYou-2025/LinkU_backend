@@ -35,6 +35,7 @@ public enum ErrorStatus implements BaseErrorCode {
     _DUPLICATE_JOIN_REQUEST(HttpStatus.CONFLICT, "USERS403", "중복된 이메일입니다."),
     _VERIFICATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS404", "인증 코드 검증 실패"),
     _USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USERS404", "사용자를 찾을 수 없습니다."),
+    _ALREADY_ACTIVE_USER(HttpStatus.BAD_REQUEST, "USERS4001", "이미 가입이 완료된 사용자입니다."),
     _USER_INACTIVE(HttpStatus.NOT_FOUND, "USERS4042", "사용자가 INACTIVE 임시 회원탈퇴 상태입니다."),
     _INVALID_GENDER(HttpStatus.NOT_FOUND, "USERS404", "성별을 선택해야합니다."),
     _PURPOSE_NOT_PROVIDED(HttpStatus.NOT_FOUND, "USERS404", "목적을 선택해야합니다."),

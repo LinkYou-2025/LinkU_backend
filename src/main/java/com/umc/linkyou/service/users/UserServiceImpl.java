@@ -247,6 +247,11 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public Users socialCompleteProfile(Users user, UserRequestDTO.SocialCompleteDTO request) {
+        // 1. 이미 ACTIVE 상태인 유저라면 에러 발생 (또는 바로 유저 반환)
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            // "이미 프로필 설정이 완료된 사용자입니다"라는 에러를 던집니다.
+            throw new UserHandler(ErrorStatus._ALREADY_ACTIVE_USER);
+        }
         // 2. 닉네임 중복 체크
         validateNickNameNotDuplicate(request.getNickName());
 
