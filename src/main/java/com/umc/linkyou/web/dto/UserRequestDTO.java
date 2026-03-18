@@ -7,6 +7,7 @@ import com.umc.linkyou.domain.enums.Purpose;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -43,11 +44,11 @@ public class UserRequestDTO {
         Long jobId;
 
         @Schema(example = "[\"CAREER\", \"STUDY\"]")
-        @NotNull(message = "목적 리스트는 필수입니다")
+        @NotEmpty(message = "목적 리스트는 최소 1개 이상 선택해야 합니다")
         List<String> purposeList;
 
         @Schema(example = "[\"IT\", \"DESIGN\"]")
-        @NotNull(message = "관심사 리스트는 필수입니다")
+        @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다")
         List<String> interestList;
     }
 
@@ -105,11 +106,11 @@ public class UserRequestDTO {
         private Long jobId;
 
         @Schema(description = "사용 목적 리스트", example = "[\"CAREER\", \"STUDY\"]")
-        @NotNull(message = "목적 리스트는 필수입니다")
+        @NotEmpty(message = "목적 리스트는 최소 1개 이상 선택해야 합니다")
         private List<String> purposeList;
 
         @Schema(description = "관심사 리스트", example = "[\"IT\", \"DESIGN\"]")
-        @NotNull(message = "관심사 리스트는 필수입니다")
+        @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다")
         private List<String> interestList;
     }
 
