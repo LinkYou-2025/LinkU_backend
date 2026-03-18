@@ -2,9 +2,11 @@ package com.umc.linkyou.integration;
 
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.oauth2.UserSocialLoginHelper;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
+import com.umc.linkyou.repository.classification.JobRepository;
 import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import org.junit.jupiter.api.DisplayName;
@@ -24,17 +26,21 @@ public class UserRegistrationIntegrationTest {
     @Autowired private UserService userService;
     @Autowired private UserSocialLoginHelper socialLoginHelper;
     @Autowired private AuthAccountRepository authAccountRepository;
+    @Autowired private JobRepository jobRepository;
 
     @Test
     @DisplayName("일반 가입 -> 동일 이메일 소셜 로그인 -> 계정 통합 전체 흐름 검증")
     void fullRegistrationAndLinkingFlow() {
+        Job testJob = jobRepository.save(Job.builder()
+                .name("테스트직업")
+                .build());
         // 1. 일반 회원 가입 (GENERAL)
         UserRequestDTO.JoinDTO joinReq = new UserRequestDTO.JoinDTO();
         joinReq.setEmail("integration@test.com");
         joinReq.setNickName("통합유저");
         joinReq.setPassword("pass123");
         joinReq.setGender(1);
-        joinReq.setJobId(1L); // 주의: DB(H2)에 Job ID 1이 있어야 함
+        joinReq.setJobId(testJob.getId());// 주의: DB(H2)에 Job ID 1이 있어야 함
 
         Users generalUser = userService.joinUser(joinReq);
 
