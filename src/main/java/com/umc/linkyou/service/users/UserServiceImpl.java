@@ -152,33 +152,44 @@ public class UserServiceImpl implements UserService {
     // 중복 코드 방지를 위한 Purposes/Interests 설정 헬퍼 메서드
 // 1. 목적(Purpose) 설정 전용
     private void setupUserPurposes(Users user, List<String> purposeNames) {
-        // null이면 아무것도 하지 않음 (No-op)
+        // No-op: null인 경우 기존 데이터를 건드리지 않음
         if (purposeNames == null) {
             return;
         }
 
-        purposeRepository.deleteAllByUser(user);
-        if (purposeNames != null && !purposeNames.isEmpty()) {
-            List<Purposes> purposeList = purposeNames.stream()
+        // 1. 기존 컬렉션 비우기 (orphanRemoval = true에 의해 DB 삭제 예약)
+        if (user.getPurposes() != null) {
+            user.getPurposes().clear();
+        } else {
+            // null 방지 로직 (필요시)
+            // user.setPurposes(new ArrayList<>());
+        }
+
+        // 2. 새로운 데이터 추가 (CascadeType.ALL에 의해 부모 저장 시 자동 저장)
+        if (!purposeNames.isEmpty()) {
+            purposeNames.stream()
                     .map(name -> new Purposes(name, user))
-                    .toList();
-            purposeRepository.saveAll(purposeList);
+                    .forEach(purpose -> user.getPurposes().add(purpose));
         }
     }
 
     // 2. 관심사(Interest) 설정 전용
     private void setupUserInterests(Users user, List<String> interestNames) {
-        // null이면 아무것도 하지 않음 (No-op)
+        // No-op: null인 경우 기존 데이터를 건드리지 않음
         if (interestNames == null) {
             return;
         }
 
-        interestRepository.deleteAllByUser(user);
-        if (interestNames != null && !interestNames.isEmpty()) {
-            List<Interests> interestList = interestNames.stream()
+        // 1. 기존 컬렉션 비우기
+        if (user.getInterests() != null) {
+            user.getInterests().clear();
+        }
+
+        // 2. 새로운 데이터 추가
+        if (!interestNames.isEmpty()) {
+            interestNames.stream()
                     .map(name -> new Interests(name, user))
-                    .toList();
-            interestRepository.saveAll(interestList);
+                    .forEach(interest -> user.getInterests().add(interest));
         }
     }
 
