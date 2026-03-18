@@ -1,6 +1,7 @@
 package com.umc.linkyou.web.controller.user;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.UserStatus;
@@ -142,6 +143,43 @@ class UserControllerTest {
                                 fieldWithPath("timestamp").description("응답 시간"),
                                 fieldWithPath("result.userId").description("유저 ID"),
                                 fieldWithPath("result.createdAt").description("수정 일시")
+                        )
+                ));
+    }
+
+    @Test
+    @DisplayName("소셜 프로필 완성 실패 - 이미 완료된 유저")
+    void social_complete_fail_already_active() throws Exception {
+        // given
+        UserRequestDTO.SocialCompleteDTO request = new UserRequestDTO.SocialCompleteDTO(
+                "already_active", 1, 1L, List.of("STUDY"), List.of("DESIGN")
+        );
+
+        // 이미 ACTIVE 상태인 유저를 반환하도록 Mocking
+        Users activeUser = Users.builder().id(2L).status(UserStatus.ACTIVE).build();
+
+        // usersUtils.validateTempUser나 userService에서 예외를 던지도록 설정
+        given(usersUtils.validateTempUser(any())).willReturn(activeUser);
+        given(userService.socialCompleteProfile(any(), any()))
+                .willThrow(new com.umc.linkyou.apiPayload.exception.handler.UserHandler(ErrorStatus._ALREADY_ACTIVE_USER));
+
+        // when & then
+        mockMvc.perform(patch("/api/v1/users/social/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(csrf())
+                        .with(user("test")))
+                .andExpect(status().isBadRequest()) // 400 에러 기대
+                .andDo(document("user/social-complete-fail",
+                        preprocessRequest(
+                                prettyPrint()
+                        ),
+                        preprocessResponse(prettyPrint()),
+                        responseFields(
+                                fieldWithPath("isSuccess").description("성공 여부"),
+                                fieldWithPath("code").description("응답 코드"),
+                                fieldWithPath("message").description("응답 메시지"),
+                                fieldWithPath("timestamp").description("응답 시간")
                         )
                 ));
     }
