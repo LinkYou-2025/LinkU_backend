@@ -152,6 +152,11 @@ public class UserServiceImpl implements UserService {
     // 중복 코드 방지를 위한 Purposes/Interests 설정 헬퍼 메서드
 // 1. 목적(Purpose) 설정 전용
     private void setupUserPurposes(Users user, List<String> purposeNames) {
+        // null이면 아무것도 하지 않음 (No-op)
+        if (purposeNames == null) {
+            return;
+        }
+
         purposeRepository.deleteAllByUser(user);
         if (purposeNames != null && !purposeNames.isEmpty()) {
             List<Purposes> purposeList = purposeNames.stream()
@@ -163,6 +168,11 @@ public class UserServiceImpl implements UserService {
 
     // 2. 관심사(Interest) 설정 전용
     private void setupUserInterests(Users user, List<String> interestNames) {
+        // null이면 아무것도 하지 않음 (No-op)
+        if (interestNames == null) {
+            return;
+        }
+
         interestRepository.deleteAllByUser(user);
         if (interestNames != null && !interestNames.isEmpty()) {
             List<Interests> interestList = interestNames.stream()

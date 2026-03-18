@@ -43,9 +43,11 @@ public class UserRequestDTO {
         Long jobId;
 
         @Schema(example = "[\"CAREER\", \"STUDY\"]")
+        @NotNull(message = "목적 리스트는 필수입니다")
         List<String> purposeList;
 
         @Schema(example = "[\"IT\", \"DESIGN\"]")
+        @NotNull(message = "관심사 리스트는 필수입니다")
         List<String> interestList;
     }
 
