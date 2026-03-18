@@ -120,7 +120,8 @@ public class UserServiceImpl implements UserService {
                     newUser.encodePassword(passwordEncoder.encode(request.getPassword()));
 
                     // Purposes / Interests 설정
-                    setupPurposesAndInterests(newUser, request);
+                    setupUserPurposes(newUser, request.getPurposeList());
+                    setupUserInterests(newUser, request.getInterestList());
 
                     return userRepository.save(newUser);
                 });
@@ -149,15 +150,47 @@ public class UserServiceImpl implements UserService {
     }
 
     // 중복 코드 방지를 위한 Purposes/Interests 설정 헬퍼 메서드
-    private void setupPurposesAndInterests(Users user, UserRequestDTO.JoinDTO request) {
-        List<Purposes> purposeList = request.getPurposeList().stream()
-                .map(name -> new Purposes(name, user)).toList();
+// 1. 목적(Purpose) 설정 전용
+    private void setupUserPurposes(Users user, List<String> purposeNames) {
+        // No-op: null인 경우 기존 데이터를 건드리지 않음
+        if (purposeNames == null) {
+            return;
+        }
 
-        List<Interests> interestList = request.getInterestList().stream()
-                .map(name -> new Interests(name, user)).toList();
+        // 1. 기존 컬렉션 비우기 (orphanRemoval = true에 의해 DB 삭제 예약)
+        if (user.getPurposes() != null) {
+            user.getPurposes().clear();
+        } else {
+            // null 방지 로직 (필요시)
+            // user.setPurposes(new ArrayList<>());
+        }
 
-        user.setPurposes(purposeList);
-        user.setInterests(interestList);
+        // 2. 새로운 데이터 추가 (CascadeType.ALL에 의해 부모 저장 시 자동 저장)
+        if (!purposeNames.isEmpty()) {
+            purposeNames.stream()
+                    .map(name -> new Purposes(name, user))
+                    .forEach(purpose -> user.getPurposes().add(purpose));
+        }
+    }
+
+    // 2. 관심사(Interest) 설정 전용
+    private void setupUserInterests(Users user, List<String> interestNames) {
+        // No-op: null인 경우 기존 데이터를 건드리지 않음
+        if (interestNames == null) {
+            return;
+        }
+
+        // 1. 기존 컬렉션 비우기
+        if (user.getInterests() != null) {
+            user.getInterests().clear();
+        }
+
+        // 2. 새로운 데이터 추가
+        if (!interestNames.isEmpty()) {
+            interestNames.stream()
+                    .map(name -> new Interests(name, user))
+                    .forEach(interest -> user.getInterests().add(interest));
+        }
     }
 
     // 초기 폴더 생성 메서드 (color_code 에러 방지 반영)
@@ -235,6 +268,11 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public Users socialCompleteProfile(Users user, UserRequestDTO.SocialCompleteDTO request) {
+        // 1. 이미 ACTIVE 상태인 유저라면 에러 발생 (또는 바로 유저 반환)
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            // "이미 프로필 설정이 완료된 사용자입니다"라는 에러를 던집니다.
+            throw new UserHandler(ErrorStatus._ALREADY_ACTIVE_USER);
+        }
         // 2. 닉네임 중복 체크
         validateNickNameNotDuplicate(request.getNickName());
 
@@ -258,16 +296,10 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
         user.setJob(job);
 
-        // 4. Purposes/Interests (기존 → 신규 교체)
-        purposeRepository.deleteAllByUser(user);
-        List<Purposes> purposes = request.getPurposeList().stream()
-                .map(p -> new Purposes(p, user)).toList();
-        purposeRepository.saveAll(purposes);
 
-        interestRepository.deleteAllByUser(user);
-        List<Interests> interests = request.getInterestList().stream()
-                .map(i -> new Interests(i, user)).toList();
-        interestRepository.saveAll(interests);
+        // Purposes / Interests 설정
+        setupUserPurposes(user, request.getPurposeList());
+        setupUserInterests(user, request.getInterestList());
 
         // 5. 상태 변경 → ACTIVE
         user.setStatus(UserStatus.ACTIVE);
@@ -434,19 +466,8 @@ public class UserServiceImpl implements UserService {
             user.setNickName(request.getNickname());
         }
 
-        // 기존 목적 리스트 삭제 후 신규 목적 저장
-        purposeRepository.deleteAllByUser(user);
-        List<Purposes> newPurposes = request.getPurposes().stream()
-                .map(purpose -> new Purposes(purpose, user))
-                .collect(Collectors.toList());
-        purposeRepository.saveAll(newPurposes);
-
-        // 기존 관심사 리스트 삭제 후 신규 관심사 저장
-        interestRepository.deleteAllByUser(user);
-        List<Interests> newInterests = request.getInterests().stream()
-                .map(interest -> new Interests(interest, user))
-                .collect(Collectors.toList());
-        interestRepository.saveAll(newInterests);
+        setupUserPurposes(user, request.getPurposes());
+        setupUserInterests(user, request.getInterests());
 
         userRepository.save(user);
     }

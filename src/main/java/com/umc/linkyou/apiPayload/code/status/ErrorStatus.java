@@ -50,6 +50,7 @@ public enum ErrorStatus implements BaseErrorCode {
     _SOCIAL_PROFILE_EXPIRED(HttpStatus.BAD_REQUEST, "OAUTH4005", "임시 프로필이 만료되었습니다."),
     _INVALID_ID_TOKEN(HttpStatus.BAD_REQUEST, "OAUTH4008", "유효하지 않거나 만료된 ID 토큰"),
     _SOCIAL_ACCOUNT_ONLY(HttpStatus.UNAUTHORIZED, "USERS4014", "소셜 전용 계정입니다. 소셜 로그인을 이용하세요."),
+    _ALREADY_ACTIVE_USER(HttpStatus.BAD_REQUEST, "USERS4001", "이미 해당 이메일로 user가 존재합니다. 새로운 회원정보를 만들고 싶다면 탈퇴해주세요."),
 
     //링큐 관련 코드
     _LINKU_VIDEO_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "LINKU4001", "영상 링크는 저장할 수 없습니다."),
