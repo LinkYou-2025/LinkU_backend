@@ -7,6 +7,7 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.service.users.TermsAgreementService;
 import com.umc.linkyou.service.users.UserService;
+import com.umc.linkyou.service.users.UserWithdrawService;
 import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import org.junit.jupiter.api.DisplayName;
@@ -183,4 +184,54 @@ class UserControllerTest {
                         )
                 ));
     }
+
+    @MockitoBean
+    private UserWithdrawService userWithdrawService;
+
+    @Test
+    @DisplayName("회원 탈퇴 API 성공 테스트")
+    void withdraw_me_success() throws Exception {
+        // given
+        UserRequestDTO.DeleteReasonDTO request = new UserRequestDTO.DeleteReasonDTO();
+        request.setReason("서비스가 마음에 안 들어요.");
+
+        Users mockUser = Users.builder()
+                .id(49L)
+                .status(UserStatus.INACTIVE)
+                .build();
+        mockUser.setCreatedAt(LocalDateTime.now());
+
+        // Mocking: 서비스의 withdrawUser가 호출되면 mockUser를 반환하도록 설정
+        given(usersUtils.getAuthenticatedUserId(any())).willReturn(49L);
+        given(userWithdrawService.withdrawUser(any(), any())).willReturn(mockUser);
+
+        // when & then
+        mockMvc.perform(post("/api/v1/users/inactive")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(csrf())
+                        .with(user("test"))) // 시큐리티 인증 통과용
+                .andExpect(status().isOk())
+                .andDo(document("user/withdraw",
+                        preprocessRequest(prettyPrint()),
+                        preprocessResponse(prettyPrint()),
+                        requestFields(
+                                fieldWithPath("reason").description("탈퇴 사유")
+                        ),
+                        // UserControllerTest.java의 responseFields 부분 수정
+                        responseFields(
+                                fieldWithPath("isSuccess").description("성공 여부"),
+                                fieldWithPath("code").description("응답 코드"),
+                                fieldWithPath("message").description("응답 메시지"),
+                                fieldWithPath("timestamp").description("응답 시간"),
+                                fieldWithPath("result.userId").description("탈퇴 처리된 유저 ID"),
+                                fieldWithPath("result.nickname").description("유저 닉네임 (탈퇴 시 null 가능)").optional(), // 추가
+                                fieldWithPath("result.status").description("변경 된 상태 (INACTIVE)"),
+                                fieldWithPath("result.createdAt").description("생성 일시"), // 필드명 확인 (응답 로그 기준)
+                                fieldWithPath("result.inactiveDate").description("탈퇴 처리 일시").optional() // 추가
+                        )
+                ));
+    }
+
+
 }
