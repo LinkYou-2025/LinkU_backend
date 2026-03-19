@@ -53,7 +53,7 @@ public class UsersUtils {
         // 4. 조회된 유저가 TEMP 상태인지 확인 → 아니면 에러
         //    (이미 프로필 완성한 ACTIVE 유저가 이 API 재호출하는 것 방지)
         if (user.getStatus() != UserStatus.TEMP) {
-            throw new UserHandler(ErrorStatus._SOCIAL_PROFILE_EXPIRED);
+            throw new UserHandler(ErrorStatus._ALREADY_ACTIVE_USER);
         }
 
         // 5. TEMP 유저 반환 → 컨트롤러에서 서비스로 넘김

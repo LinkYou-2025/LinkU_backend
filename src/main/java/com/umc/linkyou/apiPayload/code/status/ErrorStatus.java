@@ -47,7 +47,6 @@ public enum ErrorStatus implements BaseErrorCode {
     _AUTH_ACCOUNT_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "OAUTH5001", "소셜 계정 연결에 실패했습니다."),
     _SOCIAL_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "OAUTH4003", "소셜 로그인에 이메일이 필요합니다."),
     _SOCIAL_UNSUPPORTED_PROVIDER(HttpStatus.BAD_REQUEST, "OAUTH4004", "지원하지 않는 소셜 제공자입니다."),
-    _SOCIAL_PROFILE_EXPIRED(HttpStatus.BAD_REQUEST, "OAUTH4005", "임시 프로필이 만료되었습니다."),
     _INVALID_ID_TOKEN(HttpStatus.BAD_REQUEST, "OAUTH4008", "유효하지 않거나 만료된 ID 토큰"),
     _SOCIAL_ACCOUNT_ONLY(HttpStatus.UNAUTHORIZED, "USERS4014", "소셜 전용 계정입니다. 소셜 로그인을 이용하세요."),
     _ALREADY_ACTIVE_USER(HttpStatus.BAD_REQUEST, "USERS4001", "이미 해당 이메일로 user가 존재합니다. 새로운 회원정보를 만들고 싶다면 탈퇴해주세요."),
