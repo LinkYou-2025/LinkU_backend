@@ -80,7 +80,17 @@ public class AuthAccountRepositoryImpl implements AuthAccountRepositoryCustom {
                         .fetchOne()
         );
     }
+    @Override
+    public boolean existsByUserIdAndProviderNot(Long userId, Provider provider) {
+        Integer fetchOne = queryFactory
+                .selectOne()
+                .from(authAccount)
+                .where(authAccount.user.id.eq(userId)
+                        .and(authAccount.provider.ne(provider)))
+                .fetchFirst();
 
+        return fetchOne != null;
+    }
 
 
 }

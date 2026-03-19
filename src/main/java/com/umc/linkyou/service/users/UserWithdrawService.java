@@ -4,8 +4,11 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.properties.JwtProperties;
 import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
+import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
+import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import jakarta.transaction.Transactional;
@@ -24,6 +27,7 @@ public class UserWithdrawService{
 
     private final UserRepository userRepository;
     private final RefreshTokenManager refreshTokenManager;
+    private final AuthAccountRepository authAccountRepository;
 
     @Transactional
     public Users withdrawUser(Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO) {
@@ -121,4 +125,32 @@ public class UserWithdrawService{
         });
     }
 
+    @Transactional
+    public void handleKakaoUnlinkWebhook(String kakaoExternalId) {
+        // 1. 카카오 연동 정보 조회 (기존 Custom 인터페이스의 findByProviderAndExternalId 활용)
+        AuthAccount kakaoAccount = authAccountRepository.findByProviderAndExternalId(Provider.KAKAO, kakaoExternalId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+
+        Users user = kakaoAccount.getUser();
+
+        // 2. 카카오 연동 정보(AuthAccount) 삭제
+        // 여기서 delete를 호출하면 DB 제약조건에 따라 AuthAccount만 먼저 삭제됩니다.
+        authAccountRepository.delete(kakaoAccount);
+
+        // 영속성 컨텍스트에 반영하여 개수 체크 시 정확도 보장
+        authAccountRepository.flush();
+
+        // 3. 다른 로그인 수단이 남아있는지 확인 (새로 만든 exists 메서드 활용)
+        boolean hasOtherAccounts = authAccountRepository.existsByUserIdAndProviderNot(user.getId(), Provider.KAKAO);
+
+        if (!hasOtherAccounts) {
+            // 4. 남은 계정이 없으면 유저 상태를 INACTIVE로 변경 (기존 withdrawUser 재사용)
+            UserRequestDTO.DeleteReasonDTO reason = new UserRequestDTO.DeleteReasonDTO();
+            reason.setReason("카카오 연결 해제 웹훅에 의한 자동 탈퇴");
+            this.withdrawUser(user.getId(), reason);
+            //카카오 외 계정 없음 -> 전체 탈퇴 처리됨"
+        } else {
+            //다른 계정 존재 -> 카카오 연동 정보만 해제됨
+        }
+    }
 }
