@@ -143,13 +143,14 @@ public class UserController {
         Users user = userWithdrawService.withdrawUser(userId,deleteReasonDTO);
         return ApiResponse.onSuccess(UserConverter.toWithDrawalResultDTO(user));
     }
-//    @Operation(summary = "🧪 테스트: 즉시 완전 삭제", description = "10일 경과 INACTIVE 사용자 즉시 삭제")
-//    @PostMapping("/test/delete-inactive")
-//    public ApiResponse<String> testDeleteInactive(@AuthenticationPrincipal CustomUserDetails userDetails) {
-//        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
-//        userService.testImmediateDelete(userId);
-//        return ApiResponse.onSuccess("즉시 삭제 완료", "10일 경과 INACTIVE 사용자 CASCADE 삭제됨");
-//    }
+    @Operation(summary = "🧪 테스트: 즉시 완전 삭제", description = "10일 경과 INACTIVE 사용자 즉시 삭제")
+    @PostMapping("/test/delete-inactive")
+    public ApiResponse<String> testDeleteInactive(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        Users user = userWithdrawService.testImmediateDelete(userId);
+
+        return ApiResponse.onSuccess(UserConverter.toWithDrawalResultDTO(user));
+    }
 
     @Operation(
             summary = "소셜 프로필 완성",

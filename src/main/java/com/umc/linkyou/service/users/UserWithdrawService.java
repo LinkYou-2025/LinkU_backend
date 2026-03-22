@@ -39,10 +39,11 @@ public class UserWithdrawService{
         userRepository.save(user);
         return user;
     }
+    //30 일 이후 삭제
     @Scheduled(cron = "0 0 3 * * ?")
     @Transactional
     public void deleteCompletelyInactiveUsers() {
-        LocalDateTime tenDaysAgo = LocalDateTime.now().minusDays(10);
+        LocalDateTime tenDaysAgo = LocalDateTime.now().minusDays(30);
         List<Long> inactiveUserIds = userRepository.findInactiveUserIds(tenDaysAgo);
 
         if (inactiveUserIds.isEmpty()) {
@@ -50,7 +51,7 @@ public class UserWithdrawService{
             return;
         }
 
-        // 1. Redis 삭제
+        // 1. Redis 삭제 (ID 리스트로 처리)
         for (Long userId : inactiveUserIds) {
             refreshTokenManager.deleteAllTokens(userId);
         }
@@ -58,71 +59,71 @@ public class UserWithdrawService{
         // 2. 엔티티 로드
         List<Users> toDelete = userRepository.findAllById(inactiveUserIds);
 
-        // 3. 연관관계 수동 정리 (FK 제약 조건 방지)
+        // 3. 연관관계 수동 정리 (추출한 공통 메소드 사용)
         for (Users user : toDelete) {
-            // 자식의 자식 (LinkuFolder)부터 순차 삭제 트리거
-            user.getUsersLinkus().forEach(ul -> ul.getLinkuFolders().clear());
-
-            // Users 엔티티에 연결된 모든 리스트 clear
-            // orphanRemoval = true 설정에 의해 DB 삭제 쿼리가 예약됩니다.
-            user.getUsersLinkus().clear();
-            user.getUserAlarms().clear();
-            user.getUserFcmTokens().clear();
-            user.getCurations().clear();
-            user.getCurationLikes().clear();
-            user.getEmotionLogs().clear();
-            user.getFolderShareLinks().clear();
-            user.getRecentViewedLinkus().clear();
-            user.getUsersFoldersList().clear();
-            user.getUsersCategoryColorList().clear(); // 서버 에러 포인트 해결
-            user.getPurposes().clear();
-            user.getInterests().clear();
-            user.getAuthAccounts().clear();
+            clearUserAssociations(user);
         }
 
         // 4. 부모 엔티티 삭제
-        // deleteAllInBatch 대신 deleteAll을 사용하여 영속성 컨텍스트를 거쳐 안전하게 삭제합니다.
         userRepository.deleteAll(toDelete);
 
         log.info("🗑️ 비활성 사용자 {}명 및 모든 연관 데이터 완전삭제 완료", toDelete.size());
     }
-
-    // 🔥 테스트 메서드 (단일 삭제용)
+    /**
+     * 테스트용 단일 즉시 삭제 메소드
+     * @param userId 삭제할 사용자 ID
+     * @return 삭제된 사용자 엔티티 (컨버터에서 사용 가능)
+     */
     @Transactional
-    public void testImmediateDelete(Long userId) {
-        if (userId == null) {
-            log.info("testImmediateDelete: userId 없음");
-            return;
+    public Users testImmediateDelete(Long userId) {
+        // 1. 엔티티 로드 (없으면 예외 발생)
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+
+        // 2. Redis 토큰 삭제
+        refreshTokenManager.deleteAllTokens(userId);
+
+        // 3. 연관관계 수동 정리 (FK 제약 조건 방지 공통 로직 호출)
+        clearUserAssociations(user);
+
+        // 4. 부모 엔티티 삭제
+        // 영속성 컨텍스트에서 관리되는 상태이므로 delete 호출 시 연관된 orphan들이 삭제됩니다.
+        userRepository.delete(user);
+
+        log.info("🧪 테스트 삭제 완료: 사용자 ID {}", userId);
+
+        return user; // 삭제된 상태의 엔티티 객체 반환
+    }
+
+    /**
+     * 연관관계 정리를 위한 공통 private 메소드
+     * deleteCompletelyInactiveUsers(스케줄러)와 testImmediateDelete에서 공통으로 사용
+     */
+    private void clearUserAssociations(Users user) {
+        // 자식의 자식 (LinkuFolder)부터 순차 삭제 트리거
+        if (user.getUsersLinkus() != null) {
+            user.getUsersLinkus().forEach(ul -> {
+                if (ul.getLinkuFolders() != null) {
+                    ul.getLinkuFolders().clear();
+                }
+            });
+            user.getUsersLinkus().clear();
         }
 
-        // 1. Redis 삭제
-        refreshTokenManager.deleteAllTokens(userId);
-        log.debug("Redis 테스트삭제: userId={}", userId);
-
-        // 2. 엔티티 로드 및 정리
-        userRepository.findById(userId).ifPresent(user -> {
-            // 깊은 관계부터 정리
-            user.getUsersLinkus().forEach(ul -> ul.getLinkuFolders().clear());
-            user.getUsersLinkus().clear();
-
-            // 모든 컬렉션 clear
-            user.getUserAlarms().clear();
-            user.getUserFcmTokens().clear();
-            user.getCurations().clear();
-            user.getCurationLikes().clear();
-            user.getEmotionLogs().clear();
-            user.getFolderShareLinks().clear();
-            user.getRecentViewedLinkus().clear();
-            user.getUsersFoldersList().clear();
-            user.getUsersCategoryColorList().clear();
-            user.getPurposes().clear();
-            user.getInterests().clear();
-            user.getAuthAccounts().clear();
-
-            // 3. 최종 삭제
-            userRepository.delete(user);
-            log.warn("🧪 테스트삭제 완료: userId={}", userId);
-        });
+        // Users 엔티티에 연결된 모든 리스트 clear
+        // orphanRemoval = true 설정에 의해 DB 삭제 쿼리가 예약됩니다.
+        if (user.getUserAlarms() != null) user.getUserAlarms().clear();
+        if (user.getUserFcmTokens() != null) user.getUserFcmTokens().clear();
+        if (user.getCurations() != null) user.getCurations().clear();
+        if (user.getCurationLikes() != null) user.getCurationLikes().clear();
+        if (user.getEmotionLogs() != null) user.getEmotionLogs().clear();
+        if (user.getFolderShareLinks() != null) user.getFolderShareLinks().clear();
+        if (user.getRecentViewedLinkus() != null) user.getRecentViewedLinkus().clear();
+        if (user.getUsersFoldersList() != null) user.getUsersFoldersList().clear();
+        if (user.getUsersCategoryColorList() != null) user.getUsersCategoryColorList().clear();
+        if (user.getPurposes() != null) user.getPurposes().clear();
+        if (user.getInterests() != null) user.getInterests().clear();
+        if (user.getAuthAccounts() != null) user.getAuthAccounts().clear();
     }
 
     @Transactional
