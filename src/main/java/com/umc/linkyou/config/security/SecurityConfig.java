@@ -48,12 +48,8 @@ public class SecurityConfig {
                                 "/actuator/**",
                                 "/api/v1/auth/mobile/**",
                                 "/error/**",
-                                "/docs/**"
-//                                ,"/oauth2/**",          // 소셜 로그인 진입점 (/oauth2/authorization/{registrationId})
-//                                "/api/oauth2/**",     // 소셜 로그인 에러, 성공 콜백
-//                                "/login/kakao",
-//                                "/login/google",
-//                                "/login/naver"
+                                "/docs/**",
+                                "/api/v1/webhooks/**"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
