@@ -43,8 +43,8 @@ public class UserWithdrawService{
     @Scheduled(cron = "0 0 3 * * ?")
     @Transactional
     public void deleteCompletelyInactiveUsers() {
-        LocalDateTime tenDaysAgo = LocalDateTime.now().minusDays(30);
-        List<Long> inactiveUserIds = userRepository.findInactiveUserIds(tenDaysAgo);
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        List<Long> inactiveUserIds = userRepository.findInactiveUserIds(thirtyDaysAgo);
 
         if (inactiveUserIds.isEmpty()) {
             log.debug("삭제할 비활성 사용자 없음");
