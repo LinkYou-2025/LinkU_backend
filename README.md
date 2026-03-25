@@ -27,6 +27,7 @@ LinkU 백엔드 레포지토리 입니다.
 ./gradlew asciidoctor copyDocument
 
 3. 그리고 마지막으로 ./src/docs/asciidoc/index.adoc  변경해야 적용됩니다.
+```
 
 ## 📖 프로젝트 소개  
 <aside>
