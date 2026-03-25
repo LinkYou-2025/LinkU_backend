@@ -16,6 +16,18 @@ LinkU 백엔드 레포지토리 입니다.
 ```docker rm -f redis```
 ---
 
+## RestDocs 설정
+만약 API 문서를 수정하거나 최신화하려면 터미널에서 아래 명령어를 로컬에서 순서대로 실행하세요.
+
+```bash
+# 1. 기존 빌드 및 결과물 삭제
+./gradlew clean
+
+# 2. 문서 생성 및 resources 폴더로 복사 
+./gradlew asciidoctor copyDocument
+
+3. 그리고 마지막으로 ./src/docs/asciidoc/index.adoc  변경해야 적용됩니다.
+
 ## 📖 프로젝트 소개  
 <aside>
 💡 링큐 (Link U) : **LINK U, THINK YOU**
@@ -50,7 +62,9 @@ LinkU 백엔드 레포지토리 입니다.
   - JWT (jjwt 라이브러리)  
 
 - **API 문서화**  
-  - Swagger (springdoc-openapi-starter-webmvc-ui 2.7.0)  
+  - Swagger (springdoc-openapi-starter-webmvc-ui 2.7.0)
+  - RestDocs
+
 
 - **UI 템플릿**  
   - Thymeleaf + Spring Security  
