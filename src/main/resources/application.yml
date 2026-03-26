@@ -3,10 +3,7 @@ spring:
     import: optional:classpath:application-secret.properties
 
   application:
-    name: ${APP_NAME:linkyou}
-
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:local}
+    name: linkyou
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -15,37 +12,160 @@ spring:
     password: ${DB_PASSWORD}
 
   jpa:
+    show-sql: true
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
+      ddl-auto: update
+    defer-datasource-initialization: true
     properties:
       hibernate:
         format_sql: true
-        show_sql: false
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        default_batch_fetch_size: 100
-    open-in-view: false
+        jdbc:
+          time_zone: Asia/Seoul
 
   sql:
     init:
-      mode: ${SQL_INIT_MODE:never}
+      mode: always
 
   jackson:
     time-zone: Asia/Seoul
-
-  cache:
-    type: redis
-
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
 
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
 
-# -------- 서버 설정 --------
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+  sendgrid:
+    from: ${SENDGRID_FROM_EMAIL}
+    api-key: ${SENDGRID_API_KEY}
+    templates:
+      verify-id: ${SENDGRID_TEMPLATE_VERIFY_ID}
+      temp-id: ${SENDGRID_TEMPLATE_TEMP_ID}
+
+  cloud:
+    gcp:
+      project-id: linku-server
+      location: us-central1
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: ${REDIRECT_URI}
+            scope:
+              - profile
+              - email
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            redirect-uri: ${KAKAO_REDIRECT_URI}
+            scope:
+              - profile_nickname
+              - profile_image
+              - account_email
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_post
+            client-name: Kakao
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.umc.linkyou: DEBUG
+    org.springframework.web: INFO
+    org.hibernate: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+jwt:
+  redis:
+    host: ${JWT_REDIS_HOST}
+    port: ${JWT_REDIS_PORT}
+  token:
+    keys:
+      access: ${JWT_ACCESS_TOKEN_KEY}
+      refresh: ${JWT_REFRESH_TOKEN_KEY}
+    expiration:
+      access: 86400000
+      refresh: 345600000
+  hmac-secret: ${JWT_HMAC_SECRET}
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+    region:
+      static-region: ap-southeast-2
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+      base-url: ${AWS_S3_BASE_URL}
+    stack:
+      auto: false
+    cloudfront:
+      domain: ${AWS_CLOUDFRONT_DOMAIN}
+
+auth-code-expiration-millis: 600000
+
+openai:
+  api:
+    key: ${OPENAI_API_KEY}
+    url: ${OPENAI_API_URL}
+  model: ${OPENAI_MODEL}
+
+perplexity:
+  api:
+    key: ${PERPLEXITY_API_KEY}
+    url: ${PERPLEXITY_API_URL}
+  model: ${PERPLEXITY_MODEL}
+  temperature: 0.2
+  max-tokens: 800
+  http-timeout-ms: 15000
+
+custom:
+  search:
+    api:
+      key: ${CUSTOM_SEARCH_API_KEY}
+    engine:
+      id: ${CUSTOM_SEARCH_ENGINE_ID}
+
+gemini:
+  model:
+    name: gemini-1.5-flash-001
+
+app:
+  deeplink:
+    base-url: ${DEEPLINK_BASE_URL}
+
+kakao:
+  admin-key: ${KAKAO_ADMIN_KEY}
+
+google:
+  client-id:
+    android: ${GOOGLE_ANDROID_CLIENT_ID}
+
 server:
   forward-headers-strategy: framework
   tomcat:
@@ -53,109 +173,3 @@ server:
       remote-ip-header: x-forwarded-for
       protocol-header: x-forwarded-proto
       internal-proxies: 127\.0\.0\.1|localhost
-
-# -------- 로깅 --------
-logging:
-  level:
-    root: INFO
-    com.yourapp: DEBUG
-    org.springframework.web: INFO
-    org.hibernate: INFO
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-
-# -------- JWT --------
-jwt:
-  secret: ${JWT_SECRET}
-  access-expiration: ${JWT_ACCESS_EXP:3600000}
-  refresh-expiration: ${JWT_REFRESH_EXP:1209600000}
-
-# -------- Redis (JWT 등 분리 가능) --------
-jwt-redis:
-  host: ${JWT_REDIS_HOST:localhost}
-  port: ${JWT_REDIS_PORT:6379}
-
-# -------- 파일 / 이미지 --------
-file:
-  cover-upload-dir: uploads/covers
-  profile-upload-dir: uploads/profiles
-  cover-url-prefix: /uploads/covers/
-  profile-url-prefix: /uploads/profiles/
-
-cloudflare:
-  r2:
-    endpoint: ${R2_ENDPOINT}
-    bucket-name: ${R2_BUCKET}
-    access-key: ${R2_ACCESS_KEY}
-    secret-key: ${R2_SECRET_KEY}
-
-# -------- CDN --------
-cdn:
-  domain: ${CDN_DOMAIN}
-
-# -------- 이메일 (SendGrid) --------
-sendgrid:
-  from: ${SENDGRID_FROM}
-  api-key: ${SENDGRID_API_KEY}
-  templates:
-    verify-id: ${SENDGRID_VERIFY_TEMPLATE}
-    temp-id: ${SENDGRID_TEMP_TEMPLATE}
-
-auth:
-  code-expiration-millis: 600000
-
-# -------- AI --------
-openai:
-  api:
-    key: ${OPENAI_API_KEY}
-    url: ${OPENAI_API_URL}
-    model: ${OPENAI_MODEL}
-
-perplexity:
-  api:
-    key: ${PERPLEXITY_API_KEY}
-    url: ${PERPLEXITY_API_URL}
-    model: ${PERPLEXITY_MODEL}
-    temperature: ${PERPLEXITY_TEMPERATURE:0.7}
-    max-tokens: ${PERPLEXITY_MAX_TOKENS:1024}
-    timeout-ms: ${PERPLEXITY_TIMEOUT:5000}
-
-# -------- Google --------
-google:
-  custom-search:
-    api-key: ${GOOGLE_SEARCH_API_KEY}
-    engine-id: ${GOOGLE_SEARCH_ENGINE_ID}
-
-  cloud:
-    project-id: ${GCP_PROJECT_ID}
-    location: ${GCP_LOCATION}
-    gemini-model: ${GEMINI_MODEL}
-
-# -------- OAuth --------
-oauth:
-  google:
-    client-id: ${GOOGLE_CLIENT_ID}
-    client-secret: ${GOOGLE_CLIENT_SECRET}
-    redirect-uri: ${GOOGLE_REDIRECT_URI}
-    scope: profile,email
-
-  kakao:
-    client-id: ${KAKAO_CLIENT_ID}
-    client-secret: ${KAKAO_CLIENT_SECRET}
-    redirect-uri: ${KAKAO_REDIRECT_URI}
-    scope: ${KAKAO_SCOPE}
-    provider:
-      authorization-uri: https://kauth.kakao.com/oauth/authorize
-      token-uri: https://kauth.kakao.com/oauth/token
-      user-info-uri: https://kapi.kakao.com/v2/user/me
-      user-name-attribute: id
-
-# -------- deeplink --------
-app:
-  deeplink:
-    base-url: ${DEEPLINK_BASE_URL:https://linkuserver.store}
-
-# -------- 외부 API --------
-aladin:
-  base-url: ${ALADIN_BASE_URL}
-  ttbkey: ${ALADIN_TTB_KEY}
