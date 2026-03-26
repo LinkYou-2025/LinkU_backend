@@ -6,7 +6,7 @@ spring:
     name: linkyou
 
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: ${DB_DRIVER}
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
@@ -38,6 +38,8 @@ spring:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
+      url: ${REDIS_URL}
+      timeout: ${REDIS_TIMEOUT}
 
   sendgrid:
     from: ${SENDGRID_FROM_EMAIL}
