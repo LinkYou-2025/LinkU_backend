@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: linkU-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: linkUDB
+      MYSQL_USER: linkU
+      MYSQL_PASSWORD: linkU1234
+      MYSQL_ROOT_PASSWORD: linkU1234
+      TZ: Asia/Seoul
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    container_name: linkU-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:
