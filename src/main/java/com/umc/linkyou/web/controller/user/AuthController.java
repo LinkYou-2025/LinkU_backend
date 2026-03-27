@@ -29,7 +29,7 @@ public class AuthController {
     private final UsersUtils usersUtils;
 
     @Operation(summary = "회원 가입 (이메일)", description = "이메일을 통해 회원가입을 진행합니다.")
-    @PostMapping("/signup/email")
+    @PostMapping("/signup")
     public ApiResponse<UserResponseDTO.JoinResultDTO> join(@RequestBody @Valid UserRequestDTO.JoinDTO request){
         Users user = userService.joinUser(request);
         return ApiResponse.onSuccess(UserConverter.toJoinResultDTO(user));
@@ -47,15 +47,6 @@ public class AuthController {
         return ApiResponse.onSuccess(userService.reissueRefreshToken(refreshToken));
     }
 
-    @Operation(summary = "소셜 프로필 완성", description = "소셜 로그인 후 TEMP 상태 사용자의 추가 정보를 입력합니다.")
-    @PatchMapping("/signup/social/profile")
-    public ApiResponse<UserResponseDTO.JoinResultDTO> completeSocialProfile(
-            @RequestBody @Valid UserRequestDTO.SocialCompleteDTO request,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Users user = usersUtils.validateTempUser(userDetails);
-        Users updatedUser = userService.socialCompleteProfile(user, request);
-        return ApiResponse.onSuccess(UserConverter.toJoinResultDTO(updatedUser));
-    }
 
     @Operation(summary = "이메일 인증 코드 전송")
     @PostMapping("/email/code")
