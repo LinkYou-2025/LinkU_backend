@@ -9,9 +9,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "user_fcm_token")
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED, force = true)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 public class UsersFcmToken extends BaseEntity {
 
@@ -26,4 +25,20 @@ public class UsersFcmToken extends BaseEntity {
 
     @Column(columnDefinition = "text", nullable = false)
     private String fcmToken;
+
+    @Column(name = "last_used_at")
+    private LocalDateTime lastUsedAt;
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
+
+    public void activate() {
+        this.isActive = true;
+        this.lastUsedAt = LocalDateTime.now();
+    }
+
+    public void deactivate() {
+        this.isActive = false;
+        this.lastUsedAt = LocalDateTime.now();
+    }
 }

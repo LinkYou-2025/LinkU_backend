@@ -1,6 +1,7 @@
 package com.umc.linkyou.domain;
 
 import com.umc.linkyou.domain.common.BaseEntity;
+import com.umc.linkyou.domain.enums.AlarmType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -9,7 +10,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "alarm")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -20,6 +20,7 @@ public class Alarm extends BaseEntity {
     @Column(name = "curation_alarm_id")
     private Long id;
 
+    // 읽음 여부
     @Column(nullable = false)
     private Boolean isConfirmed = false;
 
@@ -30,9 +31,8 @@ public class Alarm extends BaseEntity {
     @Column(nullable = false)
     private String body;
 
-    @Lob
-    private String imageUrl;
 
     @Column(length = 100, nullable = false)
-    private String alarmType = "notification";
+    @Enumerated(EnumType.STRING)
+    private AlarmType alarmType;
 }
