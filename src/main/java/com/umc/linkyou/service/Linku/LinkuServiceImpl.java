@@ -4,16 +4,16 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.LinkuConverter;
-import com.umc.linkyou.domain.*;
+import com.umc.linkyou.domain.AiArticle;
+import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.folder.Folder;
-import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.mapping.CurationLinku;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.repository.*;
+import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.curationLinkuRepository.CurationLinkuRepository;
@@ -48,7 +48,6 @@ public class LinkuServiceImpl implements LinkuService {
     private final UsersLinkuRepository usersLinkuRepository;
     private final FolderRepository folderRepository;
     private final UserRepository userRepository;
-    private final RecentViewedLinkuRepository recentViewedLinkuRepository;
     private final AiArticleRepository aiArticleRepository;
     private final CurationLinkuRepository curationLinkuRepository;
 
@@ -92,8 +91,8 @@ public class LinkuServiceImpl implements LinkuService {
         UsersLinku usersLinku = list.stream()
                 .max(Comparator.comparing(UsersLinku::getCreatedAt)) // 혹은 정렬해서 가장 최근꺼 선택
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
-// 최근 열람 기록 upDate
-        updateRecentViewedLinku(userId, linkuId);
+        // 조회수 증가
+        recordView(usersLinku);
 
         // 2. Linku는 UsersLinku에서 직접 꺼낼 수 있음
         Linku linku = usersLinku.getLinku();
@@ -126,66 +125,26 @@ public class LinkuServiceImpl implements LinkuService {
 
 
     @Transactional
-    public void updateRecentViewedLinku(Long userId, Long linkuId) {
-// 1. 이미 열람 기록이 있으면 viewedAt만 갱신
-        RecentViewedLinku rv = recentViewedLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId)
-                .orElse(null);
-        if (rv != null) {
-            rv.setViewedAt(LocalDateTime.now());
-            recentViewedLinkuRepository.save(rv);
-            return;
-        }
-
-        // 2. 없으면, 기존 데이터 개수 체크 → 10개 이상이면 가장 오래된 것 삭제
-        List<RecentViewedLinku> allRecents = recentViewedLinkuRepository
-                .findAllByUser_IdOrderByViewedAtDesc(userId); // 이 때 desc/asc 원하는 대로
-
-        if (allRecents.size() >= 10) {
-            // 가장 오래된 열람(== viewedAt이 가장 작은/오래된 것) 삭제
-            // 만약 OrderByViewedAtDesc라면, 마지막 요소가 가장 오래된 것
-            RecentViewedLinku toDelete = allRecents.get(allRecents.size() - 1); // list는 desc로 옴
-            recentViewedLinkuRepository.delete(toDelete);
-        }
-
-        // 3. insert 새로 생성
-        rv = RecentViewedLinku.builder()
-                .user(userRepository.getReferenceById(userId))
-                .linku(linkuRepository.getReferenceById(linkuId))
-                .viewedAt(LocalDateTime.now())
-                .build();
-        recentViewedLinkuRepository.save(rv);
+    public void recordView(UsersLinku usersLinku) {
+        usersLinkuRepository.incrementViewCount(usersLinku.getUserLinkuId(), LocalDateTime.now());
+        linkuRepository.incrementTotalViewCount(usersLinku.getLinku().getLinkuId());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<LinkuResponseDTO.LinkuSimpleDTO> getRecentViewedLinkus(Long userId, int limit) {
-        List<RecentViewedLinku> recentList = recentViewedLinkuRepository
-                .findTop10ByUser_IdOrderByViewedAtDesc(userId);
+        List<UsersLinku> recentList = usersLinkuRepository
+                .findTop10ByUser_IdAndLastViewedAtIsNotNullOrderByLastViewedAtDesc(userId);
 
-        List<Long> linkuIds = recentList.stream()
-                .map(rv -> rv.getLinku().getLinkuId())
+        return recentList.stream()
+                .limit(limit)
+                .map(ul -> {
+                    Linku linku = ul.getLinku();
+                    boolean aiArticleExists = Boolean.TRUE.equals(ul.getAiExist());
+                    Domain domain = linku.getDomain();
+                    return toLinkuSimpleDTO(linku, ul, domain, aiArticleExists);
+                })
                 .collect(Collectors.toList());
-
-        // 한 번에 AiArticle 조회 후 title 기준 필터링
-        Map<Long, Boolean> aiArticleExistsMap = aiArticleRepository.existsAiArticleByLinkuIds(linkuIds);
-
-        List<LinkuResponseDTO.LinkuSimpleDTO> results = new ArrayList<>();
-        for (RecentViewedLinku rv : recentList) {
-            Linku linku = rv.getLinku();
-            List<UsersLinku> list = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linku.getLinkuId());
-
-            UsersLinku usersLinku = list.stream()
-                    .max(Comparator.comparing(UsersLinku::getCreatedAt))
-                    .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
-
-
-            boolean aiArticleExists = Boolean.TRUE.equals(usersLinku.getAiExist());
-            Domain domain = linku.getDomain();
-
-            LinkuResponseDTO.LinkuSimpleDTO dto = toLinkuSimpleDTO(linku, usersLinku, domain, aiArticleExists);
-            results.add(dto);
-        }
-        return results;
     }
     //최근 열람한 링크 가져오기
 
@@ -295,11 +254,7 @@ public class LinkuServiceImpl implements LinkuService {
         List<CurationLinku> curationLinkus = curationLinkuRepository.findByUsersLinku_UserLinkuId(userLinkuId);
         curationLinkuRepository.deleteAll(curationLinkus);
 
-        // 3. 최근 열람 기록 삭제 - 이 부분에 linkuId 필요
-        Long linkuId = usersLinku.getLinku().getLinkuId();
-        recentViewedLinkuRepository.deleteByUser_IdAndLinku_LinkuId(userId, linkuId);
-
-        // 4. UsersLinku 삭제
+        // 3. UsersLinku 삭제
         usersLinkuRepository.delete(usersLinku);
     }
 

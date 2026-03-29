@@ -36,6 +36,7 @@ public class LinkuResponseDTO {
     public static class LinkuSimpleDTO {
         private Long linkuId;
         private Long categoryId;
+        private String linku;
         private String memo;
         private Long emotionId;
         private String title;
@@ -44,6 +45,7 @@ public class LinkuResponseDTO {
         private String linkuImageUrl;
         @Builder.Default
         private Boolean aiArticleExists = false;
+        private LocalDateTime lastViewedAt;
     }
     @Setter
     @Getter

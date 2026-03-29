@@ -118,7 +118,6 @@ public class UserWithdrawService{
         if (user.getCurationLikes() != null) user.getCurationLikes().clear();
         if (user.getEmotionLogs() != null) user.getEmotionLogs().clear();
         if (user.getFolderShareLinks() != null) user.getFolderShareLinks().clear();
-        if (user.getRecentViewedLinkus() != null) user.getRecentViewedLinkus().clear();
         if (user.getUsersFoldersList() != null) user.getUsersFoldersList().clear();
         if (user.getUsersCategoryColorList() != null) user.getUsersCategoryColorList().clear();
         if (user.getPurposes() != null) user.getPurposes().clear();
