@@ -13,6 +13,8 @@ import com.umc.linkyou.repository.LogRepository.SituationLogRepository;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.umc.linkyou.web.dto.curation.CurationTopLogDTO;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,10 +49,12 @@ public class CurationTopLogServiceImpl implements CurationTopLogService {
         QEmotionLog emotionLog = QEmotionLog.emotionLog;
         QSituationLog situationLog = QSituationLog.situationLog;
 
+        // 1. 기간 설정 (최근 30일 역할을 하는 해당 월 기준)
         YearMonth yearMonth = YearMonth.parse(curation.getMonth(), DateTimeFormatter.ofPattern("yyyy-MM"));
-        LocalDateTime startOfMonth = yearMonth.atDay(1).atStartOfDay();              // 2025-06-01T00:00
-        LocalDateTime startOfNextMonth = yearMonth.plusMonths(1).atDay(1).atStartOfDay(); // 2025-07-01T00:00
+        LocalDateTime startOfMonth = yearMonth.atDay(1).atStartOfDay();
+        LocalDateTime startOfNextMonth = yearMonth.plusMonths(1).atDay(1).atStartOfDay();
 
+        // 2. 감정 로그 집계 (조건 없음)
         List<Tuple> emotionCounts = queryFactory
                 .select(emotionLog.emotion.emotionId, emotionLog.count())
                 .from(emotionLog)
@@ -62,56 +66,108 @@ public class CurationTopLogServiceImpl implements CurationTopLogService {
                 .groupBy(emotionLog.emotion.emotionId)
                 .fetch();
 
+        // 3. 상황 로그 집계 (직업 변경 유저 처리: 현재 직업과 일치하는 것만!)
         List<Tuple> situationCounts = queryFactory
                 .select(situationLog.situationJob.id, situationLog.count())
                 .from(situationLog)
                 .where(
                         situationLog.user.id.eq(userId),
                         situationLog.createdAt.goe(startOfMonth),
-                        situationLog.createdAt.lt(startOfNextMonth)
+                        situationLog.createdAt.lt(startOfNextMonth),
+                        // [핵심] 유저의 현재 직업과 매칭되는 상황 태그만 계산에 포함
+                        situationLog.situationJob.job.id.eq(curation.getUser().getJob().getId())
                 )
                 .groupBy(situationLog.situationJob.id)
                 .fetch();
 
-        List<CurationTopLog> logs = new ArrayList<>();
+        // 4. 감정/상황 통합 리스트 생성
+        List<TagScoreDto> allTags = new ArrayList<>();
 
         for (Tuple row : emotionCounts) {
             Long refId = row.get(emotionLog.emotion.emotionId);
-            Integer count = row.get(emotionLog.count()).intValue();
+            int count = row.get(emotionLog.count()).intValue();
             String tagName = emotionRepository.findById(refId)
                     .orElseThrow(() -> new IllegalArgumentException("Emotion not found")).getName();
-
-            logs.add(CurationTopLog.builder()
-                    .curation(curation)
-                    .type(CurationTopLogType.EMOTION)
-                    .refId(refId)
-                    .count(count)
-                    .tagName(tagName)
-                    .build());
+            allTags.add(new TagScoreDto(CurationTopLogType.EMOTION, refId, tagName, count));
         }
 
         for (Tuple row : situationCounts) {
             Long refId = row.get(situationLog.situationJob.id);
-            Integer count = row.get(situationLog.count()).intValue();
+            int count = row.get(situationLog.count()).intValue();
             String tagName = situationJobRepository.findById(refId)
-                    .orElseThrow(() -> new IllegalArgumentException("Not found"))
-                    .getSituation()
-                    .getName();
-
-            logs.add(CurationTopLog.builder()
-                    .curation(curation)
-                    .type(CurationTopLogType.SITUATION)
-                    .refId(refId)
-                    .count(count)
-                    .tagName(tagName)
-                    .build());
+                    .orElseThrow(() -> new IllegalArgumentException("Situation not found"))
+                    .getSituation().getName();
+            allTags.add(new TagScoreDto(CurationTopLogType.SITUATION, refId, tagName, count));
         }
 
-        curationTopLogRepository.saveAll(logs);
+        // 5. 점수(선택 횟수) 기준 내림차순 정렬 (동점 시 랜덤 처리)
+        allTags.sort((t1, t2) -> {
+            if (t1.getCount() != t2.getCount()) {
+                return Integer.compare(t2.getCount(), t1.getCount()); // 내림차순
+            }
+            return Math.random() > 0.5 ? 1 : -1; // 동점일 경우 랜덤
+        });
+
+        // 6. 예외 처리: 데이터 부족 (유효 태그 2개 미만이면 아예 저장 안 함 -> 화면 미노출)
+        if (allTags.size() < 2) {
+            return;
+        }
+
+        // 7. Top 3 추출 (2개면 2개만 추출)
+        List<TagScoreDto> top3Tags = new ArrayList<>();
+        for (int i = 0; i < Math.min(3, allTags.size()); i++) {
+            top3Tags.add(allTags.get(i));
+        }
+
+        // 8. 교체 로직: 타입 비율 제한 (감정만 3개 OR 상황만 3개 방지)
+        if (top3Tags.size() == 3) {
+            long emotionCount = top3Tags.stream().filter(t -> t.getType() == CurationTopLogType.EMOTION).count();
+            long situationCount = top3Tags.stream().filter(t -> t.getType() == CurationTopLogType.SITUATION).count();
+
+            if (emotionCount == 3) {
+                // 남은 후보들 중 1등 상황 태그 찾기
+                TagScoreDto bestSituation = allTags.stream()
+                        .skip(3)
+                        .filter(t -> t.getType() == CurationTopLogType.SITUATION)
+                        .findFirst()
+                        .orElse(null);
+
+                if (bestSituation != null) {
+                    top3Tags.remove(2); // 3등 감정 제거
+                    top3Tags.add(bestSituation); // 1등 상황 투입
+                }
+            } else if (situationCount == 3) {
+                // 남은 후보들 중 1등 감정 태그 찾기
+                TagScoreDto bestEmotion = allTags.stream()
+                        .skip(3)
+                        .filter(t -> t.getType() == CurationTopLogType.EMOTION)
+                        .findFirst()
+                        .orElse(null);
+
+                if (bestEmotion != null) {
+                    top3Tags.remove(2); // 3등 상황 제거
+                    top3Tags.add(bestEmotion); // 1등 감정 투입
+                }
+            }
+        }
+
+        // 9. 최종 선정된 태그들만 DB에 저장
+        List<CurationTopLog> logsToSave = top3Tags.stream().map(tag ->
+                CurationTopLog.builder()
+                        .curation(curation)
+                        .type(tag.getType())
+                        .refId(tag.getRefId())
+                        .count(tag.getCount())
+                        .tagName(tag.getTagName())
+                        .build()
+        ).collect(Collectors.toList());
+
+        curationTopLogRepository.saveAll(logsToSave);
     }
 
     @Override
     public List<CurationTopLogDTO> getTopLogDtoByCuration(Long curationId) {
+        // 기존 코드 유지 (어차피 최대 3개만 저장되어 있으므로 그대로 리턴하면 됨)
         return curationTopLogRepository.findTop3ByCurationId(curationId).stream()
                 .map(log -> CurationTopLogDTO.builder()
                         .type(log.getType())
@@ -120,5 +176,14 @@ public class CurationTopLogServiceImpl implements CurationTopLogService {
                         .build())
                 .collect(Collectors.toList());
     }
-}
 
+    // 내부에서 랭킹 계산용으로 쓸 임시 DTO 클래스
+    @Getter
+    @AllArgsConstructor
+    private static class TagScoreDto {
+        private CurationTopLogType type;
+        private Long refId;
+        private String tagName;
+        private int count;
+    }
+}
