@@ -67,18 +67,29 @@ public class CurationTopLogServiceImpl implements CurationTopLogService {
                 .fetch();
 
         // 3. 상황 로그 집계 (직업 변경 유저 처리: 현재 직업과 일치하는 것만!)
-        List<Tuple> situationCounts = queryFactory
-                .select(situationLog.situationJob.id, situationLog.count())
-                .from(situationLog)
-                .where(
-                        situationLog.user.id.eq(userId),
-                        situationLog.createdAt.goe(startOfMonth),
-                        situationLog.createdAt.lt(startOfNextMonth),
-                        // [핵심] 유저의 현재 직업과 매칭되는 상황 태그만 계산에 포함
-                        situationLog.situationJob.job.id.eq(curation.getUser().getJob().getId())
-                )
-                .groupBy(situationLog.situationJob.id)
-                .fetch();
+        // 3. 상황 로그 집계 (직업 변경 유저 처리 및 NPE 방지)
+        List<Tuple> situationCounts;
+
+        // 유저가 직업을 설정한 상태인지 먼저 확인!
+        if (curation.getUser().getJob() != null) {
+            Long currentJobId = curation.getUser().getJob().getId();
+
+            situationCounts = queryFactory
+                    .select(situationLog.situationJob.id, situationLog.count())
+                    .from(situationLog)
+                    .where(
+                            situationLog.user.id.eq(userId),
+                            situationLog.createdAt.goe(startOfMonth),
+                            situationLog.createdAt.lt(startOfNextMonth),
+                            // null 체크를 통과한 안전한 jobId를 사용
+                            situationLog.situationJob.job.id.eq(currentJobId)
+                    )
+                    .groupBy(situationLog.situationJob.id)
+                    .fetch();
+        } else {
+            // 직업이 없는 유저라면 상황 로그를 아예 집계하지 않고 빈 리스트 반환
+            situationCounts = new ArrayList<>();
+        }
 
         // 4. 감정/상황 통합 리스트 생성
         List<TagScoreDto> allTags = new ArrayList<>();
