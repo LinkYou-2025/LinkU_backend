@@ -5,26 +5,24 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.CurationMent;
 import com.umc.linkyou.domain.log.CurationTopLog;
 import com.umc.linkyou.repository.CurationMentRepository;
+import com.umc.linkyou.repository.curationLinkuRepository.CurationAnalyticsRepository;
 import com.umc.linkyou.repository.mapping.CurationLikeRepository;
 import com.umc.linkyou.service.curation.gpt.GptService;
 import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.service.curation.linku.ExternalRecommendMaterializer;
-import com.umc.linkyou.web.dto.curation.CreateCurationRequest;
+import com.umc.linkyou.web.dto.curation.*;
 import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
 import com.umc.linkyou.repository.CurationRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.web.dto.curation.CurationDetailResponse;
-import com.umc.linkyou.web.dto.curation.CurationLatestResponse;
-import com.umc.linkyou.web.dto.curation.GptMentResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import com.umc.linkyou.web.dto.curation.CurationListResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +38,7 @@ public class CurationServiceImpl implements CurationService {
     private final ThumbnailUrlProvider thumbnailUrlProvider;
     private final ExternalRecommendMaterializer externalRecommendMaterializer;
     private final CurationLikeRepository curationLikeRepository;
+    private final CurationAnalyticsRepository curationAnalyticsRepository;
 
     /**
      * 유저의 큐레이션을 생성하고, 감정/상황 로그 기반 top3 태그를 계산해 저장한다.
@@ -251,5 +250,37 @@ public class CurationServiceImpl implements CurationService {
                 .month(c.getMonth())
                 .thumbnailUrl(c.getThumbnailUrl())
                 .build());
+    }
+
+    /**
+     * [2 페이지] 이번 달 많이 본 키워드 리스트 반환 (워드클라우드용)
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<CurationAnalyticsDTO.KeywordCountResponse> getMonthlyTopKeywords(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfMonth = now.withDayOfMonth(1).toLocalDate().atStartOfDay();
+        LocalDateTime startOfNextMonth = startOfMonth.plusMonths(1);
+
+        return curationAnalyticsRepository.findTopKeywordsByViewedAt(userId, startOfMonth, startOfNextMonth, 10); // 최대 10개
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CurationAnalyticsDTO.KeywordLinkResponse> getLinksByKeyword(Long userId, String keyword) {
+        return curationAnalyticsRepository.findLinksByKeyword(userId, keyword);
+    }
+
+    /**
+     * [3 페이지] 지난달에 저장만 하고 한 번도 보지 않은 링크 리스트 반환
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<CurationAnalyticsDTO.UnreadLinkResponse> getLastMonthUnreadLinks(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfThisMonth = now.withDayOfMonth(1).toLocalDate().atStartOfDay();
+        LocalDateTime startOfLastMonth = startOfThisMonth.minusMonths(1);
+
+        return curationAnalyticsRepository.findUnreadLinksByCreatedAt(userId, startOfLastMonth, startOfThisMonth);
     }
 }

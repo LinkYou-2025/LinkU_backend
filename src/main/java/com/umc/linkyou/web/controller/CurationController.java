@@ -2,6 +2,7 @@ package com.umc.linkyou.web.controller;
 
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.ApiV1;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.service.curation.CurationLikeService;
@@ -211,5 +212,56 @@ public class CurationController {
     ) {
         var result = internalLinkCandidateService.getTop2SimilarInternalLinks(userId, curationId);
         return ResponseEntity.ok(ApiResponse.onSuccess(result));
+    }
+
+    /**
+     * [2 페이지] 이번 달 많이 본 키워드 조회 (워드클라우드용)
+     */
+    @Operation(
+            summary = "Get Monthly Top Keywords",
+            description = "이번 달에 유저가 가장 많이 열람한 AI 키워드 랭킹을 조회합니다.<br>" +
+                    "결과값의 `viewCount`에 비례하여 워드클라우드의 글자 크기나 색상을 렌더링해 주세요."
+    )
+    @GetMapping("/monthly-keywords")
+    public ApiResponse<List<CurationAnalyticsDTO.KeywordCountResponse>> getMonthlyTopKeywords(
+            @RequestParam("userId") Long userId
+    ) {
+        List<CurationAnalyticsDTO.KeywordCountResponse> result = curationService.getMonthlyTopKeywords(userId);
+        return ApiResponse.onSuccess("이번 달 많이 본 키워드 조회 성공", result);
+    }
+
+    /**
+     * [2페이지 연계] 특정 키워드 클릭 시 해당 링크 리스트 조회 (스마트 라우팅용)
+     * 프론트엔드에서 결과 리스트 길이가 1개면 바로 외부링크로 이동, 2개 이상이면 리스트 화면을 보여줍니다.
+     */
+    @Operation(
+            summary = "Get Links by Keyword (Smart Routing)",
+            description = "워드클라우드에서 특정 키워드를 클릭했을 때 해당 키워드가 포함된 링크 리스트를 최신순으로 조회합니다.<br>" +
+                    "<b>[프론트엔드 라우팅 필수]</b><br>" +
+                    "- 결과 리스트 길이가 `1`인 경우: 리스트 화면으로 이동하지 않고 즉시 해당 객체의 `url`을 새 창으로 띄워주세요.<br>" +
+                    "- 결과 리스트 길이가 `2` 이상인 경우: 키워드 링크 리스트 화면으로 이동하여 리스트를 렌더링해 주세요."
+    )
+    @GetMapping("/keyword-links")
+    public ApiResponse<List<CurationAnalyticsDTO.KeywordLinkResponse>> getLinksByKeyword(
+            @Parameter(description = "사용자 ID", required = true) @RequestParam("userId") Long userId,
+            @Parameter(description = "조회할 AI 키워드", required = true) @RequestParam("keyword") String keyword
+    ) {
+        List<CurationAnalyticsDTO.KeywordLinkResponse> result = curationService.getLinksByKeyword(userId, keyword);
+        return ApiResponse.onSuccess("키워드 관련 링크 조회 성공", result);
+    }
+
+    /**
+     * [3-3] 지난달 저장만 하고 한 번도 안 본 링크 조회
+     */
+    @Operation(
+            summary = "Get Unread Links of Last Month",
+            description = "지난달에 저장한 링크 중, 단 한 번도 열람(클릭)하지 않은 링크 리스트를 저장한 순서대로 조회합니다."
+    )
+    @GetMapping("/unread-links")
+    public ApiResponse<List<CurationAnalyticsDTO.UnreadLinkResponse>> getLastMonthUnreadLinks(
+            @Parameter(description = "사용자 ID", required = true) @RequestParam("userId") Long userId
+    ) {
+        List<CurationAnalyticsDTO.UnreadLinkResponse> result = curationService.getLastMonthUnreadLinks(userId);
+        return ApiResponse.onSuccess("안 본 링크 조회 성공", result);
     }
 }

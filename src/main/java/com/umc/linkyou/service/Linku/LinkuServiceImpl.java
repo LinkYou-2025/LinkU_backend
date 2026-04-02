@@ -127,61 +127,45 @@ public class LinkuServiceImpl implements LinkuService {
 
     @Transactional
     public void updateRecentViewedLinku(Long userId, Long linkuId) {
-// 1. 이미 열람 기록이 있으면 viewedAt만 갱신
-        RecentViewedLinku rv = recentViewedLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId)
-                .orElse(null);
-        if (rv != null) {
-            rv.setViewedAt(LocalDateTime.now());
-            recentViewedLinkuRepository.save(rv);
-            return;
-        }
-
-        // 2. 없으면, 기존 데이터 개수 체크 → 10개 이상이면 가장 오래된 것 삭제
-        List<RecentViewedLinku> allRecents = recentViewedLinkuRepository
-                .findAllByUser_IdOrderByViewedAtDesc(userId); // 이 때 desc/asc 원하는 대로
-
-        if (allRecents.size() >= 10) {
-            // 가장 오래된 열람(== viewedAt이 가장 작은/오래된 것) 삭제
-            // 만약 OrderByViewedAtDesc라면, 마지막 요소가 가장 오래된 것
-            RecentViewedLinku toDelete = allRecents.get(allRecents.size() - 1); // list는 desc로 옴
-            recentViewedLinkuRepository.delete(toDelete);
-        }
-
-        // 3. insert 새로 생성
-        rv = RecentViewedLinku.builder()
+        // [수정됨] 기존의 10개 제한 로직 및 시간 덮어쓰기 로직 삭제
+        // 유저가 링크를 열람할 때마다 무조건 새로운 기록(Log)을 쌓도록 변경 (Append-only)
+        RecentViewedLinku rv = RecentViewedLinku.builder()
                 .user(userRepository.getReferenceById(userId))
                 .linku(linkuRepository.getReferenceById(linkuId))
                 .viewedAt(LocalDateTime.now())
                 .build();
+
         recentViewedLinkuRepository.save(rv);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<LinkuResponseDTO.LinkuSimpleDTO> getRecentViewedLinkus(Long userId, int limit) {
-        List<RecentViewedLinku> recentList = recentViewedLinkuRepository
-                .findTop10ByUser_IdOrderByViewedAtDesc(userId);
+        // [수정됨] 로그가 누적되므로, 같은 링크를 여러 번 봤더라도 홈 화면에는 중복 없이 최근 순으로 가져와야 함
+        // (Repository에 새로 추가할 findDistinctLinkuIdsByUserId 쿼리 사용)
+        List<Long> linkuIds = recentViewedLinkuRepository.findDistinctLinkuIdsByUserId(userId, org.springframework.data.domain.PageRequest.of(0, limit));
 
-        List<Long> linkuIds = recentList.stream()
-                .map(rv -> rv.getLinku().getLinkuId())
-                .collect(Collectors.toList());
-
-        // 한 번에 AiArticle 조회 후 title 기준 필터링
-        Map<Long, Boolean> aiArticleExistsMap = aiArticleRepository.existsAiArticleByLinkuIds(linkuIds);
+        if (linkuIds.isEmpty()) {
+            return new ArrayList<>();
+        }
 
         List<LinkuResponseDTO.LinkuSimpleDTO> results = new ArrayList<>();
-        for (RecentViewedLinku rv : recentList) {
-            Linku linku = rv.getLinku();
-            List<UsersLinku> list = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linku.getLinkuId());
 
-            UsersLinku usersLinku = list.stream()
+        for (Long linkuId : linkuIds) {
+            // 1. Linku 가져오기
+            Linku linku = linkuRepository.findById(linkuId)
+                    .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
+
+            // 2. UsersLinku 찾기
+            UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId).stream()
                     .max(Comparator.comparing(UsersLinku::getCreatedAt))
                     .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
 
-
+            // 3. AI 요약 여부 및 도메인
             boolean aiArticleExists = Boolean.TRUE.equals(usersLinku.getAiExist());
             Domain domain = linku.getDomain();
 
+            // 4. DTO 변환 및 결과 리스트 추가
             LinkuResponseDTO.LinkuSimpleDTO dto = toLinkuSimpleDTO(linku, usersLinku, domain, aiArticleExists);
             results.add(dto);
         }

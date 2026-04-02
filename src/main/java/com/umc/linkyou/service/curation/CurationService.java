@@ -1,13 +1,11 @@
 package com.umc.linkyou.service.curation;
 
 import com.umc.linkyou.domain.Curation;
-import com.umc.linkyou.web.dto.curation.CreateCurationRequest;
-import com.umc.linkyou.web.dto.curation.CurationDetailResponse;
-import com.umc.linkyou.web.dto.curation.CurationLatestResponse;
-import com.umc.linkyou.web.dto.curation.CurationListResponse;
+import com.umc.linkyou.web.dto.curation.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface CurationService {
@@ -21,4 +19,8 @@ public interface CurationService {
     Optional<CurationLatestResponse> getLatestCuration(Long userId);
 
     Page<CurationListResponse> getMyCurationList(Long userId, Pageable pageable);
+
+    List<CurationAnalyticsDTO.KeywordCountResponse> getMonthlyTopKeywords(Long userId);
+    List<CurationAnalyticsDTO.KeywordLinkResponse> getLinksByKeyword(Long userId, String keyword);
+    List<CurationAnalyticsDTO.UnreadLinkResponse> getLastMonthUnreadLinks(Long userId);
 }

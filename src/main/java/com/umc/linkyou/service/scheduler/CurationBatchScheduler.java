@@ -1,14 +1,9 @@
-package com.umc.linkyou.service.curation.utils;
+package com.umc.linkyou.service.scheduler;
 
 import com.umc.linkyou.service.curation.CurationService;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 @Component
 @RequiredArgsConstructor
