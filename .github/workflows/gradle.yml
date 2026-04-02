@@ -33,7 +33,7 @@ jobs:
       - name: make application.properties
         run: |
           mkdir -p src/main/resources
-          echo "$APPLICATION" > src/main/resources/application.properties
+          echo "$APPLICATION" > src/main/resources/application-secret.properties
         env:
           APPLICATION: ${{ secrets.APPLICATION }}
 

@@ -24,12 +24,6 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
-//    private final OAuth2UserServiceImpl oAuth2UserService;
-//    private final OAuth2TokenClient oAuth2TokenClient;
-//    @Lazy
-//    private final OAuth2SuccessHandler oAuth2SuccessHandler;
-//    private final RedisAuthorizationRequestRepository redisAuthorizationRequestRepository;
-
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -40,8 +34,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/", "/css/**",
-                                "/api/v1/users/**",
-                                "/api/v1/auth/token/exchange",
+                                "/api/v1/auth/**",
                                 "/swagger-ui/**", "/v3/api-docs/**",
                                 "/*.well-known/**",
                                 "/open/**",

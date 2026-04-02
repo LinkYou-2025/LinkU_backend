@@ -39,4 +39,4 @@ out/
 ### custom ###
 /src/main/generated/
 **/application.properties
-
+**/application-secret.properties
