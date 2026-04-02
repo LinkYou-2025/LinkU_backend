@@ -36,7 +36,9 @@ jobs:
           echo "$APPLICATION" > src/main/resources/application-secret.properties
         env:
           APPLICATION: ${{ secrets.APPLICATION }}
-
+      - name: create firebase admin json file
+        run: |
+          echo "${{ secrets.FIREBASE_ADMIN_BASE64 }}" | base64 --decode > src/main/resources/liku-firebase-admin.json
       - name: Create assetlinks.json file
         run: |
           mkdir -p src/main/resources/static/.well-known
