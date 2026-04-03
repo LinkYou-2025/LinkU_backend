@@ -9,7 +9,7 @@ import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.mapping.SituationJob;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.infra.parser.LinkToImageService;
-import com.umc.linkyou.infra.ai.summary.OpenAISummaryUtil;
+import com.umc.linkyou.infra.ai.summary.GeminiSummaryUtil;
 import com.umc.linkyou.infra.ai.dto.SummaryAnalysisResultDTO;
 import com.umc.linkyou.repository.*;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
@@ -41,7 +41,7 @@ public class AiArticleServiceImpl implements AiArticleService {
     private final SituationRepository situationRepository;
     private final AiArticleRepository aiArticleRepository;
     private final UsersLinkuRepository usersLinkuRepository;
-    private final OpenAISummaryUtil openAISummaryUtil;
+    private final GeminiSummaryUtil geminiSummaryUtil;
     private final LinkToImageService linkToImageService;
 
     /**
@@ -71,10 +71,10 @@ public class AiArticleServiceImpl implements AiArticleService {
         if (emotions.isEmpty()) throw new GeneralException(ErrorStatus._EMOTION_NOT_FOUND);
         if (categories.isEmpty()) throw new GeneralException(ErrorStatus._CATEGORY_NOT_FOUND);
 
-        // 4. OpenAI 호출
+        // 4. Gemini 호출
         SummaryAnalysisResultDTO result;
         try {
-            result = openAISummaryUtil.getFullAnalysis(
+            result = geminiSummaryUtil.getFullAnalysis(
                     linku.getLinku(), situations, emotions, categories
             );
         } catch (IOException e) {

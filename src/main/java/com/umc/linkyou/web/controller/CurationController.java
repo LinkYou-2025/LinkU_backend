@@ -8,7 +8,6 @@ import com.umc.linkyou.service.curation.CurationLikeService;
 import com.umc.linkyou.service.curation.CurationService;
 import com.umc.linkyou.service.curation.CurationTopLogService;
 import com.umc.linkyou.service.curation.linku.CurationRecommendBuilderService;
-import com.umc.linkyou.service.curation.linku.ExternalRecommendService;
 import com.umc.linkyou.service.curation.linku.InternalLinkCandidateService;
 import com.umc.linkyou.web.dto.curation.*;
 import io.swagger.v3.oas.annotations.Operation;
