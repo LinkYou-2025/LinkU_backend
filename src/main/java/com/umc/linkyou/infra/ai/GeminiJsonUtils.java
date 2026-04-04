@@ -26,9 +26,23 @@ public final class GeminiJsonUtils {
         }
 
         int startIndex = content.indexOf(open);
-        int endIndex   = content.lastIndexOf(close);
+        if (startIndex == -1) {
+            return null;
+        }
 
-        if (startIndex == -1 || endIndex == -1 || startIndex >= endIndex) {
+        int depth = 0;
+        int endIndex = -1;
+        for (int i = startIndex; i < content.length(); i++) {
+            char c = content.charAt(i);
+            if (c == open)       depth++;
+            else if (c == close) depth--;
+            if (depth == 0) {
+                endIndex = i;
+                break;
+            }
+        }
+
+        if (endIndex == -1) {
             return null;
         }
 
