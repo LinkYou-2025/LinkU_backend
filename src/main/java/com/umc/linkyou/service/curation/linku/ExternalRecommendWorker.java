@@ -66,7 +66,7 @@ public class ExternalRecommendWorker {
             );
             log.info("[Gemini] elapsed={}ms", System.currentTimeMillis() - t0);
         } catch (Exception e) {
-            log.warn("[Gemini] 외부 추천 실패: {}", e.toString());
+            log.warn("[Gemini] 외부 추천 실패", e);
             external = List.of();
         }
 
