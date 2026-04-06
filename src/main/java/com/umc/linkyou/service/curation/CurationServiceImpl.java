@@ -6,7 +6,8 @@ import com.umc.linkyou.domain.classification.CurationMent;
 import com.umc.linkyou.domain.log.CurationTopLog;
 import com.umc.linkyou.repository.CurationMentRepository;
 import com.umc.linkyou.repository.mapping.CurationLikeRepository;
-import com.umc.linkyou.service.curation.gpt.GptService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.service.curation.gemini.GeminiTextService;
 import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.service.curation.linku.ExternalRecommendMaterializer;
 import com.umc.linkyou.web.dto.curation.CreateCurationRequest;
@@ -15,8 +16,8 @@ import com.umc.linkyou.repository.CurationRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.web.dto.curation.CurationDetailResponse;
 import com.umc.linkyou.web.dto.curation.CurationLatestResponse;
-import com.umc.linkyou.web.dto.curation.GptMentResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -27,9 +28,11 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CurationServiceImpl implements CurationService {
@@ -40,6 +43,8 @@ public class CurationServiceImpl implements CurationService {
     private final ThumbnailUrlProvider thumbnailUrlProvider;
     private final ExternalRecommendMaterializer externalRecommendMaterializer;
     private final CurationLikeRepository curationLikeRepository;
+    private final GeminiTextService geminiTextService;
+    private final ObjectMapper objectMapper;
 
     /**
      * 유저의 큐레이션을 생성하고, 감정/상황 로그 기반 top3 태그를 계산해 저장한다.
@@ -69,9 +74,7 @@ public class CurationServiceImpl implements CurationService {
 
         return curation;
     }
-    /**
-     * 유저의 큐레이션을 자동생성
-     */
+    // 유저의 큐레이션을 자동생성
     @Override
     @Transactional
     public void generateMonthlyCurationForAllUsers() {
@@ -150,12 +153,8 @@ public class CurationServiceImpl implements CurationService {
 
     private final CurationTopLogRepository curationTopLogRepository;
     private final CurationMentRepository curationMentRepository;
-    private final GptService gptService;
 
-
-    /**
-     * 유저의 큐레이션을 detail 정보를 가져옴
-     */
+    // 유저의 큐레이션을 detail 정보를 가져옴
     @Override
     @Transactional(readOnly = true)
     public CurationDetailResponse getCurationDetail(Long curationId) {
@@ -187,12 +186,41 @@ public class CurationServiceImpl implements CurationService {
         String header = null;
         String footer = null;
 
-        // GPT 기반 멘트 요청
-        GptMentResponse gptResponse = gptService.generateMent(emotionName);
+        // Gemini 기반 멘트 요청 (생성 항목: header 멘트, footer 멘트)
+        try {
+            String userPrompt = String.format(
+                    "사용자의 현재 감정은 '%s'입니다.\n" +
+                    "이 감정을 기반으로, 해당 사용자에게 맞는 콘텐츠를 소개하는 큐레이션 멘트를 작성해주세요.\n\n" +
+                    "[큐레이션 멘트 설명]\n" +
+                    "- 상단 멘트는 큐레이션 페이지 가장 위에 노출되어, 사용자의 감정에 공감하며 관심을 끌어야 합니다.\n" +
+                    "- 하단 멘트는 큐레이션 페이지 마지막에 노출되며, 콘텐츠를 마무리하면서 위로나 응원을 담아야 합니다.\n\n" +
+                    "[작성 규칙]\n" +
+                    "- 각 멘트는 반드시 한 문장으로 작성하세요.\n" +
+                    "- 반드시 \"(닉네임)\"이라는 텍스트를 포함하세요. 이 표현은 절대로 바꾸지 마세요.\n" +
+                    "- 아래 형식의 JSON 형태로만 출력하세요:\n" +
+                    "{\n" +
+                    "  \"header\": \"(닉네임)님, ...\",\n" +
+                    "  \"footer\": \"(닉네임)님, ...\"\n" +
+                    "}\n\n" +
+                    "※ JSON 외에는 아무것도 출력하지 말고, (닉네임)이라는 문자열을 절대로 수정하지 마세요.",
+                    emotionName
+            );
 
-        if (gptResponse != null) {
-            header = gptResponse.getHeader();
-            footer = gptResponse.getFooter();
+            String rawJson = geminiTextService.generateText(
+                    "당신은 감정 기반 콘텐츠 추천 서비스의 큐레이션 에디터입니다.",
+                    userPrompt
+            );
+
+            if (rawJson != null) {
+                String cleaned = com.umc.linkyou.infra.ai.GeminiJsonUtils.extractJson(rawJson);
+                if (cleaned != null) {
+                    Map<String, String> ment = objectMapper.readValue(cleaned, Map.class);
+                    header = ment.get("header");
+                    footer = ment.get("footer");
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[Gemini 멘트 생성 실패] curationId={}, cause={}", curationId, e.getMessage());
         }
 
         // ❗ 실패 시 DB fallback (원래 멘트 추천로직)
@@ -219,10 +247,7 @@ public class CurationServiceImpl implements CurationService {
                 .build();
     }
 
-
-    /**
-     * 유저의 최근 큐레이션 정보를 가져옴
-     */
+    // 유저의 최근 큐레이션 정보를 가져옴
     @Override
     @Transactional(readOnly = true)
     public Optional<CurationLatestResponse> getLatestCuration(Long userId) {

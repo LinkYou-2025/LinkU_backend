@@ -16,7 +16,7 @@ import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.infra.ai.classifier.OpenAICategoryClassifier;
+import com.umc.linkyou.infra.ai.classifier.GeminiCategoryClassifier;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.service.folder.FolderService;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
@@ -60,7 +60,7 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
     private static final Long DEFAULT_DOMAIN_ID = 1L;
 
     private final SituationCategoryService situationCategoryService;
-    private final OpenAICategoryClassifier openAiCategoryClassifier;
+    private final GeminiCategoryClassifier geminiCategoryClassifier;
     private final FolderService folderService;
     private final AiArticleConverter aiArticleConverter;
 
@@ -127,8 +127,8 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
     public static record AiCategoryInfo(Category category, String aiKeywords) {}
 
     public AiCategoryInfo resolveCategoryAndKeywords(String normalizedLink) {
-        OpenAICategoryClassifier.CategoryResult aiResult =
-                openAiCategoryClassifier.classifyCategoryByUrl(normalizedLink, categoryRepository.findAll());
+        GeminiCategoryClassifier.CategoryResult aiResult =
+                geminiCategoryClassifier.classifyCategoryByUrl(normalizedLink, categoryRepository.findAll());
         Long aiCategoryId = (aiResult != null) ? aiResult.getCategoryId() : null;
         String aiKeywords = (aiResult != null) ? aiResult.getKeywords() : null;
         Category category = Optional.ofNullable(aiCategoryId)
