@@ -1,4 +1,4 @@
-package com.umc.linkyou.service.curation.gemini;
+package com.umc.linkyou.infra.ai.gemini;
 
 import com.google.genai.Client;
 import com.google.genai.types.Content;

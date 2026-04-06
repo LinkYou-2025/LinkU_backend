@@ -7,7 +7,7 @@ import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.repository.CurationRepository;
 import com.umc.linkyou.repository.LogRepository.KeywordMonthlyCountRepository;
-import com.umc.linkyou.repository.curationLinkuRepository.UsersLinkuRepositoryCustom;
+import com.umc.linkyou.repository.usersLinkuRepository.UsersLinkuRepositoryCustom;
 import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
 import com.umc.linkyou.service.curation.utils.EmotionSimilarityTable;
 import com.umc.linkyou.service.curation.utils.EmotionTagMapper;

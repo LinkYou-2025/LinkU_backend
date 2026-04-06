@@ -3,7 +3,6 @@ package com.umc.linkyou.repository.mapping;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.repository.curationLinkuRepository.UsersLinkuRepositoryCustom;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

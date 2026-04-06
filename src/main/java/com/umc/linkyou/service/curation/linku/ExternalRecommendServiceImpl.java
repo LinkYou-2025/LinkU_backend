@@ -7,7 +7,7 @@ import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.repository.LogRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepositoryCustom;
-import com.umc.linkyou.service.curation.gemini.GeminiExternalSearchService;
+import com.umc.linkyou.infra.ai.gemini.GeminiExternalSearchService;
 import com.umc.linkyou.service.curation.utils.EmotionTagMapper;
 import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;

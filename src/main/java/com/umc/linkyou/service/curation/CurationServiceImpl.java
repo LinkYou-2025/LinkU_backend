@@ -10,7 +10,7 @@ import com.umc.linkyou.repository.LogRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.repository.mapping.CurationLikeRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.umc.linkyou.service.curation.gemini.GeminiTextService;
+import com.umc.linkyou.infra.ai.gemini.GeminiTextService;
 import com.umc.linkyou.service.curation.utils.EmotionTagMapper;
 import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.service.curation.linku.ExternalRecommendMaterializer;

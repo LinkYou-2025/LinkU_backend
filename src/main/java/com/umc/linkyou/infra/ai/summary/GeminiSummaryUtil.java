@@ -6,7 +6,7 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.infra.ai.GeminiJsonUtils;
 import com.umc.linkyou.infra.ai.dto.SummaryAnalysisResultDTO;
 import com.umc.linkyou.infra.parser.WebContentExtractor;
-import com.umc.linkyou.service.curation.gemini.GeminiTextService;
+import com.umc.linkyou.infra.ai.gemini.GeminiTextService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.infra.ai.GeminiJsonUtils;
 import com.umc.linkyou.infra.parser.TitleDomainParser;
 import com.umc.linkyou.infra.parser.WebContentExtractor;
-import com.umc.linkyou.service.curation.gemini.GeminiTextService;
+import com.umc.linkyou.infra.ai.gemini.GeminiTextService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

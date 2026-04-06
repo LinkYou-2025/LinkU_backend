@@ -1,4 +1,4 @@
-package com.umc.linkyou.repository.curationLinkuRepository;
+package com.umc.linkyou.repository.usersLinkuRepository;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.mapping.QUsersLinku;

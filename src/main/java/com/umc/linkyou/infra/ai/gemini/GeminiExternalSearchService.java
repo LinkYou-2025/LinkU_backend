@@ -1,4 +1,4 @@
-package com.umc.linkyou.service.curation.gemini;
+package com.umc.linkyou.infra.ai.gemini;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

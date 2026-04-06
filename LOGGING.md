@@ -78,7 +78,7 @@ logging.pattern.file=%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %m
 ```
 2024-01-15 14:30:25 - [GeneralException] Code: 4000, Message: AI Article not found, URI: /api/ai-article/123
 com.umc.linkyou.apiPayload.exception.GeneralException: AI Article not found
-    at com.umc.linkyou.service.AiArticleServiceImpl.showAiArticle(AiArticleServiceImpl.java:173)
+    at com.umc.linkyou.service.aiArticle.AiArticleServiceImpl.showAiArticle(AiArticleServiceImpl.java:173)
     at com.umc.linkyou.web.controller.AiArticleController.getAiArticle(AiArticleController.java:45)
     ...
 ```
@@ -215,7 +215,7 @@ jakarta.validation.ConstraintViolationException: ...
 ```
 2024-01-15 14:30:25 - [Unhandled Exception] NullPointerException: Cannot invoke "getIsAiExist()" because "usersLinku" is null
 java.lang.NullPointerException: Cannot invoke "getIsAiExist()" because "usersLinku" is null
-    at com.umc.linkyou.service.AiArticleServiceImpl.showAiArticle(AiArticleServiceImpl.java:180)
+    at com.umc.linkyou.service.aiArticle.AiArticleServiceImpl.showAiArticle(AiArticleServiceImpl.java:180)
     at ...
 ```
 

@@ -10,7 +10,7 @@ import com.umc.linkyou.repository.LogRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.curationLinkuRepository.CurationLinkuRepository;
-import com.umc.linkyou.service.curation.gemini.GeminiExternalSearchService;
+import com.umc.linkyou.infra.ai.gemini.GeminiExternalSearchService;
 import com.umc.linkyou.service.curation.utils.EmotionTagMapper;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;

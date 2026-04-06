@@ -1,4 +1,4 @@
-package com.umc.linkyou.repository.curationLinkuRepository;
+package com.umc.linkyou.repository.usersLinkuRepository;
 
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import java.util.List;
