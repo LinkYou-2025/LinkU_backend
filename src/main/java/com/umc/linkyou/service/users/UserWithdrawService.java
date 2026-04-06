@@ -116,7 +116,6 @@ public class UserWithdrawService{
         if (user.getUserFcmTokens() != null) user.getUserFcmTokens().clear();
         if (user.getCurations() != null) user.getCurations().clear();
         if (user.getCurationLikes() != null) user.getCurationLikes().clear();
-        if (user.getEmotionLogs() != null) user.getEmotionLogs().clear();
         if (user.getFolderShareLinks() != null) user.getFolderShareLinks().clear();
         if (user.getUsersFoldersList() != null) user.getUsersFoldersList().clear();
         if (user.getUsersCategoryColorList() != null) user.getUsersCategoryColorList().clear();

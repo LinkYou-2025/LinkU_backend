@@ -595,7 +595,6 @@ public class UserServiceImpl implements UserService {
             user.getUserFcmTokens().clear();
             user.getCurations().clear();
             user.getCurationLikes().clear();
-            user.getEmotionLogs().clear();
             user.getFolderShareLinks().clear();
             user.getUsersFoldersList().clear();
             user.getUsersCategoryColorList().clear(); // 서버 에러 포인트 해결
@@ -634,7 +633,6 @@ public class UserServiceImpl implements UserService {
             user.getUserFcmTokens().clear();
             user.getCurations().clear();
             user.getCurationLikes().clear();
-            user.getEmotionLogs().clear();
             user.getFolderShareLinks().clear();
             user.getUsersFoldersList().clear();
             user.getUsersCategoryColorList().clear();

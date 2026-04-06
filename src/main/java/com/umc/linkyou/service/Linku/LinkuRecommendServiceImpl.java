@@ -4,7 +4,6 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.LinkuConverter;
-import com.umc.linkyou.converter.LogConverter;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Domain;
@@ -12,8 +11,6 @@ import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
-import com.umc.linkyou.repository.LogRepository.EmotionLogRepository;
-import com.umc.linkyou.repository.LogRepository.SituationLogRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
@@ -40,8 +37,6 @@ public class LinkuRecommendServiceImpl implements LinkuRecommendService{
     private final UsersLinkuRepository usersLinkuRepository;
     private final UserRepository userRepository;
     private final SituationRepository situationRepository;
-    private final SituationLogRepository situationLogRepository;
-    private final EmotionLogRepository emotionLogRepository;
     private final SituationJobRepository situationJobRepository;
     private final AiArticleRepository aiArticleRepository;
 
@@ -99,9 +94,6 @@ public class LinkuRecommendServiceImpl implements LinkuRecommendService{
 
         List<Long> mappedCategories = situationCategoryService.getCategoryIdsBySituation(situationId);
 
-        // 행동 로그 저장
-        situationLogRepository.save(LogConverter.toSituationLog(user, situationJobRepository.findBySituation_IdAndJob_Id(situationId, jobId).get()));
-        emotionLogRepository.save(LogConverter.toEmotionLog(user, selectedEmotion));
 
         return new EntitiesContext(userLinkus, mappedCategories, selectedEmotion);
     }
