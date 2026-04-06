@@ -4,8 +4,9 @@ package com.umc.linkyou.service.curation.linku;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.infra.parser.LinkToImageService;
+import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.repository.CurationRepository;
-import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
+import com.umc.linkyou.repository.LogRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.repository.curationLinkuRepository.UsersLinkuRepositoryCustom;
 import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
 import com.umc.linkyou.service.curation.utils.EmotionSimilarityTable;
@@ -19,6 +20,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,7 +32,7 @@ public class InternalLinkCandidateServiceImpl implements InternalLinkCandidateSe
     private final UsersLinkuRepositoryCustom usersLinkuRepositoryCustom;
     private final UsersLinkuRepository usersLinkuRepository;
     private final CurationRepository curationRepository;
-    private final CurationTopLogRepository curationTopLogRepository;
+    private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
     private final LinkToImageService linkToImageService;
     private final EmotionTagMapper emotionTagMapper;
 
@@ -52,8 +54,12 @@ public class InternalLinkCandidateServiceImpl implements InternalLinkCandidateSe
         }
 
         // 상위 감정명 추출 (예: 슬픔, 분노, 짜증)
-        List<String> topEmotionNames = curationTopLogRepository.findTop3EmotionLogsByCurationId(curationId).stream()
-                .map(log -> emotionTagMapper.getEmotionName(log.getRefId()))
+        List<String> topEmotionNames = keywordMonthlyCountRepository
+                .findAllByUser_IdAndBaseMonthAndType(userId, curation.getMonth(), KeywordType.EMOTION)
+                .stream()
+                .sorted(Comparator.comparingInt(kmc -> -kmc.getCount()))
+                .limit(3)
+                .map(kmc -> emotionTagMapper.getEmotionName(kmc.getRefId()))
                 .toList();
 
         // TF-IDF 벡터화 대상 (title 기준)

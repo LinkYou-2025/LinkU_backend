@@ -1,17 +1,20 @@
 package com.umc.linkyou.service.curation.linku;
 
 import com.umc.linkyou.domain.classification.Domain;
+import com.umc.linkyou.domain.enums.KeywordType;
+import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.infra.parser.LinkToImageService;
-import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
+import com.umc.linkyou.repository.LogRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepositoryCustom;
-import com.umc.linkyou.domain.log.CurationTopLog;
 import com.umc.linkyou.service.curation.gemini.GeminiExternalSearchService;
+import com.umc.linkyou.service.curation.utils.EmotionTagMapper;
 import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -22,13 +25,16 @@ import java.util.List;
 public class ExternalRecommendServiceImpl implements ExternalRecommendService {
 
     private final InternalLinkCandidateService internalLinkCandidateService;
-    private final CurationTopLogRepository curationTopLogRepository;
+    private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
     private final DomainRepositoryCustom domainRepository;
     private final LinkToImageService linkToImageService;
     private final GeminiExternalSearchService geminiExternalSearchService;
     private final UserRepository userRepository;
+    private final EmotionTagMapper emotionTagMapper;
+    private final SituationJobRepository situationJobRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<RecommendedLinkResponse> getExternalRecommendations(Long userId, Long curationId, int limit) {
 
         // 사용자 프로필 로드 (jobName, gender)
@@ -46,9 +52,14 @@ public class ExternalRecommendServiceImpl implements ExternalRecommendService {
                 .map(RecommendedLinkResponse::getUrl)
                 .toList();
 
-        List<String> tagNames = curationTopLogRepository.findTopTagsByUserId(userId, 3)
+        List<String> tagNames = keywordMonthlyCountRepository.findTop3ByUser_IdOrderByCountDesc(userId)
                 .stream()
-                .map(CurationTopLog::getTagName)
+                .map(kmc -> kmc.getType() == KeywordType.EMOTION
+                        ? emotionTagMapper.getEmotionName(kmc.getRefId())
+                        : situationJobRepository.findById(kmc.getRefId())
+                                .map(sj -> sj.getSituation().getName())
+                                .orElse(""))
+                .filter(name -> !name.isBlank())
                 .toList();
 
         // Gemini 기반 외부 추천 받기

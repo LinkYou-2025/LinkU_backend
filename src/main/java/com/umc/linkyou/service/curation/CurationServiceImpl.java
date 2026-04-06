@@ -3,15 +3,18 @@ package com.umc.linkyou.service.curation;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.CurationMent;
-import com.umc.linkyou.domain.log.CurationTopLog;
+import com.umc.linkyou.domain.enums.KeywordType;
+import com.umc.linkyou.domain.log.KeywordMonthlyCount;
 import com.umc.linkyou.repository.CurationMentRepository;
+import com.umc.linkyou.repository.LogRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.repository.mapping.CurationLikeRepository;
+import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.service.curation.gemini.GeminiTextService;
+import com.umc.linkyou.service.curation.utils.EmotionTagMapper;
 import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.service.curation.linku.ExternalRecommendMaterializer;
 import com.umc.linkyou.web.dto.curation.CreateCurationRequest;
-import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
 import com.umc.linkyou.repository.CurationRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.web.dto.curation.CurationDetailResponse;
@@ -39,12 +42,14 @@ public class CurationServiceImpl implements CurationService {
 
     private final UserRepository userRepository;
     private final CurationRepository curationRepository;
-    private final CurationTopLogService curationTopLogService;
     private final ThumbnailUrlProvider thumbnailUrlProvider;
     private final ExternalRecommendMaterializer externalRecommendMaterializer;
     private final CurationLikeRepository curationLikeRepository;
     private final GeminiTextService geminiTextService;
     private final ObjectMapper objectMapper;
+    private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
+    private final EmotionTagMapper emotionTagMapper;
+    private final SituationJobRepository situationJobRepository;
 
     /**
      * 유저의 큐레이션을 생성하고, 감정/상황 로그 기반 top3 태그를 계산해 저장한다.
@@ -69,9 +74,6 @@ public class CurationServiceImpl implements CurationService {
         // 3. 저장
         curationRepository.save(curation);
 
-        // 4. 상위 3개 로그 저장
-        curationTopLogService.calculateAndSaveTopLogs(userId, curation);
-
         return curation;
     }
     // 유저의 큐레이션을 자동생성
@@ -93,7 +95,6 @@ public class CurationServiceImpl implements CurationService {
                     .build();
 
             curationRepository.save(curation);
-            curationTopLogService.calculateAndSaveTopLogs(user.getId(), curation);
 
             // ✅ 커밋 이후에 외부추천 비동기 실행 (레이스 방지)
             Long cid = curation.getCurationId();
@@ -133,9 +134,6 @@ public class CurationServiceImpl implements CurationService {
 
                 curationRepository.save(curation);
 
-                // Top 로그 계산/저장 (현행 규칙 동일)
-                curationTopLogService.calculateAndSaveTopLogs(user.getId(), curation);
-
                 if (materializeExternal) {
                     // ✅ 커밋 이후로 지연 실행
                     Long cid = curation.getCurationId();
@@ -151,7 +149,6 @@ public class CurationServiceImpl implements CurationService {
         }
     }
 
-    private final CurationTopLogRepository curationTopLogRepository;
     private final CurationMentRepository curationMentRepository;
 
     // 유저의 큐레이션을 detail 정보를 가져옴
@@ -162,25 +159,33 @@ public class CurationServiceImpl implements CurationService {
                 .orElseThrow(() -> new IllegalArgumentException("큐레이션 없음"));
 
         // 0. 사용자 닉네임 가져오기
-        String nickname = curation.getUser().getNickName(); // 연관관계 매핑 필요
+        String nickname = curation.getUser().getNickName();
+        Long userId = curation.getUser().getId();
+        String baseMonth = curation.getMonth();
 
         // 1. 상위 태그 3개 조회
-        List<CurationTopLog> topLogs = curationTopLogRepository.findTop3ByCurationId(curationId);
-        List<String> tagNames = topLogs.stream()
-                .map(CurationTopLog::getTagName)
+        List<String> tagNames = keywordMonthlyCountRepository
+                .findTop3ByUser_IdAndBaseMonthOrderByCountDesc(userId, baseMonth)
+                .stream()
+                .map(kmc -> kmc.getType() == KeywordType.EMOTION
+                        ? emotionTagMapper.getEmotionName(kmc.getRefId())
+                        : situationJobRepository.findById(kmc.getRefId())
+                                .map(sj -> sj.getSituation().getName())
+                                .orElse(""))
                 .toList();
 
-        // 2. 감정 기반 로그 중 count 가장 높은 것 추출 (top3에 없어도 상관없게)
-        CurationTopLog topEmotionLog = curationTopLogRepository.findTopEmotionLogByCurationId(curationId);
+        // 2. 해당 월 감정 중 count 가장 높은 것 추출
+        KeywordMonthlyCount topEmotionCount = keywordMonthlyCountRepository
+                .findTopByUser_IdAndBaseMonthAndTypeOrderByCountDesc(userId, baseMonth, KeywordType.EMOTION);
 
         String emotionName;
         Long emotionId = null;
 
-        if (topEmotionLog == null || topEmotionLog.getCount() < 2) {
+        if (topEmotionCount == null || topEmotionCount.getCount() < 2) {
             emotionName = "평온";
         } else {
-            emotionName = topEmotionLog.getTagName();
-            emotionId = topEmotionLog.getRefId(); // fallback 용
+            emotionName = emotionTagMapper.getEmotionName(topEmotionCount.getRefId());
+            emotionId = topEmotionCount.getRefId();
         }
 
         String header = null;

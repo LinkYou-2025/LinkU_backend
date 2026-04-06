@@ -6,7 +6,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.service.curation.CurationLikeService;
 import com.umc.linkyou.service.curation.CurationService;
-import com.umc.linkyou.service.curation.CurationTopLogService;
 import com.umc.linkyou.service.curation.linku.CurationRecommendBuilderService;
 import com.umc.linkyou.service.curation.linku.InternalLinkCandidateService;
 import com.umc.linkyou.web.dto.curation.*;
@@ -29,7 +28,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/curations")
 public class CurationController {
 
-    private final CurationTopLogService curationTopLogService;
     private final CurationService curationService;
     private final CurationLikeService curationLikeService;
     private final CurationRecommendBuilderService curationRecommendBuilderService;

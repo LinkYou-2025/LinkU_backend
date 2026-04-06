@@ -1,7 +1,6 @@
 package com.umc.linkyou.repository;
 
 import com.umc.linkyou.domain.classification.CurationMent;
-import com.umc.linkyou.domain.enums.CurationTopLogType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

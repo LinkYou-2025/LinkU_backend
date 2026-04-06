@@ -9,8 +9,11 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
+import com.umc.linkyou.domain.enums.KeywordType;
+import com.umc.linkyou.domain.mapping.SituationJob;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
+import com.umc.linkyou.repository.LogRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
@@ -23,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.YearMonth;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -39,6 +43,7 @@ public class LinkuRecommendServiceImpl implements LinkuRecommendService{
     private final SituationRepository situationRepository;
     private final SituationJobRepository situationJobRepository;
     private final AiArticleRepository aiArticleRepository;
+    private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
 
 
     private final SituationCategoryService situationCategoryService;
@@ -83,7 +88,7 @@ public class LinkuRecommendServiceImpl implements LinkuRecommendService{
                 .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
 
         Long jobId = user.getJob().getId();
-        situationJobRepository.findBySituation_IdAndJob_Id(situationId, jobId)
+        SituationJob situationJob = situationJobRepository.findBySituation_IdAndJob_Id(situationId, jobId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
 
         List<UsersLinku> userLinkus = usersLinkuRepository.findByUser_Id(userId);
@@ -94,6 +99,10 @@ public class LinkuRecommendServiceImpl implements LinkuRecommendService{
 
         List<Long> mappedCategories = situationCategoryService.getCategoryIdsBySituation(situationId);
 
+        // 키워드 월별 집계
+        String baseMonth = YearMonth.now().toString();
+        keywordMonthlyCountRepository.upsertCount(userId, KeywordType.EMOTION.name(), emotionId, baseMonth);
+        keywordMonthlyCountRepository.upsertCount(userId, KeywordType.SITUATION.name(), situationJob.getId(), baseMonth);
 
         return new EntitiesContext(userLinkus, mappedCategories, selectedEmotion);
     }

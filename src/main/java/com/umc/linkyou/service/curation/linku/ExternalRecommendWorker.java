@@ -3,13 +3,15 @@ package com.umc.linkyou.service.curation.linku;
 import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
-import com.umc.linkyou.domain.log.CurationTopLog;
+import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.domain.mapping.CurationLinku;
 import com.umc.linkyou.repository.CurationRepository;
-import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
+import com.umc.linkyou.repository.LogRepository.KeywordMonthlyCountRepository;
+import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.curationLinkuRepository.CurationLinkuRepository;
 import com.umc.linkyou.service.curation.gemini.GeminiExternalSearchService;
+import com.umc.linkyou.service.curation.utils.EmotionTagMapper;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,10 +28,12 @@ public class ExternalRecommendWorker {
     private final CurationRepository curationRepository;
     private final CurationLinkuRepository curationLinkuRepository;
     private final InternalLinkCandidateService internalLinkCandidateService;
-    private final CurationTopLogRepository curationTopLogRepository;
+    private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
     private final GeminiExternalSearchService geminiExternalSearchService;
     private final UserRepository userRepository;
     private final LinkToImageService linkToImageService; // 저장 시점에만 사용
+    private final EmotionTagMapper emotionTagMapper;
+    private final SituationJobRepository situationJobRepository;
 
     /**
      * Gemini 호출 → curation_linku(type=EXTERNAL)에 url/title/imageUrl 저장
@@ -49,8 +53,15 @@ public class ExternalRecommendWorker {
         var recentUrls = internalCandidates.stream().map(RecommendedLinkResponse::getUrl).toList();
 
         // 상위 태그
-        var topTags = curationTopLogRepository.findTopTagsByUserId(userId, 3)
-                .stream().map(CurationTopLog::getTagName).toList();
+        var topTags = keywordMonthlyCountRepository.findTop3ByUser_IdOrderByCountDesc(userId)
+                .stream()
+                .map(kmc -> kmc.getType() == KeywordType.EMOTION
+                        ? emotionTagMapper.getEmotionName(kmc.getRefId())
+                        : situationJobRepository.findById(kmc.getRefId())
+                                .map(sj -> sj.getSituation().getName())
+                                .orElse(""))
+                .filter(name -> !name.isBlank())
+                .toList();
 
         // 사용자 프로필
         var user = userRepository.findById(userId).orElseThrow();

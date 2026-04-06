@@ -17,7 +17,9 @@ import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.infra.ai.classifier.GeminiCategoryClassifier;
+import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.repository.EmotionRepository;
+import com.umc.linkyou.repository.LogRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.service.folder.FolderService;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
@@ -36,6 +38,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.YearMonth;
 import java.util.Optional;
 
 @Service
@@ -63,6 +66,7 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
     private final GeminiCategoryClassifier geminiCategoryClassifier;
     private final FolderService folderService;
     private final AiArticleConverter aiArticleConverter;
+    private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
 
     @Override
     @Transactional  //핵심: 도메인분류, ai 분류, 이미지 추가, 폴더간 매핑
@@ -96,6 +100,14 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
 
         // 9) UsersLinku 생성 & 저장
         UsersLinku usersLinku = createUsersLinku(user, linku, emotion, dto.getMemo(), imageUrl);
+
+        // 9-1) 감정 키워드 월별 집계
+        keywordMonthlyCountRepository.upsertCount(
+                userId,
+                KeywordType.EMOTION.name(),
+                emotion.getEmotionId(),
+                YearMonth.now().toString()
+        );
 
         // 10) 폴더 조회
         Folder folder = folderService.findFolder(userId, category);
