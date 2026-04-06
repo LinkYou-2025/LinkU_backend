@@ -17,22 +17,22 @@ public class CurationRecommendBuilderServiceImpl implements CurationRecommendBui
 
     @Override
     public List<RecommendedLinkResponse> buildRecommendedLinks(Long userId, Long curationId) {
-        // 1) 내부 4개
-        var internal = internalLinkCandidateService.getInternalCandidates(userId, curationId, 4);
+        // 1) 내부 2개
+        var internal = internalLinkCandidateService.getInternalCandidates(userId, curationId, 2);
 
-        // 2) 외부(캐시에서 즉시)
+        // 2) 외부 캐시에서 조회
         var external = externalRecommendCacheReader.read(curationId);
 
-        // (선택) 캐시 비었으면 비동기 생성 트리거 → 다음 진입부터 노출
+        // 캐시 비었으면 비동기 생성 트리거 → 다음 진입부터 노출
         if (external.isEmpty()) {
             externalRecommendMaterializer.generateAndStoreExternalAsync(curationId);
         }
 
-        // 3) 합치기(최대 9개, 중복 URL 제거)
-        var all = new ArrayList<RecommendedLinkResponse>(9);
+        // 3) 합치기 (내부 2 + 외부 1, 중복 URL 제거)
+        var all = new ArrayList<RecommendedLinkResponse>(3);
         all.addAll(internal);
         for (var ex : external) {
-            if (all.size() >= 9) break;
+            if (all.size() >= 3) break;
             boolean dup = all.stream().anyMatch(i -> i.getUrl().equals(ex.getUrl()));
             if (!dup) all.add(ex);
         }

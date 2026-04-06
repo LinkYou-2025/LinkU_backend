@@ -43,9 +43,9 @@ public class ExternalRecommendServiceImpl implements ExternalRecommendService {
         String jobName = (user.getJob() != null) ? user.getJob().getName() : null;
         String gender  = (user.getGender() != null) ? user.getGender().name() : null; // MALE / FEMALE
 
-        // 내부 추천으로 최근 URL 확보 (최대 4개)
-        List<RecommendedLinkResponse> internalLinks = internalLinkCandidateService.getInternalCandidates(userId, curationId, 4);
-        int externalLimit = 9 - internalLinks.size();
+        // 내부 추천으로 최근 URL 확보 (최대 2개)
+        List<RecommendedLinkResponse> internalLinks = internalLinkCandidateService.getInternalCandidates(userId, curationId, 2);
+        int externalLimit = 1;
 
         // 최근 URL과 사용자 상위 태그 확보
         List<String> recentUrls = internalLinks.stream()

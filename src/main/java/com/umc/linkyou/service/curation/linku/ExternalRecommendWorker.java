@@ -47,9 +47,9 @@ public class ExternalRecommendWorker {
                 .orElseThrow(() -> new IllegalArgumentException("curation not found"));
         Long userId = curation.getUser().getId();
 
-        // 내부 후보(최근 URL) 4개 → 프롬프트 힌트
-        var internalCandidates = internalLinkCandidateService.getInternalCandidates(userId, curationId, 4);
-        int externalLimit = Math.max(0, 9 - internalCandidates.size());
+        // 내부 후보(최근 URL) 2개 → 프롬프트 힌트
+        var internalCandidates = internalLinkCandidateService.getInternalCandidates(userId, curationId, 2);
+        int externalLimit = 1;
         var recentUrls = internalCandidates.stream().map(RecommendedLinkResponse::getUrl).toList();
 
         // 상위 태그
