@@ -52,7 +52,6 @@ spring:
     gcp:
       project-id: linku-server
       location: us-central1
-
   security:
     oauth2:
       client:
@@ -141,6 +140,8 @@ custom:
 gemini:
   model:
     name: gemini-2.5-flash-lite
+  credentials:
+    path: classpath:gcp-credentials.json
 
 app:
   deeplink:
