@@ -33,6 +33,8 @@ public class UserWithdrawService{
     public Users withdrawUser(Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO) {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+        // 1. 토큰 즉시 무효화
+        refreshTokenManager.deleteAllTokens(userId);
         user.setStatus(UserStatus.INACTIVE);
         user.setInactiveDate(LocalDateTime.now());
         user.setDeleted_reason(deleteReasonDTO.getReason());
