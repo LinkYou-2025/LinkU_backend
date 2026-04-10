@@ -2,7 +2,6 @@ package com.umc.linkyou.service.users;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.config.properties.JwtProperties;
 import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
 import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
@@ -16,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -53,21 +54,19 @@ public class UserWithdrawService{
             return;
         }
 
-        // 1. Redis 삭제 (ID 리스트로 처리)
-        for (Long userId : inactiveUserIds) {
-            refreshTokenManager.deleteAllTokens(userId);
-        }
-
-        // 2. 엔티티 로드
+        // 1. DB 엔티티 삭제 트랜잭션
         List<Users> toDelete = userRepository.findAllById(inactiveUserIds);
-
-        // 3. 연관관계 수동 정리 (추출한 공통 메소드 사용)
-        for (Users user : toDelete) {
-            clearUserAssociations(user);
-        }
-
-        // 4. 부모 엔티티 삭제
         userRepository.deleteAll(toDelete);
+
+        // 2. DB 커밋 후에만 Redis 토큰 삭제
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                for (Long userId : inactiveUserIds) {
+                    refreshTokenManager.deleteAllTokens(userId);
+                }
+            }
+        });
 
         log.info("🗑️ 비활성 사용자 {}명 및 모든 연관 데이터 완전삭제 완료", toDelete.size());
     }
