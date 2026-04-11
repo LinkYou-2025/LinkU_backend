@@ -82,10 +82,6 @@ public class Users extends BaseEntity {
 
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<RecentViewedLinku> recentViewedLinkus = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AuthAccount> authAccounts = new ArrayList<>();
 
     @Builder.Default

@@ -1,36 +1,26 @@
 package com.umc.linkyou.infra.ai.classifier;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.infra.ai.GeminiJsonUtils;
 import com.umc.linkyou.infra.parser.TitleDomainParser;
 import com.umc.linkyou.infra.parser.WebContentExtractor;
+import com.umc.linkyou.service.curation.gemini.GeminiTextService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
 @Component
-public class OpenAICategoryClassifier {
-
-    @Value("${openai.api.url}")
-    private String apiUrl;
-
-    @Value("${openai.api.key}")
-    private String apiKey;
-
-    @Value("${openai.model}")
-    private String model;
+public class GeminiCategoryClassifier {
 
     private final ObjectMapper objectMapper;
     private final TitleDomainParser titleDomainParser;
     private final WebContentExtractor webContentExtractor;
+    private final GeminiTextService geminiTextService;
 
     public CategoryResult classifyCategoryByUrl(String url, List<?> categories) {
         try {
@@ -38,7 +28,6 @@ public class OpenAICategoryClassifier {
             String title = null;
             String pageContent = null;
 
-            // Jsoup 파싱 분리된 클래스 호출
             TitleDomainParser.ParsedPageInfo pageInfo = titleDomainParser.parseUrl(url);
             domain = pageInfo.domain();
             title = pageInfo.title();
@@ -56,13 +45,12 @@ public class OpenAICategoryClassifier {
                 return null;
             }
 
-            // 제목이 없으면 도메인명을 제목으로 대체하고, 카테고리는 기타(16)로 고정,
-            // AI 호출 없이 바로 CategoryResult 반환
+            // 제목이 없으면 도메인명을 제목으로 대체하고, 카테고리는 기타(16)로 고정
             if (title == null || title.isBlank()) {
                 String fallbackTitle = (domain != null && !domain.isBlank()) ? domain : "제목 없음";
                 log.info("[제목 없음] 도메인명으로 대체, AI 분류 호출 생략 → URL: {}", url);
                 CategoryResult fallbackResult = new CategoryResult();
-                fallbackResult.setCategoryId(16L); // '기타' 카테고리 ID
+                fallbackResult.setCategoryId(16L);
                 fallbackResult.setKeywords(fallbackTitle);
                 return fallbackResult;
             }
@@ -106,37 +94,17 @@ public class OpenAICategoryClassifier {
                     pageContent != null ? pageContent : "본문 없음",
                     categoryList);
 
-            Map<String, Object> requestBody = Map.of(
-                    "model", model,
-                    "messages", List.of(
-                            Map.of("role", "system", "content", "당신은 URL의 도메인/제목/본문을 분석해 카테고리와 핵심 키워드를 JSON 형식으로 반환하는 AI입니다."),
-                            Map.of("role", "user", "content", prompt)
-                    ),
-                    "temperature", 0.3
+            String rawContent = geminiTextService.generateText(
+                    "당신은 URL의 도메인/제목/본문을 분석해 카테고리와 핵심 키워드를 JSON 형식으로 반환하는 AI입니다.",
+                    prompt
             );
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(apiKey);
-
-            HttpEntity<String> request = new HttpEntity<>(objectMapper.writeValueAsString(requestBody), headers);
-
-            ResponseEntity<JsonNode> response = new RestTemplate().postForEntity(apiUrl, request, JsonNode.class);
-
-            String rawContent = response.getBody()
-                    .path("choices").get(0)
-                    .path("message").path("content")
-                    .asText();
-
-            // JSON 영역만 추출
-            int startIdx = rawContent.indexOf('{');
-            int endIdx = rawContent.lastIndexOf('}');
-            if (startIdx == -1 || endIdx == -1) {
-                log.warn("[OpenAI 응답 파싱 실패] {}", rawContent);
+            String jsonString = GeminiJsonUtils.extractJson(rawContent);
+            if (jsonString == null) {
+                log.warn("[Gemini 응답 파싱 실패] {}", rawContent);
                 return null;
             }
 
-            String jsonString = rawContent.substring(startIdx, endIdx + 1);
             return objectMapper.readValue(jsonString, CategoryResult.class);
 
         } catch (Exception e) {

@@ -52,7 +52,6 @@ spring:
     gcp:
       project-id: linku-server
       location: us-central1
-
   security:
     oauth2:
       client:
@@ -131,21 +130,6 @@ cloud:
 
 auth-code-expiration-millis: 600000
 
-openai:
-  api:
-    key: ${OPENAI_API_KEY}
-    url: ${OPENAI_API_URL}
-  model: ${OPENAI_MODEL}
-
-perplexity:
-  api:
-    key: ${PERPLEXITY_API_KEY}
-    url: ${PERPLEXITY_API_URL}
-  model: ${PERPLEXITY_MODEL}
-  temperature: 0.2
-  max-tokens: 800
-  http-timeout-ms: 15000
-
 custom:
   search:
     api:
@@ -155,7 +139,9 @@ custom:
 
 gemini:
   model:
-    name: gemini-1.5-flash-001
+    name: gemini-2.5-flash-lite
+  credentials:
+    path: classpath:gcp-credentials.json
 
 app:
   deeplink:

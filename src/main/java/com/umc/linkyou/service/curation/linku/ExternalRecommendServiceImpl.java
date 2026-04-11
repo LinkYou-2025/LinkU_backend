@@ -5,29 +5,27 @@ import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepositoryCustom;
-import com.umc.linkyou.service.curation.gpt.GptService;
 import com.umc.linkyou.domain.log.CurationTopLog;
-// import com.umc.linkyou.service.curation.perplexity.PerplexityExternalSearchService;
 import com.umc.linkyou.service.curation.gemini.GeminiExternalSearchService;
 import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExternalRecommendServiceImpl implements ExternalRecommendService {
 
     private final InternalLinkCandidateService internalLinkCandidateService;
     private final CurationTopLogRepository curationTopLogRepository;
-    private final GptService gptService;
     private final DomainRepositoryCustom domainRepository;
     private final LinkToImageService linkToImageService;
-    // private final PerplexityExternalSearchService perplexityExternalSearchService; // Perplexity 사용
-    private final GeminiExternalSearchService geminiExternalSearchService; // Gemini 사용
+    private final GeminiExternalSearchService geminiExternalSearchService;
     private final UserRepository userRepository;
 
     @Override
@@ -53,7 +51,7 @@ public class ExternalRecommendServiceImpl implements ExternalRecommendService {
                 .map(CurationTopLog::getTagName)
                 .toList();
 
-        // Perplexity 기반 외부 추천 받기
+        // Gemini 기반 외부 추천 받기
         List<RecommendedLinkResponse> external;
         try {
             external = geminiExternalSearchService.searchExternalLinks(
@@ -65,7 +63,7 @@ public class ExternalRecommendServiceImpl implements ExternalRecommendService {
             );
         } catch (Exception e) {
             // 🔴 어떤 예외가 와도 외부는 포기하고 빈 리스트로 폴백
-            System.err.println("[Perplexity] 외부 추천 실패: " + e.getMessage());
+            log.warn("[Gemini] 외부 추천 실패: {}", e.getMessage());
             external = List.of();
         }
 

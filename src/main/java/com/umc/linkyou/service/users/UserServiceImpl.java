@@ -232,7 +232,9 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UserHandler(ErrorStatus._LOGIN_FAILED));
 
         Long userId = user.getId();
-
+        if (user.getStatus() == UserStatus.INACTIVE) {
+            throw new GeneralException(ErrorStatus._USER_INACTIVE); // INACTIVE 유저는 로그인 불가
+        }
         // 소셜 전용 계정 차단 (GENERAL AuthAccount 없음)
         boolean hasGeneralAccount = authAccountRepository.existsByUserIdAndProvider(
                 user.getId(), Provider.GENERAL);
@@ -317,6 +319,7 @@ public class UserServiceImpl implements UserService {
             throw new GeneralException(ErrorStatus._BAD_REQUEST);
         }
 
+
         String raw = jwtTokenProvider.normalizeStrict(refreshToken);
 
         // 1) 서명/만료 검증
@@ -327,9 +330,16 @@ public class UserServiceImpl implements UserService {
         String email = claims.getSubject();
         String providerStr = claims.get("provider", String.class);  // String 그대로!
 
-        Long userId = authAccountRepository.findUserByEmailAndProvider(email,Provider.valueOf(providerStr))
-                .map(Users::getId)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
+        Users user = authAccountRepository.findUserByEmailAndProvider(
+                email, Provider.valueOf(providerStr)
+        ).orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
+
+        Long userId = user.getId();
+
+        // 3) INACTIVE 사용자 차단
+        if (user.getStatus() == UserStatus.INACTIVE) {
+            throw new GeneralException(ErrorStatus._USER_INACTIVE);
+        }
 
         String oldId = jwtTokenProvider.hmac(raw);
 
@@ -553,8 +563,6 @@ public class UserServiceImpl implements UserService {
             throw e;
         }
     }
-
-
 
 
 }

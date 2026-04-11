@@ -7,6 +7,7 @@ import com.umc.linkyou.domain.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,4 +52,11 @@ public class UsersLinku extends BaseEntity {
     public Boolean getAiExist() {
         return this.aiExist;
     }
+
+    @Builder.Default
+    @Column(name = "view_count", nullable = false)
+    private int viewCount = 0;
+
+    @Column(name = "last_viewed_at")
+    private LocalDateTime lastViewedAt;
 }

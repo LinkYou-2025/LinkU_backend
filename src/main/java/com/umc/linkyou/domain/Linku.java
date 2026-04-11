@@ -42,4 +42,8 @@ public class Linku extends BaseEntity {
 
     @OneToMany(mappedBy = "linku", cascade = CascadeType.ALL)
     private List<UsersLinku> usersLinku = new ArrayList<>();
+
+    @Builder.Default
+    @Column(name = "total_view_count", nullable = false)
+    private long totalViewCount = 0L;
 }

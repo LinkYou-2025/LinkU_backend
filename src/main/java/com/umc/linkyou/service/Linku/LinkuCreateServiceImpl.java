@@ -16,7 +16,7 @@ import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.infra.ai.classifier.OpenAICategoryClassifier;
+import com.umc.linkyou.infra.ai.classifier.GeminiCategoryClassifier;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.service.folder.FolderService;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
@@ -60,7 +60,7 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
     private static final Long DEFAULT_DOMAIN_ID = 1L;
 
     private final SituationCategoryService situationCategoryService;
-    private final OpenAICategoryClassifier openAiCategoryClassifier;
+    private final GeminiCategoryClassifier geminiCategoryClassifier;
     private final FolderService folderService;
     private final AiArticleConverter aiArticleConverter;
 
@@ -97,9 +97,6 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
         // 9) UsersLinku 생성 & 저장
         UsersLinku usersLinku = createUsersLinku(user, linku, emotion, dto.getMemo(), imageUrl);
 
-        // 9-1) 링크 생성 후 "최근 열람 링크"에도 기록 추가
-        updateRecentViewedLinku(userId, linku.getLinkuId());
-
         // 10) 폴더 조회
         Folder folder = folderService.findFolder(userId, category);
 
@@ -130,8 +127,8 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
     public static record AiCategoryInfo(Category category, String aiKeywords) {}
 
     public AiCategoryInfo resolveCategoryAndKeywords(String normalizedLink) {
-        OpenAICategoryClassifier.CategoryResult aiResult =
-                openAiCategoryClassifier.classifyCategoryByUrl(normalizedLink, categoryRepository.findAll());
+        GeminiCategoryClassifier.CategoryResult aiResult =
+                geminiCategoryClassifier.classifyCategoryByUrl(normalizedLink, categoryRepository.findAll());
         Long aiCategoryId = (aiResult != null) ? aiResult.getCategoryId() : null;
         String aiKeywords = (aiResult != null) ? aiResult.getKeywords() : null;
         Category category = Optional.ofNullable(aiCategoryId)
@@ -197,9 +194,4 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
         return usersLinkuRepository.save(usersLinku);
     }
 
-    // 최근 열람 링크 기록 추가 메서드는 필요에 따라 아래에 구현
-
-    private void updateRecentViewedLinku(Long userId, Long linkuId) {
-        // 구현 필요 시 작성
-    }
 }
