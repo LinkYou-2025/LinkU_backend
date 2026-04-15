@@ -2,8 +2,6 @@ name: linkyou
 on:
   push:
     branches: [ "develop" ]
-  pull_request:
-    branches: [ "develop" ]
   workflow_dispatch:
 permissions:
   contents: read
@@ -36,7 +34,12 @@ jobs:
           echo "$APPLICATION" > src/main/resources/application-secret.properties
         env:
           APPLICATION: ${{ secrets.APPLICATION }}
-
+      - name: create GCP credentials json file
+        run: |
+          echo "${{ secrets.GCP_CREDENTIALS_BASE64 }}" | base64 --decode > src/main/resources/gcp-credentials.json
+      - name: create firebase admin json file
+        run: |
+          echo "${{ secrets.FIREBASE_ADMIN_BASE64 }}" | base64 --decode > src/main/resources/linku-firebase-adminsdk.json
       - name: Create assetlinks.json file
         run: |
           mkdir -p src/main/resources/static/.well-known

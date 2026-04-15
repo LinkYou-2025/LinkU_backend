@@ -9,7 +9,6 @@ import com.umc.linkyou.repository.CurationRepository;
 import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.curationLinkuRepository.CurationLinkuRepository;
-// import com.umc.linkyou.service.curation.perplexity.PerplexityExternalSearchService; //Perplexity 사용
 import com.umc.linkyou.service.curation.gemini.GeminiExternalSearchService;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
@@ -28,13 +27,12 @@ public class ExternalRecommendWorker {
     private final CurationLinkuRepository curationLinkuRepository;
     private final InternalLinkCandidateService internalLinkCandidateService;
     private final CurationTopLogRepository curationTopLogRepository;
-    // private final PerplexityExternalSearchService perplexityExternalSearchService; // Perplexity 사용
     private final GeminiExternalSearchService geminiExternalSearchService;
     private final UserRepository userRepository;
     private final LinkToImageService linkToImageService; // 저장 시점에만 사용
 
     /**
-     * Perplexity 호출 → curation_linku(type=EXTERNAL)에 url/title/imageUrl 저장
+     * Gemini 호출 → curation_linku(type=EXTERNAL)에 url/title/imageUrl 저장
      * 트랜잭션 경계는 이 Worker에서 관리한다.
      */
     @Transactional
@@ -59,16 +57,16 @@ public class ExternalRecommendWorker {
         String jobName = user.getJob() != null ? user.getJob().getName() : null;
         String gender  = user.getGender() != null ? user.getGender().name() : null;
 
-        // Perplexity
+        // Gemini
         List<RecommendedLinkResponse> external;
         try {
             long t0 = System.currentTimeMillis();
             external = geminiExternalSearchService.searchExternalLinks(
                     recentUrls, topTags, externalLimit, jobName, gender
             );
-            log.info("[Perplexity] elapsed={}ms", System.currentTimeMillis() - t0);
+            log.info("[Gemini] elapsed={}ms", System.currentTimeMillis() - t0);
         } catch (Exception e) {
-            log.warn("[Perplexity] 외부 추천 실패: {}", e.toString());
+            log.warn("[Gemini] 외부 추천 실패", e);
             external = List.of();
         }
 

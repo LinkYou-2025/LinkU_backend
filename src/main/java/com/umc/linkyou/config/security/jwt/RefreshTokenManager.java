@@ -19,6 +19,7 @@ public class RefreshTokenManager {
     private final ObjectMapper objectMapper;  //JSON 직렬화/역직렬화
     private static final int MAX_SESSION = 3; //동시 접속 인원 = 3
 
+    //세션초과체크 + 삭제 + 신규추가 + TTL설정
     private static final String ADD_TOKEN_SCRIPT = """
         local key = KEYS[1]
         local newField = ARGV[1]
@@ -116,7 +117,7 @@ public class RefreshTokenManager {
         redisTemplate.delete(key);
     }
 
-    // HGET으로 value 읽고 HDEL로 삭제를 원자적으로 처리
+    // 토큰조회 + 삭제 :HGET으로 value 읽고 HDEL로 삭제를 원자적으로 처리
     private static final String CONSUME_TOKEN_SCRIPT = """
     local key = KEYS[1]
     local field = ARGV[1]

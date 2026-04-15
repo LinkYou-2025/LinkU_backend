@@ -5,6 +5,8 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.repository.curationLinkuRepository.UsersLinkuRepositoryCustom;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -22,4 +24,12 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long> {
     List<UsersLinku> findByUser_Id(Long userId);
 
     List<UsersLinku> findAllByUserIdAndCreatedAtBetween(Long userId, LocalDateTime start, LocalDateTime end);
+
+    @Modifying
+    @Query("UPDATE UsersLinku ul SET ul.viewCount = ul.viewCount + 1, ul.lastViewedAt = :viewedAt WHERE ul.userLinkuId = :id")
+    void incrementViewCount(Long id, LocalDateTime viewedAt);
+
+    List<UsersLinku> findTop10ByUser_IdAndLastViewedAtIsNotNullOrderByLastViewedAtDesc(Long userId);
+
+    List<UsersLinku> findByUser_IdAndLastViewedAtIsNull(Long userId);
 }

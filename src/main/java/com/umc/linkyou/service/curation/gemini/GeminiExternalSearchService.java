@@ -2,23 +2,19 @@ package com.umc.linkyou.service.curation.gemini;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.vertexai.VertexAI;
-import com.google.cloud.vertexai.api.GenerateContentResponse;
-import com.google.cloud.vertexai.api.GenerationConfig;
-import com.google.cloud.vertexai.api.Tool;
-import com.google.cloud.vertexai.api.GoogleSearchRetrieval;
-import com.google.cloud.vertexai.generativeai.ContentMaker;
-import com.google.cloud.vertexai.generativeai.GenerativeModel;
-import com.google.cloud.vertexai.generativeai.ResponseHandler;
+import com.google.genai.Client;
+import com.google.genai.types.Content;
+import com.google.genai.types.GenerateContentConfig;
+import com.google.genai.types.GoogleSearch;
+import com.google.genai.types.Part;
+import com.google.genai.types.Tool;
+import com.umc.linkyou.infra.ai.GeminiJsonUtils;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,73 +24,18 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class GeminiExternalSearchService {
 
+    private final Client geminiClient;
     private final ObjectMapper objectMapper;
-
-    // application.properties에서 값 가져오기
-    @Value("${spring.cloud.gcp.project-id}")
-    private String projectId;
-
-    @Value("${spring.cloud.gcp.location}")
-    private String location;
 
     @Value("${gemini.model.name}")
     private String modelName;
 
-    private VertexAI vertexAI;
-    private GenerativeModel model;
+    // 구글 검색 도구(Grounding) 설정
+    private static final Tool GOOGLE_SEARCH_TOOL = Tool.builder()
+            .googleSearch(GoogleSearch.builder().build())
+            .build();
 
-    /**
-     * 서버 시작 시 Gemini 모델과 연결 설정 (Client 역할 대체)
-     */
-    @PostConstruct
-    public void init() {
-        try {
-            // 1. Vertex AI 클라이언트 초기화
-            // (참고: 로컬 개발 시 환경변수 GOOGLE_APPLICATION_CREDENTIALS 설정 필수)
-            this.vertexAI = new VertexAI(projectId, location);
-
-            // 2. 구글 검색 도구(Grounding) 설정
-            Tool googleSearchTool = Tool.newBuilder()
-                    .setGoogleSearchRetrieval(
-                            GoogleSearchRetrieval.newBuilder().build()
-                    )
-                    .build();
-
-            // 3. 생성 설정 (JSON 포맷 강제 등)
-            GenerationConfig generationConfig = GenerationConfig.newBuilder()
-                    .setMaxOutputTokens(2048)
-                    .setTemperature(0.9f) // 창의성(다양한 검색 결과)을 위해 높임
-                    .setResponseMimeType("application/json") // JSON 응답 강제
-                    .build();
-
-            // 4. 모델 생성
-            this.model = new GenerativeModel.Builder()
-                    .setModelName(modelName)
-                    .setVertexAi(vertexAI)
-                    .setTools(Collections.singletonList(googleSearchTool))
-                    .setGenerationConfig(generationConfig)
-                    .build();
-
-            log.info("✅ Gemini Search Service 초기화 완료 (Project: {}, Location: {})", projectId, location);
-
-        } catch (Exception e) {
-            log.error("❌ Gemini 초기화 실패: GCP 인증 파일이나 설정을 확인하세요.", e);
-        }
-    }
-
-    /**
-     * 서버 종료 시 리소스 정리
-     */
-    @PreDestroy
-    public void close() {
-        if (this.vertexAI != null) {
-            this.vertexAI.close();
-        }
-    }
-
-    /**
-     * 외부 링크 추천 기능 메인 로직
-     */
+    // 외부 링크 추천 기능 메인 로직
     public List<RecommendedLinkResponse> searchExternalLinks(
             List<String> recentUrls,
             List<String> tagNames,
@@ -109,40 +50,80 @@ public class GeminiExternalSearchService {
                 .distinct()
                 .collect(Collectors.joining(", "));
 
-        // 1. 시스템 프롬프트 (규칙 정의)
+        // 시스템 프롬프트 (규칙 정의)
         String systemInstruction = """
-            You are a professional content curator for '%s'.
-            Target Audience Job: %s
-            
-            [CRITICAL RULES]
-            1. Use Google Search to find REAL, LIVE web pages.
-            2. EXCLUDE content from these domains: [%s] (User already saw them).
-            3. Find NEW content (Published within the last 1 year preferred).
-            4. Output must be a pure JSON Array.
-            5. Fields: "title", "url", "summary".
-            """.formatted(safe(jobName), safe(jobName), excludedDomains);
+            You are a WEB SEARCH assistant for personalized content curation.
 
-        // 2. 유저 프롬프트 (실제 요청)
+            AUDIENCE PROFILE:
+            - Job (primary): %s
+            - Gender: %s
+            - Locale: Korea (KR), language: Korean
+
+            TARGETING RULES (Very Important):
+            - Optimize for the user's *job context*: tasks, tools, workflows, skill growth, portfolio/career relevance.
+            - Calibrate *difficulty*: beginner/intermediate/professional depending on common needs of the given job (prefer actionable and recent know-how).
+            - Consider gender only to avoid unsafe/inappropriate content; DO NOT stereotype interests by gender.
+
+            QUALITY / SAFETY RULES:
+            - Return ONLY a JSON array, no prose/markdown/code fences.
+            - Exactly %d items.
+            - Each item: {"title":"...", "url":"..."} (both non-empty).
+            - URL must be publicly reachable now (HTTP/HTTPS; no 404/401/502).
+            - Prefer reputable Korean sources; avoid login/paywalls/spam/clickbait/aggregators.
+            - Prefer content published/updated within the last 24 months unless clearly evergreen.
+            - Exclude NSFW, gambling, high-risk financial advice, medical claims without reputable sources.
+            - EXCLUDE content from these domains: [%s] (User already saw them).
+
+            DIVERSITY & RELEVANCE:
+            - Cover a *diverse set of domains* (avoid many results from the same site).
+            - Maximize *topical relevance* to the user's tags and job. If a conflict, job relevance wins.
+            - Titles should reflect practical value (guide, checklist, tutorial, case study, trend report).
+
+            OUTPUT: JSON array only.
+            """.formatted(safe(jobName), safe(gender), limit, excludedDomains);
+
+        // 유저 프롬프트 (실제 요청)
         String userPrompt = """
-            Find %d high-quality, practical links about: %s.
-            Focus on tutorials, trends, or engineering blogs.
-            Exclude generic wikis.
-            """.formatted(limit, String.join(", ", tagNames));
+            다음은 사용자가 최근 본 링크(절대 재사용 금지):
+            %s
+
+            사용자 중요 태그: %s
+
+            요구사항:
+            - 위 태그와 직무(%s)에 직결되는 주제 위주로, 실제 존재하는 공개 웹페이지를 정확히 %d개 추천.
+            - 실무 적용 가능성 높은 콘텐츠(튜토리얼/체크리스트/가이드/트렌드 요약/사례연구) 선호.
+            - 제목은 과장/낚시성 표현을 피하고 핵심 주제를 명확히 드러내는 자료만.
+
+            형식: [{"title":"...","url":"..."}]
+            """.formatted(
+                String.join("\n", recentUrls),
+                (tagNames == null || tagNames.isEmpty()) ? "(없음)" : String.join(", ", tagNames),
+                safe(jobName),
+                limit
+        );
 
         try {
-            // 3. Gemini에게 질문 (여기가 Client.chat() 역할)
-            GenerateContentResponse response = model.generateContent(
-                    ContentMaker.fromMultiModalData(systemInstruction + "\n\n" + userPrompt)
-            );
+            GenerateContentConfig config = GenerateContentConfig.builder()
+                    .systemInstruction(Content.fromParts(Part.fromText(systemInstruction)))
+                    .tools(GOOGLE_SEARCH_TOOL)
+                    .maxOutputTokens(2048)
+                    .temperature(0.9f)
+                    .build();
 
-            // 4. 응답 텍스트 추출
-            String jsonResponse = ResponseHandler.getText(response);
-            log.info("Gemini 응답: {}", jsonResponse);
+            String rawResponse = geminiClient.models.generateContent(modelName, userPrompt, config).text();
+            log.info("Gemini 응답: {}", rawResponse);
 
-            // 5. JSON 파싱
+            // 마크다운 펜스 등 제거 후 배열 추출
+            String jsonResponse = GeminiJsonUtils.extractJsonArray(rawResponse);
+            if (jsonResponse == null) {
+                log.warn("Gemini 응답에서 JSON 배열 추출 실패: {}", rawResponse);
+                return Collections.emptyList();
+            }
+
+            // JSON 파싱
             List<Map<String, String>> parsed = objectMapper.readValue(jsonResponse, new TypeReference<>() {});
 
-            // 6. DTO 변환
+            // DTO 변환
             return parsed.stream()
                     .filter(m -> m.get("url") != null && !m.get("url").isBlank())
                     .limit(limit)

@@ -140,6 +140,7 @@ public class LinkuConverter {
         return LinkuResponseDTO.LinkuSimpleDTO.builder()
                 .linkuId(linku.getLinkuId())
                 .categoryId(linku.getCategory() != null ? linku.getCategory().getCategoryId() : null)
+                .linku(linku.getLinku())
                 .memo(usersLinku != null ? usersLinku.getMemo() : null)
                 .emotionId(usersLinku != null && usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
                 .title(linku.getTitle())
@@ -147,6 +148,7 @@ public class LinkuConverter {
                 .domainImageUrl(domain != null ? domain.getImageUrl() : null)
                 .linkuImageUrl(usersLinku != null ? usersLinku.getImageUrl() : null)
                 .aiArticleExists(aiArticleExists)
+                .lastViewedAt(usersLinku != null ? usersLinku.getLastViewedAt() : null)
                 .build();
     } //리스트로 반환할때 쓰이는 것
     public static LinkuResponseDTO.LinkuSimpleDTO toLinkuSimpleDTO(UsersLinku usersLinku) {
