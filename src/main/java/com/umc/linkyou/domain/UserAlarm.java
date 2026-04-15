@@ -1,19 +1,21 @@
 package com.umc.linkyou.domain;
 
 import com.umc.linkyou.domain.common.BaseEntity;
-import com.umc.linkyou.domain.enums.AlarmType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Column;
 import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -26,56 +28,49 @@ public class UserAlarm extends BaseEntity {
     @Column(name = "user_alarm_id")
     private Long id;
 
-    @Column(name = "user_id")
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private Users user;
 
-    @Enumerated(EnumType.STRING)
-    private AlarmType type;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "alarm_id", nullable = false)
+    private Alarm alarm;
 
-    @Column(name = "title")
-    private String title;
-
-    @Column(name = "body")
-    private String body;
-
-    @Column(name = "target_id")
-    private Long targetId;
-
-    @Column(name = "is_read")
+    @Column(name = "is_read", nullable = false)
     private boolean isRead;
+
+    @Column(name = "read_at")
+    private LocalDateTime readAt;
+
+    @Column(name = "delivered_at", nullable = false)
+    private LocalDateTime deliveredAt;
 
     @Builder(access = AccessLevel.PRIVATE)
     private UserAlarm(
-            Long userId,
-            AlarmType type,
-            String title,
-            String body,
-            Long targetId
+            Users user,
+            Alarm alarm,
+            LocalDateTime deliveredAt
     ) {
-        this.userId = userId;
-        this.type = type;
-        this.title = title;
-        this.body = body;
-        this.targetId = targetId;
+        this.user = user;
+        this.alarm = alarm;
         this.isRead = false;
+        this.deliveredAt = deliveredAt;
     }
 
 
     public static UserAlarm create(
-            Long userId,
-            AlarmType type,
-            Long targetId
+            Users user,
+            Alarm alarm
     ) {
         return UserAlarm.builder()
-                .userId(userId)
-                .type(type)
-                .title(type.getTitle())
-                .body(type.getBody())
-                .targetId(targetId)
+                .user(user)
+                .alarm(alarm)
+                .deliveredAt(LocalDateTime.now())
                 .build();
     }
 
     public void markAsRead() {
         this.isRead = true;
+        this.readAt = LocalDateTime.now();
     }
 }
