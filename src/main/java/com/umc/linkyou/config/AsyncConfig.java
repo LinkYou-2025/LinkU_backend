@@ -27,4 +27,18 @@ public class AsyncConfig {
     public Semaphore externalRecoLimiter() {
         return new Semaphore(6); // 동시에 6개만 실행
     }
+
+
+    @Bean(name = "fcmTaskExecutor")
+    public Executor fcmTaskExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(2);
+        ex.setMaxPoolSize(4);
+        ex.setQueueCapacity(500);
+        ex.setThreadNamePrefix("fcm-");
+        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        ex.initialize();
+        return ex;
+    }
+
 }
