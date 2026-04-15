@@ -1,94 +1,121 @@
 package com.umc.linkyou.service.alarm;
 
-
 import com.google.firebase.messaging.*;
+import com.umc.linkyou.apiPayload.code.status.alarm.AlarmErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.UsersFcmToken;
+import com.umc.linkyou.domain.enums.AlarmSettingType;
 import com.umc.linkyou.repository.UserFcmTokenRepository;
 import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
 
 @Service
 @RequiredArgsConstructor
-public class FcmServiceImpl implements FcmService {
+public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
 
-    // 앱 아이콘/색 설정
-    private final String APP_ICON = "notice_icon";
-    private final String COLOR_CODE = "#FF0000";
-    private final String CLICK_ACTION = "notice_icon_click";
+    private static final String APP_ICON = "notice_icon";
+    private static final String COLOR_CODE = "#FF0000";
+    private static final String CLICK_ACTION = "notice_icon_click";
 
     private final FirebaseMessaging firebaseMessaging;
     private final UserFcmTokenRepository userFcmTokenRepository;
 
-    // 사용자 단일 메세지
+    // 사용자 전체 기기에 멀티캐스트 전송
     @Override
     @Transactional
-    public void sendFcmMessage(Long userId, FcmSendRequestDTO requestDTO) throws FirebaseMessagingException {
-        // 여러 기기에 보낼 수 있으므로 리스트 처리
-        List<UsersFcmToken> activeTokens = userFcmTokenRepository.findAllByUser_IdAndIsActiveTrue(userId);
-        sendMessagesToTokens(activeTokens, requestDTO);
+    public void sendToUser(Long userId, FcmSendRequestDTO requestDTO) {
+        List<UsersFcmToken> activeTokens = userFcmTokenRepository.findAllActiveAndNotExpiredByUserId(userId, LocalDateTime.now());
+        if (activeTokens.isEmpty()) return;
+
+        List<String> tokenStrings = activeTokens.stream()
+                .map(UsersFcmToken::getFcmToken)
+                .toList();
+
+        MulticastMessage message = buildMulticastMessage(tokenStrings, requestDTO);
+
+        try {
+            BatchResponse response = firebaseMessaging.sendEachForMulticast(message);
+            handleBatchResponse(response, activeTokens);
+        } catch (FirebaseMessagingException e) {
+            throw new GeneralException(AlarmErrorStatus.ALARM_SEND_FAILED);
+        }
     }
 
-    // 브로드캐스트 메시지
+    // 단일 토큰 전송 (테스트용)
     @Override
-    @Transactional
-    public void sendTopicFcmMessage(FcmSendRequestDTO requestDTO) throws FirebaseMessagingException {
-        List<UsersFcmToken> activeTokens = userFcmTokenRepository.findAllByIsActiveTrue();
-        sendMessagesToTokens(activeTokens, requestDTO);
+    public void sendToToken(String token, FcmSendRequestDTO requestDTO) {
+        try {
+            firebaseMessaging.send(buildMessage(token, requestDTO));
+        } catch (FirebaseMessagingException e) {
+            throw new GeneralException(AlarmErrorStatus.ALARM_SEND_FAILED);
+        }
     }
 
-    // 주제 구독
+    // 토픽 브로드캐스트 전송
     @Override
-    public void subscribeTopic(String token, String topic) throws FirebaseMessagingException {
-        	firebaseMessaging.subscribeToTopic(
-                    singletonList(token),
-                    topic
-            );
+    public void sendToTopic(FcmSendRequestDTO requestDTO) {
+        try {
+            firebaseMessaging.send(buildTopicMessage(resolveTopic(requestDTO), requestDTO));
+        } catch (FirebaseMessagingException e) {
+            throw new GeneralException(AlarmErrorStatus.ALARM_SEND_FAILED);
+        }
     }
 
-    // 주제 구독 취소
+    // 토픽 구독 상태 일괄 업데이트
     @Override
-    public void unsubscribeTopic(String token, String topic) throws FirebaseMessagingException {
-        firebaseMessaging.unsubscribeFromTopic(
-                singletonList(token),
-                topic
-        );
-    }
-
-    // 토큰 전송 실패를 판단
-    private boolean isPermanentTokenFailure(FirebaseMessagingException exception) {
-        MessagingErrorCode errorCode = exception.getMessagingErrorCode();
-        return errorCode == MessagingErrorCode.UNREGISTERED || errorCode == MessagingErrorCode.INVALID_ARGUMENT;
-    }
-
-    // 활성화된 토큰에 메시지 전송 / 실패 시 영구적 실패는 토큰 비활성화 / 일시적 실패는 마지막 예외 저장 후 반복 종료
-    private void sendMessagesToTokens(List<UsersFcmToken> activeTokens, FcmSendRequestDTO requestDTO)
-            throws FirebaseMessagingException {
-        FirebaseMessagingException lastTransientException = null;
-
-        for (UsersFcmToken userFcmToken : activeTokens) {
-            Message message = buildMessage(userFcmToken.getFcmToken(), requestDTO);
-
+    public void updateTopicSubscription(String token, List<String> topics, boolean shouldSubscribe) {
+        for (String topic : topics) {
             try {
-                firebaseMessaging.send(message);
-                userFcmToken.activate();
-            } catch (FirebaseMessagingException exception) {
-                if (isPermanentTokenFailure(exception)) {
-                    userFcmToken.deactivate();
-                    continue;
+                if (shouldSubscribe) {
+                    firebaseMessaging.subscribeToTopic(singletonList(token), topic);
+                } else {
+                    firebaseMessaging.unsubscribeFromTopic(singletonList(token), topic);
                 }
-                lastTransientException = exception;
+            } catch (FirebaseMessagingException e) {
+                throw new GeneralException(AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED);
             }
         }
+    }
 
-        if (lastTransientException != null) {
-            throw lastTransientException;
+    // 멀티캐스트 응답 처리 - 영구 실패 토큰 비활성화
+    private void handleBatchResponse(BatchResponse response, List<UsersFcmToken> tokens) {
+        List<SendResponse> responses = response.getResponses();
+        for (int i = 0; i < responses.size(); i++) {
+            SendResponse sendResponse = responses.get(i);
+            if (sendResponse.isSuccessful()) {
+                tokens.get(i).activate();
+            } else {
+                MessagingErrorCode errorCode = sendResponse.getException().getMessagingErrorCode();
+                if (errorCode == MessagingErrorCode.UNREGISTERED
+                        || errorCode == MessagingErrorCode.INVALID_ARGUMENT) {
+                    tokens.get(i).deactivate();
+                }
+            }
         }
+    }
+
+    private MulticastMessage buildMulticastMessage(List<String> tokens, FcmSendRequestDTO requestDTO) {
+        return MulticastMessage.builder()
+                .addAllTokens(tokens)
+                .putData("title", requestDTO.getTitle())
+                .putData("body", requestDTO.getMessage())
+                .putData("type", requestDTO.getType().name())
+                .putData("targetId", requestDTO.getTargetId().toString())
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setNotification(AndroidNotification.builder()
+                                .setIcon(APP_ICON)
+                                .setColor(COLOR_CODE)
+                                .setClickAction(CLICK_ACTION)
+                                .build())
+                        .build())
+                .build();
     }
 
     private Message buildMessage(String token, FcmSendRequestDTO requestDTO) {
@@ -103,8 +130,42 @@ public class FcmServiceImpl implements FcmService {
                                 .setIcon(APP_ICON)
                                 .setColor(COLOR_CODE)
                                 .setClickAction(CLICK_ACTION)
-                                .build()).build()
-                )
+                                .build())
+                        .build())
                 .build();
+    }
+
+    private Message buildTopicMessage(String topic, FcmSendRequestDTO requestDTO) {
+        Message.Builder builder = Message.builder()
+                .putData("title", requestDTO.getTitle())
+                .putData("body", requestDTO.getMessage())
+                .putData("type", requestDTO.getType().name())
+                .putData("targetId", requestDTO.getTargetId().toString())
+                .setTopic(topic);
+
+        if (requestDTO.getContent() != null) {
+            builder.putData("content", requestDTO.getContent());
+        }
+
+        return builder
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setNotification(AndroidNotification.builder()
+                                .setIcon(APP_ICON)
+                                .setColor(COLOR_CODE)
+                                .setClickAction(CLICK_ACTION)
+                                .build())
+                        .build())
+                .build();
+    }
+
+    private String resolveTopic(FcmSendRequestDTO requestDTO) {
+        AlarmSettingType settingType = requestDTO.getType().getSettingType();
+        return switch (settingType) {
+            case NOTICE -> "alarm-notice";
+            case LINK -> "alarm-link";
+            case FOLDER -> "alarm-folder";
+            case CURATION -> "alarm-curation";
+            case ALL -> throw new GeneralException(AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED);
+        };
     }
 }
