@@ -7,8 +7,7 @@ import com.umc.linkyou.config.properties.JwtProperties;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
 import com.umc.linkyou.converter.UserConverter;
-import com.umc.linkyou.domain.AuthAccount;
-import com.umc.linkyou.domain.EmailVerification;
+import com.umc.linkyou.domain.*;
 import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.enums.Provider;
@@ -19,7 +18,6 @@ import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Interests;
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.classification.Purposes;
-import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.*;
@@ -88,6 +86,7 @@ public class UserServiceImpl implements UserService {
     private final AuthAccountRepository authAccountRepository;
 
     private final JwtProperties jwtProperties;
+    private final AlarmSettingRepository alarmSettingRepository;
 
     @Value("${jwt.hmac-secret}")
     private String hmacSecret;
@@ -122,6 +121,8 @@ public class UserServiceImpl implements UserService {
                     // Purposes / Interests 설정
                     setupUserPurposes(newUser, request.getPurposeList());
                     setupUserInterests(newUser, request.getInterestList());
+
+                    setupUserAlarmSetting(newUser);
 
                     return userRepository.save(newUser);
                 });
@@ -191,6 +192,16 @@ public class UserServiceImpl implements UserService {
                     .map(name -> new Interests(name, user))
                     .forEach(interest -> user.getInterests().add(interest));
         }
+    }
+
+    // 알림 설정
+    private void setupUserAlarmSetting(Users user) {
+        // 기본 알림 설정 생성
+        AlarmSetting defaultSetting = AlarmSetting.createDefault(user);
+
+        // 알람 설정 저장
+        alarmSettingRepository.save(defaultSetting);
+
     }
 
     // 초기 폴더 생성 메서드 (color_code 에러 방지 반영)
@@ -553,6 +564,8 @@ public class UserServiceImpl implements UserService {
             throw e;
         }
     }
+
+
 
 
 
