@@ -29,12 +29,18 @@ public class UsersFcmToken extends BaseEntity {
     @Column(name = "last_used_at")
     private LocalDateTime lastUsedAt;
 
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+
     @Column(name = "is_active")
     private Boolean isActive = true;
+
+    private static final int TOKEN_EXPIRE_DAYS = 60;
 
     public void activate() {
         this.isActive = true;
         this.lastUsedAt = LocalDateTime.now();
+        this.expiresAt = LocalDateTime.now().plusDays(TOKEN_EXPIRE_DAYS);
     }
 
     public void deactivate() {
