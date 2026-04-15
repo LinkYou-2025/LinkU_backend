@@ -53,4 +53,8 @@ public class Alarm extends BaseEntity {
                 .targetId(targetId)
                 .build();
     }
+
+    public void updateTargetId(Long targetId) {
+        this.targetId = targetId;
+    }
 }

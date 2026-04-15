@@ -117,6 +117,16 @@ public interface AlarmApi {
     );
 
     @Operation(
+            summary = "관리자 브로드캐스트 알림 발송",
+            description = "관리자 권한으로 브로드캐스트 알림을 등록하고 토픽 발송 이벤트를 발생시킵니다."
+    )
+    @PostMapping("/admin/broadcast")
+    ApiResponse<String> registerAdminAlarm(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody AlarmRequestDTO.AdminAlarmSendRequestDTO request
+    );
+
+    @Operation(
             summary = "알림 읽음 처리",
             description = "특정 알림을 읽음 상태로 변경합니다."
     )

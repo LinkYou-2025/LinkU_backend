@@ -156,14 +156,18 @@ public class AlarmService {
 
     // 관리자 브로드캐스트 알림 등록, content 직접 입력
     @Transactional
-    public void registerAdminAlarm(Long noticeId, AlarmRequestDTO.AdminAlarmSendRequestDTO requestDTO) {
+    public void registerAdminAlarm(AlarmRequestDTO.AdminAlarmSendRequestDTO requestDTO) {
         AlarmType alarmType = requestDTO.type();
         if (alarmType.getSettingType() == AlarmSettingType.ALL) {
             throw new GeneralException(AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED);
         }
 
-        alarmRepository.save(Alarm.create(alarmType, noticeId));
-        eventPublisher.publishEvent(new BroadCastAlarmEvent(alarmType, noticeId, requestDTO.content()));
+        // targetId는 임시로 설정 - 알림이 생성되고 나서 id를 targetId로 업데이트하여 보내야 하므로 entity에서는 의미없음
+        Alarm alarm = alarmRepository.save(Alarm.create(alarmType, 0L));
+        // 알림 생성 후에 업데이트
+        alarm.updateTargetId(alarm.getId());
+
+        eventPublisher.publishEvent(new BroadCastAlarmEvent(alarmType, alarm.getId(), requestDTO.content()));
     }
 
     // 알림 목록 조회 - 타입별 필터, 커서 페이징

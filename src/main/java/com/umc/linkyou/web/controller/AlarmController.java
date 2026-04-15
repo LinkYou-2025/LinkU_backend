@@ -1,9 +1,12 @@
 package com.umc.linkyou.web.controller;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.domain.enums.AlarmSettingType;
 import com.umc.linkyou.domain.enums.AlarmType;
+import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.service.alarm.AlarmService;
 import com.umc.linkyou.service.alarm.FcmPushSender;
 import com.umc.linkyou.utils.UsersUtils;
@@ -101,6 +104,16 @@ public class AlarmController implements AlarmApi {
     }
 
     @Override
+    public ApiResponse<String> registerAdminAlarm(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody AlarmRequestDTO.AdminAlarmSendRequestDTO request
+    ) {
+        validateAdmin(userDetails);
+        alarmService.registerAdminAlarm(request);
+        return ApiResponse.onSuccess("관리자 브로드캐스트 알림이 정상적으로 등록되었습니다.");
+    }
+
+    @Override
     public ApiResponse<String> markAlarmAsRead(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long alarmId
@@ -108,6 +121,12 @@ public class AlarmController implements AlarmApi {
         Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         alarmService.markAlarmAsRead(userId, alarmId);
         return ApiResponse.onSuccess("알림이 읽음 처리되었습니다.");
+    }
+
+    private void validateAdmin(CustomUserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsers() == null || userDetails.getUsers().getRole() != Role.ADMIN) {
+            throw new GeneralException(ErrorStatus._FORBIDDEN);
+        }
     }
 
 
