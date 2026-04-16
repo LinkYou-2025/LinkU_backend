@@ -20,7 +20,7 @@ public class BroadCastAlarmEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(BroadCastAlarmEvent event) throws FirebaseMessagingException {
         fcmPushSender.sendToTopic(
-                FcmSendRequestDTO.ofWithContent(event.alarmType(), event.targetId(), event.content())
+                FcmSendRequestDTO.of(event.alarmType(), event.targetId())
         );
     }
 }

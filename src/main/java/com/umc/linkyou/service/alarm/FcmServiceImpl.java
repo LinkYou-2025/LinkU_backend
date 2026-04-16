@@ -136,18 +136,12 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
     }
 
     private Message buildTopicMessage(String topic, FcmSendRequestDTO requestDTO) {
-        Message.Builder builder = Message.builder()
+        return Message.builder()
                 .putData("title", requestDTO.getTitle())
                 .putData("body", requestDTO.getMessage())
                 .putData("type", requestDTO.getType().name())
                 .putData("targetId", requestDTO.getTargetId().toString())
-                .setTopic(topic);
-
-        if (requestDTO.getContent() != null) {
-            builder.putData("content", requestDTO.getContent());
-        }
-
-        return builder
+                .setTopic(topic)
                 .setAndroidConfig(AndroidConfig.builder()
                         .setNotification(AndroidNotification.builder()
                                 .setIcon(APP_ICON)

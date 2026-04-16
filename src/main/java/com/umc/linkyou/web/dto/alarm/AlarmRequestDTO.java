@@ -13,6 +13,7 @@ public final class AlarmRequestDTO {
 
     public record AlarmFcmTokenDTO(
             @Schema(description = "클라이언트 앱에서 발급받은 FCM 등록 토큰")
+            @NotNull(message = "FcmToken은 필수입니다. ")
             String fcmToken
     ) {
     }

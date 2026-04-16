@@ -11,6 +11,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 @Configuration
 public class FcmConfig {
@@ -26,15 +27,15 @@ public class FcmConfig {
 
     @Bean
     public FirebaseApp firebaseApp() throws IOException {
-        Resource firebaseCredentialsResource = resourceLoader.getResource(firebaseCredentialsPath);
-        GoogleCredentials credentials = GoogleCredentials
-                .fromStream(firebaseCredentialsResource.getInputStream());
-
-        FirebaseOptions options = FirebaseOptions.builder()
-                .setCredentials(credentials)
-                .build();
         if (FirebaseApp.getApps().isEmpty()) {
-            return FirebaseApp.initializeApp(options);
+            Resource firebaseCredentialsResource = resourceLoader.getResource(firebaseCredentialsPath);
+            try (InputStream inputStream = firebaseCredentialsResource.getInputStream()){
+                GoogleCredentials credentials = GoogleCredentials.fromStream(inputStream);
+                FirebaseOptions options = FirebaseOptions.builder()
+                        .setCredentials(credentials)
+                        .build();
+                return FirebaseApp.initializeApp(options);
+            }
         }
         return FirebaseApp.getInstance();
     }

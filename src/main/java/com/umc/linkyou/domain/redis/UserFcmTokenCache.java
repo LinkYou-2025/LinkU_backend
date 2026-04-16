@@ -26,7 +26,7 @@ public class UserFcmTokenCache {
     private Set<String> activeTokens = new HashSet<>();
 
     @TimeToLive(unit = TimeUnit.DAYS)
-    private long ttl = 90L;
+    private long ttl = 60L;
 
     public void addToken(String token) {
         this.activeTokens.add(token);

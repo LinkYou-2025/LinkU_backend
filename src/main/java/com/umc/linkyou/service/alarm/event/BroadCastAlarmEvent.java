@@ -4,6 +4,5 @@ import com.umc.linkyou.domain.enums.AlarmType;
 
 public record BroadCastAlarmEvent(
         AlarmType alarmType,
-        Long targetId,
-        String content
+        Long targetId
 ) {}

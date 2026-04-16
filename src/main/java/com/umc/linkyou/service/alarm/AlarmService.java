@@ -15,6 +15,7 @@ import com.umc.linkyou.repository.redis.FcmTokenRedisRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.service.alarm.event.AlarmSettingChangedEvent;
 import com.umc.linkyou.service.alarm.event.BroadCastAlarmEvent;
+import com.umc.linkyou.service.alarm.event.BroadCastUserAlarmCreateEvent;
 import com.umc.linkyou.service.alarm.event.PersonalAlarmEvent;
 import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmResponseDTO;
@@ -66,11 +67,19 @@ public class AlarmService {
         addTokenToRedis(userId, newToken);
     }
 
+    // redis에 토큰 저장
     private void addTokenToRedis(Long userId, String token) {
         UserFcmTokenCache cache = fcmTokenRedisRepository.findById(userId)
                 .orElseGet(() -> UserFcmTokenCache.builder().userId(userId).build());
         cache.addToken(token);
         fcmTokenRedisRepository.save(cache);
+    }
+
+    // redis에서 토큰 삭제
+    private void removeTokenFromRedis(Long userId, String token) {
+        UserFcmTokenCache cache = fcmTokenRedisRepository.findById(userId)
+                .orElseGet(() -> UserFcmTokenCache.builder().userId(userId).build());
+        cache.removeToken(token);
     }
 
     // FCM 토큰 비활성화
@@ -80,6 +89,7 @@ public class AlarmService {
         if (existingToken != null) {
             existingToken.deactivate();
         }
+        removeTokenFromRedis(userId, fcmToken);
     }
 
     // 알림 설정 조회
@@ -143,7 +153,11 @@ public class AlarmService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
         AlarmType alarmType = requestDTO.type();
 
-        Alarm alarm = alarmRepository.save(Alarm.create(alarmType, requestDTO.targetId()));
+        String renderedBody = alarmType == AlarmType.CURATION_UPDATED
+                ? String.format(alarmType.getBody(), user.getNickName())
+                : alarmType.getBody();
+
+        Alarm alarm = alarmRepository.save(Alarm.create(alarmType, requestDTO.targetId(), renderedBody));
         userAlarmRepository.save(UserAlarm.create(user, alarm));
 
         // CURATION 알림은 닉네임을 포함한 이벤트 발행
@@ -163,11 +177,12 @@ public class AlarmService {
         }
 
         // targetId는 임시로 설정 - 알림이 생성되고 나서 id를 targetId로 업데이트하여 보내야 하므로 entity에서는 의미없음
-        Alarm alarm = alarmRepository.save(Alarm.create(alarmType, 0L));
+        Alarm alarm = alarmRepository.save(Alarm.create(alarmType, 0L, requestDTO.content()));
         // 알림 생성 후에 업데이트
         alarm.updateTargetId(alarm.getId());
 
-        eventPublisher.publishEvent(new BroadCastAlarmEvent(alarmType, alarm.getId(), requestDTO.content()));
+        eventPublisher.publishEvent(new BroadCastAlarmEvent(alarmType, alarm.getId()));
+        eventPublisher.publishEvent(new BroadCastUserAlarmCreateEvent(alarm.getId()));
     }
 
     // 알림 목록 조회 - 타입별 필터, 커서 페이징
@@ -229,7 +244,7 @@ public class AlarmService {
     }
 
     // 공지 알림 상세 조회
-    public AlarmResponseDTO.AlarmDetailDTO viewAlarmDetail(Long alarmId) {
+    public AlarmResponseDTO.AlarmDetailDTO viewAlarmDetail(Long userId, Long alarmId) {
         Alarm alarm = alarmRepository.findById(alarmId)
                 .orElseThrow(() -> new GeneralException(AlarmErrorStatus.ALARM_NOT_FOUND));
         return new AlarmResponseDTO.AlarmDetailDTO(

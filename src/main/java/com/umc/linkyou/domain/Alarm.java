@@ -36,11 +36,12 @@ public class Alarm extends BaseEntity {
     @Builder(access = AccessLevel.PRIVATE)
     private Alarm(
             AlarmType alarmType,
-            Long targetId
+            Long targetId,
+            String body
     ) {
         this.alarmType = alarmType;
         this.title = alarmType.getTitle();
-        this.body = alarmType.getBody();
+        this.body = body;
         this.targetId = targetId;
     }
 
@@ -48,10 +49,19 @@ public class Alarm extends BaseEntity {
     private List<UserAlarm> userAlarms = new ArrayList<>();
 
     public static Alarm create(AlarmType alarmType, Long targetId) {
+        return create(alarmType, targetId, alarmType.getBody());
+    }
+
+    public static Alarm create(AlarmType alarmType, Long targetId, String renderedBody) {
         return Alarm.builder()
                 .alarmType(alarmType)
                 .targetId(targetId)
+                .body(renderedBody)
                 .build();
+    }
+
+    public static Alarm createWithBody(AlarmType alarmType, Long targetId, String body) {
+        return create(alarmType, targetId, body);
     }
 
     public void updateTargetId(Long targetId) {

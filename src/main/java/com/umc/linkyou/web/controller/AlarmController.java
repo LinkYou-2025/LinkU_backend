@@ -99,8 +99,8 @@ public class AlarmController implements AlarmApi {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long alarmId
     ) {
-        usersUtils.getAuthenticatedUserId(userDetails);
-        return ApiResponse.onSuccess(alarmService.viewAlarmDetail(alarmId));
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        return ApiResponse.onSuccess(alarmService.viewAlarmDetail(userId, alarmId));
     }
 
     @Override

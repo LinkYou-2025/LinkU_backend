@@ -70,6 +70,7 @@ public class UserAlarm extends BaseEntity {
     }
 
     public void markAsRead() {
+        if (this.isRead) return;
         this.isRead = true;
         this.readAt = LocalDateTime.now();
     }
