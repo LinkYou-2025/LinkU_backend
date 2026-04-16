@@ -314,6 +314,9 @@ public class UserServiceImpl implements UserService {
         setupUserPurposes(user, request.getPurposeList());
         setupUserInterests(user, request.getInterestList());
 
+        // 알림 설정
+        setupUserAlarmSetting(user);
+
         // 5. 상태 변경 → ACTIVE
         user.setStatus(UserStatus.ACTIVE);
 
