@@ -36,9 +36,27 @@ public class AsyncConfig {
         ex.setMaxPoolSize(4);
         ex.setQueueCapacity(500);
         ex.setThreadNamePrefix("fcm-");
+        ex.setWaitForTasksToCompleteOnShutdown(true);
+        ex.setAwaitTerminationSeconds(30);
         ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         ex.initialize();
         return ex;
     }
+
+    // 알림 브로드캐스트용
+    @Bean(name = "alarmBatchTaskExecutor")
+    public Executor alarmBatchTaskExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(2);
+        ex.setMaxPoolSize(2);
+        ex.setQueueCapacity(50);
+        ex.setThreadNamePrefix("alarm-batch-");
+        ex.setWaitForTasksToCompleteOnShutdown(true);
+        ex.setAwaitTerminationSeconds(60);
+        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        ex.initialize();
+        return ex;
+    }
+
 
 }
