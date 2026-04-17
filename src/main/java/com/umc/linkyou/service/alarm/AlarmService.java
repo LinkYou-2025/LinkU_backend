@@ -80,6 +80,7 @@ public class AlarmService {
         UserFcmTokenCache cache = fcmTokenRedisRepository.findById(userId)
                 .orElseGet(() -> UserFcmTokenCache.builder().userId(userId).build());
         cache.removeToken(token);
+        fcmTokenRedisRepository.save(cache);
     }
 
     // FCM 토큰 비활성화

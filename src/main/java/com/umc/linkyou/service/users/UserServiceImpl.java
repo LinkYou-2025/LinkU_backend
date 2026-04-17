@@ -122,9 +122,9 @@ public class UserServiceImpl implements UserService {
                     setupUserPurposes(newUser, request.getPurposeList());
                     setupUserInterests(newUser, request.getInterestList());
 
-                    setupUserAlarmSetting(newUser);
-
-                    return userRepository.save(newUser);
+                    Users savedUser = userRepository.save(newUser);
+                    setupUserAlarmSetting(savedUser);
+                    return savedUser;
                 });
 
         // 4. 기존 유저가 소셜 유저였다면, 일반 로그인용 비밀번호가 없을 수 있으므로 업데이트

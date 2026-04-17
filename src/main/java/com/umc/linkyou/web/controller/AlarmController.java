@@ -56,6 +56,7 @@ public class AlarmController implements AlarmApi {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.TestAlarmSendDTO request
     ) {
+        validateAdmin(userDetails);
         Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         fcmPushSender.sendToToken(
                 request.fcmToken(),
@@ -123,6 +124,7 @@ public class AlarmController implements AlarmApi {
         return ApiResponse.onSuccess("알림이 읽음 처리되었습니다.");
     }
 
+    // ROLE이 관리자일 경우에만 실행 가능하도록 검증
     private void validateAdmin(CustomUserDetails userDetails) {
         if (userDetails == null || userDetails.getUsers() == null || userDetails.getUsers().getRole() != Role.ADMIN) {
             throw new GeneralException(ErrorStatus._FORBIDDEN);
