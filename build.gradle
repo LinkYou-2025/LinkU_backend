@@ -95,6 +95,9 @@ dependencies {
 	//sendgrid
 	implementation 'com.sendgrid:sendgrid-java:4.10.2'
 
+	// Firebase Admin SDK
+	implementation 'com.google.firebase:firebase-admin:9.4.3'
+
 	// REST Docs
 	testImplementation 'org.springframework.restdocs:spring-restdocs-core'
 	implementation 'net.coobird:thumbnailator:0.4.20'
