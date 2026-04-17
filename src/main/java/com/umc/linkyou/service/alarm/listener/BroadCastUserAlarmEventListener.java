@@ -31,7 +31,7 @@ public class BroadCastUserAlarmEventListener {
     private final UserRepository userRepository;
     private final UserAlarmRepository userAlarmRepository;
 
-    @Async("alarmTaskExecutor")
+    @Async("alarmBatchTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handle(BroadCastUserAlarmCreateEvent event) {
