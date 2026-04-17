@@ -8,14 +8,17 @@ import com.umc.linkyou.domain.enums.AlarmSettingType;
 import com.umc.linkyou.repository.UserFcmTokenRepository;
 import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
@@ -71,6 +74,7 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
     // 토픽 구독 상태 일괄 업데이트
     @Override
     public void updateTopicSubscription(String token, List<String> topics, boolean shouldSubscribe) {
+        List<String> failedTopics = new ArrayList<>();
         for (String topic : topics) {
             try {
                 if (shouldSubscribe) {
@@ -79,8 +83,13 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
                     firebaseMessaging.unsubscribeFromTopic(singletonList(token), topic);
                 }
             } catch (FirebaseMessagingException e) {
-                throw new GeneralException(AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED);
+                log.warn("토픽 구독 상태 변경 실패 - topic: {}, action: {}, error: {}",
+                        topic, shouldSubscribe ? "subscribe" : "unsubscribe", e.getMessage());
+                failedTopics.add(topic);
             }
+        }
+        if (!failedTopics.isEmpty()) {
+            throw new GeneralException(AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED);
         }
     }
 
