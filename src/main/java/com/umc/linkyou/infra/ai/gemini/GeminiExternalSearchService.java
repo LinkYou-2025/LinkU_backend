@@ -37,19 +37,11 @@ public class GeminiExternalSearchService {
 
     // 외부 링크 추천 기능 메인 로직
     public List<RecommendedLinkResponse> searchExternalLinks(
-            List<String> recentUrls,
             List<String> tagNames,
             int limit,
             String jobName,
             String gender
     ) {
-        // 중복 방지를 위해 이미 본 URL에서 도메인만 추출 (예: naver.com, tistory.com)
-        String excludedDomains = recentUrls.stream()
-                .map(this::extractDomain)
-                .filter(Objects::nonNull)
-                .distinct()
-                .collect(Collectors.joining(", "));
-
         // 시스템 프롬프트 (규칙 정의)
         String systemInstruction = """
             You are a WEB SEARCH assistant for personalized content curation.
@@ -72,7 +64,6 @@ public class GeminiExternalSearchService {
             - Prefer reputable Korean sources; avoid login/paywalls/spam/clickbait/aggregators.
             - Prefer content published/updated within the last 24 months unless clearly evergreen.
             - Exclude NSFW, gambling, high-risk financial advice, medical claims without reputable sources.
-            - EXCLUDE content from these domains: [%s] (User already saw them).
 
             DIVERSITY & RELEVANCE:
             - Cover a *diverse set of domains* (avoid many results from the same site).
@@ -80,13 +71,10 @@ public class GeminiExternalSearchService {
             - Titles should reflect practical value (guide, checklist, tutorial, case study, trend report).
 
             OUTPUT: JSON array only.
-            """.formatted(safe(jobName), safe(gender), limit, excludedDomains);
+            """.formatted(safeJob(jobName), safeGender(gender), limit);
 
         // 유저 프롬프트 (실제 요청)
         String userPrompt = """
-            다음은 사용자가 최근 본 링크(절대 재사용 금지):
-            %s
-
             사용자 중요 태그: %s
 
             요구사항:
@@ -96,9 +84,8 @@ public class GeminiExternalSearchService {
 
             형식: [{"title":"...","url":"..."}]
             """.formatted(
-                String.join("\n", recentUrls),
                 (tagNames == null || tagNames.isEmpty()) ? "(없음)" : String.join(", ", tagNames),
-                safe(jobName),
+                safeJob(jobName),
                 limit
         );
 
@@ -140,9 +127,12 @@ public class GeminiExternalSearchService {
         }
     }
 
-    // null 방지용
-    private String safe(String s) {
-        return (s == null || s.isBlank()) ? "Technology" : s;
+    private String safeJob(String s) {
+        return (s == null || s.isBlank()) ? "General" : s;
+    }
+
+    private String safeGender(String s) {
+        return (s == null || s.isBlank()) ? "unknown" : s;
     }
 
     // URL에서 도메인 추출 (예: https://www.naver.com/news -> naver.com)
