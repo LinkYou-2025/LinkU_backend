@@ -50,7 +50,6 @@ public class AuthController {
 
     @Operation(summary = "이메일 인증 코드 전송")
     @PostMapping("/email/code")
-    // TODO: SendGrid 환경변수 누락으로 현재 이메일 발송 안 됨
     public ApiResponse<String> sendCode(@RequestParam("email") @Valid String email) {
         userService.sendCode(email);
         return ApiResponse.of(SuccessStatus._VERIFICATION_CODE_SENT, "이메일로 인증 코드가 전송되었습니다.");
