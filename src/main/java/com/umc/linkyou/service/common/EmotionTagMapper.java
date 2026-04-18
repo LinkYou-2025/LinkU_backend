@@ -1,4 +1,4 @@
-package com.umc.linkyou.service.curation.utils;
+package com.umc.linkyou.service.common;
 
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.repository.EmotionRepository;
