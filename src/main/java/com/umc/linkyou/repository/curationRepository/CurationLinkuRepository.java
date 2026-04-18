@@ -1,4 +1,4 @@
-package com.umc.linkyou.repository.curationLinkuRepository;
+package com.umc.linkyou.repository.curationRepository;
 
 import com.umc.linkyou.domain.enums.CurationLinkuType;
 import com.umc.linkyou.domain.mapping.CurationLinku;
