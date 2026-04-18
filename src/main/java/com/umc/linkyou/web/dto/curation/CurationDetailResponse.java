@@ -13,4 +13,5 @@ public class CurationDetailResponse {
     private List<String> topTags;
     private String headerMent;
     private String footerMent;
+    private boolean mentReady;
 }
