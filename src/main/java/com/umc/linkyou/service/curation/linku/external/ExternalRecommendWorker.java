@@ -1,20 +1,20 @@
-package com.umc.linkyou.service.curation.linku;
+package com.umc.linkyou.service.curation.linku.external;
 
 import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
 import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.domain.mapping.CurationLinku;
-import com.umc.linkyou.repository.CurationRepository;
-import com.umc.linkyou.repository.LogRepository.KeywordMonthlyCountRepository;
+import com.umc.linkyou.repository.curationRepository.CurationRepository;
+import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
-import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.repository.curationLinkuRepository.CurationLinkuRepository;
+import com.umc.linkyou.repository.curationRepository.CurationLinkuRepository;
 import com.umc.linkyou.infra.ai.gemini.GeminiExternalSearchService;
-import com.umc.linkyou.service.curation.utils.EmotionTagMapper;
+import com.umc.linkyou.service.common.EmotionTagMapper;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,33 +27,26 @@ public class ExternalRecommendWorker {
 
     private final CurationRepository curationRepository;
     private final CurationLinkuRepository curationLinkuRepository;
-    private final InternalLinkCandidateService internalLinkCandidateService;
     private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
     private final GeminiExternalSearchService geminiExternalSearchService;
-    private final UserRepository userRepository;
-    private final LinkToImageService linkToImageService; // 저장 시점에만 사용
+    private final LinkToImageService linkToImageService;
     private final EmotionTagMapper emotionTagMapper;
     private final SituationJobRepository situationJobRepository;
 
-    /**
-     * Gemini 호출 → curation_linku(type=EXTERNAL)에 url/title/imageUrl 저장
-     * 트랜잭션 경계는 이 Worker에서 관리한다.
-     */
+    // Gemini AI로 외부 링크를 추천받아, 이미지와 함께 DB에 저장
     @Transactional
     public int generateAndStoreExternal(Long curationId) {
         log.info("[EXT] start materialize curationId={}", curationId);
 
         Curation curation = curationRepository.findById(curationId)
                 .orElseThrow(() -> new IllegalArgumentException("curation not found"));
-        Long userId = curation.getUser().getId();
+        var user = curation.getUser();
+        Long userId = user.getId();
 
-        // 내부 후보(최근 URL) 2개 → 프롬프트 힌트
-        var internalCandidates = internalLinkCandidateService.getInternalCandidates(userId, curationId, 2);
-        int externalLimit = 1;
-        var recentUrls = internalCandidates.stream().map(RecommendedLinkResponse::getUrl).toList();
+        int externalLimit = 5;
 
-        // 상위 태그
-        var topTags = keywordMonthlyCountRepository.findTop3ByUser_IdOrderByCountDesc(userId)
+        // 큐레이션 대상 월 상위 태그
+        var topTags = keywordMonthlyCountRepository.findTopByUserIdAndBaseMonth(userId, curation.getMonth(), PageRequest.of(0, 3))
                 .stream()
                 .map(kmc -> kmc.getType() == KeywordType.EMOTION
                         ? emotionTagMapper.getEmotionName(kmc.getRefId())
@@ -64,7 +57,6 @@ public class ExternalRecommendWorker {
                 .toList();
 
         // 사용자 프로필
-        var user = userRepository.findById(userId).orElseThrow();
         String jobName = user.getJob() != null ? user.getJob().getName() : null;
         String gender  = user.getGender() != null ? user.getGender().name() : null;
 
@@ -73,7 +65,7 @@ public class ExternalRecommendWorker {
         try {
             long t0 = System.currentTimeMillis();
             external = geminiExternalSearchService.searchExternalLinks(
-                    recentUrls, topTags, externalLimit, jobName, gender
+                    topTags, externalLimit, jobName, gender
             );
             log.info("[Gemini] elapsed={}ms", System.currentTimeMillis() - t0);
         } catch (Exception e) {
@@ -100,7 +92,7 @@ public class ExternalRecommendWorker {
         return saved;
     }
 
-    /** 이미지 파싱 실패는 무시(성능/안정성 우선) */
+    // 이미지 파싱 실패는 무시
     private String fetchImageUrlFast(String url) {
         try {
             return linkToImageService.getRelatedImageFromUrl(url);
