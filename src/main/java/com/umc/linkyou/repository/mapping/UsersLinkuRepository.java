@@ -6,6 +6,7 @@ import com.umc.linkyou.domain.mapping.UsersLinku;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -22,7 +23,20 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long> {
 
     List<UsersLinku> findByUser_Id(Long userId);
 
-    List<UsersLinku> findAllByUserIdAndCreatedAtBetween(Long userId, LocalDateTime start, LocalDateTime end);
+    @Query("""
+            SELECT ul FROM UsersLinku ul
+            JOIN FETCH ul.emotion
+            JOIN FETCH ul.linku l
+            JOIN FETCH l.category
+            JOIN FETCH l.domain
+            LEFT JOIN FETCH l.aiArticle
+            WHERE ul.user.id = :userId
+            AND ul.createdAt >= :start AND ul.createdAt < :end
+            """)
+    List<UsersLinku> findAllByUserIdAndCreatedAtBetween(
+            @Param("userId") Long userId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 
     @Modifying
     @Query("UPDATE UsersLinku ul SET ul.viewCount = ul.viewCount + 1, ul.lastViewedAt = :viewedAt WHERE ul.userLinkuId = :id")

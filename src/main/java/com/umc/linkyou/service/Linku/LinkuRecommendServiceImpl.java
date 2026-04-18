@@ -13,7 +13,7 @@ import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.domain.mapping.SituationJob;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
-import com.umc.linkyou.repository.LogRepository.KeywordMonthlyCountRepository;
+import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
@@ -116,15 +116,15 @@ public class LinkuRecommendServiceImpl implements LinkuRecommendService{
         return userLinkus.stream()
                 .map(linku -> {
                     int emotionScore = EmotionSimilarityUtil.getSimilarityScore(
-                            linku.getEmotion().getEmotionId(),
-                            selectedEmotion.getEmotionId());
+                            selectedEmotion.getEmotionId(),
+                            linku.getEmotion().getEmotionId());
 
                     Long aiCategoryId = null;
                     if (linku.getLinku() != null && linku.getLinku().getAiArticle() != null) {
                         aiCategoryId = linku.getLinku().getAiArticle().getAiCategoryId();
                     }
 
-                    int situationScore = aiCategoryId == null ? 1 : (mappedCategories.contains(aiCategoryId) ? 2 : 0);
+                    int situationScore = (aiCategoryId != null && mappedCategories.contains(aiCategoryId)) ? 40 : 0;
 
                     int totalScore = emotionScore + situationScore;
 
