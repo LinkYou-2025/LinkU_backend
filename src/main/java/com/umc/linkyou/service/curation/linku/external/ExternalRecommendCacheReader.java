@@ -1,10 +1,9 @@
-package com.umc.linkyou.service.curation.linku;
+package com.umc.linkyou.service.curation.linku.external;
 
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
-import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepositoryCustom;
-import com.umc.linkyou.repository.curationLinkuRepository.CurationLinkuRepository;
+import com.umc.linkyou.repository.curationRepository.CurationLinkuRepository;
 import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package com.umc.linkyou.service.curation.linku;
+package com.umc.linkyou.service.curation.linku.external;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
