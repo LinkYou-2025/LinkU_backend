@@ -24,6 +24,14 @@ public class Curation extends BaseEntity {
     @Column(length = 7, nullable = false)
     private String month;
 
-    @Column(length = 255, nullable = false)
-    private String thumbnailUrl;
+    @Column(columnDefinition = "TEXT")
+    private String headerMent;
+
+    @Column(columnDefinition = "TEXT")
+    private String footerMent;
+
+    public void updateMent(String headerMent, String footerMent) {
+        this.headerMent = headerMent;
+        this.footerMent = footerMent;
+    }
 }
