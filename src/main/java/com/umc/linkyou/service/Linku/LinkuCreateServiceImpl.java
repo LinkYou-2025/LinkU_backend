@@ -19,7 +19,7 @@ import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.infra.ai.classifier.GeminiCategoryClassifier;
 import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.repository.EmotionRepository;
-import com.umc.linkyou.repository.LogRepository.KeywordMonthlyCountRepository;
+import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.service.folder.FolderService;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
