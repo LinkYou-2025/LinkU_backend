@@ -145,10 +145,13 @@ public class EmailService {
         request.setBody(mail.build());
 
         Response response = sendGrid.api(request);
+        // 여기서 response 상태코드 빠지지 않았을까요?
+        //TODO : 그래서 이메일 전송 실패해도 넘어갑니다! 프론트쪽에서 잡을 수가 없습니다 수정 부탁드립니다.
     }
 
 
     // 임시 비밀번호 저장
+    // TODO : 로그인, 회원가입 쪽은 프론트쪽에서 최대한 4월에는 다 마무리하고 싶어서, 혹시 api 수정되면 바로 연락 부탁드립니다.
     public void savePassword(String toEmail, String password) {
         Users user = authAccountRepository.findUserByEmailAndProvider(toEmail, Provider.GENERAL)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));

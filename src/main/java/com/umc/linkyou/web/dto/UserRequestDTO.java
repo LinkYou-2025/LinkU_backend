@@ -50,6 +50,9 @@ public class UserRequestDTO {
         @Schema(example = "[\"IT\", \"DESIGN\"]")
         @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다")
         List<String> interestList;
+
+        //TODO : 프론트 요청 : TermsAgreeDTO 필드를 여기에 포함될까요?
+        // 회원가입과 약관 동의를 단일 요청으로 해야 프론트 쪽에서 회원가입 중 사용자 중간 이탈시 에러 방지가 쉬울 것 같습니다!
     }
 
     @Getter

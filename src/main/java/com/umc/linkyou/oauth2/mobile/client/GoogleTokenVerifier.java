@@ -16,7 +16,9 @@ import java.util.List;
 @Slf4j
 @Component
 public class GoogleTokenVerifier {
-
+    // TODO: [환경변수 확인 요청] Google Cloud Console의 "웹 애플리케이션" 클라이언트 ID여야 합니다.
+    // Android 클라이언트 ID 넣으면 토큰 검증 실패합니다.
+    // EC2 도커 환경변수 확인 결과 해당 값 누락인 것 같은데(제가 aws 콘솔을 잘못 봣을 수 있어요 확인 한 번 부탁드립니다.)
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String webClientId;
 
