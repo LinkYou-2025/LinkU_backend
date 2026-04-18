@@ -25,6 +25,16 @@ public class AsyncConfig {
     }
     @Bean
     public Semaphore externalRecoLimiter() {
-        return new Semaphore(6); // 동시에 6개만 실행
+        return new Semaphore(6);
+    }
+
+    @Bean
+    public Semaphore mentLimiter() {
+        return new Semaphore(6);
+    }
+
+    @Bean
+    public Semaphore internalRecoLimiter() {
+        return new Semaphore(6);
     }
 }
