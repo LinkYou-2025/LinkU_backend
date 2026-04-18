@@ -8,7 +8,6 @@ import com.umc.linkyou.domain.enums.*;
 import com.umc.linkyou.domain.folder.FolderShareLink;
 import com.umc.linkyou.domain.mapping.CurationLike;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
-import com.umc.linkyou.domain.mapping.UsersAlarm;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
@@ -89,7 +88,7 @@ public class Users extends BaseEntity {
 
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UsersAlarm> userAlarms = new ArrayList<>();
+    private List<UserAlarm> userAlarms = new ArrayList<>();
 
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -40,3 +40,6 @@ out/
 /src/main/generated/
 **/application.properties
 **/application-secret.properties
+
+**/linku-firebase-adminsdk.json
+**/gcp-credentials.json
