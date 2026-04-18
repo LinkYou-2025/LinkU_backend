@@ -47,7 +47,7 @@ public class NaverMobileAuthService implements MobileAuthService {
             throw new GeneralException(ErrorStatus._USER_INACTIVE);
         }
 
-        String accessTokenJwt = jwtTokenProvider.createAccessToken(resolvedEmail, Provider.NAVER.name());
+        String accessTokenJwt = jwtTokenProvider.createAccessToken(resolvedEmail, Provider.NAVER.name(),user.getRole());
 
         if (user.getStatus() == UserStatus.TEMP) {
             return MobileLoginResponse.builder()
@@ -59,7 +59,7 @@ public class NaverMobileAuthService implements MobileAuthService {
         }
 
         // ACTIVE 전용: refreshToken + Redis 세션
-        String refreshToken = jwtTokenProvider.createRefreshToken(resolvedEmail);
+        String refreshToken = jwtTokenProvider.createRefreshToken(resolvedEmail, Provider.NAVER.name());
         String tokenId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
         refreshTokenManager.saveToken(user.getId(), tokenId, Provider.NAVER.name(), refreshTtlMs);
 

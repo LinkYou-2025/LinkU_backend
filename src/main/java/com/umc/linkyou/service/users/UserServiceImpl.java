@@ -40,7 +40,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -49,7 +48,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -269,8 +267,8 @@ public class UserServiceImpl implements UserService {
 
 
 
-        String accessToken = jwtTokenProvider.createAccessToken(email, Provider.GENERAL.name());
-        String refreshToken = jwtTokenProvider.createRefreshToken(email);
+        String accessToken = jwtTokenProvider.createAccessToken(email, Provider.GENERAL.name(), user.getRole());
+        String refreshToken = jwtTokenProvider.createRefreshToken(email, Provider.GENERAL.name());
 
         // 리프레시 토큰이 이미 있으면 토큰을 갱신하고 없으면 토큰을 추가
         String tokenId =  jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
@@ -362,11 +360,12 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UserHandler(ErrorStatus._INVALID_TOKEN));
 
         // 4) 새 토큰 발급 및 저장
-        String newRefresh = jwtTokenProvider.createRefreshToken(email);
+        String newRefresh = jwtTokenProvider.createRefreshToken(email, provider);
         String newId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(newRefresh));
         refreshTokenManager.saveToken(userId, newId, provider, jwtProperties.getExpiration().getRefresh());
 
-        String newAccess = jwtTokenProvider.createAccessToken(email, provider);
+
+        String newAccess = jwtTokenProvider.createAccessToken(email, provider, user.getRole());
         return new UserResponseDTO.TokenPair(newAccess, newRefresh);
     }
 

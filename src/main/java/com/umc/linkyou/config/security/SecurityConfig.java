@@ -5,12 +5,15 @@ import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -23,7 +26,23 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtTokenProvider jwtTokenProvider;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    //ADMIN -> MANAGER -> USER
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.fromHierarchy("""
+                ROLE_ADMIN > ROLE_MANAGER
+                ROLE_MANAGER > ROLE_USER
+                """);
+    }
+    @Bean
+    public DefaultWebSecurityExpressionHandler webSecurityExpressionHandler() {
+        DefaultWebSecurityExpressionHandler expressionHandler = new DefaultWebSecurityExpressionHandler();
+        expressionHandler.setRoleHierarchy(roleHierarchy());
+        return expressionHandler;
+    }
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -44,7 +63,10 @@ public class SecurityConfig {
                                 "/docs/**",
                                 "/api/v1/webhooks/**"
                         ).permitAll()
+                        // 역할별 접근 제한
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/manage/**").hasRole("MANAGER")
+                        .requestMatchers("/api/v1/users/**").hasRole("USER")
                         .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf.disable())
@@ -52,29 +74,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // ← IF_REQUIRED → STATELESS
                 )
-
-//                .oauth2Login(oauth2 -> oauth2
-//                        .authorizationEndpoint(authorization -> authorization
-//                                .baseUri("/oauth2/authorization")
-//                                // STATELESS여도 OAuth2 state는 세션에 저장하도록 명시
-//                                .authorizationRequestRepository(redisAuthorizationRequestRepository)
-//                        )
-//                        .redirectionEndpoint(redirection -> redirection
-//                                .baseUri("/login/oauth2/code/*")
-//                        )
-//                        .tokenEndpoint(token -> token
-//                                .accessTokenResponseClient(oAuth2TokenClient)
-//                        )
-//                        .userInfoEndpoint(userInfo -> userInfo
-//                                .userService(oAuth2UserService)
-//                        )
-//                        .successHandler(oAuth2SuccessHandler)
-//                )
-//                .requiresChannel(channel -> channel
-//                        .anyRequest().requiresSecure()
-//                )
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
-                        UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
