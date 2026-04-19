@@ -85,7 +85,7 @@ public class AuthController {
     @Operation(
             summary = "이메일 인증 코드 전송",
             description = """
-                    `email`로 회원가입용 이메일 인증 코드를 전송합니다.
+                    body의 `email`로 회원가입용 이메일 인증 코드를 전송합니다.
                     - 인증 코드는 Redis에 저장되며 10분 동안 유효합니다.
                     - 이미 가입된 이메일이면 중복 가입 에러를 반환합니다.
                     - 메일 전송에 실패하면 인증 코드 전송 실패 에러를 반환합니다.
@@ -95,8 +95,8 @@ public class AuthController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "202", description = "이메일 인증 코드 전송 성공")
     })
     @PostMapping("/email/code")
-    public ApiResponse<String> sendCode(@RequestParam("email") @Valid String email) {
-        emailVerificationService.sendCode(email);
+    public ApiResponse<String> sendCode(@RequestBody @Valid UserRequestDTO.EmailRequestDTO request) {
+        emailVerificationService.sendCode(request.getEmail());
         return ApiResponse.of(SuccessStatus._VERIFICATION_CODE_SENT, "이메일로 인증 코드가 전송되었습니다.");
     }
 
@@ -140,9 +140,8 @@ public class AuthController {
             summary = "비밀번호 재설정 링크 전송",
             description = """
                     등록된 이메일로 비밀번호 재설정 페이지 링크를 전송합니다.
-                    - 일반 로그인 계정에만 비밀번호 재설정 링크를 전송합니다.
-                    - 가입되지 않은 이메일이면 사용자 없음 에러를 반환합니다.
-                    - 소셜 전용 계정이면 비밀번호 재설정 대신 소셜 로그인 유도 에러를 반환합니다.
+                    - 일반 로그인 계정이면 비밀번호 재설정 링크를 전송합니다.
+                    - 가입되지 않은 이메일이거나 소셜 전용 계정이어도 동일한 성공 응답을 반환합니다.
                     - 재설정 링크는 Redis에 저장된 토큰 기준으로 10분 동안 유효합니다.
                     """
     )
