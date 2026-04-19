@@ -38,6 +38,7 @@ public class SecurityConfig {
                                 "/swagger-ui/**", "/v3/api-docs/**",
                                 "/*.well-known/**",
                                 "/open/**",
+                                "/password/reset",
                                 "/actuator/**",
                                 "/api/v1/auth/mobile/**",
                                 "/error/**",
