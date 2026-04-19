@@ -14,13 +14,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PasswordResetService {
+
+    private static final Pattern PASSWORD_POLICY_PATTERN =
+            Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,64}$");
 
     private final AuthAccountRepository authAccountRepository;
     private final UserRepository userRepository;
@@ -35,12 +40,11 @@ public class PasswordResetService {
 
     @Transactional
     public void sendResetLink(String email) {
-        if (!authAccountRepository.existsByEmail(email)) {
-            throw new UserHandler(ErrorStatus._USER_NOT_FOUND);
-        }
-        Users user = authAccountRepository.findUserByEmailAndProvider(email, Provider.GENERAL)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._SOCIAL_ACCOUNT_ONLY));
+        authAccountRepository.findUserByEmailAndProvider(email, Provider.GENERAL)
+                .ifPresent(user -> sendResetEmail(email, user));
+    }
 
+    private void sendResetEmail(String email, Users user) {
         String token = UUID.randomUUID().toString();
         passwordResetRedisRepository.save(PasswordResetCache.of(token, email));
 
@@ -53,7 +57,7 @@ public class PasswordResetService {
                 passwordResetRedisRepository.deleteById(token);
             } catch (Exception redisEx) {
                 // 토큰 TTL로 자동 만료되므로 정리 실패는 로그만 남김
-                log.error("발송 실패 후 토큰 정리 실패: {}", token, redisEx);
+                log.error("발송 실패 후 토큰 정리 실패: {}",  redisEx);
             }
             throw e;
         }
@@ -62,6 +66,8 @@ public class PasswordResetService {
 
     @Transactional
     public void resetPassword(String token, String newPassword, String confirmPassword) {
+        validatePasswords(newPassword, confirmPassword);
+
         if (!newPassword.equals(confirmPassword)) {
             throw new UserHandler(ErrorStatus._PASSWORD_MISMATCH);
         }
@@ -77,5 +83,14 @@ public class PasswordResetService {
 
         passwordResetRedisRepository.deleteById(token);
         log.info("비밀번호 재설정 완료: {}", user.getId());
+    }
+
+    private void validatePasswords(String newPassword, String confirmPassword) {
+        if (!StringUtils.hasText(newPassword) || !StringUtils.hasText(confirmPassword)) {
+            throw new UserHandler(ErrorStatus._INVALID_PASSWORD);
+        }
+        if (!PASSWORD_POLICY_PATTERN.matcher(newPassword).matches()) {
+            throw new UserHandler(ErrorStatus._INVALID_PASSWORD);
+        }
     }
 }
