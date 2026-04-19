@@ -1,38 +1,118 @@
-<!DOCTYPE html>
+<!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Link You 이메일 인증</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>[링큐] 이메일 인증 코드</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f4f4f4;font-family:'Apple SD Gothic Neo',sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4;padding:40px 0;">
+
+<body style="margin:0; padding:0; background-color:#eef2f7;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#eef2f7;">
     <tr>
-        <td align="center">
-            <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;">
-                <!-- Body -->
+        <td align="center" style="padding:24px 12px;">
+
+            <table role="presentation" width="640" cellspacing="0" cellpadding="0" border="0"
+                   style="width:100%; max-width:640px; background-color:#ffffff; border:1px solid #E6E6E6; border-radius:30px; overflow:hidden;">
+
                 <tr>
-                    <td style="padding:40px 48px;">
-                        <p style="font-size:16px;color:#333333;margin:0 0 8px;">안녕하세요, <strong th:text="${nickname}">회원</strong>님</p>
-                        <p style="font-size:15px;color:#555555;margin:0 0 32px;">아래 인증 코드를 입력하여 이메일 인증을 완료해 주세요.</p>
-                        <!-- Code box -->
-                        <div style="background-color:#f0f4ff;border-radius:8px;padding:24px;text-align:center;margin-bottom:32px;">
-                            <p style="font-size:36px;font-weight:700;letter-spacing:12px;color:#1a1a2e;margin:0;" th:text="${code}">000000</p>
+                    <td align="left"
+                        style="
+                padding:18px 24px 20px 24px;
+                background-color:#2C6FFF;
+                background-image:linear-gradient(90deg,#2C6FFF 0%,#C800FF 100%);
+              ">
+
+                        <img
+                                src="https://d3f9zmi4jicqrs.cloudfront.net/linkuLogo/logo_white.png"
+                                alt="Link U"
+                                width="50"
+                                style="display:block; width:50px; max-width:100%; height:auto; border:0; outline:none; text-decoration:none;"
+                        />
+
+                        <div
+                                style="
+                  margin-top:8px;
+                  color:#F7F7F7;
+                  font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+                  font-size:17px;
+                  font-weight:600;
+                  line-height:1.35;
+                ">
+                            Link U, Think You
                         </div>
-                        <p style="font-size:13px;color:#888888;margin:0;">
-                            인증 코드는 <strong th:text="${expiresInMinutes}">10</strong>분간 유효합니다.<br>
-                            본인이 요청하지 않은 경우 이 메일을 무시해 주세요.
-                        </p>
+
                     </td>
                 </tr>
-                <!-- Footer -->
+
                 <tr>
-                    <td style="background-color:#f8f8f8;padding:20px 48px;text-align:center;">
-                        <p style="font-size:12px;color:#aaaaaa;margin:0;">
-                            &copy; <span th:text="${year}">2025</span> Link You. All rights reserved.
-                        </p>
+                    <td style="padding:26px 28px 0 28px; font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+                        <div style="font-size:24px; font-weight:700; line-height:1.25; margin:0; color:#000208;">
+                            <span style="color:#2C6FFF;" th:text="${nickname ?: '링큐 회원'}">링큐 회원</span>님,
+                        </div>
+                        <div style="font-size:30px; font-weight:700; line-height:1.25; margin:5px 0 0 0;">
+                            이메일 인증 코드입니다. 🔗
+                        </div>
+
+                        <div style="margin-top:12px; color:#5F6167; font-size:18px; font-weight:500; line-height:1.55;">
+                            아래의 일회용 코드로 인증을 진행해주세요.
+                            <span th:text="'(유효시간 ' + (${expiresInMinutes ?: 10}) + '분)'">(유효시간 10분)</span>
+                        </div>
+
                     </td>
                 </tr>
+
+                <tr>
+                    <td align="center" style="padding:26px 28px 0 28px;">
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                               style="
+                  background-color:#E5EDFF;
+                  border:2px solid #95B6FF;
+                  border-radius:14px;
+                ">
+                            <tr>
+                                <td align="center"
+                                    style="
+                    padding:26px 16px;
+                    font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+                  ">
+                                    <div style="color:#2C6FFF; font-size:52px; font-weight:800; letter-spacing:14px; line-height:1.1;"
+                                         th:text="${code ?: '000000'}">
+                                        000000
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding:22px 28px 34px 28px; font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <div style="color:#87898F; font-size:16px; font-weight:500; line-height:1.7;">
+                            <div>본 메일을 요청하지 않으셨다면, 이 메일은 무시하셔도 됩니다.</div>
+                            <div style="margin-top:8px;">더 좋은 서비스를 위해 노력하는 링큐가 되겠습니다!</div>
+                        </div>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="border-top:1px solid #EFF4FB;"></td>
+                </tr>
+
+                <tr>
+                    <td style="padding:16px 28px 18px 28px; font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                        <div style="color:#989898; font-size:14px; font-weight:600; overflow:hidden;">
+                            <div style="float:left;">
+                                ⓒ <span th:text="${year ?: 2026}">2026</span> | Link U
+                            </div>
+                            <div style="float:right; font-size:12px;">
+                                <a href="#" style="color:#989898; text-decoration:underline;">Unsubscribe</a> |
+                                <a href="#" style="color:#989898; text-decoration:underline;">Preferences</a>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+
             </table>
         </td>
     </tr>
