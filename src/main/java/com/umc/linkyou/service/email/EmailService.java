@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.sesv2.SesV2Client;
 import software.amazon.awssdk.services.sesv2.model.*;
 
@@ -36,9 +37,9 @@ public class EmailService {
 
             String htmlContent = templateEngine.process("email/email-verification", context);
             send(toEmail, "Link You 이메일 인증 번호", htmlContent);
-            log.info("인증 메일 전송 성공: {}", toEmail);
-        } catch (SesV2Exception e) {
-            log.error("인증 메일 전송 실패 toEmail: {}", toEmail, e);
+            log.info("인증 메일 전송 성공: {}", nickname);
+        } catch (SdkException e) {
+            log.error("인증 메일 전송 실패 toEmail: {}", nickname, e);
             throw new UserHandler(ErrorStatus._SEND_MAIL_FAILED);
         }
     }
@@ -58,7 +59,7 @@ public class EmailService {
             String htmlContent = templateEngine.process("email/password-reset", context);
             send(toEmail, "Link You 비밀번호 재설정", htmlContent);
             log.info("비밀번호 재설정 메일 전송 성공: {}", toEmail);
-        } catch (SesV2Exception e) {
+        } catch (SdkException e) {
             log.error("비밀번호 재설정 메일 전송 실패: {}", toEmail, e);
             throw new UserHandler(ErrorStatus._SEND_MAIL_FAILED);
         }
