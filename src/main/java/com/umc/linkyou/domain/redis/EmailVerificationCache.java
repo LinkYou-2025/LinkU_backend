@@ -15,13 +15,13 @@ import org.springframework.data.redis.core.RedisHash;
 public class EmailVerificationCache {
 
     @Id
-    private String email;
+    private String emailHash;
 
     private String code;
 
-    public static EmailVerificationCache of(String email, String code) {
+    public static EmailVerificationCache of(String emailHash, String code) {
         return EmailVerificationCache.builder()
-                .email(email)
+                .emailHash(emailHash)
                 .code(code)
                 .build();
     }

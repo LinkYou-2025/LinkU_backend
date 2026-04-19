@@ -77,6 +77,19 @@ public class UserRequestDTO {
 
     @Getter
     @Setter
+    public static class EmailVerifyRequestDTO {
+        @Schema(example = "example@gmail.com")
+        @NotBlank(message = "이메일은 필수입니다.")
+        @Email(message = "올바른 이메일 형식이어야 합니다.")
+        private String email;
+
+        @Schema(example = "123456")
+        @NotBlank(message = "인증 코드는 필수입니다.")
+        private String code;
+    }
+
+    @Getter
+    @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UpdateProfileDTO {
