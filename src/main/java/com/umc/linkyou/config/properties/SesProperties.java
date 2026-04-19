@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Getter
-@Setter
 @ConfigurationProperties(prefix = "cloud.aws.ses")
 public class SesProperties {
     private String from;
