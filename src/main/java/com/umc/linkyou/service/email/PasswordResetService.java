@@ -11,21 +11,21 @@ import com.umc.linkyou.repository.userRepository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.HexFormat;
-import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+/**
+ * 비밀번호 재설정 기능을 담당하는 서비스
+ * 이메일로 재설정 링크를 발송하고, 토큰 검증 후 비밀번호를 업데이트하는 로직을 포함
+ * 이메일 발송 시 쿨다운과 일일 전송 횟수 제한을 적용하여 남용을 방지
+ * Redis에는 재설정 토큰과 이메일을 매핑하여 저장하며, 토큰은 일정 시간이 지나면 자동으로 만료
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -38,8 +38,8 @@ public class PasswordResetService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetRedisRepository passwordResetRedisRepository;
-    private final StringRedisTemplate stringRedisTemplate;
     private final EmailService emailService;
+    private final EmailRateLimiter rateLimiter;
 
     @Value("${app.server.base-url}")
     private String serverBaseUrl;
@@ -52,9 +52,10 @@ public class PasswordResetService {
     private static final String DAILY_SEND_COUNT_KEY = "password:reset:count:";
 
     // 비밀번호 재설정 링크 전송
-    @Transactional
+    @Transactional(readOnly = true)
     public void sendResetLink(String email) {
-        enforceResetRequestRateLimit(email);
+        rateLimiter.enforce(email, SEND_COOLDOWN_KEY, DAILY_SEND_COUNT_KEY,
+                SEND_COOLDOWN, DAILY_LIMIT_TTL, MAX_DAILY_SEND_COUNT);
         authAccountRepository.findUserByEmailAndProvider(email, Provider.GENERAL)
                 .ifPresent(user -> sendResetEmail(email, user));
     }
@@ -75,7 +76,7 @@ public class PasswordResetService {
                 passwordResetRedisRepository.deleteById(token);
             } catch (Exception redisEx) {
                 // 토큰 TTL로 자동 만료되므로 정리 실패는 로그만 남김
-                log.error("발송 실패 후 토큰 정리 실패: {}",  redisEx);
+                log.error("발송 실패 후 토큰 정리 실패", redisEx);
             }
             throw e;
         }
@@ -114,45 +115,6 @@ public class PasswordResetService {
         }
         if (!PASSWORD_POLICY_PATTERN.matcher(newPassword).matches()) {
             throw new UserHandler(ErrorStatus._INVALID_PASSWORD);
-        }
-    }
-
-    // 비밀번호 재설정 요청에 대한 rate limit 적용
-    private void enforceResetRequestRateLimit(String email) {
-        String hashedEmail = hashEmail(email);
-        String cooldownKey = SEND_COOLDOWN_KEY + hashedEmail;
-        Boolean cooldownApplied = stringRedisTemplate.opsForValue()
-                .setIfAbsent(cooldownKey, "1", SEND_COOLDOWN);
-        if (!Boolean.TRUE.equals(cooldownApplied)) {
-            log.warn("비밀번호 재설정 요청 차단 - cooldown active");
-            throw new UserHandler(ErrorStatus._TOO_MANY_REQUESTS);
-        }
-
-        String dailyCountKey = DAILY_SEND_COUNT_KEY + hashedEmail;
-        Long dailyCount = stringRedisTemplate.opsForValue().increment(dailyCountKey);
-        if (dailyCount == null) {
-            log.error("비밀번호 재설정 일일 카운터 증가 실패");
-            throw new UserHandler(ErrorStatus._INTERNAL_SERVER_ERROR);
-        }
-        if (dailyCount == 1L) {
-            stringRedisTemplate.expire(dailyCountKey, DAILY_LIMIT_TTL);
-        }
-        if (dailyCount > MAX_DAILY_SEND_COUNT) {
-            log.warn("비밀번호 재설정 요청 차단 - daily limit exceeded count={}", dailyCount);
-            throw new UserHandler(ErrorStatus._TOO_MANY_REQUESTS);
-        }
-
-        log.info("비밀번호 재설정 요청 카운터 갱신 count={}", dailyCount);
-    }
-
-    // 이메일을 해싱해서 Redis 키로 사용
-    private static String hashEmail(String email) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(email.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
         }
     }
 }

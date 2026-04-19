@@ -14,6 +14,11 @@ import software.amazon.awssdk.services.sesv2.model.*;
 
 import java.time.Year;
 
+/**
+ * 이메일 전송을 담당하는 서비스
+ * AWS SES를 사용하여 이메일을 발송만을 처리하는 서비스
+ * 이메일 템플릿은 Thymeleaf를 사용하여 렌더링
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

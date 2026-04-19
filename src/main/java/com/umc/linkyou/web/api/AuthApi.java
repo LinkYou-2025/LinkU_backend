@@ -1,7 +1,7 @@
 package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.domain.redis.PasswordResetCache;
+import com.umc.linkyou.web.dto.EmailRequestDTO;
 import com.umc.linkyou.web.dto.PasswordResetRequestDTO;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
@@ -79,7 +79,7 @@ public interface AuthApi {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "이메일 전송 실패 (USERS500)")
     })
     @PostMapping("/email/code")
-    ApiResponse<String> sendCode(@RequestBody @Valid UserRequestDTO.EmailRequestDTO request);
+    ApiResponse<String> sendCode(@RequestBody @Valid EmailRequestDTO.CodeSendDTO request);
 
     @Operation(
             summary = "이메일 인증 코드 검증",
@@ -96,7 +96,7 @@ public interface AuthApi {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 코드 불일치 (USERS401)")
     })
     @PostMapping("/email/verify")
-    ApiResponse<String> verifyCode(@RequestBody @Valid UserRequestDTO.EmailVerifyRequestDTO request);
+    ApiResponse<String> verifyCode(@RequestBody @Valid EmailRequestDTO.CodeVerifyDTO request);
 
     @Operation(
             summary = "닉네임 중복 확인",
@@ -127,7 +127,7 @@ public interface AuthApi {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "429", description = "요청 빈도 초과 - cooldown 또는 일일 한도 초과 (COMMON429)")
     })
     @PostMapping("/password/reset/send")
-    ApiResponse<String> sendPasswordResetLink(@RequestBody @Valid PasswordResetCache request);
+    ApiResponse<String> sendPasswordResetLink(@RequestBody @Valid EmailRequestDTO.ResetLinkDTO request);
 
     @Operation(
             summary = "비밀번호 재설정",
@@ -140,8 +140,7 @@ public interface AuthApi {
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "비밀번호 재설정 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "토큰 만료(COMMON400) / 비밀번호 불일치(COMMON4013) / 유효성 검사 실패(COMMON400)"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "비밀번호 정책 불만족 (COMMON4012)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "토큰 만료(COMMON400) / 비밀번호 불일치(COMMON4013) / 비밀번호 정책 불만족(COMMON4012) / 유효성 검사 실패(COMMON400)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음 (USERS404)")
     })
     @PutMapping("/password/reset")

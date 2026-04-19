@@ -4,12 +4,12 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.redis.PasswordResetCache;
 import com.umc.linkyou.service.email.EmailVerificationService;
 import com.umc.linkyou.service.email.PasswordResetService;
 import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.api.AuthApi;
+import com.umc.linkyou.web.dto.EmailRequestDTO;
 import com.umc.linkyou.web.dto.PasswordResetRequestDTO;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
@@ -44,14 +44,14 @@ public class AuthController implements AuthApi {
     }
 
     @Override
-    public ApiResponse<String> sendCode(@RequestBody @Valid UserRequestDTO.EmailRequestDTO request) {
-        emailVerificationService.sendCode(request.getEmail());
+    public ApiResponse<String> sendCode(@RequestBody @Valid EmailRequestDTO.CodeSendDTO request) {
+        emailVerificationService.sendCode(request.email());
         return ApiResponse.of(SuccessStatus._VERIFICATION_CODE_SENT, "이메일로 인증 코드가 전송되었습니다.");
     }
 
     @Override
-    public ApiResponse<String> verifyCode(@RequestBody @Valid UserRequestDTO.EmailVerifyRequestDTO request) {
-        emailVerificationService.verifyCode(request.getEmail(), request.getCode());
+    public ApiResponse<String> verifyCode(@RequestBody @Valid EmailRequestDTO.CodeVerifyDTO request) {
+        emailVerificationService.verifyCode(request.email(), request.code());
         return ApiResponse.of(SuccessStatus._EMAIL_VERIFICATION_SUCCESS, "이메일 인증이 완료되었습니다.");
     }
 
@@ -62,8 +62,8 @@ public class AuthController implements AuthApi {
     }
 
     @Override
-    public ApiResponse<String> sendPasswordResetLink(@RequestBody @Valid PasswordResetCache request) {
-        passwordResetService.sendResetLink(request.getEmail());
+    public ApiResponse<String> sendPasswordResetLink(@RequestBody @Valid EmailRequestDTO.ResetLinkDTO request) {
+        passwordResetService.sendResetLink(request.email());
         return ApiResponse.of(SuccessStatus._RESET_LINK_SENT, "비밀번호 재설정 링크가 이메일로 전송되었습니다.");
     }
 

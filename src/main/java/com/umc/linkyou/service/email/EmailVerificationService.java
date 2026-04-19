@@ -10,15 +10,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
-import java.util.HexFormat;
-import java.util.Locale;
 import java.util.Objects;
 
+/*
+    * 이메일 인증 기능을 담당하는 서비스
+    * 회원가입 시 이메일로 인증 코드를 발송하고, 사용자가 입력한 코드와 Redis에 저장된 코드를 비교하여 검증하는 로직을 포함
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -28,6 +27,7 @@ public class EmailVerificationService {
     private final EmailVerificationRedisRepository emailVerificationRedisRepository;
     private final StringRedisTemplate stringRedisTemplate;
     private final EmailService emailService;
+    private final EmailRateLimiter rateLimiter;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int EXPIRY_MINUTES = 10;
@@ -47,18 +47,18 @@ public class EmailVerificationService {
             throw new UserHandler(ErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
 
-        enforceSendRateLimit(email);
+        rateLimiter.enforce(email, SEND_COOLDOWN_KEY, DAILY_SEND_COUNT_KEY,
+                SEND_COOLDOWN, DAILY_LIMIT_TTL, MAX_DAILY_SEND_COUNT);
 
-        String hashedEmail = hashEmail(email);
+        String hashedEmail = EmailRateLimiter.hashEmail(email);
         String code = generateCode();
         emailVerificationRedisRepository.save(EmailVerificationCache.of(hashedEmail, code));
 
-        emailService.sendVerificationEmailTemplate(email, "링큐 회원", code, EXPIRY_MINUTES);
         try {
-            emailService.sendPasswordResetEmail(email, "링큐 회원", code, EXPIRY_MINUTES);
+            emailService.sendVerificationEmailTemplate(email, "링큐 회원", code, EXPIRY_MINUTES);
             resetVerifyFailureCount(hashedEmail);
         } catch (Exception e) {
-            log.error("이메일 인증 코드 전송 실패 ", e);
+            log.error("이메일 인증 코드 전송 실패", e);
             emailVerificationRedisRepository.deleteById(hashedEmail);
             throw new UserHandler(ErrorStatus._SEND_MAIL_FAILED);
         }
@@ -68,7 +68,7 @@ public class EmailVerificationService {
     // 이메일 인증 코드 검증
     // Redis에 코드가 없으면 만료, 코드 불일치면 검증 실패
     public void verifyCode(String email, String code) {
-        String hashedEmail = hashEmail(email);
+        String hashedEmail = EmailRateLimiter.hashEmail(email);
         EmailVerificationCache cache = emailVerificationRedisRepository.findById(hashedEmail)
                 .orElseThrow(() -> new UserHandler(ErrorStatus._EXPIRED_VERIFICATION_CODE));
 
@@ -87,33 +87,6 @@ public class EmailVerificationService {
         emailVerificationRedisRepository.deleteById(hashedEmail);
         resetVerifyFailureCount(hashedEmail);
         log.info("이메일 인증 코드 검증 성공");
-    }
-
-    private void enforceSendRateLimit(String email) {
-        String hashedEmail = hashEmail(email);
-        String cooldownKey = SEND_COOLDOWN_KEY + hashedEmail;
-        Boolean cooldownApplied = stringRedisTemplate.opsForValue()
-                .setIfAbsent(cooldownKey, "1", SEND_COOLDOWN);
-        if (!Boolean.TRUE.equals(cooldownApplied)) {
-            log.warn("이메일 인증 코드 전송 차단 - cooldown active");
-            throw new UserHandler(ErrorStatus._TOO_MANY_REQUESTS);
-        }
-
-        String dailyCountKey = DAILY_SEND_COUNT_KEY + hashedEmail;
-        Long dailyCount = stringRedisTemplate.opsForValue().increment(dailyCountKey);
-        if (dailyCount == null) {
-            log.error("이메일 인증 일일 카운터 증가 실패");
-            throw new UserHandler(ErrorStatus._INTERNAL_SERVER_ERROR);
-        }
-        if (dailyCount == 1L) {
-            stringRedisTemplate.expire(dailyCountKey, DAILY_LIMIT_TTL);
-        }
-        if (dailyCount > MAX_DAILY_SEND_COUNT) {
-            log.warn("이메일 인증 코드 전송 차단 - daily limit exceeded count={}", dailyCount);
-            throw new UserHandler(ErrorStatus._TOO_MANY_REQUESTS);
-        }
-
-        log.info("이메일 인증 전송 카운터 갱신 count={}", dailyCount);
     }
 
     // 인증 코드 검증 실패 카운터 증가
@@ -142,15 +115,5 @@ public class EmailVerificationService {
             builder.append(SECURE_RANDOM.nextInt(10));
         }
         return builder.toString();
-    }
-
-    private static String hashEmail(String email) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(email.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
     }
 }
