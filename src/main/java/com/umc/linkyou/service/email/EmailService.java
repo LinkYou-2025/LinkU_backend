@@ -39,7 +39,7 @@ public class EmailService {
             send(toEmail, "Link You 이메일 인증 번호", htmlContent);
             log.info("인증 메일 전송 성공: {}", nickname);
         } catch (SdkException e) {
-            log.error("인증 메일 전송 실패 toEmail: {}", nickname, e);
+            log.error("인증 메일 전송 실패", e);
             throw new UserHandler(ErrorStatus._SEND_MAIL_FAILED);
         }
     }
@@ -58,9 +58,9 @@ public class EmailService {
 
             String htmlContent = templateEngine.process("email/password-reset", context);
             send(toEmail, "Link You 비밀번호 재설정", htmlContent);
-            log.info("비밀번호 재설정 메일 전송 성공: {}", toEmail);
+            log.info("비밀번호 재설정 메일 전송 성공");
         } catch (SdkException e) {
-            log.error("비밀번호 재설정 메일 전송 실패: {}", toEmail, e);
+            log.error("비밀번호 재설정 메일 전송 실패", e);
             throw new UserHandler(ErrorStatus._SEND_MAIL_FAILED);
         }
     }
