@@ -151,7 +151,7 @@ kakao:
   admin-key: ${KAKAO_ADMIN_KEY}
 
 google:
-  client-id: ${GOOGLE_ANDROID_CLIENT_ID}
+  client-id: ${GOOGLE_CLIENT_ID}
 
 server:
   forward-headers-strategy: framework
