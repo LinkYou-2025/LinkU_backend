@@ -1,6 +1,7 @@
 package com.umc.linkyou.converter;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Interests;
@@ -81,7 +82,7 @@ public class UserConverter {
     // 성별 변환 로직 공통 메서드
     public static Gender toGender(Integer genderCode) {
         if (genderCode == null || (genderCode != 1 && genderCode != 2)) {
-            throw new GeneralException(ErrorStatus._INVALID_GENDER);
+            throw new GeneralException(UserErrorStatus._INVALID_GENDER);
         }
         return (genderCode == 1) ? Gender.MALE : Gender.FEMALE;
     }

@@ -1,6 +1,7 @@
 package com.umc.linkyou.config.security.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
@@ -137,7 +138,7 @@ public class JwtTokenProvider {
         // 3) 토큰 소유자 userId 조회
         Long expectedUserId = authAccountRepository.findUserByEmailAndProvider(email, Provider.valueOf(providerStr))
                 .map(Users::getId)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
         // 4) HMAC id 생성
         String id = hmac(raw);
 

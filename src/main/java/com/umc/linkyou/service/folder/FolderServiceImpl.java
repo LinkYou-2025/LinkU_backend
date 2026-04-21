@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.folder;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.domain.Linku;
@@ -77,7 +78,7 @@ public class FolderServiceImpl implements FolderService {
         usersFolderRepository.save(UsersFolder.builder()
                 .user(userRepository
                         .findById(userId)
-                        .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND)))
+                        .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND)))
                 .folder(folder)
                 .permissionType(PermissionType.OWNER)
                 .isBookmarked(false)

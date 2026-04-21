@@ -2,6 +2,7 @@ package com.umc.linkyou.service.users;
 
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.properties.JwtProperties;
@@ -91,7 +92,7 @@ public class UserService {
 
         // 2. 현재 시도하는 경로(GENERAL)로 이미 가입된 계정이 있는지 체크
         if (authAccountRepository.existsByProviderAndExternalId(Provider.GENERAL, request.getEmail())) {
-            throw new UserHandler(ErrorStatus._DUPLICATE_JOIN_REQUEST);
+            throw new UserHandler(UserErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
 
         // 3. 기존 유저 통합 로직: 이메일로 가입된 다른 소셜 계정이 있는지 확인
@@ -142,11 +143,11 @@ public class UserService {
     @Transactional
     public UserResponseDTO.LoginResultDTO loginUser(UserRequestDTO.LoginRequestDTO request) {
         Users user = authAccountRepository.findUserByEmailAndProvider(request.getEmail(), Provider.GENERAL)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._LOGIN_FAILED));
+                .orElseThrow(() -> new UserHandler(UserErrorStatus._LOGIN_FAILED));
 
         Long userId = user.getId();
         if (user.getStatus() == UserStatus.INACTIVE) {
-            throw new GeneralException(ErrorStatus._USER_INACTIVE); // INACTIVE 유저는 로그인 불가
+            throw new GeneralException(UserErrorStatus._USER_INACTIVE); // INACTIVE 유저는 로그인 불가
         }
         // 소셜 전용 계정 차단 (GENERAL AuthAccount 없음)
         boolean hasGeneralAccount = authAccountRepository.existsByUserIdAndProvider(
@@ -157,12 +158,12 @@ public class UserService {
 
         // social login은 password null, jwt login은 password null이면 error(NPE 방지 코드)
         if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new UserHandler(ErrorStatus._LOGIN_FAILED);
+            throw new UserHandler(UserErrorStatus._LOGIN_FAILED);
         }
 
         String email = authAccountRepository.findByUserIdAndProvider(userId, Provider.GENERAL)
                 .map(AuthAccount::getEmail)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 email, null,
@@ -233,13 +234,13 @@ public class UserService {
 
         Users user = authAccountRepository.findUserByEmailAndProvider(
                 email, Provider.valueOf(providerStr)
-        ).orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
+        ).orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
         Long userId = user.getId();
 
         // 3) INACTIVE 사용자 차단
         if (user.getStatus() == UserStatus.INACTIVE) {
-            throw new GeneralException(ErrorStatus._USER_INACTIVE);
+            throw new GeneralException(UserErrorStatus._USER_INACTIVE);
         }
 
         String oldId = jwtTokenProvider.hmac(raw);
@@ -264,7 +265,7 @@ public class UserService {
     public UserResponseDTO.UserProfileSummaryDto userInfo(Long userId, String loginProvider) {
         UserResponseDTO.UserProfileSummaryDto s = userQueryRepository.findUserProfileSummary(userId);
         String currentEmail = authAccountRepository.findEmailByUserIdAndProvider(userId, Provider.valueOf(loginProvider))
-                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
         List<String> purposes = purposeRepository.findAllPurposeNamesByUserId(userId);
         List<String> interests = interestRepository.findAllInterestNamesByUserId(userId);
@@ -279,7 +280,7 @@ public class UserService {
     @Transactional
     public void updateUserProfile(Long userId, UserRequestDTO.UpdateProfileDTO request) {
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
         Job job = jobRepository.findById(request.getJobId())
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));

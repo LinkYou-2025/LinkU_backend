@@ -2,6 +2,7 @@ package com.umc.linkyou.service.alarm;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.alarm.AlarmErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.*;
 import com.umc.linkyou.domain.enums.AlarmSettingType;
@@ -47,7 +48,7 @@ public class AlarmService {
     @Transactional
     public void registerFcmToken(Long userId, AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO) {
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
         String newToken = alarmFcmTokenDTO.fcmToken();
         UsersFcmToken existingToken = userFcmTokenRepository.findByUser_IdAndFcmToken(userId, newToken);
@@ -96,7 +97,7 @@ public class AlarmService {
     // 알림 설정 조회
     public AlarmSettingResponseDTO viewAlarm(Long userId) {
         userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         AlarmSetting alarmSetting = alarmSettingRepository.findByUserId(userId)
                 .orElseThrow(() -> new GeneralException(AlarmErrorStatus.ALARM_NOT_FOUND));
         return new AlarmSettingResponseDTO(
@@ -112,7 +113,7 @@ public class AlarmService {
     @Transactional
     public boolean updateNoticeAlarmSetting(Long userId, AlarmSettingType alarmSettingType) {
         userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         AlarmSetting alarmSetting = alarmSettingRepository.findByUserId(userId)
                 .orElseThrow(() -> new GeneralException(AlarmErrorStatus.ALARM_NOT_FOUND));
 
@@ -140,7 +141,7 @@ public class AlarmService {
     // 알림 설정 타입별 조회
     public boolean viewAlarmSettingByType(Long userId, AlarmSettingType alarmSettingType) {
         userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         AlarmSetting alarmSetting = alarmSettingRepository.findByUserId(userId)
                 .orElseThrow(() -> new GeneralException(AlarmErrorStatus.ALARM_NOT_FOUND));
         return alarmSetting.isEnabled(alarmSettingType);
@@ -151,7 +152,7 @@ public class AlarmService {
     @Transactional
     public void sendAlarm(Long userId, AlarmRequestDTO.AlarmSendRequestDTO requestDTO) {
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         AlarmType alarmType = requestDTO.type();
 
         String renderedBody = alarmType == AlarmType.CURATION_UPDATED
@@ -194,7 +195,7 @@ public class AlarmService {
             int size
     ) {
         userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
         if (alarmSettingType == null) {
             throw new GeneralException(ErrorStatus._BAD_REQUEST);
@@ -259,7 +260,7 @@ public class AlarmService {
     @Transactional
     public void markAlarmAsRead(Long userId, Long alarmId) {
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
         Alarm alarm = alarmRepository.findById(alarmId)
                 .orElseThrow(() -> new GeneralException(AlarmErrorStatus.ALARM_NOT_FOUND));

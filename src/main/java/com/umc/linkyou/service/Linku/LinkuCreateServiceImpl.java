@@ -1,5 +1,6 @@
 package com.umc.linkyou.service.Linku;
 
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -179,7 +180,7 @@ public class LinkuCreateServiceImpl implements LinkuCreateService {
 
     public Users findUser(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
     }
 
     public String processImage(MultipartFile image, Linku linku) {

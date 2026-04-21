@@ -1,6 +1,7 @@
 package com.umc.linkyou.oauth2.mobile.service;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
@@ -44,7 +45,7 @@ public class NaverMobileAuthService implements MobileAuthService {
                 .orElse(info.email());
 
         if (user.getStatus() != UserStatus.ACTIVE && user.getStatus() != UserStatus.TEMP) {
-            throw new GeneralException(ErrorStatus._USER_INACTIVE);
+            throw new GeneralException(UserErrorStatus._USER_INACTIVE);
         }
 
         String accessTokenJwt = jwtTokenProvider.createAccessToken(resolvedEmail, Provider.NAVER.name(),user.getRole());
