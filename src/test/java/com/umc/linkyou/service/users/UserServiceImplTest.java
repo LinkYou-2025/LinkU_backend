@@ -30,16 +30,11 @@ import static org.mockito.Mockito.when;
 class UserServiceImplTest {
 
     @InjectMocks
-    private UserServiceImpl userService;
+    private UserService userService;
 
     @Mock private UserRepository userRepository;
     @Mock private JobRepository jobRepository;
     @Mock private CategoryRepository categoryRepository;
-    @Mock private PurposeRepository purposeRepository;
-    @Mock private InterestRepository interestRepository;
-    @Mock private FolderRepository folderRepository;
-    @Mock private UsersFolderRepository usersFolderRepository;
-    @Mock private UsersCategoryColorRepository usersCategoryColorRepository;
 
     @Test
     @DisplayName("소셜 프로필 완성 시 유저 상태가 TEMP에서 ACTIVE로 변경된다.")

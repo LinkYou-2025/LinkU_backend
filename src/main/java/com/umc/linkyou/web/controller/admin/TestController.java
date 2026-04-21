@@ -1,9 +1,11 @@
-package com.umc.linkyou.web.controller;
+package com.umc.linkyou.web.controller.admin;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.validation.annotation.ApiAdmin;
 import com.umc.linkyou.web.dto.TestDTO;
 import org.springframework.web.bind.annotation.*;
 
+@ApiAdmin
 @RestController
 @RequestMapping("/api/test")
 public class TestController {

@@ -7,13 +7,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -23,6 +23,7 @@ import java.util.List;
 
 @EnableWebSecurity
 @Configuration
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -35,12 +36,6 @@ public class SecurityConfig {
                 ROLE_ADMIN > ROLE_MANAGER
                 ROLE_MANAGER > ROLE_USER
                 """);
-    }
-    @Bean
-    public DefaultWebSecurityExpressionHandler webSecurityExpressionHandler() {
-        DefaultWebSecurityExpressionHandler expressionHandler = new DefaultWebSecurityExpressionHandler();
-        expressionHandler.setRoleHierarchy(roleHierarchy());
-        return expressionHandler;
     }
 
 
@@ -55,14 +50,15 @@ public class SecurityConfig {
                                 "/", "/css/**",
                                 "/api/v1/auth/**",
                                 "/swagger-ui/**", "/v3/api-docs/**",
-                                "/*.well-known/**",
+                                "/api/v1/auth/mobile/**",
+                                "/api/v1/webhooks/**",
+                                "/error/**",
+
+                                "/*.well-known/**",  // 여기부터 아래까지 삭제해도 되는지 확인해주세요
                                 "/open/**",
                                 "/password/reset",
                                 "/actuator/**",
-                                "/api/v1/auth/mobile/**",
-                                "/error/**",
-                                "/docs/**",
-                                "/api/v1/webhooks/**"
+                                "/docs/**"
                         ).permitAll()
                         // 역할별 접근 제한
                         .requestMatchers("/admin/**").hasRole("ADMIN")
