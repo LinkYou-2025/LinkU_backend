@@ -12,16 +12,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-
 @Slf4j
 @Component
 public class GoogleTokenVerifier {
 
-    @Value("${spring.security.oauth2.client.registration.google.client-id}")
+    @Value("${google.client-id}")
     private String webClientId;
-
-    @Value(("${google.client-id.android}"))
-    private String androidClientId;
 
     public record GoogleUserInfo(String externalId, String email,
                                  String name, String profileImage) {}
@@ -30,13 +26,20 @@ public class GoogleTokenVerifier {
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                     new NetHttpTransport(), GsonFactory.getDefaultInstance())
-                    .setAudience(List.of(webClientId, androidClientId))
+                    .setAudience(List.of(webClientId)) // Web Client ID 하나로만 검증
                     .build();
 
             GoogleIdToken idToken = verifier.verify(idTokenString);
-            if (idToken == null) throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
+
+            if (idToken == null) {
+                // androidClientId 변수를 제거했으므로 로그에서도 제거해야 컴파일 에러가 안 납니다.
+                log.error("검증 실패: GoogleIdToken이 null입니다. 설정된 webClientId: {}", webClientId);
+                throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
+            }
 
             GoogleIdToken.Payload payload = idToken.getPayload();
+            log.info("Google Token 검증 성공 - User: {}, aud: {}", payload.getEmail(), payload.getAudience());
+
             return new GoogleUserInfo(
                     payload.getSubject(),
                     payload.getEmail(),
@@ -46,7 +49,7 @@ public class GoogleTokenVerifier {
         } catch (GeneralException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Google ID Token 검증 실패", e);
+            log.error("Google ID Token 검증 중 예외 발생: {}", e.getMessage());
             throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
         }
     }
