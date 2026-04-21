@@ -7,6 +7,7 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.service.email.EmailVerificationService;
 import com.umc.linkyou.service.email.PasswordResetService;
 import com.umc.linkyou.service.users.UserService;
+import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.api.AuthApi;
 import com.umc.linkyou.web.dto.EmailRequestDTO;
@@ -26,6 +27,7 @@ public class AuthController implements AuthApi {
     private final UserService userService;
     private final EmailVerificationService emailVerificationService;
     private final PasswordResetService passwordResetService;
+    private final UsersUtils usersUtils;
 
     @Override
     public ApiResponse<UserResponseDTO.JoinResultDTO> join(@RequestBody @Valid UserRequestDTO.JoinDTO request) {
@@ -57,7 +59,7 @@ public class AuthController implements AuthApi {
 
     @Override
     public ApiResponse<String> checkNickname(@RequestParam String nickname) {
-        userService.validateNickNameNotDuplicate(nickname);
+        usersUtils.validateNickNameNotDuplicate(nickname);
         return ApiResponse.of(SuccessStatus._NICKNAME_AVAILABLE, "사용 가능한 닉네임 입니다.");
     }
 

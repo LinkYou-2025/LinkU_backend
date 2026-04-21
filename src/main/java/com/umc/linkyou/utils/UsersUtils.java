@@ -60,6 +60,11 @@ public class UsersUtils {
         return user;
     }
 
+    public void validateNickNameNotDuplicate(String nickname) {
+        if (userRepository.findByNickName(nickname).isPresent()) {
+            throw new UserHandler(ErrorStatus._DUPLICATE_NICKNAME);
+        }
+    }
 }
 
 
