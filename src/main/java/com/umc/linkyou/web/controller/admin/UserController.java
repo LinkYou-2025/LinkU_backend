@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "user-controller", description = "사용자 관련 API")
 @Slf4j
 @ApiV1
-@RestController
+@RestController("UserAdminController")
 @RequiredArgsConstructor
 @RequestMapping("/users")
 public class UserController {

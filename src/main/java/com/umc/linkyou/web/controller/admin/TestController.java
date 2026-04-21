@@ -6,7 +6,7 @@ import com.umc.linkyou.web.dto.TestDTO;
 import org.springframework.web.bind.annotation.*;
 
 @ApiAdmin
-@RestController
+@RestController("TestAdminController")
 @RequestMapping("/api/test")
 public class TestController {
 

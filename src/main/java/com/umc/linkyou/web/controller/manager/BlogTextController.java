@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 
 @ApiManager
-@RestController
+@RestController("BlogTextManagerController")
 @RequiredArgsConstructor
 @RequestMapping("/api/blogs/text")
 @Tag(name = "Dataset API", description = "KoBART 데이터셋 수집 전용 API (DB 저장 미사용)")

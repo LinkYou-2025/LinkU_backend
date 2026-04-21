@@ -10,7 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @ApiAdmin
 @ApiV1
-@RestController
+@RestController("awsS3AdminController")
 @RequiredArgsConstructor
 @RequestMapping("/s3")
 public class AwsS3Controller {
