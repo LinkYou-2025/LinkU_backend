@@ -15,9 +15,11 @@ public enum SuccessStatus implements BaseCode {
     // 생성 관련 응답
     _CREATED(HttpStatus.CREATED, "COMMON201", "성공적으로 생성(저장)되었습니다."),
     // 회원가입 관련 응답
-    _VERIFICATION_CODE_SENT(HttpStatus.ACCEPTED, "EMAIL202", "인증 코드 전송 성공."),
-    _NICKNAME_AVAILABLE(HttpStatus.ACCEPTED, "NICKNAME202", "닉네임 중복 확인 성공."),
-    _EMAIL_VERIFICATION_SUCCESS(HttpStatus.ACCEPTED, "EMAIL202", "이메일 인증 성공."),
+    _VERIFICATION_CODE_SENT(HttpStatus.ACCEPTED, "EMAIL202", "인증 코드 전송 성공했습니다."),
+    _NICKNAME_AVAILABLE(HttpStatus.ACCEPTED, "NICKNAME202", "닉네임 중복 확인 성공했습니다."),
+    _EMAIL_VERIFICATION_SUCCESS(HttpStatus.ACCEPTED, "EMAIL202", "이메일 인증 성공했습니다."),
+    _RESET_LINK_SENT(HttpStatus.OK, "EMAIL200", "비밀번호 재설정 링크 전송 성공했습니다."),
+
     // 로그인 관련 응답
     _TEMP_PASSWORD_SENT(HttpStatus.ACCEPTED, "USER205", "임시 비밀번호 전송 성공."),
 
@@ -44,8 +46,7 @@ public enum SuccessStatus implements BaseCode {
     _FOLDER_PERMISSION_OK(HttpStatus.OK, "FOLDER_PERMISSION200", "폴더 권한 수정을 성공했습니다."),
 
     // 북마크 관련 응답
-    _FOLDER_BOOKMARK_OK(HttpStatus.OK, "FOLDER_BOOKMARK200", "폴더 북마크 상태 변경을 성공했습니다"),
-    ;
+    _FOLDER_BOOKMARK_OK(HttpStatus.OK, "FOLDER_BOOKMARK200", "폴더 북마크 상태 변경을 성공했습니다");
 
     private final HttpStatus httpStatus;
     private final String code;

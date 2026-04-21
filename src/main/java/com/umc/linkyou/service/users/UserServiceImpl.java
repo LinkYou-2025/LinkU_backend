@@ -31,8 +31,6 @@ import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.JobRepository;
 import com.umc.linkyou.repository.classification.PurposeRepository;
-import com.umc.linkyou.service.EmailService;
-import com.umc.linkyou.web.dto.EmailVerificationResponse;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import io.jsonwebtoken.Claims;
@@ -44,9 +42,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
 import java.util.*;
 
 @Slf4j
@@ -60,10 +55,6 @@ public class UserServiceImpl implements UserService {
     private final UserQueryRepository userQueryRepository;
 
     private final JwtTokenProvider jwtTokenProvider;
-
-    private final EmailService emailService;
-
-    private final EmailRepository emailRepository;
 
     private final JobRepository jobRepository;
 
@@ -376,86 +367,6 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    // 이메일 인증
-    // 인증 코드 전송
-    public void sendCode(String toEmail) {
-        this.checkDuplicatedEmail(toEmail);
-        String title = "Link You 이메일 인증 번호";
-        String authCode = this.createCode();
-        int expiresInMinutes = 10;
-        String nickname = "링큐 회원";
-
-        log.info("인증 코드: {}", authCode);
-
-        try {
-            //emailService.sendEmail(toEmail, title, authCode);
-            //emailService.saveCode(toEmail, authCode);
-
-            // 템플릿 기반 HTML 메일로 전송
-            emailService.sendVerificationEmailTemplate(
-                    toEmail,
-                    nickname,
-                    authCode,
-                    expiresInMinutes
-            );
-
-            emailService.saveCode(toEmail, authCode);
-            log.info("이메일 전송 완료: {}", toEmail);
-        } catch (Exception e) {
-            log.error("이메일 전송 실패: {}", toEmail, e);
-            throw e; // 혹은 적절한 커스텀 예외를 던짐
-        }
-    }
-
-    private void checkDuplicatedEmail(String email) {
-        if (authAccountRepository.existsByEmail(email)) {
-            log.debug("checkDuplicatedEmail exception occur email: {}", email);
-            throw new UserHandler(ErrorStatus._DUPLICATE_JOIN_REQUEST);
-        }
-    }
-
-    // 인증 코드 생성
-    private String createCode() {
-        int lenth = 6;
-        try {
-            Random random = SecureRandom.getInstanceStrong();
-            StringBuilder builder = new StringBuilder();
-            for (int i = 0; i < lenth; i++) {
-                builder.append(random.nextInt(10));
-            }
-            return builder.toString();
-        } catch (NoSuchAlgorithmException e) {
-            log.debug("MemberService.createCode() exception occur");
-            throw new UserHandler(ErrorStatus._NO_SUCH_ALGORITHM);
-        }
-    }
-
-    // 인증 코드 검증
-    public EmailVerificationResponse verifyCode(String email, String authCode) {
-        this.checkDuplicatedEmail(email);
-        EmailVerification verification = emailRepository.findByEmail(email)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._VERIFICATION_FAILED));
-
-        // 만료 시간 체크
-        if (verification.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new UserHandler(ErrorStatus._EXPIRED_VERIFICATION_CODE);
-        }
-
-        // 코드 일치 여부 확인
-        boolean isMatch = verification.getVerificationCode().equals(authCode);
-
-        // 결과 반영
-        if (isMatch) {
-            verification.setIsVerified(true);
-            emailRepository.save(verification);
-        }
-
-        else if (isMatch==false)
-            throw new UserHandler(ErrorStatus._VERIFICATION_FAILED);
-
-        return EmailVerificationResponse.of(isMatch);
-    }
-
     // 마이페이지 조회
     @Override
     public UserResponseDTO.UserProfileSummaryDto userInfo(Long userId, String loginProvider) {
@@ -495,87 +406,6 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
-
-    // 임시 비밀번호 생성
-    public String createPassword() {
-        final String UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-        final String LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
-
-        final String NUMBERS = "0123456789";
-
-        final String SPECIAL_CHAR = "!@#$%^&*()-_+=<>?";
-
-        final String ALL_CHARS = UPPERCASE + LOWERCASE + NUMBERS + SPECIAL_CHAR;
-
-        final int length = 8;
-
-        // 난수 생성기 객체
-        SecureRandom random = new SecureRandom();
-        // 문자열 생성 객체
-        StringBuilder sb = new StringBuilder();
-
-        sb.append(getRandomChar(UPPERCASE, random));
-        sb.append(getRandomChar(LOWERCASE, random));
-        sb.append(getRandomChar(NUMBERS, random));
-        sb.append(getRandomChar(SPECIAL_CHAR, random));
-
-        // 나머지 글자 랜덤하게 채우기
-        for(int i = 4; i < length; i++) {
-            sb.append(getRandomChar(ALL_CHARS, random));
-        }
-
-        // 비밀번호를 랜덤하게 섞음
-        return shuffleString(sb.toString(), random);
-    }
-
-    // 랜덤 문자 메서드
-    private static String getRandomChar(String characters, SecureRandom random){
-        return String.valueOf(characters.charAt(random.nextInt(characters.length())));
-    }
-
-    // 문자열 섞는 메서드
-    private static String shuffleString(String input, SecureRandom random){
-        char[] characters = input.toCharArray();
-        for(int i = characters.length - 1; i >= 0; i--){
-            int j = random.nextInt(i + 1);
-            char temp = characters[i];
-            characters[i] = characters[j];
-            characters[j] = temp;
-        }
-        return new String(characters);
-    }
-
-    // 임시 비밀번호 전송
-    @Override
-    public void sendTempPassword(String toEmail) {
-        Users user = authAccountRepository.findUserByEmailAndProvider(toEmail, Provider.GENERAL)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
-
-        String tempPassword = this.createPassword();
-        int expiresInMinutes = 10; // 템플릿에서 표시용
-
-        try {
-            // 1) 임시 비밀번호 저장(암호화)
-            emailService.savePassword(toEmail, tempPassword);
-
-            // 2) 메일 발송 (템플릿)
-            String nickname = (user.getNickName() == null || user.getNickName().isBlank())
-                    ? "링큐 회원" : user.getNickName();
-
-            emailService.sendTempPasswordTemplate(
-                    toEmail,
-                    nickname,
-                    tempPassword,
-                    expiresInMinutes
-            );
-
-            log.info("임시 비밀번호 메일 전송 완료: {}", toEmail);
-        } catch (Exception e) {
-            log.error("임시 비밀번호 발송 실패: {}", toEmail, e);
-            throw e;
-        }
-    }
 
 }
 

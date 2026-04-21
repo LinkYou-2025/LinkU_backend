@@ -1,9 +1,7 @@
 package com.umc.linkyou.web.controller.user;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
@@ -12,7 +10,6 @@ import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.service.users.UserWithdrawService;
 import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.validation.annotation.ApiV1;
-import com.umc.linkyou.web.dto.EmailVerificationResponse;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -60,16 +57,6 @@ public class UserController {
         userService.updateUserProfile(userId, updateDTO);
 
         return ApiResponse.onSuccess("성공입니다.", "마이페이지가 수정되었습니다.");
-    }
-
-    @Operation(
-            summary = "임시 비밀번호 발급",
-            description = "등록된 이메일 주소로 임시 비밀번호를 전송합니다."
-    )
-    @PostMapping("password/temp")
-    public ApiResponse<String> tempPassword(@RequestParam("email") @Valid String email) {
-        userService.sendTempPassword(email);
-        return ApiResponse.of(SuccessStatus._TEMP_PASSWORD_SENT, "등록된 이메일로 임시 비밀번호를 전송했습니다.");
     }
 
     @Operation(
