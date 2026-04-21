@@ -1,24 +1,36 @@
 package com.umc.linkyou.config.security;
 
+import com.umc.linkyou.apiPayload.code.BaseCode;
+import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;
-import com.umc.linkyou.validation.annotation.ApiErrorCode;
+import com.umc.linkyou.apiPayload.code.ReasonDTO;
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
+import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
+import com.umc.linkyou.validation.annotation.swagger.ApiErrorCodes;
+import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.examples.Example;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import io.swagger.v3.oas.models.info.Info;
 import org.springframework.web.method.HandlerMethod;
+
+import java.util.ArrayList;
 import java.util.Arrays;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.media.Content;
-import io.swagger.v3.oas.models.media.MediaType;
-import io.swagger.v3.oas.models.responses.ApiResponses;
-import io.swagger.v3.oas.models.examples.Example;
+import java.util.List;
+import java.util.Map;
 
 @Configuration
 public class SwaggerConfig {
@@ -46,49 +58,94 @@ public class SwaggerConfig {
                 .components(components);
     }
 
-    // @ApiErrorCode 어노테이션을 스캔하여 응답 예시를 자동 생성하는 커스텀 로직
     @Bean
     public OperationCustomizer customize() {
         return (Operation operation, HandlerMethod handlerMethod) -> {
-            ApiErrorCode apiErrorCode = handlerMethod.getMethodAnnotation(ApiErrorCode.class);
+            // 1. 성공 응답 처리 (상속 관계 포함 스캔)
+            ApiSuccessCode successAnnotation = handlerMethod.getMethodAnnotation(ApiSuccessCode.class);
+            if (successAnnotation != null) {
+                generateSuccessResponseExample(operation, successAnnotation.value());
+            }
 
-            if (apiErrorCode != null) {
-                generateErrorCodeResponseExample(operation, apiErrorCode.value());
+            // 2. 에러 응답 처리 (Repeatable 컨테이너와 단일 어노테이션 모두 상속 관계 포함 스캔)
+            List<ApiErrorCode> errorCodes = new ArrayList<>();
+
+            // 단일로 붙었을 때
+            ApiErrorCode single = handlerMethod.getMethodAnnotation(ApiErrorCode.class);
+            if (single != null) errorCodes.add(single);
+
+            // 여러 개 붙었을 때 (바구니 어노테이션 탐색)
+            ApiErrorCodes multiple = handlerMethod.getMethodAnnotation(ApiErrorCodes.class);
+            if (multiple != null) {
+                errorCodes.addAll(Arrays.asList(multiple.value()));
+            }
+
+            if (!errorCodes.isEmpty()) {
+                generateErrorCodeResponseExample(operation, errorCodes.toArray(new ApiErrorCode[0]));
             }
 
             return operation;
         };
     }
 
-    private void generateErrorCodeResponseExample(Operation operation, ErrorStatus[] errorStatuses) {
+    // addExample 메서드 수정 (Schema 주입 필수)
+    private void addExample(ApiResponses responses, int httpStatus, String name, String desc, Object value) {
+        String statusKey = String.valueOf(httpStatus);
+
+        ApiResponse response = responses.computeIfAbsent(statusKey, k -> new ApiResponse().description(desc));
+
+        if (response.getContent() == null) {
+            response.setContent(new Content());
+        }
+
+        Content content = response.getContent();
+        if (content.get("application/json") == null) {
+            content.addMediaType("application/json", new MediaType());
+        }
+
+        MediaType mediaType = content.get("application/json");
+
+        // [중요] Schema가 없으면 Swagger UI가 예시를 렌더링하지 못함
+        if (mediaType.getSchema() == null) {
+            mediaType.setSchema(new io.swagger.v3.oas.models.media.Schema<>().$ref("ApiResponse"));
+        }
+
+        Example example = new Example();
+        example.setValue(value);
+        mediaType.addExamples(name, example);
+    }
+
+    // 성공 예시 생성
+    private void generateSuccessResponseExample(Operation operation, SuccessStatus status) {
+        ApiResponses responses = operation.getResponses();
+        ReasonDTO reason = status.getReasonHttpStatus();
+
+        com.umc.linkyou.apiPayload.ApiResponse<Object> exampleResponse =
+                com.umc.linkyou.apiPayload.ApiResponse.onSuccess(null);
+
+        addExample(responses, reason.getHttpStatus().value(), status.name(), reason.getMessage(), exampleResponse);
+    }
+
+    // 에러 예시 생성
+    private void generateErrorCodeResponseExample(Operation operation, ApiErrorCode[] annotations) {
         ApiResponses responses = operation.getResponses();
 
-        Arrays.stream(errorStatuses).forEach(status -> {
-            ErrorReasonDTO reason = status.getReasonHttpStatus();
-
-            // 공통 응답 객체 ApiResponse 형식에 맞춰 예시 데이터 생성
-            com.umc.linkyou.apiPayload.ApiResponse<Object> exampleResponse =
-                    com.umc.linkyou.apiPayload.ApiResponse.onFailure(
-                            reason.getCode(),
-                            reason.getMessage(),
-                            null
-                    );
-
-            Example example = new Example();
-            example.setValue(exampleResponse);
-
-            Content content = new Content();
-            MediaType mediaType = new MediaType();
-            mediaType.addExamples(status.name(), example);
-            content.addMediaType("application/json", mediaType);
-
-            io.swagger.v3.oas.models.responses.ApiResponse response =
-                    new io.swagger.v3.oas.models.responses.ApiResponse();
-            response.setContent(content);
-            response.setDescription(reason.getMessage());
-
-            // HTTP 상태 코드가 같으면 같은 응답 그룹 안에 Example이 추가
-            responses.addApiResponse(String.valueOf(reason.getHttpStatus().value()), response);
-        });
+        for (ApiErrorCode annotation : annotations) {
+            for (ErrorStatus status : annotation.errorStatus()) {
+                addErrorCodeExample(responses, status);
+            }
+            for (UserErrorStatus status : annotation.userErrorStatus()) {
+                addErrorCodeExample(responses, status);
+            }
+        }
     }
+
+    private void addErrorCodeExample(ApiResponses responses, BaseErrorCode status) {
+        ErrorReasonDTO reason = status.getReasonHttpStatus();
+        com.umc.linkyou.apiPayload.ApiResponse<Object> exampleResponse =
+                com.umc.linkyou.apiPayload.ApiResponse.onFailure(reason.getCode(), reason.getMessage(), null);
+
+        addExample(responses, reason.getHttpStatus().value(), ((Enum<?>)status).name(), reason.getMessage(), exampleResponse);
+    }
+
 }

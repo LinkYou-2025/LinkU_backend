@@ -2,13 +2,15 @@ package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.validation.annotation.ApiErrorCode;
+import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
+import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
+import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
 import com.umc.linkyou.web.dto.EmailRequestDTO;
 import com.umc.linkyou.web.dto.PasswordResetRequestDTO;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/auth")
 public interface AuthApi {
 
-    //회원 가입
     @Operation(
             summary = "회원 가입 (이메일)",
             description = """
@@ -27,7 +28,9 @@ public interface AuthApi {
                     - 중복 이메일 또는 중복 닉네임이면 예외를 반환합니다.
                     """
     )
-    @ApiErrorCode({ErrorStatus._BAD_REQUEST, ErrorStatus._DUPLICATE_JOIN_REQUEST, ErrorStatus._DUPLICATE_NICKNAME})
+    @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(errorStatus = {ErrorStatus._BAD_REQUEST})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._DUPLICATE_JOIN_REQUEST, UserErrorStatus._DUPLICATE_NICKNAME})
     @PostMapping("/signup")
     ApiResponse<UserResponseDTO.JoinResultDTO> join(@RequestBody @Valid UserRequestDTO.JoinDTO request);
 
@@ -39,7 +42,9 @@ public interface AuthApi {
                     - 이메일 또는 비밀번호가 올바르지 않으면 로그인 실패 예외를 반환합니다.
                     """
     )
-    @ApiErrorCode({ErrorStatus._LOGIN_FAILED, ErrorStatus._USER_INACTIVE, ErrorStatus._SOCIAL_ACCOUNT_ONLY})
+    @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._LOGIN_FAILED, UserErrorStatus._USER_INACTIVE})
+    @ApiErrorCode(errorStatus = {ErrorStatus._SOCIAL_ACCOUNT_ONLY})
     @PostMapping("/login")
     ApiResponse<UserResponseDTO.LoginResultDTO> login(@RequestBody @Valid UserRequestDTO.LoginRequestDTO request);
 
@@ -51,7 +56,8 @@ public interface AuthApi {
                     - 유효하지 않거나 만료된 Refresh Token이면 예외를 반환합니다.
                     """
     )
-    @ApiErrorCode({ErrorStatus._INVALID_TOKEN})
+    @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(errorStatus = {ErrorStatus._INVALID_TOKEN})
     @PostMapping("/token/reissue")
     ApiResponse<UserResponseDTO.TokenPair> reissueToken(@RequestHeader("Refresh-Token") String refreshToken);
 
@@ -64,7 +70,10 @@ public interface AuthApi {
                     - 메일 전송에 실패하면 인증 코드 전송 실패 에러를 반환합니다.
                     """
     )
-    @ApiErrorCode({ErrorStatus._DUPLICATE_JOIN_REQUEST, ErrorStatus._TOO_MANY_REQUESTS, ErrorStatus._SEND_MAIL_FAILED})
+    @ApiSuccessCode(SuccessStatus._VERIFICATION_CODE_SENT)
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._DUPLICATE_JOIN_REQUEST})
+    @ApiErrorCode(errorStatus = {ErrorStatus._TOO_MANY_REQUESTS})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._SEND_MAIL_FAILED})
     @PostMapping("/email/code")
     ApiResponse<String> sendCode(@RequestBody @Valid EmailRequestDTO.CodeSendDTO request);
 
@@ -77,7 +86,9 @@ public interface AuthApi {
                     - 인증 코드 만료 시간은 10분입니다.
                     """
     )
-    @ApiErrorCode({ErrorStatus._EXPIRED_VERIFICATION_CODE, ErrorStatus._VERIFICATION_FAILED})
+    @ApiSuccessCode(SuccessStatus._EMAIL_VERIFICATION_SUCCESS)
+    @ApiErrorCode(errorStatus = {ErrorStatus._EXPIRED_VERIFICATION_CODE})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._VERIFICATION_FAILED})
     @PostMapping("/email/verify")
     ApiResponse<String> verifyCode(@RequestBody @Valid EmailRequestDTO.CodeVerifyDTO request);
 
@@ -89,7 +100,8 @@ public interface AuthApi {
                     - 사용 가능한 닉네임이면 성공 응답과 안내 문구를 반환합니다.
                     """
     )
-    @ApiErrorCode({ErrorStatus._DUPLICATE_NICKNAME})
+    @ApiSuccessCode(SuccessStatus._NICKNAME_AVAILABLE)
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._DUPLICATE_NICKNAME})
     @GetMapping("/check-nickname")
     ApiResponse<String> checkNickname(@RequestParam String nickname);
 
@@ -102,10 +114,9 @@ public interface AuthApi {
                     - 재설정 링크는 Redis에 저장된 토큰 기준으로 10분 동안 유효합니다.
                     """
     )
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "비밀번호 재설정 링크 전송 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "429", description = "요청 빈도 초과 - cooldown 또는 일일 한도 초과 (COMMON429)")
-    })
+    @ApiSuccessCode(SuccessStatus._RESET_LINK_SENT)
+    @ApiErrorCode(errorStatus = {ErrorStatus._TOO_MANY_REQUESTS})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._SEND_MAIL_FAILED})
     @PostMapping("/password/reset/send")
     ApiResponse<String> sendPasswordResetLink(@RequestBody @Valid EmailRequestDTO.ResetLinkDTO request);
 
@@ -118,7 +129,9 @@ public interface AuthApi {
                     - 토큰이 없거나 만료되면 비밀번호 재설정이 불가능합니다.
                     """
     )
-    @ApiErrorCode({ErrorStatus._INVALID_PASSWORD, ErrorStatus._PASSWORD_MISMATCH, ErrorStatus._USER_NOT_FOUND})
+    @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(errorStatus = {ErrorStatus._INVALID_PASSWORD, ErrorStatus._PASSWORD_MISMATCH})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @PutMapping("/password/reset")
     ApiResponse<Void> resetPassword(@RequestBody @Valid PasswordResetRequestDTO request);
 }
