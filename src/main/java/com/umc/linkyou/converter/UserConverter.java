@@ -51,7 +51,8 @@ public class UserConverter {
             UserResponseDTO.UserProfileSummaryDto s,
             String email,
             List<String> purposes,
-            List<String> interests
+            List<String> interests,
+            String loginProvider
     ) {
         return UserResponseDTO.UserProfileSummaryDto.builder()
                 .nickName(s.getNickName())
@@ -63,6 +64,7 @@ public class UserConverter {
                 .myAiLinku(s.getMyAiLinku())
                 .purposes(purposes)
                 .interests(interests)
+                .loginProvider(loginProvider)
                 .build();
     }
 

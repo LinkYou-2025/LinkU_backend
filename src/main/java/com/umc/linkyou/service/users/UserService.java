@@ -270,9 +270,7 @@ public class UserService {
         List<String> purposes = purposeRepository.findAllPurposeNamesByUserId(userId);
         List<String> interests = interestRepository.findAllInterestNamesByUserId(userId);
 
-        UserResponseDTO.UserProfileSummaryDto result = UserConverter.toUserInfoDTO(s, currentEmail, purposes, interests);
-        result.setLoginProvider(loginProvider);
-        return result;
+        return UserConverter.toUserInfoDTO(s, currentEmail, purposes, interests, loginProvider);
     }
 
 
