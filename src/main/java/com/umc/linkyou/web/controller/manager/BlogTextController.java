@@ -1,7 +1,8 @@
-package com.umc.linkyou.web.controller;
+package com.umc.linkyou.web.controller.manager;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.service.BlogTextService;
+import com.umc.linkyou.validation.annotation.ApiManager;
 import com.umc.linkyou.web.dto.BlogTextRequestDTO;
 import com.umc.linkyou.web.dto.BlogTextResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,9 +13,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.List;
 
-@RestController
+@ApiManager
+@RestController("BlogTextManagerController")
 @RequiredArgsConstructor
 @RequestMapping("/api/blogs/text")
 @Tag(name = "Dataset API", description = "KoBART 데이터셋 수집 전용 API (DB 저장 미사용)")

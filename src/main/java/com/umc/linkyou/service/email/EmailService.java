@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.email;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.properties.SesProperties;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +46,7 @@ public class EmailService {
             log.info("인증 메일 전송 성공: {}", nickname);
         } catch (SdkException e) {
             log.error("인증 메일 전송 실패", e);
-            throw new UserHandler(ErrorStatus._SEND_MAIL_FAILED);
+            throw new UserHandler(UserErrorStatus._SEND_MAIL_FAILED);
         }
     }
 
@@ -66,7 +67,7 @@ public class EmailService {
             log.info("비밀번호 재설정 메일 전송 성공");
         } catch (SdkException e) {
             log.error("비밀번호 재설정 메일 전송 실패", e);
-            throw new UserHandler(ErrorStatus._SEND_MAIL_FAILED);
+            throw new UserHandler(UserErrorStatus._SEND_MAIL_FAILED);
         }
     }
 

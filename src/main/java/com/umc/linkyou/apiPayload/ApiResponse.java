@@ -15,12 +15,19 @@ import java.time.LocalDateTime;
 @JsonPropertyOrder({"isSuccess", "code", "message", "timestamp", "result"})
 public class ApiResponse<T> {
 
+    @io.swagger.v3.oas.annotations.media.Schema(description = "성공 여부", example = "true")
     @JsonProperty("isSuccess")
     private final Boolean isSuccess;
+
+    @io.swagger.v3.oas.annotations.media.Schema(description = "응답 코드", example = "COMMON200")
     private final String code;
+
+    @io.swagger.v3.oas.annotations.media.Schema(description = "응답 메시지", example = "성공입니다.")
     private final String message;
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private final LocalDateTime timestamp;
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private T result;
 

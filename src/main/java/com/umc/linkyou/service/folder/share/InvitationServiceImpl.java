@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.folder.share;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.folder.Folder;
@@ -52,7 +53,7 @@ public class InvitationServiceImpl implements InvitationService {
 
         Folder folder = link.getFolder();
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
         //Owner caanot accpet its own
         if (link.getCreator().getId().equals(userId)) {

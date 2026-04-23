@@ -1,6 +1,7 @@
 package com.umc.linkyou.service;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.AiArticleConverter;
 import com.umc.linkyou.domain.*;
@@ -55,7 +56,7 @@ public class AiArticleServiceImpl implements AiArticleService {
         Linku linku = linkuRepository.findById(linkuId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         Job job = user.getJob();
 
         // 2. Job에 해당하는 Situation 조회
@@ -174,7 +175,7 @@ public class AiArticleServiceImpl implements AiArticleService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._AI_ARTICLE_NOT_FOUND));
         // 유저 개별 정보(memo, 감정 등)는 users_linku에서 별도 조회
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         UsersLinku usersLinku = usersLinkuRepository.findByUserAndLinku(user, linku)
                 .orElse(null);
 

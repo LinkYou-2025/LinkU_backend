@@ -1,4 +1,4 @@
-package com.umc.linkyou.config;
+package com.umc.linkyou.config.email;
 
 import com.umc.linkyou.config.properties.SesProperties;
 import org.springframework.context.annotation.Bean;

@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.email;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.domain.redis.EmailVerificationCache;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
@@ -44,7 +45,7 @@ public class EmailVerificationService {
     // 이미 가입된 이메일이면 중복 에러
     public void sendCode(String email) {
         if (authAccountRepository.existsByEmail(email)) {
-            throw new UserHandler(ErrorStatus._DUPLICATE_JOIN_REQUEST);
+            throw new UserHandler(UserErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
 
         rateLimiter.enforce(email, SEND_COOLDOWN_KEY, DAILY_SEND_COUNT_KEY,
@@ -60,7 +61,7 @@ public class EmailVerificationService {
         } catch (Exception e) {
             log.error("이메일 인증 코드 전송 실패", e);
             emailVerificationRedisRepository.deleteById(hashedEmail);
-            throw new UserHandler(ErrorStatus._SEND_MAIL_FAILED);
+            throw new UserHandler(UserErrorStatus._SEND_MAIL_FAILED);
         }
         log.info("이메일 인증 코드 전송 완료");
     }
@@ -81,7 +82,7 @@ public class EmailVerificationService {
                 throw new UserHandler(ErrorStatus._EXPIRED_VERIFICATION_CODE);
             }
             log.warn("이메일 인증 코드 검증 실패 failureCount={}", failureCount);
-            throw new UserHandler(ErrorStatus._VERIFICATION_FAILED);
+            throw new UserHandler(UserErrorStatus._VERIFICATION_FAILED);
         }
 
         emailVerificationRedisRepository.deleteById(hashedEmail);
