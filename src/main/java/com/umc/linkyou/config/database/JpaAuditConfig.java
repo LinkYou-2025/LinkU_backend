@@ -1,4 +1,4 @@
-package com.umc.linkyou.config;
+package com.umc.linkyou.config.database;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;

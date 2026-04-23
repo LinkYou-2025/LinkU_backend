@@ -1,4 +1,4 @@
-package com.umc.linkyou.config;
+package com.umc.linkyou.config.external;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.genai.Client;

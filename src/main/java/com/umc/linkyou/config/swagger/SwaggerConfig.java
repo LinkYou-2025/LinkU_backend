@@ -1,6 +1,5 @@
-package com.umc.linkyou.config.security;
+package com.umc.linkyou.config.swagger;
 
-import com.umc.linkyou.apiPayload.code.BaseCode;
 import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;
 import com.umc.linkyou.apiPayload.code.ReasonDTO;
@@ -30,7 +29,6 @@ import org.springframework.web.method.HandlerMethod;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 @Configuration
 public class SwaggerConfig {
@@ -107,7 +105,7 @@ public class SwaggerConfig {
 
         // [중요] Schema가 없으면 Swagger UI가 예시를 렌더링하지 못함
         if (mediaType.getSchema() == null) {
-            mediaType.setSchema(new io.swagger.v3.oas.models.media.Schema<>().$ref("ApiResponse"));
+            mediaType.setSchema(new io.swagger.v3.oas.models.media.Schema<>().$ref("#/components/schemas/ApiResponse"));
         }
 
         Example example = new Example();

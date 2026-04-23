@@ -1,4 +1,4 @@
-package com.umc.linkyou.config;
+package com.umc.linkyou.config.common;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
