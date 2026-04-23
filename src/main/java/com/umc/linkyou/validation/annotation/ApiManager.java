@@ -11,8 +11,7 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@RestController
-@RequestMapping("/api/v1/manage") // 매니저 API 공통 경로
+@RestController  // 매니저 API 공통 경로 /api/v1/manage
 @PreAuthorize("hasRole('MANAGER')")
 public @interface ApiManager {
 }

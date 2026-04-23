@@ -12,7 +12,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @RestController
-@RequestMapping("/api/v1/admin") // 관리자 API 공통 경로
 @PreAuthorize("hasRole('ADMIN')") // Admin 권한 체크
-public @interface ApiAdmin {
+public @interface ApiAdmin {//WebConfig를 통한 공통경로 설정이 되어 있음 /api/v1/admin
 }
