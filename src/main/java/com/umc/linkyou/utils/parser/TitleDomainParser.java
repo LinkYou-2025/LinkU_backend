@@ -1,4 +1,4 @@
-package com.umc.linkyou.infra.parser;
+package com.umc.linkyou.utils.parser;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;

@@ -3,7 +3,7 @@ package com.umc.linkyou.service.curation.linku;
 
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.infra.parser.LinkToImageService;
+import com.umc.linkyou.utils.parser.LinkToImageService;
 import com.umc.linkyou.repository.CurationRepository;
 import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
 import com.umc.linkyou.repository.curationLinkuRepository.UsersLinkuRepositoryCustom;

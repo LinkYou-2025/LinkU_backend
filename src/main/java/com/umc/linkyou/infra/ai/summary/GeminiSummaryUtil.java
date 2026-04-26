@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.infra.ai.GeminiJsonUtils;
-import com.umc.linkyou.infra.ai.dto.SummaryAnalysisResultDTO;
-import com.umc.linkyou.infra.parser.WebContentExtractor;
+import com.umc.linkyou.gemini.dto.ClassifyResultDTO;
+import com.umc.linkyou.utils.parser.WebContentExtractor;
 import com.umc.linkyou.service.curation.gemini.GeminiTextService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ public class GeminiSummaryUtil {
     private final WebContentExtractor webContentExtractor;
     private final GeminiTextService geminiTextService;
 
-    public SummaryAnalysisResultDTO getFullAnalysis(
+    public ClassifyResultDTO getFullAnalysis(
             String url,
             List<?> situations,
             List<?> emotions,
@@ -115,7 +115,7 @@ public class GeminiSummaryUtil {
 
         // 파싱
         try {
-            return objectMapper.readValue(sanitized, SummaryAnalysisResultDTO.class);
+            return objectMapper.readValue(sanitized, ClassifyResultDTO.class);
         } catch (Exception e) {
             log.error("[AI 응답 파싱 실패]: {}", sanitized, e);
             throw new GeneralException(ErrorStatus._AI_PARSE_ERROR);

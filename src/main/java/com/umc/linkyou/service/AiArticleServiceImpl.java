@@ -7,11 +7,10 @@ import com.umc.linkyou.converter.AiArticleConverter;
 import com.umc.linkyou.domain.*;
 import com.umc.linkyou.domain.classification.*;
 import com.umc.linkyou.domain.Linku;
-import com.umc.linkyou.domain.mapping.SituationJob;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.infra.parser.LinkToImageService;
-import com.umc.linkyou.infra.ai.summary.GeminiSummaryUtil;
-import com.umc.linkyou.infra.ai.dto.SummaryAnalysisResultDTO;
+import com.umc.linkyou.gemini.dto.SummaryResultDTO;
+import com.umc.linkyou.gemini.service.GeminiLinkuService;
+import com.umc.linkyou.utils.parser.LinkToImageService;
 import com.umc.linkyou.repository.*;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
@@ -26,8 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -42,110 +39,61 @@ public class AiArticleServiceImpl implements AiArticleService {
     private final SituationRepository situationRepository;
     private final AiArticleRepository aiArticleRepository;
     private final UsersLinkuRepository usersLinkuRepository;
-    private final GeminiSummaryUtil geminiSummaryUtil;
     private final LinkToImageService linkToImageService;
+    private final GeminiLinkuService geminiLinkuService;
 
     /**
-     * 생성
-     * [memo, 유저 감정 등은 users_linku 쿼리해서] 같이 dto로 보냄
+     * 링크 생성
      */
     @Override
     @Transactional
     public AiArticleResponsetDTO.AiArticleResultDTO saveAiArticle(Long linkuId, Long userId) {
-        // 1. linku, 유저 조회
+        // 1. 기본 정보 및 생성 시점 매핑 데이터(UsersLinku) 조회
         Linku linku = linkuRepository.findById(linkuId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
-        Job job = user.getJob();
+        UsersLinku usersLinku = usersLinkuRepository.findByUserAndLinku(user, linku)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
 
-        // 2. Job에 해당하는 Situation 조회
-        List<Situation> situations = situationJobRepository.findAllByJob(job).stream()
-                .map(SituationJob::getSituation)
-                .toList();
-        if (situations.isEmpty()) throw new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND);
+        // 2. Gemini 호출 (객관적 요약, 제목, 카테고리 추출)
+        SummaryResultDTO result = geminiLinkuService.getFullAnalysis(linku.getLinku());
 
-        // 3. Emotion, Category 전체 조회
-        List<Emotion> emotions = emotionRepository.findAll();
-        List<Category> categories = categoryRepository.findAll();
-
-        if (emotions.isEmpty()) throw new GeneralException(ErrorStatus._EMOTION_NOT_FOUND);
-        if (categories.isEmpty()) throw new GeneralException(ErrorStatus._CATEGORY_NOT_FOUND);
-
-        // 4. Gemini 호출
-        SummaryAnalysisResultDTO result;
-        try {
-            result = geminiSummaryUtil.getFullAnalysis(
-                    linku.getLinku(), situations, emotions, categories
-            );
-        } catch (IOException e) {
-            log.error("[AI JSON 파싱 실패 또는 응답 오류]: {}", e.getMessage(), e);
-            throw new GeneralException(ErrorStatus._AI_INVALID_RESPONSE);
-        }
-
-        // 5. 이미지 받아오기
-        String imageUrl = linkToImageService.getRelatedImageFromUrl(linku.getLinku(), linku.getTitle());
-
-        // 6. id 기반 Entity 조인
-        Situation selectedSituation = situationRepository.findById(result.getSituationId())
-                .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
-        Emotion selectedEmotion = emotionRepository.findById(result.getEmotionId())
-                .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
+        // 3. 분석 결과 기반 엔티티 확정
         Category selectedCategory = categoryRepository.findById(result.getCategoryId())
                 .orElseThrow(() -> new GeneralException(ErrorStatus._CATEGORY_NOT_FOUND));
 
-        // 7. 기존 AI Article 조회
-        AiArticle article = aiArticleRepository.findByLinku(linku).orElse(null);
+        // [수정 포인트] 상황은 시스템 기본값, 감정은 유저가 링크 생성 시 선택했던 값을 활용
+        Situation defaultSituation = situationRepository.findById(1L)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
+        Emotion userSelectedEmotion = usersLinku.getEmotion();
 
-        if (article == null) {
-            // 없으면 새로 생성
-            article = AiArticleConverter.toEntity(
-                    result,
-                    selectedSituation,
-                    selectedEmotion,
-                    selectedCategory,
-                    linku,
-                    imageUrl
-            );
-        } else {
-            // 있으면 내용 업데이트
-            article.setTitle(result.getTitle());
-            article.setSituation(selectedSituation);
-            article.setAiFeelingId(selectedEmotion.getEmotionId());
-            article.setAiCategoryId(selectedCategory.getCategoryId());
-            article.setSummary(result.getSummary());
-            article.setImgUrl(imageUrl);
+        // 4. 이미지 정보 가져오기
+        String imageUrl = linkToImageService.getRelatedImageFromUrl(linku.getLinku(), linku.getTitle());
+
+        // 5. AiArticle 저장 또는 업데이트 (Dirty Checking 활용)
+        AiArticle article = aiArticleRepository.findByLinku(linku)
+                .map(existing -> {
+                    existing.setTitle(result.getTitle());
+                    existing.setSummary(result.getSummary());
+                    existing.setAiCategoryId(selectedCategory.getCategoryId());
+                    existing.setAiFeelingId(userSelectedEmotion.getEmotionId()); // 생성 시점 감정 반영
+                    existing.setImgUrl(imageUrl);
+                    return existing;
+                })
+                .orElseGet(() -> aiArticleRepository.save(
+                        AiArticleConverter.toEntity(result, defaultSituation, userSelectedEmotion, selectedCategory, linku, imageUrl)
+                ));
+
+        // 6. 연관관계 및 상태 업데이트
+        if (linku.getAiArticle() == null || !linku.getAiArticle().equals(article)) {
+            linku.setAiArticle(article);
         }
+        usersLinku.setAiExist(true);
 
-        AiArticle saved = aiArticleRepository.save(article);
-
-        // 8. linku와 연관관계 상태 점검 후 업데이트 필요 시 처리
-        if (linku.getAiArticle() == null || !linku.getAiArticle().equals(saved)) {
-            linku.setAiArticle(saved);
-            linkuRepository.save(linku);
-        }
-
-        // 9. 유저 개별정보 조회 (없으면 null 가능)
-        UsersLinku usersLinku = usersLinkuRepository.findByUserAndLinku(user, linku)
-                .orElse(null);
-
-        //ai 생성여부
-        if (usersLinku != null) {
-            usersLinku.setAiExist(true);
-            usersLinkuRepository.save(usersLinku);
-        }
-
-        // 10. DTO 반환
-        return AiArticleConverter.toDto(
-                saved,
-                linku,
-                usersLinku,
-                selectedSituation,
-                selectedEmotion,
-                selectedCategory
-        );
+        // 7. DTO 반환
+        return AiArticleConverter.toDto(article, linku, usersLinku, defaultSituation, userSelectedEmotion, selectedCategory);
     }
-
 
     /**
      * 존재 여부 + title 검증 후 생성 or 조회

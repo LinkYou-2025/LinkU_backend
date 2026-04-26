@@ -3,11 +3,13 @@ package com.umc.linkyou.gemini.dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class GeminiAnalysisResult {
+public class ClassifyResultDTO {
     private String title;
     private String summary;
     private Long situationId;
@@ -15,3 +17,4 @@ public class GeminiAnalysisResult {
     private Long categoryId;
     private String keywords;
 }
+

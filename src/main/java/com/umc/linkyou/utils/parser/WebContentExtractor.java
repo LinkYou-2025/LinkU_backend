@@ -1,4 +1,4 @@
-package com.umc.linkyou.infra.parser;
+package com.umc.linkyou.utils.parser;
 
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.CrawlStrategy;

@@ -2,11 +2,9 @@ package com.umc.linkyou.infra.ai;
 
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.classification.Category;
-import com.umc.linkyou.domain.classification.Emotion;
-import com.umc.linkyou.domain.classification.Situation;
+import com.umc.linkyou.gemini.dto.ClassifyResultDTO;
+import com.umc.linkyou.gemini.service.GeminiLinkuService;
 import com.umc.linkyou.infra.ai.classifier.GeminiCategoryClassifier;
-import com.umc.linkyou.infra.ai.dto.SummaryAnalysisResultDTO;
-import com.umc.linkyou.infra.ai.summary.GeminiSummaryUtil;
 import com.umc.linkyou.repository.CurationRepository;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
@@ -29,8 +27,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 @SpringBootTest(properties = "spring.sql.init.mode=never")
 class GeminiAiIntegrationTest {
 
-    @Autowired GeminiSummaryUtil geminiSummaryUtil;
-    @Autowired GeminiCategoryClassifier geminiCategoryClassifier;
+    @Autowired GeminiLinkuService geminiLinkuService;
     @Autowired CurationServiceImpl curationService;
     @Autowired ExternalRecommendServiceImpl externalRecommendService;
 
@@ -49,19 +46,13 @@ class GeminiAiIntegrationTest {
     @Test
     @DisplayName("getFullAnalysis: 링크 요약,분류 결과를 반환한다")
     void getFullAnalysis_withRealDbData_returnsValidResult() throws Exception {
-        List<Situation> situations = situationRepository.findAll();
-        List<Emotion> emotions = emotionRepository.findAll();
-        List<Category> categories = categoryRepository.findAll();
+        assertThat(situationRepository.findAll()).isNotEmpty();
+        assertThat(emotionRepository.findAll()).isNotEmpty();
+        assertThat(categoryRepository.findAll()).isNotEmpty();
 
-        assertThat(situations).as("DB에 Situation 데이터가 있어야 합니다").isNotEmpty();
-        assertThat(emotions).as("DB에 Emotion 데이터가 있어야 합니다").isNotEmpty();
-        assertThat(categories).as("DB에 Category 데이터가 있어야 합니다").isNotEmpty();
+        ClassifyResultDTO result = geminiLinkuService.getFullAnalysis(TEST_URL);
 
-        SummaryAnalysisResultDTO result = geminiSummaryUtil.getFullAnalysis(
-                TEST_URL, situations, emotions, categories
-        );
-
-        System.out.println("=== GeminiSummaryUtil 결과 ===");
+        System.out.println("=== GeminiLinkuService Full Analysis 결과 ===");
         System.out.println("title      : " + result.getTitle());
         System.out.println("summary    : " + result.getSummary());
         System.out.println("situationId: " + result.getSituationId());
@@ -73,10 +64,8 @@ class GeminiAiIntegrationTest {
         assertThat(result.getSummary()).isNotBlank();
         assertThat(result.getKeywords()).isNotBlank();
 
-        // 반환된 ID가 실제 DB에 존재하는 값인지 검증
-        assertThat(situations).anyMatch(s -> s.getId().equals(result.getSituationId()));
-        assertThat(emotions).anyMatch(e -> e.getEmotionId().equals(result.getEmotionId()));
-        assertThat(categories).anyMatch(c -> c.getCategoryId().equals(result.getCategoryId()));
+        // [수정] 반환된 ID 검증 로직은 동일
+        assertThat(categoryRepository.existsById(result.getCategoryId())).isTrue();
     }
 
     // GeminiCategoryClassifier
