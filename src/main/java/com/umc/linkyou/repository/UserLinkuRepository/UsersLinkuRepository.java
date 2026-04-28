@@ -1,9 +1,8 @@
-package com.umc.linkyou.repository.mapping;
+package com.umc.linkyou.repository.UserLinkuRepository;
 
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.repository.curationLinkuRepository.UsersLinkuRepositoryCustom;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -14,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long> {
+public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, UsersLinkuRepositoryCustom {
     Optional<UsersLinku> findByUserIdAndLinku_Linku(Long userId, String url);
 
     Optional<UsersLinku> findByUserAndLinku(Users user, Linku linku);
@@ -31,5 +30,4 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long> {
 
     List<UsersLinku> findTop10ByUser_IdAndLastViewedAtIsNotNullOrderByLastViewedAtDesc(Long userId);
 
-    List<UsersLinku> findByUser_IdAndLastViewedAtIsNull(Long userId);
 }
