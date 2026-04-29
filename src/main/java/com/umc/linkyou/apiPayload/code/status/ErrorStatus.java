@@ -45,15 +45,7 @@ public enum ErrorStatus implements BaseErrorCode {
     _USER_LINKU_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU404", "user_linku 테이블을 찾기 못했습니다." ),
     _SOCIAL_EXTERNAL_ID_REQUIRED(HttpStatus.BAD_REQUEST, "OAUTH4009", "소셜 계정 ID가 필요합니다."),
     _INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "OAUTH4010", "올바른 이메일 형식이 아닙니다."),
-    //OPENAI관련 오류
-    _AI_PARSE_ERROR(HttpStatus.BAD_REQUEST, "OPENAI5001", "AI 응답 파싱에 실패했습니다."),
-    _AI_INVALID_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR, "OPENAI5002", "AI 응답이 예상한 형식이 아닙니다."),
 
-    //AIArticle 생성오류
-    _DUPLICATE_AI_ARTICLE(HttpStatus.CONFLICT, "AIARTICLE4091", "이미 해당 링크로 생성된 AI Article이 존재합니다."),
-    _AI_ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND, "AIARTICLE4041", "해당하는 AI Article을 찾을 수 없습니다."),
-    _CONTENT_EXTRACTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "CRAWLER5001", "웹페이지 본문 추출에 실패했습니다."),
-    _CONTENT_EXTRACTION_PROHIBITED(HttpStatus.INTERNAL_SERVER_ERROR, "CRAWLER5002", "크롤링이 금지된 웹사이트입니다."),
     //카테고리(폴더종류) 관련 에러
     _CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CATEGORY4041", "해당하는 카테고리를 찾을 수 없습니다."),
     //감정 관련 에러

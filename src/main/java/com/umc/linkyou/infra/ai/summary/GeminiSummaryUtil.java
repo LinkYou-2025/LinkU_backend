@@ -1,6 +1,7 @@
 package com.umc.linkyou.infra.ai.summary;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.apiPayload.code.status.AiArticleErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.infra.ai.GeminiJsonUtils;
@@ -108,7 +109,7 @@ public class GeminiSummaryUtil {
         String sanitized = GeminiJsonUtils.extractJson(rawContent);
         if (sanitized == null) {
             log.error("[sanitizeJson] 유효 JSON 범위 찾을 수 없음. 원본: {}", rawContent);
-            throw new GeneralException(ErrorStatus._AI_PARSE_ERROR);
+            throw new GeneralException(AiArticleErrorStatus._AI_PARSE_ERROR);
         }
 
         log.info("[정제된 응답 JSON]:\n{}", sanitized);
@@ -118,7 +119,7 @@ public class GeminiSummaryUtil {
             return objectMapper.readValue(sanitized, ClassifyResultDTO.class);
         } catch (Exception e) {
             log.error("[AI 응답 파싱 실패]: {}", sanitized, e);
-            throw new GeneralException(ErrorStatus._AI_PARSE_ERROR);
+            throw new GeneralException(AiArticleErrorStatus._AI_PARSE_ERROR);
         }
     }
 }

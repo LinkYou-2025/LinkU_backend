@@ -1,5 +1,6 @@
 package com.umc.linkyou.service;
 
+import com.umc.linkyou.apiPayload.code.status.AiArticleErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -122,7 +123,7 @@ public class AiArticleService {
         Linku linku = linkuRepository.findById(linkuId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
         AiArticle article = aiArticleRepository.findByLinku(linku)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._AI_ARTICLE_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(AiArticleErrorStatus._AI_ARTICLE_NOT_FOUND));
         // 유저 개별 정보(memo, 감정 등)는 users_linku에서 별도 조회
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
