@@ -158,16 +158,25 @@ public class AiArticleService {
      * 마이페이지: 카테고리별 AI 요약 링크 목록 조회
      */
     @Transactional(readOnly = true)
-    public List<LinkuResponseDTO.LinkuResultDTO> getMyAiArticlesByCategory(Long userId, Long categoryId) {
-        // 1. QueryDSL 쿼리 호출 (Fetch Join으로 AI Article까지 한 번에 가져옴)
-        List<UsersLinku> usersLinkus = usersLinkuRepository.fetchAiArticlesByCategoryId(userId, categoryId);
+    public LinkuResponseDTO.LinkuSliceResultDTO getMyAiArticlesByCategory(Long userId, Long categoryId, Long cursor, int limit) {
 
-        // 2. DTO 변환
-        return usersLinkus.stream()
+        // 1. 데이터 조회 (limit + 1개)
+        List<UsersLinku> usersLinkus = usersLinkuRepository.fetchAiArticlesByCategoryIdWithCursor(userId, categoryId, cursor, limit);
+
+        // 2. 다음 페이지 존재 여부 확인
+        boolean hasNext = usersLinkus.size() > limit;
+        List<UsersLinku> resultList = hasNext ? usersLinkus.subList(0, limit) : usersLinkus;
+
+        // 3. 다음 커서 값 추출 (마지막 항목의 ID)
+        String nextCursor = hasNext
+                ? String.valueOf(resultList.get(resultList.size() - 1).getUserLinkuId())
+                : null;
+
+        // 4. DTO 변환
+        List<LinkuResponseDTO.LinkuResultDTO> linkuResultDTOs = resultList.stream()
                 .map(ul -> {
                     Linku l = ul.getLinku();
                     AiArticle a = l.getAiArticle();
-
                     return LinkuResponseDTO.LinkuResultDTO.builder()
                             .userId(userId)
                             .userLinkuId(ul.getUserLinkuId())
@@ -186,5 +195,11 @@ public class AiArticleService {
                             .build();
                 })
                 .collect(Collectors.toList());
+
+        return LinkuResponseDTO.LinkuSliceResultDTO.builder()
+                .linkuList(linkuResultDTOs)
+                .nextCursor(nextCursor)
+                .hasNext(hasNext)
+                .build();
     }
 }

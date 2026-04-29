@@ -1,5 +1,6 @@
 package com.umc.linkyou.repository.UserLinkuRepository;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.QAiArticle;
 import com.umc.linkyou.domain.QLinku;
@@ -50,5 +51,33 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 .orderBy(usersLinku.createdAt.desc())
                 .limit(limit)
                 .fetch();
+    }
+    @Override
+    public List<UsersLinku> fetchAiArticlesByCategoryIdWithCursor(Long userId, Long categoryId, Long cursorId, int limit) {
+        QUsersLinku usersLinku = QUsersLinku.usersLinku;
+        QLinku linku = QLinku.linku1;
+        QAiArticle aiArticle = QAiArticle.aiArticle;
+
+        return queryFactory
+                .selectFrom(usersLinku)
+                .join(usersLinku.linku, linku).fetchJoin()
+                .leftJoin(linku.aiArticle, aiArticle).fetchJoin()
+                .where(
+                        usersLinku.user.id.eq(userId),
+                        linku.category.categoryId.eq(categoryId),
+                        usersLinku.aiExist.isTrue(),
+                        ltCursorId(cursorId) // 커서 조건 추가
+                )
+                .orderBy(usersLinku.createdAt.desc(), usersLinku.userLinkuId.desc()) // 정렬 순서 보장
+                .limit(limit + 1) // 다음 페이지 여부 확인용
+                .fetch();
+    }
+
+    // 커서 조건 처리 (최신순이므로 현재 커서보다 작은 ID를 가져옴)
+    private BooleanExpression ltCursorId(Long cursorId) {
+        if (cursorId == null || cursorId == 0L) {
+            return null;
+        }
+        return QUsersLinku.usersLinku.userLinkuId.lt(cursorId);
     }
 }

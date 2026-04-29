@@ -48,20 +48,20 @@ public class AiArticleController {
     }
 
     @Operation(
-            summary = "마이페이지 카테고리별 AI 요약 링크 조회 (목록)",
-            description = "사용자가 저장한 링크 중 AI 요약이 생성된 항목들을 카테고리별로 필터링하여 최신순으로 조회합니다."
+            summary = "마이페이지 카테고리별 AI 요약 링크 조회 (목록, 페이징)",
+            description = "커서 기반 페이징을 지원합니다. 첫 조회 시 cursor는 생략 가능합니다."
     )
     @GetMapping("/category/{categoryId}")
-    public ApiResponse<List<LinkuResponseDTO.LinkuResultDTO>> getMyAiArticlesByCategory(
-            @Parameter(description = "조회할 카테고리 ID", example = "1")
+    public ApiResponse<LinkuResponseDTO.LinkuSliceResultDTO> getMyAiArticlesByCategory(
             @PathVariable("categoryId") Long categoryId,
+            @RequestParam(name = "cursor", required = false) Long cursor,
+            @RequestParam(name = "limit", defaultValue = "10") int limit,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long userId = usersUtils.getAuthenticatedUserId(userDetails);
 
-        // QueryDSL을 통해 최신순으로 정렬된 목록을 가져옵니다.
-        List<LinkuResponseDTO.LinkuResultDTO> result =
-                aiArticleService.getMyAiArticlesByCategory(userId, categoryId);
+        LinkuResponseDTO.LinkuSliceResultDTO result =
+                aiArticleService.getMyAiArticlesByCategory(userId, categoryId, cursor, limit);
 
         return ApiResponse.of(SuccessStatus._OK, result);
     }

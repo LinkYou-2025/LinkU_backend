@@ -16,7 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
-
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -53,63 +53,70 @@ class AiArticleControllerTest {
     }
 
     @Test
-    @DisplayName("성공 - 특정 카테고리 ID로 조회 시 해당 카테고리의 AI 요약 리스트를 반환한다")
+    @DisplayName("성공 - 특정 카테고리 ID로 조회 시 커서 기반 페이징 결과를 반환한다")
     void getMyAiArticlesByCategory_Success() throws Exception {
         // given
         Long categoryId = 1L;
+        Long cursor = 0L;
+        int limit = 10;
 
-        // 2개의 서로 다른 데이터 준비
+        // 1. 내부 리스트 데이터 준비
         LinkuResponseDTO.LinkuResultDTO article1 = LinkuResponseDTO.LinkuResultDTO.builder()
                 .linkuId(101L)
+                .userLinkuId(1001L) // 커서로 사용될 ID
                 .categoryId(categoryId)
                 .title("첫 번째 AI 제목")
-                .summary("첫 번째 요약")
-                .keyword("#태그1 #태그2")
                 .aiArticleExists(true)
                 .build();
 
-        LinkuResponseDTO.LinkuResultDTO article2 = LinkuResponseDTO.LinkuResultDTO.builder()
-                .linkuId(102L)
-                .categoryId(categoryId)
-                .title("두 번째 AI 제목")
-                .summary("두 번째 요약")
-                .keyword("#태그3 #태그4")
-                .aiArticleExists(true)
+        List<LinkuResponseDTO.LinkuResultDTO> mockList = List.of(article1);
+
+        // 2. Slice 결과 DTO 생성
+        LinkuResponseDTO.LinkuSliceResultDTO mockSlice = LinkuResponseDTO.LinkuSliceResultDTO.builder()
+                .linkuList(mockList)
+                .nextCursor("1001")
+                .hasNext(true)
                 .build();
 
-        List<LinkuResponseDTO.LinkuResultDTO> mockList = List.of(article1, article2);
-
-        given(aiArticleService.getMyAiArticlesByCategory(eq(TEST_USER_ID), eq(categoryId)))
-                .willReturn(mockList);
+        // 서비스 메서드 시그니처 변경 반영 (userId, categoryId, cursor, limit)
+        given(aiArticleService.getMyAiArticlesByCategory(eq(TEST_USER_ID), eq(categoryId), any(), anyInt()))
+                .willReturn(mockSlice);
 
         // when & then
         mockMvc.perform(get("/api/v1/aiarticle/category/{categoryId}", categoryId)
+                        .param("cursor", "0")
+                        .param("limit", "10")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
-                // 1. 전체 리스트 개수 확인
-                .andExpect(jsonPath("$.result.length()").value(2))
-                // 2. 첫 번째 항목 상세 검증
-                .andExpect(jsonPath("$.result[0].linkuId").value(101L))
-                .andExpect(jsonPath("$.result[0].title").value("첫 번째 AI 제목"))
-                .andExpect(jsonPath("$.result[0].categoryId").value(categoryId))
-                // 3. 두 번째 항목 상세 검증
-                .andExpect(jsonPath("$.result[1].linkuId").value(102L))
-                .andExpect(jsonPath("$.result[1].title").value("두 번째 AI 제목"))
-                .andExpect(jsonPath("$.result[1].summary").value("두 번째 요약"))
+                // 3. JSON 구조 검증 ($.result.linkuList[0] 형태)
+                .andExpect(jsonPath("$.result.linkuList.length()").value(1))
+                .andExpect(jsonPath("$.result.linkuList[0].linkuId").value(101L))
+                .andExpect(jsonPath("$.result.nextCursor").value("1001"))
+                .andExpect(jsonPath("$.result.hasNext").value(true))
                 .andDo(print());
     }
 
     @Test
-    @DisplayName("성공 - 결과가 없는 카테고리 조회 시 빈 리스트를 반환한다")
+    @DisplayName("성공 - 결과가 없는 카테고리 조회 시 빈 리스트와 null 커서를 반환한다")
     void getMyAiArticlesByCategory_Empty() throws Exception {
+        // given
         Long emptyCategoryId = 99L;
-        given(aiArticleService.getMyAiArticlesByCategory(eq(TEST_USER_ID), eq(emptyCategoryId)))
-                .willReturn(List.of());
+        LinkuResponseDTO.LinkuSliceResultDTO emptySlice = LinkuResponseDTO.LinkuSliceResultDTO.builder()
+                .linkuList(List.of())
+                .nextCursor(null)
+                .hasNext(false)
+                .build();
 
+        given(aiArticleService.getMyAiArticlesByCategory(eq(TEST_USER_ID), eq(emptyCategoryId), any(), anyInt()))
+                .willReturn(emptySlice);
+
+        // when & then
         mockMvc.perform(get("/api/v1/aiarticle/category/{categoryId}", emptyCategoryId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result").isEmpty())
+                .andExpect(jsonPath("$.result.linkuList").isEmpty())
+                .andExpect(jsonPath("$.result.hasNext").value(false))
+                .andExpect(jsonPath("$.result.nextCursor").isEmpty())
                 .andDo(print());
     }
 }
