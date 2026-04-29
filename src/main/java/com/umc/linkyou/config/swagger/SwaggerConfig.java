@@ -42,12 +42,20 @@ public class SwaggerConfig {
 
         String jwtSchemeName = "JWT TOKEN";
         SecurityRequirement securityRequirement = new SecurityRequirement().addList(jwtSchemeName);
+
+        io.swagger.v3.core.converter.ResolvedSchema resolvedSchema =
+                io.swagger.v3.core.converter.ModelConverters.getInstance()
+                        .resolveAsResolvedSchema(new io.swagger.v3.core.converter
+                                .AnnotatedType(com.umc.linkyou.apiPayload.ApiResponse.class));
+
+
         Components components = new Components()
                 .addSecuritySchemes(jwtSchemeName, new SecurityScheme()
                         .name(jwtSchemeName)
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
-                        .bearerFormat("JWT"));
+                        .bearerFormat("JWT"))
+                .addSchemas("ApiResponse", resolvedSchema.schema);
 
         return new OpenAPI()
                 .addServersItem(new Server().url("/"))
