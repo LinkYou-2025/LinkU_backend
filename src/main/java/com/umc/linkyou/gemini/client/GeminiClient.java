@@ -42,8 +42,10 @@ public class GeminiClient {
 
             return client.models.generateContent(modelName, userPrompt, config).text();
         } catch (Exception e) {
-            log.error("[Gemini API 호출 에러] model: {}, error: {}", modelName, e.getMessage());
-            return null;
+            if (e.getCause() instanceof TimeoutException || e instanceof TimeoutException) {
+                throw new GeneralException(GeminiErrorStatus.GEMINI_TIMEOUT);
+            }
+            throw new GeneralException(GeminiErrorStatus.GEMINI_API_ERROR);
         }
     }
     /**

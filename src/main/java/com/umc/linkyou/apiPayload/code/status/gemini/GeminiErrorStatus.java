@@ -11,8 +11,8 @@ import org.springframework.http.HttpStatus;
 public enum GeminiErrorStatus implements BaseErrorCode {
 
     // 400 Bad Request
-    GEMINI_BAD_REQUEST(HttpStatus.BAD_REQUEST, "GEMINI4001", "잘못된 AI 요청입니다."),
-    GEMINI_PARSE_ERROR(HttpStatus.BAD_GATEWAY, "GEMINI4002", "AI 응답 JSON 파싱에 실패했습니다."),
+    GEMINI_BAD_REQUEST(HttpStatus.BAD_REQUEST, "GEMINI5021", "잘못된 AI 요청입니다."),
+    GEMINI_PARSE_ERROR(HttpStatus.BAD_GATEWAY, "GEMINI5022", "AI 응답 JSON 파싱에 실패했습니다."),
 
     // 429 Too Many Requests
     GEMINI_TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "GEMINI4291", "AI 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),

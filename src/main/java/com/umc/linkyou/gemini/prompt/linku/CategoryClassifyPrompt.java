@@ -26,7 +26,7 @@ public class CategoryClassifyPrompt implements PromptTemplate {
             [카테고리 목록]
             %s
             
-            출력 형식: {"categoryId": Long, "keywords": "#해시태그"}
+            출력 형식: {"categoryId": 1, "keywords": "#해시태그"}
             """, domain, title, content, categoryList);
     }
 }

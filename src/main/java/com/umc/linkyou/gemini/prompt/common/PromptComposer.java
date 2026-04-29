@@ -5,15 +5,21 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
 public class PromptComposer {
 
-    @Qualifier("generalSystemPrompt")
     private final PromptTemplate generalSystemPrompt;
-
-    @Qualifier("curationSystemPrompt")
     private final PromptTemplate curationSystemPrompt;
 
+    /**
+     * @Qualifier를 생성자 파라미터에 직접 작성하여 정확한 빈 주입을 보장합니다.
+     */
+    public PromptComposer(
+            @Qualifier("generalSystemPrompt") PromptTemplate generalSystemPrompt,
+            @Qualifier("curationSystemPrompt") PromptTemplate curationSystemPrompt
+    ) {
+        this.generalSystemPrompt = generalSystemPrompt;
+        this.curationSystemPrompt = curationSystemPrompt;
+    }
     /**
      * 일반 분석(분류, 요약)용 조합
      */

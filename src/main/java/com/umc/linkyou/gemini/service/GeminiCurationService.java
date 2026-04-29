@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -32,8 +33,9 @@ public class GeminiCurationService {
             String job,
             String gender
     ) {
+        List<String> safeRecentUrls = Objects.requireNonNullElse(recentUrls, Collections.emptyList());
         // 1. 중복 방지를 위한 도메인 제외 문자열 생성
-        String excludedDomains = recentUrls.stream()
+        String excludedDomains = safeRecentUrls.stream()
                 .map(this::extractDomain)
                 .filter(Objects::nonNull)
                 .distinct()
@@ -45,7 +47,7 @@ public class GeminiCurationService {
                 safe(gender),
                 limit,
                 excludedDomains,
-                String.join("\n", recentUrls),
+                String.join("\n", safeRecentUrls),
                 (tags == null || tags.isEmpty()) ? "(없음)" : String.join(", ", tags)
         );
 
