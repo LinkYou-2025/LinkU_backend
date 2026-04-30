@@ -4,6 +4,7 @@ import com.umc.linkyou.gemini.dto.ClassifyResultDTO;
 import com.umc.linkyou.gemini.service.GeminiLinkuService;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
@@ -82,20 +83,27 @@ public class LinkuCreateService {
             category = linku.getCategory();
             // 기존 AiArticle이 있다면 해당 키워드를 사용, 없으면 null/기본값 처리
             aiKeywords = (linku.getAiArticle() != null) ? linku.getAiArticle().getKeyword() : "키워드 없음";
+        } if (existingLinku.isPresent()) {
+            linku = existingLinku.get();
+            category = linku.getCategory();
+            aiKeywords = (linku.getAiArticle() != null) ? linku.getAiArticle().getKeyword() : "키워드 없음";
         } else {
-            // [Case 2] 신규 Linku인 경우: AI 분류 실행
+            // [경쟁 상태 방지 로직]
+            // AI 분류 및 도메인 결정 로직은 그대로 유지 (이미 생성된 데이터가 있더라도 분류 결과는 필요할 수 있음)
             ClassifyResultDTO aiResult = geminiLinkuService.classify(normalizedLink);
             category = resolveCategory(aiResult.getCategoryId());
             aiKeywords = aiResult.getKeywords();
-
-            // Domain 조회
             Domain domain = resolveDomain(domainTail);
 
-            // 신규 Linku 생성 및 저장
-            linku = createNewLinku(normalizedLink, category, domain, domainTail);
-
-            // 신규 생성 시에만 AI Article 생성 로직 수행
-            createAiArticleIfNeeded(linku, category, resolveEmotion(dto.getEmotionId()), aiKeywords);
+            try {
+                linku = createNewLinku(normalizedLink, category, domain, domainTail);
+                createAiArticleIfNeeded(linku, category, resolveEmotion(dto.getEmotionId()), aiKeywords);
+            } catch (DataIntegrityViolationException e) {
+                linku = linkuRepository.findByLinku(normalizedLink)
+                        .orElseThrow(() -> new GeneralException(ErrorStatus._LINKU_NOT_FOUND));
+                category = linku.getCategory();
+                aiKeywords = (linku.getAiArticle() != null) ? linku.getAiArticle().getKeyword() : aiKeywords;
+            }
         }
 
         // 3) 공통 로직 (사용자 매핑, 이미지 처리 등)

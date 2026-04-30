@@ -42,7 +42,7 @@ public class GeminiClient {
 
             return client.models.generateContent(modelName, userPrompt, config).text();
         } catch (Exception e) {
-            if (e.getCause() instanceof TimeoutException || e instanceof TimeoutException) {
+            if (e instanceof TimeoutException || e.getCause() instanceof TimeoutException) {
                 throw new GeneralException(GeminiErrorStatus.GEMINI_TIMEOUT);
             }
             throw new GeneralException(GeminiErrorStatus.GEMINI_API_ERROR);
@@ -57,16 +57,12 @@ public class GeminiClient {
 
     private String generate(String systemInstruction, String userPrompt, Tool tool, Integer maxTokens, Float temp) {
         try {
-            // [해결] 명시적인 Builder 타입을 쓰지 않고 바로 호출 체이닝을 사용하거나,
-            // 변수에 담으려면 GenerateContentConfig.Builder (내부 클래스)를 사용해야 합니다.
             GenerateContentConfig.Builder builder = GenerateContentConfig.builder()
                     .systemInstruction(Content.fromParts(Part.fromText(systemInstruction)))
                     .maxOutputTokens(maxTokens)
                     .temperature(temp);
 
             if (tool != null) {
-                // [해결] tools 메서드 인자 형식을 확인하세요.
-                // 보통 List<Tool>을 받습니다.
                 builder.tools(Collections.singletonList(tool));
             }
 
@@ -74,8 +70,6 @@ public class GeminiClient {
             return client.models.generateContent(modelName, userPrompt, config).text();
 
         } catch (Exception e) {
-            log.error("[Gemini API 에러] {}", e.getMessage());
-            // [체크] GeminiErrorCode에 GEMINI_TIMEOUT이 정의되어 있어야 합니다.
             if (e.getCause() instanceof TimeoutException) {
                 throw new GeneralException(GeminiErrorStatus.GEMINI_TIMEOUT);
             }

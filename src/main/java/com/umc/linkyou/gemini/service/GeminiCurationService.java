@@ -85,7 +85,6 @@ public class GeminiCurationService {
             }
             return domain;
         } catch (Exception e) {
-            log.warn("[도메인 추출 실패] url: {}", url);
             return null;
         }
     }

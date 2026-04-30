@@ -5,7 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.umc.linkyou.apiPayload.code.status.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.gemini.client.GeminiClient;
-import com.umc.linkyou.infra.ai.GeminiJsonUtils;
+import com.umc.linkyou.gemini.GeminiJsonUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
