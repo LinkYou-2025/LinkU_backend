@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
 
 @Slf4j
 @Configuration
@@ -20,24 +22,23 @@ public class GeminiConfig {
             @Value("${spring.cloud.gcp.location}") String location,
             @Value("${gemini.credentials.path}") Resource credentialsResource
     ) {
-        try {
-            // JSON 파일에서 직접 credentials 로드
-            GoogleCredentials credentials = GoogleCredentials
-                    .fromStream(credentialsResource.getInputStream());
+        try (InputStream is = credentialsResource.getInputStream()) {
+            GoogleCredentials credentials = GoogleCredentials.fromStream(is)
+                    // 필요 시 스코프 명시 (Vertex AI용)
+                    .createScoped(Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
 
             Client client = Client.builder()
                     .vertexAI(true)
                     .project(projectId)
                     .location(location)
-                    .credentials(credentials)
+                    .credentials(credentials) // 생성한 credentials를 직접 주입
                     .build();
 
-            log.info("Gemini Client 초기화 완료 (Project: {}, Location: {})", projectId, location);
+            log.info("Gemini Client 초기화 성공: {}", credentialsResource.getFilename());
             return client;
         } catch (IOException e) {
-            log.error("Gemini Client 초기화 실패: credentials 파일을 확인하세요. 경로: {}",
-                    credentialsResource.getDescription(), e);
-            throw new RuntimeException("GCP 인증 파일 로드 실패", e);
+            log.error("Gemini 인증 파일 로드 실패: {}", credentialsResource.getDescription());
+            throw new RuntimeException(e);
         }
     }
 }

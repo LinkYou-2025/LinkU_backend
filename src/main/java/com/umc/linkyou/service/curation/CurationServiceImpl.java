@@ -4,6 +4,7 @@ import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.CurationMent;
 import com.umc.linkyou.domain.log.CurationTopLog;
+import com.umc.linkyou.gemini.GeminiJsonUtils;
 import com.umc.linkyou.repository.CurationMentRepository;
 import com.umc.linkyou.repository.mapping.CurationLikeRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -212,7 +213,7 @@ public class CurationServiceImpl implements CurationService {
             );
 
             if (rawJson != null) {
-                String cleaned = com.umc.linkyou.infra.ai.GeminiJsonUtils.extractJson(rawJson);
+                String cleaned = GeminiJsonUtils.extractJson(rawJson);
                 if (cleaned != null) {
                     Map<String, String> ment = objectMapper.readValue(cleaned, Map.class);
                     header = ment.get("header");

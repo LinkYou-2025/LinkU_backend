@@ -1,4 +1,4 @@
-package com.umc.linkyou.infra.ai.dto;
+package com.umc.linkyou.gemini.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SummaryAnalysisResultDTO {
+public class ClassifyResultDTO {
     private String title;
     private String summary;
     private Long situationId;

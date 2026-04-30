@@ -3,11 +3,10 @@ package com.umc.linkyou.service.curation.linku;
 
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.infra.parser.LinkToImageService;
+import com.umc.linkyou.utils.parser.LinkToImageService;
 import com.umc.linkyou.repository.CurationRepository;
 import com.umc.linkyou.repository.LogRepository.CurationTopLogRepository;
-import com.umc.linkyou.repository.curationLinkuRepository.UsersLinkuRepositoryCustom;
-import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
+import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.service.curation.utils.EmotionSimilarityTable;
 import com.umc.linkyou.service.curation.utils.EmotionTagMapper;
 import com.umc.linkyou.service.curation.utils.TextEmbeddingUtil;
@@ -27,7 +26,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class InternalLinkCandidateServiceImpl implements InternalLinkCandidateService {
 
-    private final UsersLinkuRepositoryCustom usersLinkuRepositoryCustom;
     private final UsersLinkuRepository usersLinkuRepository;
     private final CurationRepository curationRepository;
     private final CurationTopLogRepository curationTopLogRepository;
@@ -48,7 +46,7 @@ public class InternalLinkCandidateServiceImpl implements InternalLinkCandidateSe
         List<UsersLinku> candidates = usersLinkuRepository
                 .findAllByUserIdAndCreatedAtBetween(userId, monthStart, monthEnd);
         if (candidates.isEmpty()) {
-            candidates = usersLinkuRepositoryCustom.findRecentLinkCandidatesByUser(userId, limit);
+            candidates = usersLinkuRepository.findRecentLinkCandidatesByUser(userId, limit);
         }
 
         // 상위 감정명 추출 (예: 슬픔, 분노, 짜증)

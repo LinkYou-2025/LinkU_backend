@@ -18,7 +18,7 @@ import com.umc.linkyou.repository.LogRepository.SituationLogRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
-import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
+import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.utils.EmotionSimilarityUtil;
 import com.umc.linkyou.web.dto.linku.LinkuInternalDTO;
