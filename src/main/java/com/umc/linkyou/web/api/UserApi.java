@@ -115,4 +115,17 @@ public interface UserApi {
     @GetMapping("/terms/status")
     ApiResponse<UserResponseDTO.TermsStatusDTO> getTermsStatus(
             @AuthenticationPrincipal CustomUserDetails userDetails);
+
+    @Operation(
+            summary = "회원탈퇴 복구 (계정 활성화)",
+            description = """
+                탈퇴 유예 기간(14일) 내에 있는 사용자의 계정을 다시 활성화합니다.
+                - 상태를 ACTIVE로 변경하고 탈퇴 사유 및 날짜를 초기화합니다.
+                - 탈퇴 유예 기간 내 사용자의 계정을 다시 ACTIVE 상태로 복구합니다."""
+    )
+    @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @PostMapping("/recover")
+    ApiResponse<UserResponseDTO.withDrawalResultDTO> recoverMe(
+            @AuthenticationPrincipal CustomUserDetails userDetails);
 }

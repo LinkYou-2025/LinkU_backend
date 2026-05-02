@@ -43,12 +43,33 @@ public class UserWithdrawService{
         userRepository.save(user);
         return user;
     }
-    //30 일 이후 삭제
+
+    /**
+     * 회원 탈퇴 복구 API
+     * INACTIVE 상태의 사용자를 다시 ACTIVE로 전환합니다.
+     */
+    @Transactional
+    public Users recoverUser(Long userId) {
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+
+        if (user.getStatus() != UserStatus.INACTIVE) {
+            throw new GeneralException(ErrorStatus._BAD_REQUEST); // 이미 활성 상태인 경우
+        }
+        // 상태 및 탈퇴 관련 필드 초기화
+        user.setStatus(UserStatus.ACTIVE);
+        user.setInactiveDate(null);
+        user.setDeleted_reason(null);
+
+        return userRepository.save(user);
+    }
+
+    //14 일 이후 삭제
     @Scheduled(cron = "0 0 3 * * ?")
     @Transactional
     public void deleteCompletelyInactiveUsers() {
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
-        List<Long> inactiveUserIds = userRepository.findInactiveUserIds(thirtyDaysAgo);
+        LocalDateTime DaysAgo = LocalDateTime.now().minusDays(14);
+        List<Long> inactiveUserIds = userRepository.findInactiveUserIds(DaysAgo);
 
         if (inactiveUserIds.isEmpty()) {
             log.debug("삭제할 비활성 사용자 없음");

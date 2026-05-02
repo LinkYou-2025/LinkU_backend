@@ -146,9 +146,6 @@ public class UserService {
                 .orElseThrow(() -> new UserHandler(UserErrorStatus._LOGIN_FAILED));
 
         Long userId = user.getId();
-        if (user.getStatus() == UserStatus.INACTIVE) {
-            throw new GeneralException(UserErrorStatus._USER_INACTIVE); // INACTIVE 유저는 로그인 불가
-        }
         // 소셜 전용 계정 차단 (GENERAL AuthAccount 없음)
         boolean hasGeneralAccount = authAccountRepository.existsByUserIdAndProvider(
                 user.getId(), Provider.GENERAL);
