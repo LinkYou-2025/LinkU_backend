@@ -18,7 +18,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-
+import java.time.temporal.ChronoUnit;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -30,6 +30,9 @@ public class UserWithdrawService{
     private final UserRepository userRepository;
     private final RefreshTokenManager refreshTokenManager;
     private final AuthAccountRepository authAccountRepository;
+
+    // 탈퇴 유예 기간
+    private static final int GRACE_PERIOD_DAYS = 14;
 
     @Transactional
     public Users withdrawUser(Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO) {
@@ -56,6 +59,11 @@ public class UserWithdrawService{
         if (user.getStatus() != UserStatus.INACTIVE) {
             throw new GeneralException(ErrorStatus._BAD_REQUEST); // 이미 활성 상태인 경우
         }
+        // 2. inactiveDate가 null이거나 14일이 경과했는지 확인
+        LocalDateTime inactiveDate = user.getInactiveDate();
+        if (inactiveDate == null || ChronoUnit.DAYS.between(inactiveDate, LocalDateTime.now()) > GRACE_PERIOD_DAYS) {
+            throw new GeneralException(ErrorStatus._BAD_REQUEST);
+        }
         // 상태 및 탈퇴 관련 필드 초기화
         user.setStatus(UserStatus.ACTIVE);
         user.setInactiveDate(null);
@@ -68,8 +76,8 @@ public class UserWithdrawService{
     @Scheduled(cron = "0 0 3 * * ?")
     @Transactional
     public void deleteCompletelyInactiveUsers() {
-        LocalDateTime DaysAgo = LocalDateTime.now().minusDays(14);
-        List<Long> inactiveUserIds = userRepository.findInactiveUserIds(DaysAgo);
+        LocalDateTime daysAgo = LocalDateTime.now().minusDays(GRACE_PERIOD_DAYS);
+        List<Long> inactiveUserIds = userRepository.findInactiveUserIds(daysAgo);
 
         if (inactiveUserIds.isEmpty()) {
             log.debug("삭제할 비활성 사용자 없음");

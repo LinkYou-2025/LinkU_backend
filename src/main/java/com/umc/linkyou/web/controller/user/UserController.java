@@ -85,7 +85,6 @@ public class UserController implements UserApi {
     }
 
     //회원탈퇴 복구 api
-    // 회원탈퇴 복구 api
     @Override
     public ApiResponse<UserResponseDTO.withDrawalResultDTO> recoverMe(CustomUserDetails userDetails) {
         Long userId = usersUtils.getAuthenticatedUserId(userDetails);
