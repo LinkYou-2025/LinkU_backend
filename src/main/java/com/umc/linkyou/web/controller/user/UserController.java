@@ -1,6 +1,8 @@
 package com.umc.linkyou.web.controller.user;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
@@ -9,9 +11,12 @@ import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.service.users.UserWithdrawService;
 import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.validation.annotation.ApiV1;
+import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
+import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
 import com.umc.linkyou.web.api.UserApi;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -79,4 +84,11 @@ public class UserController implements UserApi {
         return ApiResponse.onSuccess(termsAgreementService.getTermsStatus(userDetails));
     }
 
+    //회원탈퇴 복구 api
+    @Override
+    public ApiResponse<UserResponseDTO.withDrawalResultDTO> recoverMe(CustomUserDetails userDetails) {
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        Users user = userWithdrawService.recoverUser(userId);
+        return ApiResponse.onSuccess(UserConverter.toWithDrawalResultDTO(user));
+    }
 }
