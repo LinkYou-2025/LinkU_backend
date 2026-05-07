@@ -35,32 +35,35 @@ public class TermsAgreementService {
     /**
      * DTO로 전달받은 약관 리스트를 일괄적으로 처리 (Update or Insert)
      */
+    // 1. Controller에서 호출하는 용도 (userDetails 기반)
     @Transactional
     public UserResponseDTO.TermsStatusDTO updateTermsAgree(CustomUserDetails userDetails, UserRequestDTO.TermsAgreeDTO request) {
         Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
-        // 1. 기존 데이터 Map 조회
-        Map<TermsType, TermsAgreement> existingMap = termsAgreementRepository.findAllByUserId(userId).stream()
+        upsertTerms(user, request.getTermsMap()); // 공통 로직 호출
+
+        List<TermsAgreement> updatedList = termsAgreementRepository.findAllByUserId(userId);
+        return TermsConverter.toTermsStatusDTO(userId, updatedList);
+    }
+
+    // 2. UserService 등 내부 서비스에서 직접 유저 객체로 호출하는 용도 (Upsert 공통 로직)
+    @Transactional
+    public void upsertTerms(Users user, Map<String, Boolean> termsMap) {
+        if (termsMap == null || termsMap.isEmpty()) return;
+
+        Map<TermsType, TermsAgreement> existingMap = termsAgreementRepository.findAllByUserId(user.getId()).stream()
                 .collect(Collectors.toMap(TermsAgreement::getTermsType, a -> a));
 
-        // 2. 요청받은 Map(타입:상태)을 순회하며 처리
-        request.getTermsMap().forEach((typeStr, isAgreed) -> {
+        termsMap.forEach((typeStr, isAgreed) -> {
             TermsType type = TermsType.fromString(typeStr);
-
             if (existingMap.containsKey(type)) {
-                // [Update] 이미 있으면 넘어온 boolean 값(isAgreed)으로 업데이트
                 TermsConverter.updateAgreement(existingMap.get(type), isAgreed);
             } else {
-                // [Create] 없으면 새로 생성 (넘어온 boolean 값 적용)
                 termsAgreementRepository.save(TermsConverter.toSingleTermAgreement(user, typeStr, isAgreed));
             }
         });
-
-        // 3. 최종 상태 반환
-        List<TermsAgreement> updatedList = termsAgreementRepository.findAllByUserId(userId);
-        return TermsConverter.toTermsStatusDTO(userId, updatedList);
     }
     // GET /terms/status - 약관 상태 조회
     @Transactional(readOnly = true)

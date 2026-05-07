@@ -79,6 +79,8 @@ public class UserService {
     private final AlarmSettingRepository alarmSettingRepository;
     private final UsersUtils usersUtils;
 
+    private final TermsAgreementService termsAgreementService;
+
     @Value("${jwt.hmac-secret}")
     private String hmacSecret;
 
@@ -111,6 +113,7 @@ public class UserService {
                     UserConverter.setupUserInterests(newUser, request.getInterestList());
 
                     Users savedUser = userRepository.save(newUser);
+                    termsAgreementService.upsertTerms(savedUser, request.getTermsMap());
                     setupUserAlarmSetting(savedUser);
                     return savedUser;
                 });
@@ -198,6 +201,8 @@ public class UserService {
         // Purposes / Interests 설정
         UserConverter.setupUserPurposes(user, request.getPurposeList());
         UserConverter.setupUserInterests(user, request.getInterestList());
+
+        termsAgreementService.upsertTerms(user, request.getTermsMap());
 
         // 알림 설정
         setupUserAlarmSetting(user);

@@ -52,6 +52,9 @@ public class UserRequestDTO {
         @Schema(example = "[\"IT\", \"DESIGN\"]")
         @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다")
         List<String> interestList;
+
+        @Schema(description = "약관 동의 맵", example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}")
+        private Map<String, Boolean> termsMap;
     }
 
     @Getter
@@ -114,6 +117,9 @@ public class UserRequestDTO {
         @Schema(description = "관심사 리스트", example = "[\"IT\", \"DESIGN\"]")
         @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다")
         private List<String> interestList;
+
+        @Schema(description = "약관 동의 맵", example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}")
+        private Map<String, Boolean> termsMap;
     }
 
     /**
