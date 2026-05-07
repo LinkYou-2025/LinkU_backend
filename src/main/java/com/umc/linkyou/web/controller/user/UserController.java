@@ -66,16 +66,15 @@ public class UserController implements UserApi {
         return ApiResponse.onSuccess(UserConverter.toJoinResultDTO(updatedUser));
     }
 
-    // 전체 약관 한번에 동의
-    @Override
-    public ApiResponse<UserResponseDTO.TermsStatusDTO> termsAgreeBatch(CustomUserDetails userDetails, UserRequestDTO.TermsAgreeDTO request) {
-        return ApiResponse.onSuccess(termsAgreementService.termsAgreeBatch(request, userDetails));
-    }
 
-    // 개별 약관 변경
+    // 약관 일괄 변경/업데이트
     @Override
-    public ApiResponse<UserResponseDTO.TermsStatusDTO> updateTermsAgree(CustomUserDetails userDetails, UserRequestDTO.SingleTermUpdateDTO request) {
-        return ApiResponse.onSuccess(termsAgreementService.updateTermsAgree(userDetails, request.getTermsType(), request.getIsAgreed()));
+    public ApiResponse<UserResponseDTO.TermsStatusDTO> updateTermsAgree(
+            CustomUserDetails userDetails,
+            UserRequestDTO.TermsAgreeDTO request) {
+
+        // 개별 파라미터가 아닌 DTO 전체를 서비스로 전달
+        return ApiResponse.onSuccess(termsAgreementService.updateTermsAgree(userDetails, request));
     }
 
     //약관 상태 조회

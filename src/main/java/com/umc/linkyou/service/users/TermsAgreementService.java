@@ -1,5 +1,7 @@
 package com.umc.linkyou.service.users;
 
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.TermsConverter;
 import com.umc.linkyou.domain.TermsAgreement;
@@ -28,65 +30,38 @@ import java.util.stream.Collectors;
 public class TermsAgreementService {
     private final UsersUtils usersUtils;
     private final TermsAgreementRepository termsAgreementRepository;
-
     private final UserRepository userRepository;
-    //전체 동의 여부 반환
+
+    /**
+     * DTO로 전달받은 약관 리스트를 일괄적으로 처리 (Update or Insert)
+     */
     @Transactional
-    public UserResponseDTO.TermsStatusDTO termsAgreeBatch(UserRequestDTO.@Valid TermsAgreeDTO request, CustomUserDetails userDetails){
-        //1. 사용자 검증
-        Users user = usersUtils.validateUser(userDetails);
+    public UserResponseDTO.TermsStatusDTO updateTermsAgree(CustomUserDetails userDetails, UserRequestDTO.TermsAgreeDTO request) {
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
-        //2. 기존 약관 동의 목록을 Terms Type  기준으로 매핑
-        Map<TermsType,TermsAgreement> existingMap = termsAgreementRepository.findByUserId(user.getId())
-                .stream()
-                .collect(Collectors.toMap( //db에 이미 중복된 레코드가 있으면 오래된 거로
-                        TermsAgreement::getTermsType,  //TermsType
-                        Function.identity(), //TermsAgreement
-                        (a, b) -> a, //같은 TermsType이 2번 이상 나오면 오래된 a를 선택, 새로운 b버림
-                        LinkedHashMap::new //삽입 순서 유지
-                ));
-        //3. DTO -> 엔티티 변환 후 upsert(update or insert) 처리
-        List<TermsAgreement> toSave = TermsConverter.toTermsAgreements(user, request)
-                .stream()
-                .map(incoming -> {
-                    TermsAgreement existing = existingMap.get(incoming.getTermsType());
-                    if(existing != null) { //해당 termstype이 존재하면 update 실행
-                        TermsConverter.updateAgreement(existing,incoming.getIsAgreed()); //기존 엔티티의 isAgreed 필드를 새 값으로 덮어씁니다.
-                        return existing;
-                    }
-                    //insert: 신규 엔티티
-                    return incoming;
-                }).toList(); //스트림 결과를 다시 List<TermsAgreement> 형태로 반환
-        termsAgreementRepository.saveAll(toSave);
+        // 1. 기존 데이터 Map 조회
+        Map<TermsType, TermsAgreement> existingMap = termsAgreementRepository.findAllByUserId(userId).stream()
+                .collect(Collectors.toMap(TermsAgreement::getTermsType, a -> a));
 
+        // 2. 요청받은 Map(타입:상태)을 순회하며 처리
+        request.getTermsMap().forEach((typeStr, isAgreed) -> {
+            TermsType type = TermsType.fromString(typeStr);
 
-        // Entity → Response 변환
-        List<TermsAgreement> saved = termsAgreementRepository.findByUserId(user.getId());
-        return TermsConverter.toTermsStatusDTO(user.getId(), saved);
+            if (existingMap.containsKey(type)) {
+                // [Update] 이미 있으면 넘어온 boolean 값(isAgreed)으로 업데이트
+                TermsConverter.updateAgreement(existingMap.get(type), isAgreed);
+            } else {
+                // [Create] 없으면 새로 생성 (넘어온 boolean 값 적용)
+                termsAgreementRepository.save(TermsConverter.toSingleTermAgreement(user, typeStr, isAgreed));
+            }
+        });
+
+        // 3. 최종 상태 반환
+        List<TermsAgreement> updatedList = termsAgreementRepository.findAllByUserId(userId);
+        return TermsConverter.toTermsStatusDTO(userId, updatedList);
     }
-
-    @Transactional
-    public UserResponseDTO.TermsStatusDTO updateTermsAgree(CustomUserDetails userDetails, @NotNull String termsTypeStr, Boolean isAgreed) {
-        Users user = usersUtils.validateUser(userDetails);
-        TermsType termsType = TermsType.fromString(termsTypeStr);
-        //기존 레코그 조회
-        Optional<TermsAgreement> existing = termsAgreementRepository.findByUserIdAndTermsType(user.getId(), termsType);
-
-        TermsAgreement agreement;
-        if (existing.isPresent()) {
-            // 기존 업데이트
-            agreement = existing.get();
-            TermsConverter.updateAgreement(agreement, isAgreed);
-        } else {
-            // 신규 생성
-            agreement = TermsConverter.toSingleTermAgreement(user, termsTypeStr, isAgreed);
-        }
-        termsAgreementRepository.save(agreement);
-
-        List<TermsAgreement> updated = termsAgreementRepository.findByUserId(user.getId());
-        return TermsConverter.toTermsStatusDTO(user.getId(), updated);
-    }
-
     // GET /terms/status - 약관 상태 조회
     @Transactional(readOnly = true)
     public UserResponseDTO.TermsStatusDTO getTermsStatus(CustomUserDetails userDetails) {

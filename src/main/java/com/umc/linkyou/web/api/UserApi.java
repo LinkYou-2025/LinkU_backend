@@ -70,32 +70,17 @@ public interface UserApi {
             @RequestBody @Valid UserRequestDTO.SocialCompleteDTO request,
             @AuthenticationPrincipal CustomUserDetails userDetails);
 
-    // 약관동의 일괄
+    // 약관 일괄 변경
     @Operation(
-            summary = "약관 동의 (일괄)",
-            description = """
-                    서비스 이용에 필요한 여러 약관에 대해 한꺼번에 동의를 진행합니다.
-                    - 필수 약관 미동의 시 서비스 이용이 제한될 수 있습니다.
-                    """
-    )
-    @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus.INVALID_TERMS_TYPE})
-    @PostMapping("/terms/agree")
-    ApiResponse<UserResponseDTO.TermsStatusDTO> termsAgreeBatch(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody @Valid UserRequestDTO.TermsAgreeDTO request);
-
-    // 약관 개별 변경
-    @Operation(
-            summary = "약관 개별 변경",
-            description = "특정 약관(예: 마케팅 수신 동의)에 대한 동의 여부를 개별적으로 수정합니다."
+            summary = "약관 일괄 변경",
+            description = "전달받은 약관 리스트들에 대해 동의 처리를 일괄 수행합니다. 기존에 없으면 생성, 있으면 업데이트합니다."
     )
     @ApiSuccessCode(SuccessStatus._OK)
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus.INVALID_TERMS_TYPE})
     @PatchMapping("/terms/agree")
     ApiResponse<UserResponseDTO.TermsStatusDTO> updateTermsAgree(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody @Valid UserRequestDTO.SingleTermUpdateDTO request);
+            @RequestBody @Valid UserRequestDTO.TermsAgreeDTO request);
 
     // 약관 상태 조회
     @Operation(

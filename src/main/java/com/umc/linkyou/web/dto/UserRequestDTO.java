@@ -4,6 +4,7 @@ import com.umc.linkyou.domain.classification.Interests;
 import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.domain.enums.Interest;
 import com.umc.linkyou.domain.enums.Purpose;
+import com.umc.linkyou.domain.enums.TermsType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -15,6 +16,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Map;
 
 public class UserRequestDTO {
 
@@ -114,26 +116,21 @@ public class UserRequestDTO {
         private List<String> interestList;
     }
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class TermsAgreeDTO {
-        @Schema(example = "[\"TERMS_OF_USE\", \"PRIVACY_POLICY\", \"MARKETING\"]")
-        @NotNull(message = "약관 동의 목록은 필수입니다")
-        private List<String> termsTypes;
-
-        @Schema(example = "v1.0")
-        @NotNull(message = "약관 버전은 필수입니다")
-        private String termsVersion;
-    }
+    /**
+     * 약관 일괄 동의/변경 처리 DTO
+     */
     @Getter @Setter
-    public static class SingleTermUpdateDTO {
-        @Schema(example = "MARKETING")
-        @NotNull
-        private String termsType;
+    public static class TermsAgreeDTO {
+        @Schema(
+                description = "변경할 약관 상태 맵 (Key: 약관타입, Value: 동의여부)",
+                example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}",
+                anyOf = {TermsType.class} // Swagger에 TermsType 정의를 참고하도록 유도
+        )
+        @NotEmpty(message = "변경할 약관 상태를 하나 이상 입력해주세요.")
+        private Map<String, Boolean> termsMap;
 
-        @Schema(example = "true")
-        private Boolean isAgreed;
+        @Schema(description = "약관 버전", example = "v1.0")
+        private String termsVersion = "v1.0";
     }
+
 }
