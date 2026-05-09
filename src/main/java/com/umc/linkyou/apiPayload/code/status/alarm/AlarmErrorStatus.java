@@ -12,9 +12,9 @@ import org.springframework.http.HttpStatus;
 public enum AlarmErrorStatus implements BaseErrorCode {
 
     ALARM_NOT_FOUND(HttpStatus.NOT_FOUND, "ALARM404", "알람을 찾을 수 없습니다."),
-    ALARM_PERMISSION_DENIED(HttpStatus.UNAUTHORIZED, "ALARM401", "알람에 대한 권한이 없습니다."),
+    ALARM_PERMISSION_DENIED(HttpStatus.UNAUTHORIZED, "ALARM403", "알람에 대한 권한이 없습니다."),
     ALARM_TOPIC_SUBSCRIPTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ALARM501", "알림 주제 구독 상태 변경에 실패했습니다."),
-    ALARM_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ALARM501", "알림 전송에 실패했습니다.");
+    ALARM_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ALARM502", "알림 전송에 실패했습니다.");
 
 
 
