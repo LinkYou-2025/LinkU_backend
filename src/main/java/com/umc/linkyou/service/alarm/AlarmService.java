@@ -209,9 +209,12 @@ public class AlarmService {
         Long safeCursor = (cursor == null) ? Long.MAX_VALUE : cursor;
 
         List<UserAlarm> fetched;
+
+
         if (alarmSettingType == AlarmSettingType.ALL) {
             fetched = userAlarmRepository.findAlarmListByCursor(userId, safeCursor, pageable);
         } else {
+            // alarm 타입에 따라 분기
             List<AlarmType> alarmTypes = Arrays.stream(AlarmType.values())
                     .filter(type -> type.getSettingType() == alarmSettingType)
                     .toList();
@@ -238,6 +241,7 @@ public class AlarmService {
                         ua.getAlarm().getAlarmType().getSettingType(),
                         ua.getAlarm().getBody(),
                         ua.getCreatedAt(),
+                        ua.getAlarm().getTargetId(),
                         ua.isRead()
                 ))
                 .toList();
