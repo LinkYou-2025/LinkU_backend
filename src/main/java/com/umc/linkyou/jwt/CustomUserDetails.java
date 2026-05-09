@@ -1,5 +1,7 @@
 package com.umc.linkyou.jwt;
 
+import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
+import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Role;
 import org.springframework.security.core.GrantedAuthority;
@@ -26,6 +28,9 @@ public class CustomUserDetails implements UserDetails {
 
     // 클레임 기반 (필터에서 DB 없이 토큰 클레임으로 구성)
     public CustomUserDetails(Long userId, Role role, String provider) {
+        if (role == null) {
+            throw new UserHandler(AuthErrorStatus.UNAUTHORIZED);
+        }
         this.users    = null;
         this.userId   = userId;
         this.role     = role;

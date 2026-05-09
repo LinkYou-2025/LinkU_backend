@@ -1,28 +1,23 @@
 package com.umc.linkyou.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
 @Component
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class SecurityErrorResponseWriter {
+@RequiredArgsConstructor
+public class SecurityErrorResponseWriter {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    private final ObjectMapper objectMapper;
 
-    public static void write(HttpServletResponse response, BaseErrorCode status) throws IOException {
+    public void write(HttpServletResponse response, BaseErrorCode status) throws IOException {
         if (response.isCommitted()) {
             return;
         }
@@ -39,6 +34,6 @@ public final class SecurityErrorResponseWriter {
                 null
         );
 
-        OBJECT_MAPPER.writeValue(response.getOutputStream(), body);
+        objectMapper.writeValue(response.getOutputStream(), body);
     }
 }

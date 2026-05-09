@@ -4,6 +4,7 @@ package com.umc.linkyou.jwt;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
@@ -11,7 +12,10 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 @Component
+@RequiredArgsConstructor
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
+
+    private final SecurityErrorResponseWriter securityErrorResponseWriter;
 
     @Override
     public void commence(
@@ -19,6 +23,6 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
             HttpServletResponse response,
             AuthenticationException authException
     ) throws IOException {
-        SecurityErrorResponseWriter.write(response, AuthErrorStatus.UNAUTHORIZED);
+        securityErrorResponseWriter.write(response, AuthErrorStatus.UNAUTHORIZED);
     }
 }

@@ -2,6 +2,7 @@ package com.umc.linkyou.jwt;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
+import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.Role;
@@ -69,7 +70,18 @@ public class JwtTokenProvider {
         Claims claims = validateAndParseAccess(token).getBody();
         Long userId     = claims.get("userId", Long.class);
         String provider = claims.get("provider", String.class);
-        Role role       = Role.fromAuthority(claims.get("role", String.class));
+        String roleStr  = claims.get("role", String.class);
+
+        if (roleStr == null || roleStr.isBlank()) {
+            throw new UserHandler(AuthErrorStatus.UNAUTHORIZED);
+        }
+
+        Role role;
+        try {
+            role = Role.fromAuthority(roleStr);
+        } catch (IllegalArgumentException ex) {
+            throw new UserHandler(AuthErrorStatus.UNAUTHORIZED);
+        }
 
         CustomUserDetails principal = new CustomUserDetails(userId, role, provider);
         return new UsernamePasswordAuthenticationToken(principal, token, principal.getAuthorities());
