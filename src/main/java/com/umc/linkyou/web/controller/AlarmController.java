@@ -16,14 +16,18 @@ import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmResponseDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmSettingResponseDTO;
 import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import com.umc.linkyou.jwt.CurrentUser;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @ApiV1
+@Validated
 @RequiredArgsConstructor
 public class AlarmController implements AlarmApi {
 
@@ -82,7 +86,7 @@ public class AlarmController implements AlarmApi {
             @CurrentUser CustomUserDetails userDetails,
             @RequestParam("alarmType") AlarmSettingType alarmType,
             @RequestParam(required = false) Long cursor,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") @Min(1) @Max(20) int size
     ) {
         return ApiResponse.of(AlarmSuccessStatus.ALARM_LIST_OK, alarmService.viewAlarmList(userDetails.getUserId(), alarmType, cursor, size));
     }

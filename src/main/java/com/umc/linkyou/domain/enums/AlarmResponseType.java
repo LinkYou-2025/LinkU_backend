@@ -1,4 +1,4 @@
-package com.umc.linkyou.web.dto.alarm;
+package com.umc.linkyou.domain.enums;
 
 public enum AlarmResponseType {
     FOLDER,

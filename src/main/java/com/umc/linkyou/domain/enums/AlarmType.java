@@ -1,6 +1,5 @@
 package com.umc.linkyou.domain.enums;
 
-import com.umc.linkyou.web.dto.alarm.AlarmResponseType;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

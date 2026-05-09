@@ -1,5 +1,6 @@
 package com.umc.linkyou.web.dto.alarm;
 
+import com.umc.linkyou.domain.enums.AlarmResponseType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
