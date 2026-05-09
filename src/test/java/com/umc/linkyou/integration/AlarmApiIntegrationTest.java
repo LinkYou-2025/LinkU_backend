@@ -66,7 +66,9 @@ class AlarmApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.code").value("ALARM2006"))
-                .andExpect(jsonPath("$.result.items.length()").value(1));
+                .andExpect(jsonPath("$.result.items.length()").value(1))
+                .andExpect(jsonPath("$.result.items[0].alarmType").value("CURATION"))
+                .andExpect(jsonPath("$.result.items[0].targetId").value(101));
     }
 
     @Test
@@ -84,7 +86,8 @@ class AlarmApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.items.length()").value(1))
-                .andExpect(jsonPath("$.result.items[0].alarmType").value("CURATION"));
+                .andExpect(jsonPath("$.result.items[0].alarmType").value("CURATION"))
+                .andExpect(jsonPath("$.result.items[0].targetId").value(202));
     }
 
     @Test

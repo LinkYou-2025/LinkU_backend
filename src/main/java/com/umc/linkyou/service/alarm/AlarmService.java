@@ -238,7 +238,7 @@ public class AlarmService {
         List<AlarmResponseDTO.AlarmListDTO> alarmList = pageItems.stream()
                 .map(ua -> new AlarmResponseDTO.AlarmListDTO(
                         ua.getAlarm().getId(),
-                        ua.getAlarm().getAlarmType().getSettingType(),
+                        ua.getAlarm().getAlarmType().getResponseType(),
                         ua.getAlarm().getBody(),
                         ua.getCreatedAt(),
                         ua.getAlarm().getTargetId(),
