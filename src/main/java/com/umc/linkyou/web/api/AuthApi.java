@@ -14,8 +14,8 @@ import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "auth-controller", description = "인증 및 계정 관련 API")
@@ -153,12 +153,13 @@ public interface AuthApi {
             summary = "로그아웃",
             description = """
                     현재 로그인된 사용자를 로그아웃합니다.
-                    - 모든 디바이스의 리프레시 토큰을 삭제합니다.
+                    - 요청의 `deviceId`에 해당하는 현재 디바이스 세션만 로그아웃합니다.
+                    - Authorization Bearer 헤더의 Access Token을 사용합니다.
                     - 현재 액세스 토큰을 블랙리스트에 등록하여 즉시 무효화합니다.
                     """
     )
     @ApiAuthSuccessCode(AuthSuccessStatus.LOGOUT_SUCCESS)
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @PostMapping("/logout")
-    ApiResponse<Void> logout(@CurrentUser CustomUserDetails userDetails);
+    ApiResponse<Void> logout(@CurrentUser CustomUserDetails userDetails, @RequestParam String deviceId, HttpServletRequest request);
 }

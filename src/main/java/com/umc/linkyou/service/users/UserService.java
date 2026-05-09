@@ -345,15 +345,15 @@ public class UserService {
     }
 
     // 로그아웃
-    public void logoutUser(Long userId, String accessToken) {
+    public void logoutUser(Long userId, String accessToken, String deviceId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
-        refreshTokenManager.deleteAllTokens(userId);
+        refreshTokenManager.deleteTokenForDevice(userId, deviceId);
 
         long ttlMs = jwtTokenProvider.getRemainingExpiryMs(accessToken);
         if (ttlMs > 0) {
-            accessTokenBlackListManager.addToBlacklist(accessToken, null, ttlMs);
+            accessTokenBlackListManager.addToBlacklist(accessToken, deviceId, ttlMs);
         }
     }
 }
