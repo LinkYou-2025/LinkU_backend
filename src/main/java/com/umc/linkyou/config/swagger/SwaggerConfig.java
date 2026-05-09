@@ -71,8 +71,10 @@ public class SwaggerConfig {
     @Bean
     public OperationCustomizer customize() {
         return (Operation operation, HandlerMethod handlerMethod) -> {
-            // 인증이 필요한 모든 엔드포인트에 401 전역 등록
-            addErrorCodeExample(operation.getResponses(), AuthErrorStatus.UNAUTHORIZED);
+            // 인증이 명시된 엔드포인트에만 401 예시를 추가한다.
+            if (requiresAuthentication(operation)) {
+                addErrorCodeExample(operation.getResponses(), AuthErrorStatus.UNAUTHORIZED);
+            }
 
             // 1. 성공 응답 처리
             ApiSuccessCode successAnnotation = handlerMethod.getMethodAnnotation(ApiSuccessCode.class);
@@ -103,6 +105,12 @@ public class SwaggerConfig {
 
             return operation;
         };
+    }
+
+    private boolean requiresAuthentication(Operation operation) {
+        return operation.getSecurity() != null
+                && operation.getSecurity().stream()
+                .anyMatch(requirement -> requirement != null && !requirement.isEmpty());
     }
 
     // addExample 메서드 수정 (Schema 주입 필수)
