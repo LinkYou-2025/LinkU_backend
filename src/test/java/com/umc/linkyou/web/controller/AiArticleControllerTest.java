@@ -113,7 +113,7 @@ class AiArticleControllerTest {
                 .willReturn(emptySlice);
 
         // when & then
-        mockMvc.perform(get("/api/v1/aiarticle/category/{categorayId}", emptyCategoryId))
+        mockMvc.perform(get("/api/v1/aiarticle/category/{categoryId}", emptyCategoryId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.linkuList").isEmpty())
                 .andExpect(jsonPath("$.result.hasNext").value(false))
