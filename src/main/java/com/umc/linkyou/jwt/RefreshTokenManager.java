@@ -119,6 +119,17 @@ public class RefreshTokenManager {
         redisTemplate.delete(keys);
     }
 
+    public void deleteTokenForDevice(Long userId, String deviceId) {
+        List<String> keys = new ArrayList<>();
+        for (Provider provider : Provider.values()) {
+            keys.add(buildKey(userId, provider.name()));
+        }
+
+        for (String key : keys) {
+            redisTemplate.opsForHash().delete(key, deviceId);
+        }
+    }
+
 
     private static final String CONSUME_TOKEN_SCRIPT = """
         local key = KEYS[1]
