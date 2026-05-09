@@ -1,7 +1,9 @@
 package com.umc.linkyou.oauth2.mobile.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
+import com.umc.linkyou.jwt.AccessTokenBlackListManager;
+import com.umc.linkyou.jwt.JwtTokenProvider;
+import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.oauth2.mobile.dto.MobileLoginRequest;
 import com.umc.linkyou.oauth2.mobile.dto.MobileLoginResponse;
@@ -38,6 +40,9 @@ class MobileAuthControllerTest {
     private MockMvc mockMvc;
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private AccessTokenBlackListManager accessTokenBlackListManager;
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -54,7 +59,7 @@ class MobileAuthControllerTest {
     @DisplayName("카카오 로그인 API 문서화")
     void kakao_login_docs() throws Exception {
         // given
-        MobileLoginRequest request = new MobileLoginRequest("kakao_access_token_123");
+        MobileLoginRequest request = new MobileLoginRequest("kakao_access_token_123", "ios-iphone-16-pro", DeviceType.PHONE);
         MobileLoginResponse response = MobileLoginResponse.builder()
                 .userId(1L)
                 .accessToken("jwt_access_token")
@@ -62,7 +67,7 @@ class MobileAuthControllerTest {
                 .status(UserStatus.ACTIVE)
                 .build();
 
-        given(kakaoService.login(any())).willReturn(response);
+        given(kakaoService.login(any(), any(), any())).willReturn(response);
 
         // when & then
         mockMvc.perform(post("/api/v1/auth/mobile/kakao")
@@ -75,7 +80,9 @@ class MobileAuthControllerTest {
                         preprocessRequest(prettyPrint()),
                         preprocessResponse(prettyPrint()),
                         requestFields(
-                                fieldWithPath("token").description("카카오 SDK에서 받은 accessToken")
+                                fieldWithPath("token").description("카카오 SDK에서 받은 accessToken"),
+                                fieldWithPath("deviceId").description("클라이언트 기기 식별자"),
+                                fieldWithPath("deviceType").description("기기 종류")
                         ),
                         responseFields(
                                 fieldWithPath("isSuccess").description("성공 여부"),

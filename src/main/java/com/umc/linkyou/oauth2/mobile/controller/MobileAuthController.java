@@ -32,21 +32,21 @@ public class MobileAuthController {
     @Operation(summary = "구글 로그인 (앱)", description = "Android/iOS Google Sign-In SDK에서 받은 **ID Token** 전달")
     @PostMapping("/google")
     public ApiResponse<MobileLoginResponse> googleLogin(@Valid @RequestBody MobileLoginRequest request) {
-        MobileLoginResponse result = googleService.login(request.token());
+        MobileLoginResponse result = googleService.login(request.token(), request.deviceId(), request.deviceType());
         return ApiResponse.onSuccess(result);
     }
 
     @Operation(summary = "카카오 로그인 (앱)", description = "카카오 SDK에서 받은 **accessToken** 전달")
     @PostMapping("/kakao")
     public ApiResponse<MobileLoginResponse> kakaoLogin(@Valid @RequestBody MobileLoginRequest request) {
-        MobileLoginResponse result = kakaoService.login(request.token());
+        MobileLoginResponse result = kakaoService.login(request.token(), request.deviceId(), request.deviceType());
         return ApiResponse.onSuccess(result);
     }
 
     @Operation(summary = "네이버 로그인 (앱)", description = "네이버 SDK에서 받은 **accessToken** 전달")
     @PostMapping("/naver")
     public ApiResponse<MobileLoginResponse> naverLogin(@Valid @RequestBody MobileLoginRequest request) {
-        MobileLoginResponse result = naverService.login(request.token());
+        MobileLoginResponse result = naverService.login(request.token(), request.deviceId(), request.deviceType());
         return ApiResponse.onSuccess(result);
     }
 }
