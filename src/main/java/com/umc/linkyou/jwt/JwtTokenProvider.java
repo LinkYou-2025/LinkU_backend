@@ -1,22 +1,20 @@
-package com.umc.linkyou.config.security.jwt;
+package com.umc.linkyou.jwt;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
-import com.umc.linkyou.repository.userRepository.UserRepository;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -24,9 +22,11 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.config.properties.Constants;
 import com.umc.linkyou.config.properties.JwtProperties;
 
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
+import java.util.HexFormat;
 
 @Slf4j
 @Component
@@ -35,57 +35,43 @@ public class JwtTokenProvider {
 
     private final JwtProperties jwtProperties;
 
-    private final UserRepository userRepository;
     private final AuthAccountRepository authAccountRepository;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final RefreshTokenManager refreshTokenManager;
 
     @Value("${jwt.hmac-secret}")
     private String hmacSecret;
 
-    private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtProperties.getKeys().getAccess().getBytes());
+    private Key accessKey;
+    private Key refreshKey;
+
+    @PostConstruct
+    public void init() {
+        this.accessKey  = Keys.hmacShaKeyFor(jwtProperties.getKeys().getAccess().getBytes(StandardCharsets.UTF_8));
+        this.refreshKey = Keys.hmacShaKeyFor(jwtProperties.getKeys().getRefresh().getBytes(StandardCharsets.UTF_8));
     }
 
     // 액세스 토큰 생성 (subject 기반)
-    public String createAccessToken(String subject, String provider, Role role) {
+    public String createAccessToken(Long userId, String subject, String provider, Role role) {
         return Jwts.builder()
                 .setSubject(subject)
+                .claim("userId", userId)
                 .claim("provider", provider)
                 .claim("role", role.getAuthority())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getExpiration().getAccess()))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .signWith(accessKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-
-    public boolean validateToken(String token) {
-        try {
-            validateAndParseAccess(token);
-            return true;
-        } catch (ExpiredJwtException e) {
-            // AccessToken이 만료된 경우 예외를 던져서 필터에서 처리하게 함
-            throw e;
-        } catch (JwtException | IllegalArgumentException e) {
-            return false;
-        }
-    }
-
-    // Authentication 객체 생성
-    //토큰에서 정보를 꺼내 DB를 조회한 후, CustomUserDetails를 통해
-    // Security가 인식할 수 있는 권한 목록(getAuthorities)을 넘겨 줌
+    // 클레임 기반으로 Authentication 구성 — DB 조회 없음
     public Authentication getAuthentication(String token) {
         Claims claims = validateAndParseAccess(token).getBody();
-        String email = claims.getSubject();
-        String providerStr = claims.get("provider", String.class);  // String 그대로!
+        Long userId     = claims.get("userId", Long.class);
+        String provider = claims.get("provider", String.class);
+        Role role       = Role.fromAuthority(claims.get("role", String.class));
 
-        Users users = authAccountRepository.findUserByEmailAndProvider(email, Provider.valueOf(providerStr))
-                .orElseThrow(() -> new UsernameNotFoundException(email + "/" + providerStr));
-
-        CustomUserDetails principal = new CustomUserDetails(users, providerStr);
+        CustomUserDetails principal = new CustomUserDetails(userId, role, provider);
         return new UsernamePasswordAuthenticationToken(principal, token, principal.getAuthorities());
     }
 
@@ -103,7 +89,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setSubject(subjectEmail)
                 .claim("provider", provider)
-                .signWith(Keys.hmacShaKeyFor(jwtProperties.getKeys().getRefresh().getBytes()), SignatureAlgorithm.HS256)
+                .signWith(refreshKey, SignatureAlgorithm.HS256)
                 .setIssuer(jwtProperties.getIssuer())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getExpiration().getRefresh()))
@@ -113,14 +99,14 @@ public class JwtTokenProvider {
     public String hmac(String token) {
         try {
             var mac = javax.crypto.Mac.getInstance("HmacSHA256");
-            mac.init(new javax.crypto.spec.SecretKeySpec(hmacSecret.getBytes(StandardCharsets.UTF_8),  "HmacSHA256"));
-            return java.util.HexFormat.of().formatHex(mac.doFinal(token.getBytes(StandardCharsets.UTF_8)));
+            mac.init(new SecretKeySpec(hmacSecret.getBytes(StandardCharsets.UTF_8),  "HmacSHA256"));
+            return HexFormat.of().formatHex(mac.doFinal(token.getBytes(StandardCharsets.UTF_8)));
         } catch (Exception e) { throw new IllegalStateException(e); }
     }
 
     // 리프레시 토큰 유효성 검증 (Redis 화이트리스트: HMAC id 존재 여부)
     @Transactional(readOnly = true)
-    public void validateRefreshToken(String refreshToken) {
+    public void validateRefreshToken(String refreshToken, String deviceId) {
         // 1) 정규화
         String raw = normalizeStrict(refreshToken);
 
@@ -143,33 +129,27 @@ public class JwtTokenProvider {
         String id = hmac(raw);
 
         // 5) Redis Hash 화이트리스트에 키가 존재하는지 확인
-        if (!refreshTokenManager.validateToken(expectedUserId, id)) {
+        if (!refreshTokenManager.validateToken(expectedUserId, providerStr, deviceId, id)) {
             throw new UserHandler(ErrorStatus._INVALID_TOKEN);
         }
     }
 
 
     private Jws<Claims> parse(String token, Key key) {
-        String cleanToken = normalizeStrict(token);
         return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
-                .parseClaimsJws(cleanToken);
+                .parseClaimsJws(token);
     }
-
-    private Key getAccessKey()  { return Keys.hmacShaKeyFor(jwtProperties.getKeys().getAccess().getBytes()); }
-    private Key getRefreshKey() { return Keys.hmacShaKeyFor(jwtProperties.getKeys().getRefresh().getBytes()); }
 
     // 액세스 토큰 파싱/검증
     private Jws<Claims> validateAndParseAccess(String token) {
-        String cleanToken = normalizeStrict(token);
-        return parse(cleanToken, getAccessKey());
+        return parse(normalizeStrict(token), accessKey);
     }
 
     // 리프레시 토큰 파싱/검증
     public Jws<Claims> validateAndParseRefresh(String token) {
-        String cleanToken = normalizeStrict(token);
-        return parse(cleanToken, getRefreshKey());
+        return parse(normalizeStrict(token), refreshKey);
     }
 
     public String normalizeStrict(String token) {
