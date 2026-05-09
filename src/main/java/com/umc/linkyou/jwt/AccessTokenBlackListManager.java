@@ -3,7 +3,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.util.HexFormat;
 
 /**
  * AccessToken 블랙리스트 관리 클래스
@@ -20,7 +24,7 @@ public class AccessTokenBlackListManager {
 
     // 로그아웃 , 탈퇴시 블랙리스트로 등록(엑세스 토큰 남은 만료 시간만큼 ttl 설정)
     public void addToBlacklist(String token, String deviceId, long ttlMs) {
-        String key = BLACKLIST_PREFIX + jwtTokenProvider.normalizeStrict(token);
+        String key = blacklistKey(token);
         redisTemplate.opsForValue().set(key, deviceId, Duration.ofMillis(ttlMs));
     }
 
@@ -30,7 +34,22 @@ public class AccessTokenBlackListManager {
             return false;
         }
 
-        return redisTemplate.hasKey(BLACKLIST_PREFIX + jwtTokenProvider.normalizeStrict(token));
+        return redisTemplate.hasKey(blacklistKey(token));
+    }
+
+    private String blacklistKey(String token) {
+        String normalizedToken = jwtTokenProvider.normalizeStrict(token);
+        return BLACKLIST_PREFIX + sha256Hex(normalizedToken);
+    }
+
+    private String sha256Hex(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashed = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hashed);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 algorithm not available", ex);
+        }
     }
 
 }
