@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
+import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.RefreshTokenManager;
 import com.umc.linkyou.jwt.TokenIssueService;
@@ -72,6 +73,7 @@ public class UserService {
 
     private final RefreshTokenManager refreshTokenManager;
     private final TokenIssueService tokenIssueService;
+    private final AccessTokenBlackListManager accessTokenBlackListManager;
     private final UserStatusValidator userStatusValidator;
 
     private final AuthAccountRepository authAccountRepository;
@@ -343,12 +345,15 @@ public class UserService {
     }
 
     // 로그아웃
-    public void logoutUser(Long userId) {
-        // 1) 유저 존재 여부 확인
-        Users user = userRepository.findById(userId)
+    public void logoutUser(Long userId, String accessToken) {
+        userRepository.findById(userId)
                 .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
-        // 2) 로그인한 모든 디바이스의 리프레시 토큰 삭제 (강제 로그아웃)
         refreshTokenManager.deleteAllTokens(userId);
+
+        long ttlMs = jwtTokenProvider.getRemainingExpiryMs(accessToken);
+        if (ttlMs > 0) {
+            accessTokenBlackListManager.addToBlacklist(accessToken, null, ttlMs);
+        }
     }
 }

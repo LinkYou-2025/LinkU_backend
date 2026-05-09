@@ -17,6 +17,7 @@ import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -74,8 +75,11 @@ public class AuthController implements AuthApi {
         return ApiResponse.of(AuthSuccessStatus.PASSWORD_RESET_SUCCESS, null);
     }
 
+    @Override
     public ApiResponse<Void> logout(@CurrentUser CustomUserDetails userDetails) {
-        userService.logoutUser(userDetails.getUserId());
+        String accessToken = (String) SecurityContextHolder.getContext().getAuthentication().getCredentials();
+        userService.logoutUser(userDetails.getUserId(), accessToken);
+        SecurityContextHolder.clearContext();
         return ApiResponse.of(AuthSuccessStatus.LOGOUT_SUCCESS, null);
     }
 }

@@ -156,8 +156,13 @@ public class JwtTokenProvider {
         if (token == null) return null;
         String t = token.trim();
         if (t.startsWith("Bearer ")) t = t.substring(7);
-        // 공백/개행/탭/제어문자 제거
         return t.replaceAll("[\\r\\n\\t]", "");
+    }
+
+    public long getRemainingExpiryMs(String token) {
+        Claims claims = validateAndParseAccess(normalizeStrict(token)).getBody();
+        long expiry = claims.getExpiration().getTime() - System.currentTimeMillis();
+        return Math.max(expiry, 0);
     }
 
 
