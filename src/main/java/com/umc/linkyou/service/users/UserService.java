@@ -353,7 +353,7 @@ public class UserService {
 
         long ttlMs = jwtTokenProvider.getRemainingExpiryMs(accessToken);
         if (ttlMs > 0) {
-            accessTokenBlackListManager.addToBlacklist(accessToken, deviceId, ttlMs);
+            accessTokenBlackListManager.addToBlacklist(accessToken, ttlMs);
         }
     }
 }
