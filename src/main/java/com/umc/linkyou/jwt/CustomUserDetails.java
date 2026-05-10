@@ -20,7 +20,7 @@ public class CustomUserDetails implements UserDetails {
 
     // 엔티티 기반 (OAuth2 핸들러 등에서 Users 객체가 있을 때)
     public CustomUserDetails(Users users, String provider) {
-        this.password = users.getPassword();
+        this.password = users.getPassword() != null ? users.getPassword() : "";
         this.userId   = users.getId();
         this.role     = users.getRole();
         this.provider = provider;
@@ -31,7 +31,7 @@ public class CustomUserDetails implements UserDetails {
         if (role == null) {
             throw new UserHandler(AuthErrorStatus.UNAUTHORIZED);
         }
-        this.password = null;
+        this.password = "";
         this.userId   = userId;
         this.role     = role;
         this.provider = provider;
