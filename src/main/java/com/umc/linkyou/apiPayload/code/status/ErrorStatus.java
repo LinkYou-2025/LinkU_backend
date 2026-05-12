@@ -93,11 +93,7 @@ public enum ErrorStatus implements BaseErrorCode {
     _FOLDER_BOOKMARK_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_BOOKMARK404", "해당 유저의 북마크 정보가 존재하지 않습니다."),
 
     // 직업 관련 오류
-    _JOB_NOT_SET(HttpStatus.BAD_REQUEST, "JOB400", "직업이 설정되지 않은 사용자입니다."),
-
-    // 큐레이션 관련 오류
-    _CURATION_NOT_FOUND(HttpStatus.NOT_FOUND, "CURATION404", "큐레이션을 찾을 수 없습니다."),
-    _CURATION_FORBIDDEN(HttpStatus.FORBIDDEN, "CURATION403", "해당 큐레이션에 접근 권한이 없습니다.");
+    _JOB_NOT_SET(HttpStatus.BAD_REQUEST, "JOB400", "직업이 설정되지 않은 사용자입니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

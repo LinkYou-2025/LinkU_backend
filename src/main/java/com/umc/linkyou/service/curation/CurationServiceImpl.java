@@ -1,5 +1,6 @@
 package com.umc.linkyou.service.curation;
 
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.Users;
@@ -16,7 +17,7 @@ import com.umc.linkyou.service.curation.gemini.GeminiTextService;
 import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.service.curation.linku.external.ExternalRecommendMaterializer;
 import com.umc.linkyou.service.curation.linku.internal.InternalRecommendMaterializer;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.repository.curationRepository.CurationRepository;
 import com.umc.linkyou.repository.curationRepository.CurationSectionInfoRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
@@ -74,7 +75,7 @@ public class CurationServiceImpl implements CurationService {
     @Transactional
     public void generateCurationForUser(Long userId, String month) {
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         doGenerateCuration(user, month);
     }
 
@@ -121,10 +122,10 @@ public class CurationServiceImpl implements CurationService {
     @Transactional(readOnly = true)
     public CurationDetailResponse getCurationDetail(Long userId, Long curationId) {
         Curation curation = curationRepository.findById(curationId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._CURATION_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(CurationErrorStatus._CURATION_NOT_FOUND));
 
         if (!curation.getUser().getId().equals(userId)) {
-            throw new GeneralException(ErrorStatus._CURATION_FORBIDDEN);
+            throw new GeneralException(CurationErrorStatus._CURATION_FORBIDDEN);
         }
 
         String baseMonth = curation.getMonth();
