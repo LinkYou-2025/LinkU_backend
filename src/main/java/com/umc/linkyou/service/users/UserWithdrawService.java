@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.users;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
 import com.umc.linkyou.domain.AuthAccount;
@@ -17,7 +18,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-
+import java.time.temporal.ChronoUnit;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -30,10 +31,13 @@ public class UserWithdrawService{
     private final RefreshTokenManager refreshTokenManager;
     private final AuthAccountRepository authAccountRepository;
 
+    // 탈퇴 유예 기간
+    private static final int GRACE_PERIOD_DAYS = 14;
+
     @Transactional
     public Users withdrawUser(Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO) {
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         // 1. 토큰 즉시 무효화
         refreshTokenManager.deleteAllTokens(userId);
         user.setStatus(UserStatus.INACTIVE);
@@ -42,12 +46,38 @@ public class UserWithdrawService{
         userRepository.save(user);
         return user;
     }
-    //30 일 이후 삭제
+
+    /**
+     * 회원 탈퇴 복구 API
+     * INACTIVE 상태의 사용자를 다시 ACTIVE로 전환합니다.
+     */
+    @Transactional
+    public Users recoverUser(Long userId) {
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+
+        if (user.getStatus() != UserStatus.INACTIVE) {
+            throw new GeneralException(ErrorStatus._BAD_REQUEST); // 이미 활성 상태인 경우
+        }
+        // 2. inactiveDate가 null이거나 14일이 경과했는지 확인
+        LocalDateTime inactiveDate = user.getInactiveDate();
+        if (inactiveDate == null || ChronoUnit.DAYS.between(inactiveDate, LocalDateTime.now()) > GRACE_PERIOD_DAYS) {
+            throw new GeneralException(ErrorStatus._BAD_REQUEST);
+        }
+        // 상태 및 탈퇴 관련 필드 초기화
+        user.setStatus(UserStatus.ACTIVE);
+        user.setInactiveDate(null);
+        user.setDeleted_reason(null);
+
+        return userRepository.save(user);
+    }
+
+    //14 일 이후 삭제
     @Scheduled(cron = "0 0 3 * * ?")
     @Transactional
     public void deleteCompletelyInactiveUsers() {
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
-        List<Long> inactiveUserIds = userRepository.findInactiveUserIds(thirtyDaysAgo);
+        LocalDateTime daysAgo = LocalDateTime.now().minusDays(GRACE_PERIOD_DAYS);
+        List<Long> inactiveUserIds = userRepository.findInactiveUserIds(daysAgo);
 
         if (inactiveUserIds.isEmpty()) {
             log.debug("삭제할 비활성 사용자 없음");
@@ -79,7 +109,7 @@ public class UserWithdrawService{
     public Users testImmediateDelete(Long userId) {
         // 1. 엔티티 로드 (없으면 예외 발생)
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
         // 2. Redis 토큰 삭제
         refreshTokenManager.deleteAllTokens(userId);
@@ -129,7 +159,7 @@ public class UserWithdrawService{
     public void handleKakaoUnlinkWebhook(String kakaoExternalId) {
         // 1. 카카오 연동 정보 조회 (기존 Custom 인터페이스의 findByProviderAndExternalId 활용)
         AuthAccount kakaoAccount = authAccountRepository.findByProviderAndExternalId(Provider.KAKAO, kakaoExternalId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
         Users user = kakaoAccount.getUser();
 

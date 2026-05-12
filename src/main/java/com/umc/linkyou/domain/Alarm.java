@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "alarm")
+@Table(name = "alarms")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Alarm extends BaseEntity {

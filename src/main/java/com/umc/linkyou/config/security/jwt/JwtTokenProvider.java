@@ -1,10 +1,11 @@
 package com.umc.linkyou.config.security.jwt;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
+import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import io.jsonwebtoken.*;
@@ -25,9 +26,7 @@ import com.umc.linkyou.config.properties.JwtProperties;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.util.Base64;
 import java.util.Date;
-import java.util.Map;
 
 @Slf4j
 @Component
@@ -50,17 +49,18 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(jwtProperties.getKeys().getAccess().getBytes());
     }
 
-    public String generateToken(Authentication authentication) {
-        String email = authentication.getName();
-
+    // 액세스 토큰 생성 (subject 기반)
+    public String createAccessToken(String subject, String provider, Role role) {
         return Jwts.builder()
-                .setSubject(email)
-                .claim("role", authentication.getAuthorities().iterator().next().getAuthority())
+                .setSubject(subject)
+                .claim("provider", provider)
+                .claim("role", role.getAuthority())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getExpiration().getAccess()))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
+
 
     public boolean validateToken(String token) {
         try {
@@ -74,6 +74,9 @@ public class JwtTokenProvider {
         }
     }
 
+    // Authentication 객체 생성
+    //토큰에서 정보를 꺼내 DB를 조회한 후, CustomUserDetails를 통해
+    // Security가 인식할 수 있는 권한 목록(getAuthorities)을 넘겨 줌
     public Authentication getAuthentication(String token) {
         Claims claims = validateAndParseAccess(token).getBody();
         String email = claims.getSubject();
@@ -94,18 +97,12 @@ public class JwtTokenProvider {
         return null;
     }
 
-    public Authentication extractAuthentication(HttpServletRequest request){
-        String accessToken = resolveToken(request);
-        if(accessToken == null || !validateToken(accessToken)) {
-            throw new UserHandler(ErrorStatus._INVALID_TOKEN);
-        }
-        return getAuthentication(accessToken);
-    }
 
     // 리프레시 토큰 발급
-    public String createRefreshToken(String subjectEmail) {
+    public String createRefreshToken(String subjectEmail, String provider) {
         return Jwts.builder()
                 .setSubject(subjectEmail)
+                .claim("provider", provider)
                 .signWith(Keys.hmacShaKeyFor(jwtProperties.getKeys().getRefresh().getBytes()), SignatureAlgorithm.HS256)
                 .setIssuer(jwtProperties.getIssuer())
                 .setIssuedAt(new Date())
@@ -141,7 +138,7 @@ public class JwtTokenProvider {
         // 3) 토큰 소유자 userId 조회
         Long expectedUserId = authAccountRepository.findUserByEmailAndProvider(email, Provider.valueOf(providerStr))
                 .map(Users::getId)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
         // 4) HMAC id 생성
         String id = hmac(raw);
 
@@ -151,16 +148,6 @@ public class JwtTokenProvider {
         }
     }
 
-    // 액세스 토큰 생성 (subject 기반)
-    public String createAccessToken(String subject, String provider) {
-        return Jwts.builder()
-                .setSubject(subject)
-                .claim("provider", provider)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getExpiration().getAccess()))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
-                .compact();
-    }
 
     private Jws<Claims> parse(String token, Key key) {
         String cleanToken = normalizeStrict(token);
@@ -191,14 +178,6 @@ public class JwtTokenProvider {
         if (t.startsWith("Bearer ")) t = t.substring(7);
         // 공백/개행/탭/제어문자 제거
         return t.replaceAll("[\\r\\n\\t]", "");
-    }
-
-    // 액세스 토큰에서 subject 추출
-    private String decodeJwtPayloadSubject(String token) throws JsonProcessingException {
-        return objectMapper.readValue(
-                new String(Base64.getDecoder().decode(token.split("\\.")[1]), StandardCharsets.UTF_8),
-                Map.class
-        ).get("sub").toString();
     }
 
 

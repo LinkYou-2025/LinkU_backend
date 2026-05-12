@@ -2,6 +2,7 @@ package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.Linku;
@@ -17,7 +18,7 @@ import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepositor
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
-import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
+import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.utils.EmotionSimilarityUtil;
 import com.umc.linkyou.web.dto.linku.LinkuInternalDTO;
@@ -81,7 +82,7 @@ public class LinkuRecommendServiceImpl implements LinkuRecommendService{
     // 1. 필수 엔티티 조회 및 입력 검증
     private EntitiesContext validateAndFetchEntities(Long userId, Long situationId, Long emotionId) {
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         Emotion selectedEmotion = emotionRepository.findById(emotionId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
         Situation selectedSituation = situationRepository.findById(situationId)

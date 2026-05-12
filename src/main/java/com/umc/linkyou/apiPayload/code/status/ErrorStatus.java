@@ -16,8 +16,10 @@ public enum ErrorStatus implements BaseErrorCode {
     _EXPIRED_VERIFICATION_CODE(HttpStatus.BAD_REQUEST,"COMMON400","인증 코드가 만료되었습니다."),
     _UNAUTHORIZED(HttpStatus.UNAUTHORIZED,"COMMON401","인증이 필요합니다."),
     _FORBIDDEN(HttpStatus.FORBIDDEN, "COMMON403", "금지된 요청입니다."),
+    _TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "COMMON429", "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
     _INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "COMMON4011", "잘못된 토큰입니다."),
-    _INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "COMMON4012", "잘못된 비밀번호입니다."),
+    _INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "COMMON4012", "잘못된 비밀번호입니다."),
+    _PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "COMMON4013", "비밀번호와 비밀번호 확인이 일치하지 않습니다."),
 
     // S3 관련 오류
     _S3_FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "S3404", "S3 파일을 찾을 수 없습니다."),
@@ -29,20 +31,6 @@ public enum ErrorStatus implements BaseErrorCode {
     _S3_FILE_EMPTY(HttpStatus.BAD_REQUEST, "S34004", "업로드할 파일이 없습니다."),
     _S3_EXTRACT_URL_FAILED(HttpStatus.BAD_REQUEST, "S34005", "URL에서 파일명을 추출할 수 없습니다."),
 
-    // 로그인 회원가입 에러
-    _LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "USERS4013", "이메일 주소 또는 비밀번호를 다시 확인하세요."),
-    _DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "USERS403", "중복된 닉네임입니다."),
-    _DUPLICATE_JOIN_REQUEST(HttpStatus.CONFLICT, "USERS403", "중복된 이메일입니다."),
-    _VERIFICATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS404", "인증 코드 검증 실패"),
-    _USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USERS404", "사용자를 찾을 수 없습니다."),
-    _USER_INACTIVE(HttpStatus.NOT_FOUND, "USERS4042", "사용자가 INACTIVE 임시 회원탈퇴 상태입니다."),
-    _INVALID_GENDER(HttpStatus.NOT_FOUND, "USERS404", "성별을 선택해야합니다."),
-    _PURPOSE_NOT_PROVIDED(HttpStatus.NOT_FOUND, "USERS404", "목적을 선택해야합니다."),
-    _INTEREST_NOT_PROVIDED(HttpStatus.NOT_FOUND, "USERS404", "관심 분야를 선택해야합니다."),
-    _NO_SUCH_ALGORITHM(HttpStatus.INTERNAL_SERVER_ERROR, "USERS500", "인증 코드 생성 실패"),
-    _SEND_MAIL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS500", "인증 코드 전송 실패"),
-    INVALID_TERMS_TYPE(HttpStatus.BAD_REQUEST, "TERMS4001", "유효하지 않은 약관 타입입니다."),
-
     //소셜로그인 관련
     _AUTH_ACCOUNT_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "OAUTH5001", "소셜 계정 연결에 실패했습니다."),
     _SOCIAL_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "OAUTH4003", "소셜 로그인에 이메일이 필요합니다."),
@@ -50,22 +38,16 @@ public enum ErrorStatus implements BaseErrorCode {
     _INVALID_ID_TOKEN(HttpStatus.BAD_REQUEST, "OAUTH4008", "유효하지 않거나 만료된 ID 토큰"),
     _SOCIAL_ACCOUNT_ONLY(HttpStatus.UNAUTHORIZED, "USERS4014", "소셜 전용 계정입니다. 소셜 로그인을 이용하세요."),
     _ALREADY_ACTIVE_USER(HttpStatus.BAD_REQUEST, "USERS4001", "이미 해당 이메일로 user가 존재합니다. 새로운 회원정보를 만들고 싶다면 탈퇴해주세요."),
+    _SOCIAL_EXTERNAL_ID_REQUIRED(HttpStatus.BAD_REQUEST, "OAUTH4009", "소셜 계정 ID가 필요합니다."),
+    _INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "OAUTH4010", "올바른 이메일 형식이 아닙니다."),
 
     //링큐 관련 코드
     _LINKU_VIDEO_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "LINKU4001", "영상 링크는 저장할 수 없습니다."),
     _LINKU_INVALID_URL(HttpStatus.BAD_REQUEST, "LINKU4002", "유효하지 않은 링크입니다."),
     _USER_LINKU_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU404", "user_linku 테이블을 찾기 못했습니다." ),
-    _SOCIAL_EXTERNAL_ID_REQUIRED(HttpStatus.BAD_REQUEST, "OAUTH4009", "소셜 계정 ID가 필요합니다."),
-    _INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "OAUTH4010", "올바른 이메일 형식이 아닙니다."),
-    //OPENAI관련 오류
-    _AI_PARSE_ERROR(HttpStatus.BAD_REQUEST, "OPENAI5001", "AI 응답 파싱에 실패했습니다."),
-    _AI_INVALID_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR, "OPENAI5002", "AI 응답이 예상한 형식이 아닙니다."),
+    _LINKU_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU4041", "해당 링크 정보를 찾을 수 없습니다."),
 
-    //AIArticle 생성오류
-    _DUPLICATE_AI_ARTICLE(HttpStatus.CONFLICT, "AIARTICLE4091", "이미 해당 링크로 생성된 AI Article이 존재합니다."),
-    _AI_ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND, "AIARTICLE4041", "해당하는 AI Article을 찾을 수 없습니다."),
-    _CONTENT_EXTRACTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "CRAWLER5001", "웹페이지 본문 추출에 실패했습니다."),
-    _CONTENT_EXTRACTION_PROHIBITED(HttpStatus.INTERNAL_SERVER_ERROR, "CRAWLER5002", "크롤링이 금지된 웹사이트입니다."),
+
     //카테고리(폴더종류) 관련 에러
     _CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CATEGORY4041", "해당하는 카테고리를 찾을 수 없습니다."),
     //감정 관련 에러
