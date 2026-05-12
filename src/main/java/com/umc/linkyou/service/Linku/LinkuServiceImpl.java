@@ -74,9 +74,9 @@ public class LinkuServiceImpl implements LinkuService {
                 LinkuConverter.toLinkuIsExistDTO(userId, usersLinkuOpt.orElse(null));
 
         if (usersLinkuOpt.isPresent()) {
-            return ApiResponse.onSuccess("링큐가 이미 존재합니다.", dto);
+            return ApiResponse.onSuccess(dto);
         } else {
-            return ApiResponse.onSuccess("링큐가 존재하지 않습니다.", dto);
+            return ApiResponse.onSuccess(dto);
         }
     }//링크가 이미 존재하는 지 여부 판단
 
@@ -120,7 +120,7 @@ public class LinkuServiceImpl implements LinkuService {
                 userId, linku, usersLinku, linkuFolder, category, domain, aiArticleExists, keyword, summary
         );
 
-        return ApiResponse.onSuccess("링크 상세 조회 성공", dto);
+        return ApiResponse.onSuccess(dto);
     }//링크 상세조회
 
 

@@ -1,6 +1,6 @@
 package com.umc.linkyou.service.aiArticle;
 
-import com.umc.linkyou.apiPayload.code.status.AiArticleErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;

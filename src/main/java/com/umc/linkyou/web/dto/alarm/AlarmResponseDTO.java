@@ -1,6 +1,7 @@
 package com.umc.linkyou.web.dto.alarm;
 
-import com.umc.linkyou.domain.enums.AlarmSettingType;
+import com.umc.linkyou.domain.enums.AlarmResponseType;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,9 +17,12 @@ public record AlarmResponseDTO(
 
     public record AlarmListDTO(
             Long alarmId,
-            AlarmSettingType alarmType,
+            @Schema(description = "알림 타입")
+            AlarmResponseType alarmType,
             String message,
             LocalDateTime createdAt,
+            @Schema(description = "알림이 연결된 대상 ID")
+            Long targetId,
             boolean isRead
     ){}
 

@@ -3,6 +3,8 @@ package com.umc.linkyou.domain.enums;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Arrays;
+
 @Getter
 @RequiredArgsConstructor
 public enum Role {
@@ -12,4 +14,11 @@ public enum Role {
     MANAGER("ROLE_MANAGER"); //운영자, 콘텐츠 관리자
 
     private final String authority;
+
+    public static Role fromAuthority(String authority) {
+        return Arrays.stream(values())
+                .filter(r -> r.authority.equals(authority))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown authority: " + authority));
+    }
 }

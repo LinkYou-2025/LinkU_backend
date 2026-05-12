@@ -1,4 +1,4 @@
-package com.umc.linkyou.apiPayload.code.status;
+package com.umc.linkyou.apiPayload.code.status.gemini;
 
 import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;

@@ -2,7 +2,7 @@ package com.umc.linkyou.gemini.client;
 
 import com.google.genai.Client;
 import com.google.genai.types.*;
-import com.umc.linkyou.apiPayload.code.status.GeminiErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.gemini.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
