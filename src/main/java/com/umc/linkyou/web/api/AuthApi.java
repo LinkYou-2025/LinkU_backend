@@ -146,8 +146,11 @@ public interface AuthApi {
                     """
     )
     @ApiAuthSuccessCode(AuthSuccessStatus.PASSWORD_RESET_SUCCESS)
-    @ApiErrorCode(errorStatus = {ErrorStatus._PASSWORD_MISMATCH})
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @ApiErrorCode(userErrorStatus = {
+            UserErrorStatus._INVALID_PASSWORD,
+            UserErrorStatus._PASSWORD_MISMATCH,
+            UserErrorStatus._USER_NOT_FOUND
+    })
     @PutMapping("/password/reset")
     ApiResponse<Void> resetPassword(@RequestBody @Valid PasswordResetRequestDTO request);
 

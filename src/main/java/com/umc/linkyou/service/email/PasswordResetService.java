@@ -1,6 +1,5 @@
 package com.umc.linkyou.service.email;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.domain.Users;
@@ -89,7 +88,7 @@ public class PasswordResetService {
         validatePasswords(newPassword, confirmPassword);
 
         if (!newPassword.equals(confirmPassword)) {
-            throw new UserHandler(ErrorStatus._PASSWORD_MISMATCH);
+            throw new UserHandler(UserErrorStatus._PASSWORD_MISMATCH);
         }
 
         // 토큰으로 이메일 조회, 토큰 없거나 만료되면 에러
@@ -112,10 +111,10 @@ public class PasswordResetService {
     // 새 비밀번호 유효성 검사
     private void validatePasswords(String newPassword, String confirmPassword) {
         if (!StringUtils.hasText(newPassword) || !StringUtils.hasText(confirmPassword)) {
-            throw new UserHandler(ErrorStatus._INVALID_PASSWORD);
+            throw new UserHandler(UserErrorStatus._INVALID_PASSWORD);
         }
         if (!PASSWORD_POLICY_PATTERN.matcher(newPassword).matches()) {
-            throw new UserHandler(ErrorStatus._INVALID_PASSWORD);
+            throw new UserHandler(UserErrorStatus._INVALID_PASSWORD);
         }
     }
 }

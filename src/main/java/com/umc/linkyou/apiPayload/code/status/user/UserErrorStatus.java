@@ -14,6 +14,8 @@ public enum UserErrorStatus implements BaseErrorCode {
     _INVALID_GENDER(HttpStatus.BAD_REQUEST, "USERS4002", "성별을 올바르게 선택해야합니다.(MALE: 1, FEMALE: 2)"),
     _INVALID_REFRESH_TOKEN(HttpStatus.BAD_REQUEST, "USERS4003", "유효하지 않은 리프레시 토큰입니다."),
     _EXPIRED_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "USERS4004", "인증 코드가 만료되었습니다."),
+    _INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "USERS4005", "잘못된 비밀번호입니다."),
+    _PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "USERS4006", "비밀번호와 비밀번호 확인이 일치하지 않습니다."),
     // 401 Unauthorized
     _VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "USERS4011", "인증 코드 검증 실패"),
     _LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "USERS4012", "이메일 주소 또는 비밀번호를 다시 확인하세요."),
