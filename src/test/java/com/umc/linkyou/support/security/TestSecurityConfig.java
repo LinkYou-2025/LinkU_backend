@@ -1,5 +1,7 @@
 package com.umc.linkyou.support.security;
 
+import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
@@ -10,6 +12,11 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @TestConfiguration
 public class TestSecurityConfig {
+
+    @Bean
+    public SecurityErrorResponseWriter securityErrorResponseWriter() {
+        return Mockito.mock(SecurityErrorResponseWriter.class);
+    }
 
     @Bean
     @Order(0)

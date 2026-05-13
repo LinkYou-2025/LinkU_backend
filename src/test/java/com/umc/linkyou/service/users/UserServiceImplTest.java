@@ -25,6 +25,7 @@ import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,6 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,7 +51,6 @@ class UserServiceImplTest {
     @InjectMocks
     private UserService userService;
 
-    // UserService가 의존하는 모든 필드를 Mock으로 선언합니다.
     @Mock private UserRepository userRepository;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private UserQueryRepository userQueryRepository;
@@ -67,125 +68,163 @@ class UserServiceImplTest {
     @Mock private AuthAccountRepository authAccountRepository;
     @Mock private JwtProperties jwtProperties;
     @Mock private AlarmSettingRepository alarmSettingRepository;
+    @Mock private TermsAgreementService termsAgreementService;
 
-    @Test
-    @DisplayName("소셜 프로필 완성 시 유저 상태가 TEMP에서 ACTIVE로 변경된다.")
-    void socialCompleteProfile_StatusChange() {
-        // given
-        Users tempUser = Users.builder()
-                .id(1L)
-                .status(UserStatus.TEMP)
-                .usersFoldersList(new ArrayList<>())
-                .build();
+    @Nested
+    @DisplayName("일반 회원가입 (joinUser)")
+    class JoinUser {
 
-        UserRequestDTO.SocialCompleteDTO request = new UserRequestDTO.SocialCompleteDTO();
-        request.setNickName("완성닉네임");
-        request.setGender(1);
-        request.setJobId(1L);
-        request.setPurposeList(new ArrayList<>());
-        request.setInterestList(new ArrayList<>());
+        @Nested
+        @DisplayName("성공")
+        class Success {
 
-        when(userRepository.findById(tempUser.getId())).thenReturn(Optional.of(tempUser));
-        when(userRepository.findByNickName("완성닉네임")).thenReturn(Optional.empty());
-        when(jobRepository.findById(anyLong())).thenReturn(Optional.of(Job.builder().id(1L).build()));
-        when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(categoryRepository.findAll()).thenReturn(new ArrayList<>());
-        when(usersCategoryColorRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+            @Test
+            @DisplayName("성공 - 신규 유저 가입 시 기본 ROLE_USER 권한과 알림 설정이 생성된다")
+            void join_user_success() {
+                // given
+                UserRequestDTO.JoinDTO request = UserRequestDTO.JoinDTO.builder()
+                        .nickName("테스터")
+                        .email("test@example.com")
+                        .password("password123")
+                        .jobId(1L)
+                        .gender(1)
+                        .purposeList(new ArrayList<>())
+                        .interestList(new ArrayList<>())
+                        .termsMap(Collections.emptyMap())
+                        .build();
 
-        // when
-        Users result = userService.socialCompleteProfile(tempUser.getId(), request);
+                Job mockJob = Job.builder().id(1L).build();
 
-        // then
-        assertEquals(UserStatus.ACTIVE, result.getStatus());
-        assertEquals("완성닉네임", result.getNickName());
-        verify(userRepository).findByNickName("완성닉네임");
+                when(userRepository.findByNickName(eq(request.nickName()))).thenReturn(Optional.empty());
+                when(jobRepository.findById(anyLong())).thenReturn(Optional.of(mockJob));
+                when(authAccountRepository.existsByProviderAndExternalId(eq(Provider.GENERAL), anyString())).thenReturn(false);
+                when(authAccountRepository.findUserByEmailAndProvider(anyString(), eq(Provider.GENERAL))).thenReturn(Optional.empty());
+                when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+                when(categoryRepository.findAll()).thenReturn(new ArrayList<>());
+                when(usersCategoryColorRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+                // when
+                Users savedUser = userService.joinUser(request);
+
+                // then
+                assertNotNull(savedUser.getRole());
+                assertEquals(Role.USER, savedUser.getRole());
+                verify(termsAgreementService).upsertTerms(any(Users.class), any());
+                verify(alarmSettingRepository).save(any());
+            }
+        }
     }
 
-    @Test
-    @DisplayName("일반 회원가입 시 유저에게 기본 ROLE_USER 권한이 부여된다.")
-    void joinUser_CheckRoleAssignment() {
-        // given
-        UserRequestDTO.JoinDTO request = new UserRequestDTO.JoinDTO();
-        request.setNickName("테스터");
-        request.setEmail("test@example.com");
-        request.setPassword("password123");
-        request.setJobId(1L);
-        request.setGender(1);
-        request.setPurposeList(new ArrayList<>());
-        request.setInterestList(new ArrayList<>());
+    @Nested
+    @DisplayName("소셜 프로필 완성 (socialCompleteProfile)")
+    class SocialCompleteProfile {
 
-        Job mockJob = Job.builder().id(1L).build();
+        @Nested
+        @DisplayName("성공")
+        class Success {
 
-        when(userRepository.findByNickName("테스터")).thenReturn(Optional.empty());
-        when(jobRepository.findById(anyLong())).thenReturn(Optional.of(mockJob));
-        when(authAccountRepository.existsByProviderAndExternalId(eq(Provider.GENERAL), anyString())).thenReturn(false);
-        when(authAccountRepository.findUserByEmailAndProvider(anyString(), eq(Provider.GENERAL))).thenReturn(Optional.empty());
-        when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-        when(categoryRepository.findAll()).thenReturn(new ArrayList<>());
-        when(usersCategoryColorRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+            @Test
+            @DisplayName("성공 - TEMP 상태 유저가 프로필 완성 시 ACTIVE 상태로 변경된다")
+            void social_complete_success() {
+                // given
+                Users tempUser = Users.builder()
+                        .id(1L)
+                        .status(UserStatus.TEMP)
+                        .usersFoldersList(new ArrayList<>())
+                        .build();
 
-        // when
-        Users savedUser = userService.joinUser(request);
+                UserRequestDTO.SocialCompleteDTO request = new UserRequestDTO.SocialCompleteDTO(
+                        "완성닉네임", 1, 1L, new ArrayList<>(), new ArrayList<>(), Collections.emptyMap()
+                );
 
-        // then
-        assertNotNull(savedUser.getRole());
-        assertEquals(Role.USER, savedUser.getRole());
-        verify(alarmSettingRepository).save(any());
+                when(userRepository.findById(eq(tempUser.getId()))).thenReturn(Optional.of(tempUser));
+                when(userRepository.findByNickName(eq("완성닉네임"))).thenReturn(Optional.empty());
+                when(jobRepository.findById(anyLong())).thenReturn(Optional.of(Job.builder().id(1L).build()));
+                when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                when(categoryRepository.findAll()).thenReturn(new ArrayList<>());
+                when(usersCategoryColorRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+                // when
+                Users result = userService.socialCompleteProfile(tempUser.getId(), request);
+
+                // then
+                assertEquals(UserStatus.ACTIVE, result.getStatus());
+                assertEquals("완성닉네임", result.getNickName());
+                verify(termsAgreementService).upsertTerms(any(Users.class), any());
+            }
+        }
     }
 
-    @Test
-    @DisplayName("로그인 성공 시 반환되는 DTO에 유저의 권한(Role) 정보가 포함된다.")
-    void loginUser_CheckRoleInResponse() {
-        // given
-        UserRequestDTO.LoginRequestDTO request = new UserRequestDTO.LoginRequestDTO(
-                "test@example.com",
-                "password123",
-                "ios-iphone-16-pro",
-                DeviceType.PHONE
-        );
+    @Nested
+    @DisplayName("일반 로그인 (loginUser)")
+    class LoginUser {
 
-        Users user = Users.builder()
-                .id(1L)
-                .role(Role.USER)
-                .status(UserStatus.ACTIVE)
-                .password("encodedPassword")
-                .build();
+        @Nested
+        @DisplayName("성공")
+        class Success {
 
-        AuthAccount authAccount = AuthAccount.builder()
-                .user(user)
-                .email("test@example.com")
-                .build();
+            @Test
+            @DisplayName("성공 - 로그인 성공 시 토큰 페어와 유저 권한 정보가 반환된다")
+            void login_user_success() {
+                // given
+                UserRequestDTO.LoginRequestDTO request = new UserRequestDTO.LoginRequestDTO(
+                        "test@example.com",
+                        "password123",
+                        "ios-iphone-16-pro",
+                        DeviceType.PHONE
+                );
 
-        when(authAccountRepository.findUserByEmailAndProvider(anyString(), eq(Provider.GENERAL))).thenReturn(Optional.of(user));
-        when(authAccountRepository.existsByUserIdAndProvider(anyLong(), eq(Provider.GENERAL))).thenReturn(true);
-        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
-        when(authAccountRepository.findByUserIdAndProvider(anyLong(), eq(Provider.GENERAL))).thenReturn(Optional.of(authAccount));
+                Users user = Users.builder()
+                        .id(1L)
+                        .role(Role.USER)
+                        .status(UserStatus.ACTIVE)
+                        .password("encodedPassword")
+                        .build();
 
-        TokenIssueService.IssuedTokenPair issuedTokenPair =
-                new TokenIssueService.IssuedTokenPair("mockAccess", "mockRefresh");
-        when(tokenIssueService.issueTokenPair(
-                eq(user.getId()),
-                eq("test@example.com"),
-                eq(Provider.GENERAL.name()),
-                eq(Role.USER),
-                eq("ios-iphone-16-pro"),
-                eq(DeviceType.PHONE)
-        )).thenReturn(issuedTokenPair);
+                AuthAccount authAccount = AuthAccount.builder()
+                        .user(user)
+                        .email("test@example.com")
+                        .build();
 
-        // when
-        UserResponseDTO.LoginResultDTO result = userService.loginUser(request);
+                when(authAccountRepository.findUserByEmailAndProvider(eq(request.email()), eq(Provider.GENERAL)))
+                        .thenReturn(Optional.of(user));
 
-        // then
-        assertNotNull(result.getAccessToken());
-        verify(userStatusValidator).validateLoginAllowed(user);
-        verify(tokenIssueService).issueTokenPair(
-                eq(user.getId()),
-                eq("test@example.com"),
-                eq(Provider.GENERAL.name()),
-                eq(Role.USER),
-                eq("ios-iphone-16-pro"),
-                eq(DeviceType.PHONE)
-        );
+                when(authAccountRepository.existsByUserIdAndProvider(anyLong(), eq(Provider.GENERAL)))
+                        .thenReturn(true);
+
+                when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
+
+                when(authAccountRepository.findByUserIdAndProvider(anyLong(), eq(Provider.GENERAL)))
+                        .thenReturn(Optional.of(authAccount));
+
+                TokenIssueService.IssuedTokenPair issuedTokenPair =
+                        new TokenIssueService.IssuedTokenPair("mockAccess", "mockRefresh");
+
+                when(tokenIssueService.issueTokenPair(
+                        eq(user.getId()),
+                        eq("test@example.com"),
+                        eq(Provider.GENERAL.name()),
+                        eq(Role.USER),
+                        eq(request.deviceId()),
+                        eq(request.deviceType())
+                )).thenReturn(issuedTokenPair);
+
+                // when
+                UserResponseDTO.LoginResultDTO result = userService.loginUser(request);
+
+                // then
+                assertNotNull(result.getAccessToken());
+                verify(userStatusValidator).validateLoginAllowed(user);
+                verify(tokenIssueService).issueTokenPair(
+                        eq(user.getId()),
+                        eq("test@example.com"),
+                        eq(Provider.GENERAL.name()),
+                        eq(Role.USER),
+                        eq(request.deviceId()),
+                        eq(request.deviceType())
+                );
+            }
+        }
     }
 }
