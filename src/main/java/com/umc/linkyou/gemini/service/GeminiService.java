@@ -2,7 +2,7 @@ package com.umc.linkyou.gemini.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.umc.linkyou.apiPayload.code.status.GeminiErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.gemini.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.gemini.client.GeminiClient;
 import com.umc.linkyou.gemini.GeminiJsonUtils;

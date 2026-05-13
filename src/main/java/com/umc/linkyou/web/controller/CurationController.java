@@ -1,8 +1,8 @@
 package com.umc.linkyou.web.controller;
 
-import com.umc.linkyou.config.security.jwt.CustomUserDetails;
+import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.ApiV1;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.service.curation.CurationLikeService;
 import com.umc.linkyou.service.curation.CurationService;
@@ -20,7 +20,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Tag(name = "curation-controller", description = "큐레이션 관련 API")
 @ApiV1
@@ -93,11 +92,11 @@ public class CurationController {
     )
     @GetMapping("/history")
     public ResponseEntity<ApiResponse<Page<CurationListResponse>>> getMyCurationList(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser CustomUserDetails userDetails,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size
     ) {
-        Long userId = userDetails.getUsers().getId();
+        Long userId = userDetails.getUserId();
 
         // 0페이지부터 시작, size 개수만큼 가져오기
         PageRequest pageRequest = PageRequest.of(page, size);
@@ -168,11 +167,11 @@ public class CurationController {
     )
     @GetMapping("/likes")
     public ResponseEntity<ApiResponse<Page<CurationListResponse>>> getLikedCurationList(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser CustomUserDetails userDetails,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size
     ) {
-        Long userId = userDetails.getUsers().getId();
+        Long userId = userDetails.getUserId();
 
         PageRequest pageRequest = PageRequest.of(page, size);
         Page<CurationListResponse> result = curationLikeService.getLikedCurationList(userId, pageRequest);

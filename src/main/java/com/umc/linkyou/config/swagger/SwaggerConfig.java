@@ -5,7 +5,11 @@ import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;
 import com.umc.linkyou.apiPayload.code.ReasonDTO;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.apiPayload.code.SuccessReasonDTO;
+import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.auth.AuthSuccessStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
+import com.umc.linkyou.validation.annotation.swagger.ApiAuthSuccessCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCodes;
 import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
@@ -67,10 +71,19 @@ public class SwaggerConfig {
     @Bean
     public OperationCustomizer customize() {
         return (Operation operation, HandlerMethod handlerMethod) -> {
-            // 1. 성공 응답 처리 (상속 관계 포함 스캔)
+            // 인증이 명시된 엔드포인트에만 401 예시를 추가한다.
+            if (requiresAuthentication(operation)) {
+                addErrorCodeExample(operation.getResponses(), AuthErrorStatus.UNAUTHORIZED);
+            }
+
+            // 1. 성공 응답 처리
             ApiSuccessCode successAnnotation = handlerMethod.getMethodAnnotation(ApiSuccessCode.class);
             if (successAnnotation != null) {
                 generateSuccessResponseExample(operation, successAnnotation.value());
+            }
+            ApiAuthSuccessCode authSuccessAnnotation = handlerMethod.getMethodAnnotation(ApiAuthSuccessCode.class);
+            if (authSuccessAnnotation != null) {
+                generateAuthSuccessResponseExample(operation, authSuccessAnnotation.value());
             }
 
             // 2. 에러 응답 처리 (Repeatable 컨테이너와 단일 어노테이션 모두 상속 관계 포함 스캔)
@@ -92,6 +105,12 @@ public class SwaggerConfig {
 
             return operation;
         };
+    }
+
+    private boolean requiresAuthentication(Operation operation) {
+        return operation.getSecurity() != null
+                && operation.getSecurity().stream()
+                .anyMatch(requirement -> requirement != null && !requirement.isEmpty());
     }
 
     // addExample 메서드 수정 (Schema 주입 필수)
@@ -132,6 +151,16 @@ public class SwaggerConfig {
         addExample(responses, reason.getHttpStatus().value(), status.name(), reason.getMessage(), exampleResponse);
     }
 
+    private void generateAuthSuccessResponseExample(Operation operation, AuthSuccessStatus status) {
+        ApiResponses responses = operation.getResponses();
+        SuccessReasonDTO reason = status.getReasonHttpStatus();
+
+        com.umc.linkyou.apiPayload.ApiResponse<Object> exampleResponse =
+                com.umc.linkyou.apiPayload.ApiResponse.of(status, null);
+
+        addExample(responses, reason.getHttpStatus().value(), status.name(), reason.getMessage(), exampleResponse);
+    }
+
     // 에러 예시 생성
     private void generateErrorCodeResponseExample(Operation operation, ApiErrorCode[] annotations) {
         ApiResponses responses = operation.getResponses();
@@ -141,6 +170,9 @@ public class SwaggerConfig {
                 addErrorCodeExample(responses, status);
             }
             for (UserErrorStatus status : annotation.userErrorStatus()) {
+                addErrorCodeExample(responses, status);
+            }
+            for (AuthErrorStatus status : annotation.authErrorStatus()) {
                 addErrorCodeExample(responses, status);
             }
         }
