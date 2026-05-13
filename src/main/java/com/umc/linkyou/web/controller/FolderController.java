@@ -37,7 +37,7 @@ public class FolderController {
             @RequestBody FolderCreateRequestDTO request
     ) {
         FolderResponseDTO response = folderService.createFolder(userDetails.getUserId(), parentFolderId, request);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_CREATED, response);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_CREATED, response);
     }
 
     @Operation(
@@ -51,7 +51,7 @@ public class FolderController {
             @RequestBody FolderUpdateRequestDTO request
     ) {
         FolderResponseDTO response = folderService.updateFolder(userDetails.getUserId(), folderId, request);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_UPDATED, response);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_UPDATED, response);
     }
 
     @Operation(
@@ -64,7 +64,7 @@ public class FolderController {
             @PathVariable Long folderId
     ) {
         folderService.deleteFolder(userDetails.getUserId(), folderId);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_DELETED, null);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_DELETED, null);
     }
 
     @Operation(
@@ -76,7 +76,7 @@ public class FolderController {
             @CurrentUser CustomUserDetails userDetails
     ) {
         List<FolderTreeResponseDTO> folderTree = folderService.getMyFolderTree(userDetails.getUserId());
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_OK, folderTree);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_OK, folderTree);
     }
 
     @Operation(
@@ -89,7 +89,7 @@ public class FolderController {
             @RequestParam(defaultValue = "name") String sort
     ) {
         List<FolderListResponseDTO> folderList = folderService.getParentFolders(userDetails.getUserId(), sort);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_PARENT_OK, folderList);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_PARENT_OK, folderList);
     }
 
     @Operation(
@@ -102,7 +102,7 @@ public class FolderController {
             @PathVariable Long parentFolderId
     ) {
         List<FolderListResponseDTO> folderList = folderService.getSubFolders(userDetails.getUserId(), parentFolderId);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_SUBFOLDER_OK, folderList);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_SUBFOLDER_OK, folderList);
     }
 
     @Operation(
@@ -118,7 +118,7 @@ public class FolderController {
         BookmarkUpdateResponseDTO response = folderService.updateBookmark(
                 userDetails.getUserId(), folderId, request.getIsBookmarked()
         );
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_BOOKMARK_OK, response);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_BOOKMARK_OK, response);
     }
 
     @Operation(
@@ -135,6 +135,6 @@ public class FolderController {
     ) {
         FolderLinkusResponseDTO response = folderService.getFolderLinkus(
                 userDetails.getUserId(), folderId, limit, cursor, sort);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_LINK_OK, response);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_LINK_OK, response);
     }
 }

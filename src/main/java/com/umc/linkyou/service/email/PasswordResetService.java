@@ -94,7 +94,7 @@ public class PasswordResetService {
 
         // 토큰으로 이메일 조회, 토큰 없거나 만료되면 에러
         PasswordResetCache cache = passwordResetRedisRepository.findById(token)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._EXPIRED_VERIFICATION_CODE));
+                .orElseThrow(() -> new UserHandler(UserErrorStatus._EXPIRED_VERIFICATION_CODE));
 
         // 이메일로 사용자 조회, 일반 로그인 계정이 아니거나 가입되지 않은 이메일이면 에러
         Users user = authAccountRepository.findUserByEmailAndProvider(cache.getEmail(), Provider.GENERAL)

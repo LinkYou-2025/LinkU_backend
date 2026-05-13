@@ -33,7 +33,7 @@ public class CategoryController {
             @CurrentUser CustomUserDetails userDetails
     ) {
         List<CategoryListResponseDTO> categoryList = categoryService.getCategories(userDetails.getUserId());
-        return ApiResponse.of(CategorySuccessStatus.CATEGORY_OK, categoryList);
+        return ApiResponse.onSuccess(CategorySuccessStatus.CATEGORY_OK, categoryList);
     }
 
     @Operation(
@@ -48,6 +48,6 @@ public class CategoryController {
     ) {
         UserCategoryColorResponseDTO userCategoryColor =
                 categoryService.updateUserCategoryColor(userDetails.getUserId(), categoryId, request);
-        return ApiResponse.of(CategorySuccessStatus.CATEGORY_COLOR_OK, userCategoryColor);
+        return ApiResponse.onSuccess(CategorySuccessStatus.CATEGORY_COLOR_OK, userCategoryColor);
     }
 }

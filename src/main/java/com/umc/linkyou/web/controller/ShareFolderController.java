@@ -36,7 +36,7 @@ public class ShareFolderController {
             @PathVariable Long folderId
     ) {
         String token = shareFolderService.createInviteLink(userDetails.getUserId(), folderId);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_INVITE_LINK_CREATED, deeplinkBaseUrl + "/open?action=share&folderId=" + token);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_INVITE_LINK_CREATED, deeplinkBaseUrl + "/open?action=share&folderId=" + token);
     }
 
     @Operation(summary = "초대 링크 삭제", description = "초대 링크를 비활성화합니다.")
@@ -46,7 +46,7 @@ public class ShareFolderController {
             @PathVariable Long folderId
     ) {
         shareFolderService.deactivateInviteLink(userDetails.getUserId(), folderId);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_INVITE_LINK_DEACTIVATED, null);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_INVITE_LINK_DEACTIVATED, null);
     }
 
     @Operation(summary = "폴더 멤버 조회", description = "공유된 폴더의 멤버 목록을 조회합니다.")
@@ -56,7 +56,7 @@ public class ShareFolderController {
             @PathVariable Long folderId
     ) {
         List<ViewerResponseDTO> viewers = shareFolderService.getViewers(userDetails.getUserId(), folderId);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_MEMBERS_OK, viewers);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_MEMBERS_OK, viewers);
     }
 
     @Operation(summary = "폴더 권한 수정", description = "폴더 공유 멤버의 권한(뷰어/라이터)을 수정합니다.")
@@ -69,7 +69,7 @@ public class ShareFolderController {
     ) {
         ShareFolderResponseDTO response = shareFolderService.updateViewerPermission(
                 userDetails.getUserId(), folderId, userFolderId, request);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_PERMISSION_OK, response);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_PERMISSION_OK, response);
     }
 
     @Operation(summary = "폴더 비공개 전환", description = "공유된 폴더를 비공개로 전환하고 모든 공유 권한을 제거합니다.")
@@ -79,6 +79,6 @@ public class ShareFolderController {
             @PathVariable Long folderId
     ) {
         ShareFolderResponseDTO response = shareFolderService.unshare(userDetails.getUserId(), folderId);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_UNSHARE_OK, response);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_UNSHARE_OK, response);
     }
 }

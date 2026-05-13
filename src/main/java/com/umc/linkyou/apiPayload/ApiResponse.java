@@ -3,7 +3,6 @@ package com.umc.linkyou.apiPayload;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.umc.linkyou.apiPayload.code.BaseCode;
 import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.BaseSuccessCode;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
@@ -18,41 +17,33 @@ import java.time.LocalDateTime;
 @JsonPropertyOrder({"isSuccess", "code", "message", "timestamp", "result"})
 public class ApiResponse<T> {
 
-    @Schema(description = "성공 여부", example = "true")
+    @Schema(description = "성공 여부")
     @JsonProperty("isSuccess")
     private final Boolean isSuccess;
 
-    @Schema(description = "응답 코드", example = "COMMON200")
+    @Schema(description = "응답 코드")
     private final String code;
 
-    @Schema(description = "응답 메시지", example = "성공입니다.")
+    @Schema(description = "응답 메시지")
     private final String message;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private final LocalDateTime timestamp;
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private T result;
-
-
-    // 성공한 경우 응답 생성
-    public static <T> ApiResponse<T> of(BaseCode code, T result) {
-        var reason = code.getReasonHttpStatus();
-        return new ApiResponse<>(true, reason.getCode(), reason.getMessage(), LocalDateTime.now(), result);
-    }
-
-    public static <T> ApiResponse<T> of(BaseSuccessCode code, T result) {
-        var reason = code.getReasonHttpStatus();
-        return new ApiResponse<>(true, reason.getCode(), reason.getMessage(), LocalDateTime.now(), result);
-    }
-
 
     public static <T> ApiResponse<T> onSuccess(BaseSuccessCode code, T result) {
         return new ApiResponse<>(true, code.getReason().getCode(), code.getReason().getMessage(), LocalDateTime.now(), result);
     }
 
     public static <T> ApiResponse<T> onSuccess(T result) {
-        return of(SuccessStatus._OK, result);
+        return new ApiResponse<>(
+                true,
+                SuccessStatus._OK.getReason().getCode(),
+                SuccessStatus._OK.getReason().getMessage(),
+                LocalDateTime.now(),
+                result
+        );
     }
 
 
