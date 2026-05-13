@@ -20,12 +20,13 @@ public class AccessTokenBlackListManager {
 
     private final JwtTokenProvider jwtTokenProvider;
     private static final String BLACKLIST_PREFIX = "blacklist:access:";
+    private static final String BLACKLIST_REASON_LOGOUT = "logout";
     private final StringRedisTemplate redisTemplate;
 
     // 로그아웃 , 탈퇴시 블랙리스트로 등록(엑세스 토큰 남은 만료 시간만큼 ttl 설정)
-    public void addToBlacklist(String token, String deviceId, long ttlMs) {
+    public void addToBlacklist(String token, long ttlMs) {
         String key = blacklistKey(token);
-        redisTemplate.opsForValue().set(key, deviceId, Duration.ofMillis(ttlMs));
+        redisTemplate.opsForValue().set(key, BLACKLIST_REASON_LOGOUT, Duration.ofMillis(ttlMs));
     }
 
     // 토큰이 블랙리스트에 있는지 확인

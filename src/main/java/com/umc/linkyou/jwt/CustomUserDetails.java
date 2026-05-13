@@ -13,14 +13,14 @@ import java.util.List;
 
 public class CustomUserDetails implements UserDetails {
 
-    private final Users users;
+    private final String password;
     private final Long userId;
     private final Role role;
     private final String provider;
 
     // 엔티티 기반 (OAuth2 핸들러 등에서 Users 객체가 있을 때)
     public CustomUserDetails(Users users, String provider) {
-        this.users    = users;
+        this.password = users.getPassword() != null ? users.getPassword() : "";
         this.userId   = users.getId();
         this.role     = users.getRole();
         this.provider = provider;
@@ -31,7 +31,7 @@ public class CustomUserDetails implements UserDetails {
         if (role == null) {
             throw new UserHandler(AuthErrorStatus.UNAUTHORIZED);
         }
-        this.users    = null;
+        this.password = "";
         this.userId   = userId;
         this.role     = role;
         this.provider = provider;
@@ -49,10 +49,6 @@ public class CustomUserDetails implements UserDetails {
         return provider;
     }
 
-    /** @deprecated 엔티티가 필요한 경우 서비스에서 직접 userId로 조회하세요. */
-    @Deprecated
-    public Users getUsers() { return users; }
-
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(role.getAuthority()));
@@ -60,11 +56,11 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public String getPassword() {
-        return users != null ? users.getPassword() : null;
+        return password;
     }
 
     @Override
     public String getUsername() {
-        return users != null ? users.getNickName() : String.valueOf(userId);
+        return String.valueOf(userId);
     }
 }
