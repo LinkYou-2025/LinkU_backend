@@ -53,9 +53,9 @@ public class LinkuController {
         LinkuResponseDTO.LinkuCreateResult serviceResult = linkuCreateService.createLinku(userId, linkuCreateDTO, image);
 
         if (serviceResult.isValidUrl()) {
-            return ApiResponse.of(LinkuSuccessStatus.LINKU_CREATED, serviceResult.getData());
+            return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_CREATED, serviceResult.getData());
         } else {
-            return ApiResponse.of(LinkuSuccessStatus.LINKU_SUSPICIOUS_URL, serviceResult.getData());
+            return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_SUSPICIOUS_URL, serviceResult.getData());
         }
     }//linku 생성
 
@@ -106,7 +106,7 @@ public class LinkuController {
             @RequestParam(defaultValue = "10") int limit) {
         Long userId = userDetails.getUserId();
         List<LinkuResponseDTO.LinkuSimpleDTO> result = linkuService.getRecentViewedLinkus(userId, limit);
-        return ApiResponse.of(LinkuSuccessStatus.LINKU_RECENT_OK, result);
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_RECENT_OK, result);
     } //최근 열람한 링크 보기
 
     @Operation(
@@ -121,7 +121,7 @@ public class LinkuController {
     ) {
         Long userId = userDetails.getUserId();
         LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(userId, linkuId, updateDTO);
-        return ApiResponse.of(LinkuSuccessStatus.LINKU_UPDATED, result);
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_UPDATED, result);
     } //링큐 수정하기
 
     @Operation(
@@ -152,7 +152,7 @@ public class LinkuController {
     ) {
         Long userId = userDetails.getUserId();
         List<LinkuSearchSuggestionResponse> result = linkuSearchService.suggest(userId, keyword);
-        return ApiResponse.of(LinkuSuccessStatus.LINKU_SEARCH_OK, result);
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_SEARCH_OK, result);
     }
 
     @Operation(
@@ -166,7 +166,7 @@ public class LinkuController {
     ) {
         Long userId = userDetails.getUserId();
         linkuService.deleteUsersLinku(userId, userLinkuId);
-        return ApiResponse.of(LinkuSuccessStatus.LINKU_DELETED, null);
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_DELETED, null);
 
     }
 

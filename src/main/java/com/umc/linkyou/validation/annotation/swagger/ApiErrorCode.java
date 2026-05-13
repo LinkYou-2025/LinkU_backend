@@ -1,5 +1,6 @@
 package com.umc.linkyou.validation.annotation.swagger;
 
+import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.alarm.AlarmErrorStatus;
@@ -16,4 +17,5 @@ public @interface ApiErrorCode {
     AlarmErrorStatus[] alarmErrorStatus() default {};
     AiArticleErrorStatus[] aiArticleErrorStatus() default {};
     AuthErrorStatus[] authErrorStatus() default {};
+    CommonErrorStatus[] commonErrorStatus() default {};
 }

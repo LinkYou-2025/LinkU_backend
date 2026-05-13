@@ -71,7 +71,7 @@ public class EmailVerificationService {
     public void verifyCode(String email, String code) {
         String hashedEmail = EmailRateLimiter.hashEmail(email);
         EmailVerificationCache cache = emailVerificationRedisRepository.findById(hashedEmail)
-                .orElseThrow(() -> new UserHandler(ErrorStatus._EXPIRED_VERIFICATION_CODE));
+                .orElseThrow(() -> new UserHandler(UserErrorStatus._EXPIRED_VERIFICATION_CODE));
 
         if (!Objects.equals(cache.getCode(), code)) {
             long failureCount = increaseVerifyFailureCount(hashedEmail);
@@ -79,7 +79,7 @@ public class EmailVerificationService {
                 emailVerificationRedisRepository.deleteById(hashedEmail);
                 resetVerifyFailureCount(hashedEmail);
                 log.warn("이메일 인증 코드 검증 차단 - 최대 실패 횟수 초과 failureCount={}", failureCount);
-                throw new UserHandler(ErrorStatus._EXPIRED_VERIFICATION_CODE);
+                throw new UserHandler(UserErrorStatus._EXPIRED_VERIFICATION_CODE);
             }
             log.warn("이메일 인증 코드 검증 실패 failureCount={}", failureCount);
             throw new UserHandler(UserErrorStatus._VERIFICATION_FAILED);

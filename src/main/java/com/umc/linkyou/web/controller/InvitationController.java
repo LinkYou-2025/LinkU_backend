@@ -27,7 +27,7 @@ public class InvitationController {
             @PathVariable String token
     ) {
         InvitationInfoResponseDTO info = invitationService.getInvitationInfo(token);
-        return ApiResponse.of(FolderSuccessStatus.INVITATION_INFO_OK, info);
+        return ApiResponse.onSuccess(FolderSuccessStatus.INVITATION_INFO_OK, info);
     }
 
     @Operation(summary = "초대 수락하기", description = "초대를 수락합니다.")
@@ -37,6 +37,6 @@ public class InvitationController {
             @PathVariable String token
     ) {
         Long folderId = invitationService.acceptInvitation(userDetails.getUserId(), token);
-        return ApiResponse.of(FolderSuccessStatus.INVITATION_ACCEPTED, folderId);
+        return ApiResponse.onSuccess(FolderSuccessStatus.INVITATION_ACCEPTED, folderId);
     }
 }

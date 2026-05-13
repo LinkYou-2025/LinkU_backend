@@ -29,7 +29,7 @@ public class AiArticleController implements AiArticleApi {
         Long userId = userDetails.getUserId();
         AiArticleResponsetDTO.AiArticleResultDTO result =
                 aiArticleService.saveOrGetAiArticle(linkuId, userId);
-        return ApiResponse.of(AiArticleSuccessStatus.AI_ARTICLE_OK, result);
+        return ApiResponse.onSuccess(AiArticleSuccessStatus.AI_ARTICLE_OK, result);
     }
 
     @Override
@@ -41,6 +41,6 @@ public class AiArticleController implements AiArticleApi {
     ) {
         Long userId = userDetails.getUserId();
         LinkuResponseDTO.LinkuSliceResultDTO result = aiArticleService.getMyAiArticlesByCategory(userId, categoryId, cursor, limit);
-        return ApiResponse.of(AiArticleSuccessStatus.AI_ARTICLE_LIST_OK, result);
+        return ApiResponse.onSuccess(AiArticleSuccessStatus.AI_ARTICLE_LIST_OK, result);
     }
 }
