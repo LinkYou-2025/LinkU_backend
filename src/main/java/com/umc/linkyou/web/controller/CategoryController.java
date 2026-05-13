@@ -1,19 +1,17 @@
 package com.umc.linkyou.web.controller;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
-import com.umc.linkyou.config.security.jwt.CustomUserDetails;
+import com.umc.linkyou.apiPayload.code.status.category.CategorySuccessStatus;
+import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.service.category.CategoryService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.category.CategoryListResponseDTO;
 import com.umc.linkyou.web.dto.category.UpdateCategoryColorRequestDTO;
 import com.umc.linkyou.web.dto.category.UserCategoryColorResponseDTO;
-import com.umc.linkyou.web.dto.folder.FolderUpdateRequestDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.umc.linkyou.jwt.CurrentUser;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,10 +30,10 @@ public class CategoryController {
     )
     @GetMapping
     public ApiResponse<List<CategoryListResponseDTO>> getCategoryList(
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @CurrentUser CustomUserDetails userDetails
     ) {
-        List<CategoryListResponseDTO> categoryList = categoryService.getCategories(userDetails.getUsers().getId());
-        return ApiResponse.of(SuccessStatus._CATEGORY_OK, categoryList);
+        List<CategoryListResponseDTO> categoryList = categoryService.getCategories(userDetails.getUserId());
+        return ApiResponse.of(CategorySuccessStatus.CATEGORY_OK, categoryList);
     }
 
     @Operation(
@@ -44,12 +42,12 @@ public class CategoryController {
     )
     @PutMapping("/{categoryId}/color")
     public ApiResponse<UserCategoryColorResponseDTO> updateUserCategoryColor(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long categoryId,
             @RequestBody UpdateCategoryColorRequestDTO request
     ) {
         UserCategoryColorResponseDTO userCategoryColor =
-                categoryService.updateUserCategoryColor(userDetails.getUsers().getId(), categoryId, request);
-        return ApiResponse.of(SuccessStatus._CATEGORY_COLOR_OK, userCategoryColor);
+                categoryService.updateUserCategoryColor(userDetails.getUserId(), categoryId, request);
+        return ApiResponse.of(CategorySuccessStatus.CATEGORY_COLOR_OK, userCategoryColor);
     }
 }

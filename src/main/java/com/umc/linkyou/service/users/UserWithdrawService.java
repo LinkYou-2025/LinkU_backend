@@ -3,7 +3,7 @@ package com.umc.linkyou.service.users;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
+import com.umc.linkyou.jwt.RefreshTokenManager;
 import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;

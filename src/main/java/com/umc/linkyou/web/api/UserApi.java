@@ -4,16 +4,15 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
-import com.umc.linkyou.config.security.jwt.CustomUserDetails;
+import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.umc.linkyou.jwt.CurrentUser;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "user-controller", description = "사용자 마이페이지 및 설정 관련 API")
@@ -33,7 +32,7 @@ public interface UserApi {
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @GetMapping("/me")
     ApiResponse<UserResponseDTO.UserProfileSummaryDto> getUserInfo(
-            @AuthenticationPrincipal CustomUserDetails userDetails);
+            @CurrentUser CustomUserDetails userDetails);
 
     // 회원정보 수정
     @Operation(
@@ -48,10 +47,24 @@ public interface UserApi {
     @ApiErrorCode(errorStatus = {ErrorStatus._BAD_REQUEST}) // 잘못된 Job ID 등
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus._DUPLICATE_NICKNAME})
     @PatchMapping("/profile")
-    ApiResponse<String> updateUserProfile(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+    ApiResponse<Void> updateUserProfile(
+            @CurrentUser CustomUserDetails userDetails,
             @RequestBody @Valid UserRequestDTO.UpdateProfileDTO updateDTO);
 
+    @Operation(
+            summary = "회원 탈퇴 (비활성화)",
+            description = """
+                    사용자 계정을 비활성화(INACTIVE) 처리합니다.
+                    - 탈퇴 사유를 입력받아 저장합니다.
+                    - 실제 데이터 삭제는 정책에 따라 유예 기간(예: 30일) 후에 진행됩니다.
+                    """
+    )
+    @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @PostMapping("/inactive")
+    ApiResponse<UserResponseDTO.withDrawalResultDTO> withdrawMe(
+            @CurrentUser CustomUserDetails userDetails,
+            @RequestBody @Valid UserRequestDTO.DeleteReasonDTO deleteReasonDTO);
 
     // 소셜 프로필 완성 temp -> active
     @Operation(
@@ -68,19 +81,19 @@ public interface UserApi {
     @PatchMapping("/social/complete")
     ApiResponse<UserResponseDTO.JoinResultDTO> completeSocialProfile(
             @RequestBody @Valid UserRequestDTO.SocialCompleteDTO request,
-            @AuthenticationPrincipal CustomUserDetails userDetails);
+            @CurrentUser CustomUserDetails userDetails);
 
-    // 약관 일괄 변경
     @Operation(
             summary = "약관 일괄 변경",
-            description = "전달받은 약관 리스트들에 대해 동의 처리를 일괄 수행합니다. 기존에 없으면 생성, 있으면 업데이트합니다."
+            description = "전달받은 약관 맵(termsMap)을 통해 동의 상태를 일괄 수정합니다. 기존 기록이 없으면 생성, 있으면 업데이트합니다." // 코드리뷰: 설명 문구 수정
     )
-    @ApiSuccessCode(SuccessStatus._OK)
+    // 첫 번째 PR: Common200 대신 SuccessStatus 또는 도메인별 성공코드 사용 규격 적용
+    @ApiSuccessCode(com.umc.linkyou.apiPayload.code.status.SuccessStatus._OK)
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus.INVALID_TERMS_TYPE})
-    @PatchMapping("/terms/agree")
+    @PatchMapping("/terms/agree") // 두 번째 PR: POST에서 PATCH로 변경 및 경로 일치
     ApiResponse<UserResponseDTO.TermsStatusDTO> updateTermsAgree(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody @Valid UserRequestDTO.TermsAgreeDTO request);
+            @CurrentUser CustomUserDetails userDetails,
+            @RequestBody @Valid UserRequestDTO.TermsAgreeDTO request); // 두 번째 PR: Map 기반 DTO 사용
 
     // 약관 상태 조회
     @Operation(
@@ -91,40 +104,5 @@ public interface UserApi {
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @GetMapping("/terms/status")
     ApiResponse<UserResponseDTO.TermsStatusDTO> getTermsStatus(
-            @AuthenticationPrincipal CustomUserDetails userDetails);
-
-    // 회원탈퇴
-    @Operation(
-            summary = "회원 탈퇴 (비활성화)",
-            description = """
-                    사용자 계정을 비활성화(INACTIVE) 처리합니다.
-                    - 탈퇴 사유를 입력받아 저장합니다.
-                    - 실제 데이터 삭제는 정책에 따라 유예 기간(예: 30일) 후에 진행됩니다.
-                    """
-    )
-    @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
-    @PostMapping("/inactive")
-    ApiResponse<UserResponseDTO.withDrawalResultDTO> withdrawMe(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody @Valid UserRequestDTO.DeleteReasonDTO deleteReasonDTO);
-
-    // 회원 탈퇴 복구 - 14일 이내
-    @Operation(
-            summary = "회원탈퇴 복구 (계정 활성화)",
-            description = """
-                탈퇴 유예 기간(14일) 내에 있는 사용자의 계정을 다시 활성화합니다.
-                - 상태를 ACTIVE로 변경하고 탈퇴 사유 및 날짜를 초기화합니다.
-                - 탈퇴 유예 기간 내 사용자의 계정을 다시 ACTIVE 상태로 복구합니다."""
-    )
-    @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(errorStatus = {
-            ErrorStatus._BAD_REQUEST, // 14일 경과 시
-            ErrorStatus._UNAUTHORIZED,
-            ErrorStatus._ALREADY_ACTIVE_USER // 이미 복구된 상태일 때
-    })
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
-    @PostMapping("/recover")
-    ApiResponse<UserResponseDTO.withDrawalResultDTO> recoverMe(
-            @AuthenticationPrincipal CustomUserDetails userDetails);
+            @CurrentUser CustomUserDetails userDetails);
 }
