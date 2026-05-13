@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClassifyResultDTO {
+public class SummaryAnalysisResultDTO {
     private String title;
     private String summary;
     private Long situationId;
@@ -17,4 +17,3 @@ public class ClassifyResultDTO {
     private Long categoryId;
     private String keywords;
 }
-

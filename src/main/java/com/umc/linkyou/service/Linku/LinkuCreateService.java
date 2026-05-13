@@ -1,6 +1,6 @@
 package com.umc.linkyou.service.Linku;
 
-import com.umc.linkyou.gemini.dto.ClassifyResultDTO;
+import com.umc.linkyou.gemini.dto.SummaryAnalysisResultDTO;
 import com.umc.linkyou.gemini.service.GeminiLinkuService;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
@@ -90,7 +90,7 @@ public class LinkuCreateService {
         } else {
             // [경쟁 상태 방지 로직]
             // AI 분류 및 도메인 결정 로직은 그대로 유지 (이미 생성된 데이터가 있더라도 분류 결과는 필요할 수 있음)
-            ClassifyResultDTO aiResult = geminiLinkuService.classify(normalizedLink);
+            SummaryAnalysisResultDTO aiResult = geminiLinkuService.classify(normalizedLink);
             category = resolveCategory(aiResult.getCategoryId());
             aiKeywords = aiResult.getKeywords();
             Domain domain = resolveDomain(domainTail);

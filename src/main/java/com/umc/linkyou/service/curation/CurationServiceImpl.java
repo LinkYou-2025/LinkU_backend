@@ -7,13 +7,6 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.service.common.KeywordNameResolver;
 import com.umc.linkyou.service.curation.ment.CurationMentMaterializer;
-import com.umc.linkyou.domain.classification.CurationMent;
-import com.umc.linkyou.domain.log.CurationTopLog;
-import com.umc.linkyou.gemini.GeminiJsonUtils;
-import com.umc.linkyou.repository.CurationMentRepository;
-import com.umc.linkyou.repository.mapping.CurationLikeRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.umc.linkyou.service.curation.gemini.GeminiTextService;
 import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.service.curation.linku.external.ExternalRecommendMaterializer;
 import com.umc.linkyou.service.curation.linku.internal.InternalRecommendMaterializer;
@@ -56,11 +49,11 @@ public class CurationServiceImpl implements CurationService {
     private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
     private final KeywordNameResolver keywordNameResolver;
 
-    // 모든 유저 호출한 시점의 이전 달에 해당하는 큐레이션 생성
+    // 모든 유저 큐레이션 생성
     @Override
     @Transactional
     public void generateMonthlyCurationForAllUsers() {
-        // 이전 달 설정
+        // 분석 대상 데이터를 이전 달 범위로 설정
         String month = YearMonth.now().minusMonths(1).toString();
 
         // 모든 유저에 대해 생성
