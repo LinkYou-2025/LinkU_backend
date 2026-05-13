@@ -76,7 +76,7 @@ public class RefreshTokenManager {
         Map<String, Object> tokenData = Map.of(
                 "tokenId", tokenId,
                 "deviceType", deviceType.name(),
-                "createdAt", System.currentTimeMillis(),
+                "createdAt", now,
                 "expiresAt", expiresAt
         );
 
