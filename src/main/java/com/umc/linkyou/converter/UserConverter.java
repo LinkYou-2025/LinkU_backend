@@ -22,8 +22,8 @@ public class UserConverter {
     // 기존 toUser는 joinUser에서 사용
     public static Users toUser(UserRequestDTO.JoinDTO request, Job job){
         return Users.builder()
-                .nickName(request.getNickName())
-                .gender(toGender(request.getGender()))
+                .nickName(request.nickName())
+                .gender(toGender(request.gender()))
                 .job(job)
                 .status(UserStatus.ACTIVE)
                 .build();

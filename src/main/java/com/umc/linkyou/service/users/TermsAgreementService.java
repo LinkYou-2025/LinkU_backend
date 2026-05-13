@@ -44,7 +44,7 @@ public class TermsAgreementService {
 
         userStatusValidator.validateLoginAllowed(user); // UserStatusValidator 활용
 
-        upsertTerms(user, request.getTermsMap());
+        upsertTerms(user, request.termsMap());
 
         List<TermsAgreement> updatedList = termsAgreementRepository.findAllByUserId(user.getId());
         return TermsConverter.toTermsStatusDTO(user.getId(), updatedList);
