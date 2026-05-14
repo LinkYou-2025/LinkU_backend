@@ -31,6 +31,7 @@ public class ApiResponse<T> {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private final LocalDateTime timestamp;
 
+    @Schema(type = "object")
     private final T result;
 
     // Code, result 모두 커스텀
