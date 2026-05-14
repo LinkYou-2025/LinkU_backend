@@ -1,4 +1,4 @@
-package com.umc.linkyou.apiPayload.code.status.aiarticle;
+package com.umc.linkyou.apiPayload.code.status;
 
 import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;

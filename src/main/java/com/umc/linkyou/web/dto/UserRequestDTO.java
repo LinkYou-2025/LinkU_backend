@@ -2,7 +2,6 @@ package com.umc.linkyou.web.dto;
 
 import com.umc.linkyou.domain.classification.Interests;
 import com.umc.linkyou.domain.classification.Purposes;
-import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Interest;
 import com.umc.linkyou.domain.enums.Purpose;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -53,35 +52,18 @@ public class UserRequestDTO {
         List<String> interestList;
     }
 
-    public record LoginRequestDTO(
-            @Schema(example = "example@gmail.com")
-            @NotBlank(message = "이메일은 필수입니다.")
-            @Email(message = "올바른 이메일 형식이어야 합니다.")
-            String email,
+    @Getter
+    @Setter
+    public static class LoginRequestDTO {
+        @Schema(example = "example@gmail.com")
+        @NotBlank(message = "이메일은 필수입니다.")
+        @Email(message = "올바른 이메일 형식이어야 합니다.")
+        private String email;
 
-            @Schema(example = "zaq123")
-            @NotBlank(message = "패스워드는 필수입니다.")
-            String password,
+        @Schema(example = "zaq123")
+        @NotBlank(message = "패스워드는 필수입니다.")
+        private String password;
 
-            @Schema(example = "ios-iphone-16-pro")
-            @NotBlank(message = "deviceId는 필수입니다.")
-            String deviceId,
-
-            @Schema(example = "PHONE")
-            @NotNull(message = "deviceType은 필수입니다.")
-            DeviceType deviceType
-    ) {
-    }
-
-    public record TokenReissueRequestDTO(
-            @Schema(example = "jwt_refresh_token")
-            @NotBlank(message = "리프레시 토큰은 필수입니다.")
-            String refreshToken,
-
-            @Schema(example = "ios-iphone-16-pro")
-            @NotBlank(message = "deviceId는 필수입니다.")
-            String deviceId
-    ) {
     }
 
     @Getter

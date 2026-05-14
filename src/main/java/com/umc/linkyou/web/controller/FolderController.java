@@ -1,8 +1,8 @@
 package com.umc.linkyou.web.controller;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.folder.FolderSuccessStatus;
-import com.umc.linkyou.jwt.CustomUserDetails;
+import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.service.folder.FolderService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.folder.*;
@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
-import com.umc.linkyou.jwt.CurrentUser;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,12 +32,12 @@ public class FolderController {
     )
     @PostMapping("/{parentFolderId}/subfolders")
     public ApiResponse<FolderResponseDTO> createFolder(
-            @CurrentUser CustomUserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long parentFolderId,
             @RequestBody FolderCreateRequestDTO request
     ) {
-        FolderResponseDTO response = folderService.createFolder(userDetails.getUserId(), parentFolderId, request);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_CREATED, response);
+        FolderResponseDTO response = folderService.createFolder(userDetails.getUsers().getId(), parentFolderId, request);
+        return ApiResponse.of(SuccessStatus._FOLDER_CREATE_OK, response);
     }
 
     @Operation(
@@ -46,12 +46,12 @@ public class FolderController {
     )
     @PutMapping("/subfolders/{folderId}")
     public ApiResponse<FolderResponseDTO> updateFolder(
-            @CurrentUser CustomUserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId,
             @RequestBody FolderUpdateRequestDTO request
     ) {
-        FolderResponseDTO response = folderService.updateFolder(userDetails.getUserId(), folderId, request);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_UPDATED, response);
+        FolderResponseDTO response = folderService.updateFolder(userDetails.getUsers().getId(), folderId, request);
+        return ApiResponse.of(SuccessStatus._FOLDER_UPDATE_OK, response);
     }
 
     @Operation(
@@ -60,11 +60,11 @@ public class FolderController {
     )
     @DeleteMapping("/subfolders/{folderId}")
     public ApiResponse<Void> deleteFolder(
-            @CurrentUser CustomUserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId
     ) {
-        folderService.deleteFolder(userDetails.getUserId(), folderId);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_DELETED, null);
+        folderService.deleteFolder(userDetails.getUsers().getId(), folderId);
+        return ApiResponse.of(SuccessStatus._FOLDER_DELETE_OK, null);
     }
 
     @Operation(
@@ -73,10 +73,10 @@ public class FolderController {
     )
     @GetMapping("/my")
     public ApiResponse<List<FolderTreeResponseDTO>> getMyFolderTree(
-            @CurrentUser CustomUserDetails userDetails
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        List<FolderTreeResponseDTO> folderTree = folderService.getMyFolderTree(userDetails.getUserId());
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_OK, folderTree);
+        List<FolderTreeResponseDTO> folderTree = folderService.getMyFolderTree(userDetails.getUsers().getId());
+        return ApiResponse.of(SuccessStatus._FOLDER_OK, folderTree);
     }
 
     @Operation(
@@ -85,11 +85,11 @@ public class FolderController {
     )
     @GetMapping("/parentFolders")
     public ApiResponse<List<FolderListResponseDTO>> getParentFolderList(
-            @CurrentUser CustomUserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(defaultValue = "name") String sort
     ) {
-        List<FolderListResponseDTO> folderList = folderService.getParentFolders(userDetails.getUserId(), sort);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_PARENT_OK, folderList);
+        List<FolderListResponseDTO> folderList = folderService.getParentFolders(userDetails.getUsers().getId(), sort);
+        return ApiResponse.of(SuccessStatus._FOLDER_PARENT_OK, folderList);
     }
 
     @Operation(
@@ -98,11 +98,11 @@ public class FolderController {
     )
     @GetMapping("/{parentFolderId}/subfolders")
     public ApiResponse<List<FolderListResponseDTO>> getSubFolderList(
-            @CurrentUser CustomUserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long parentFolderId
     ) {
-        List<FolderListResponseDTO> folderList = folderService.getSubFolders(userDetails.getUserId(), parentFolderId);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_SUBFOLDER_OK, folderList);
+        List<FolderListResponseDTO> folderList = folderService.getSubFolders(userDetails.getUsers().getId(), parentFolderId);
+        return ApiResponse.of(SuccessStatus._FOLDER_SUBFOLDER_OK, folderList);
     }
 
     @Operation(
@@ -111,14 +111,14 @@ public class FolderController {
     )
     @PatchMapping("/{folderId}/bookmark")
     public ApiResponse<BookmarkUpdateResponseDTO> updateBookmark(
-            @CurrentUser CustomUserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId,
             @RequestBody BookmarkUpdateRequestDTO request
     ) {
         BookmarkUpdateResponseDTO response = folderService.updateBookmark(
-                userDetails.getUserId(), folderId, request.getIsBookmarked()
+                userDetails.getUsers().getId(), folderId, request.getIsBookmarked()
         );
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_BOOKMARK_OK, response);
+        return ApiResponse.of(SuccessStatus._FOLDER_BOOKMARK_OK, response);
     }
 
     @Operation(
@@ -127,14 +127,14 @@ public class FolderController {
     )
     @GetMapping("/{folderId}/linkus")
     public ApiResponse<FolderLinkusResponseDTO> getFolderLinkus(
-            @CurrentUser CustomUserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long folderId,
             @RequestParam(defaultValue = "20") @Min(1) int limit,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "name") String sort
     ) {
         FolderLinkusResponseDTO response = folderService.getFolderLinkus(
-                userDetails.getUserId(), folderId, limit, cursor, sort);
-        return ApiResponse.of(FolderSuccessStatus.FOLDER_LINK_OK, response);
+                userDetails.getUsers().getId(), folderId, limit, cursor, sort);
+        return ApiResponse.of(SuccessStatus._FOLDER_LINK_OK, response);
     }
 }

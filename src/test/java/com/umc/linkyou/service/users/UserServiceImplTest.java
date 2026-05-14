@@ -1,13 +1,12 @@
 package com.umc.linkyou.service.users;
 
+import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.config.properties.JwtProperties;
-import com.umc.linkyou.jwt.JwtTokenProvider;
-import com.umc.linkyou.jwt.RefreshTokenManager;
-import com.umc.linkyou.jwt.TokenIssueService;
+import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
+import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
 import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Job;
-import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.enums.UserStatus;
@@ -22,6 +21,7 @@ import com.umc.linkyou.repository.classification.PurposeRepository;
 import com.umc.linkyou.repository.userRepository.UserQueryRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
+import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import org.junit.jupiter.api.DisplayName;
@@ -62,11 +62,10 @@ class UserServiceImplTest {
     @Mock private UsersFolderRepository usersFolderRepository;
     @Mock private UsersCategoryColorRepository usersCategoryColorRepository;
     @Mock private RefreshTokenManager refreshTokenManager;
-    @Mock private TokenIssueService tokenIssueService;
-    @Mock private UserStatusValidator userStatusValidator;
     @Mock private AuthAccountRepository authAccountRepository;
     @Mock private JwtProperties jwtProperties;
     @Mock private AlarmSettingRepository alarmSettingRepository;
+    @Mock private UsersUtils usersUtils;
 
     @Test
     @DisplayName("소셜 프로필 완성 시 유저 상태가 TEMP에서 ACTIVE로 변경된다.")
@@ -85,20 +84,17 @@ class UserServiceImplTest {
         request.setPurposeList(new ArrayList<>());
         request.setInterestList(new ArrayList<>());
 
-        when(userRepository.findById(tempUser.getId())).thenReturn(Optional.of(tempUser));
-        when(userRepository.findByNickName("완성닉네임")).thenReturn(Optional.empty());
         when(jobRepository.findById(anyLong())).thenReturn(Optional.of(Job.builder().id(1L).build()));
         when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(categoryRepository.findAll()).thenReturn(new ArrayList<>());
-        when(usersCategoryColorRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        Users result = userService.socialCompleteProfile(tempUser.getId(), request);
+        Users result = userService.socialCompleteProfile(tempUser, request);
 
         // then
         assertEquals(UserStatus.ACTIVE, result.getStatus());
         assertEquals("완성닉네임", result.getNickName());
-        verify(userRepository).findByNickName("완성닉네임");
+        verify(usersUtils).validateNickNameNotDuplicate(anyString());
     }
 
     @Test
@@ -116,14 +112,11 @@ class UserServiceImplTest {
 
         Job mockJob = Job.builder().id(1L).build();
 
-        when(userRepository.findByNickName("테스터")).thenReturn(Optional.empty());
         when(jobRepository.findById(anyLong())).thenReturn(Optional.of(mockJob));
         when(authAccountRepository.existsByProviderAndExternalId(eq(Provider.GENERAL), anyString())).thenReturn(false);
         when(authAccountRepository.findUserByEmailAndProvider(anyString(), eq(Provider.GENERAL))).thenReturn(Optional.empty());
         when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-        when(categoryRepository.findAll()).thenReturn(new ArrayList<>());
-        when(usersCategoryColorRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
         // when
         Users savedUser = userService.joinUser(request);
@@ -138,12 +131,9 @@ class UserServiceImplTest {
     @DisplayName("로그인 성공 시 반환되는 DTO에 유저의 권한(Role) 정보가 포함된다.")
     void loginUser_CheckRoleInResponse() {
         // given
-        UserRequestDTO.LoginRequestDTO request = new UserRequestDTO.LoginRequestDTO(
-                "test@example.com",
-                "password123",
-                "ios-iphone-16-pro",
-                DeviceType.PHONE
-        );
+        UserRequestDTO.LoginRequestDTO request = new UserRequestDTO.LoginRequestDTO();
+        request.setEmail("test@example.com");
+        request.setPassword("password123");
 
         Users user = Users.builder()
                 .id(1L)
@@ -162,30 +152,22 @@ class UserServiceImplTest {
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
         when(authAccountRepository.findByUserIdAndProvider(anyLong(), eq(Provider.GENERAL))).thenReturn(Optional.of(authAccount));
 
-        TokenIssueService.IssuedTokenPair issuedTokenPair =
-                new TokenIssueService.IssuedTokenPair("mockAccess", "mockRefresh");
-        when(tokenIssueService.issueTokenPair(
-                eq(user.getId()),
-                eq("test@example.com"),
-                eq(Provider.GENERAL.name()),
-                eq(Role.USER),
-                eq("ios-iphone-16-pro"),
-                eq(DeviceType.PHONE)
-        )).thenReturn(issuedTokenPair);
+        // JWT 관련 Mock
+        when(jwtTokenProvider.createAccessToken(anyString(), anyString(), any(Role.class))).thenReturn("mockAccess");
+        when(jwtTokenProvider.createRefreshToken(anyString(), anyString())).thenReturn("mockRefresh");
+        when(jwtTokenProvider.normalizeStrict(anyString())).thenReturn("strictToken");
+        when(jwtTokenProvider.hmac(anyString())).thenReturn("hashedToken");
+
+        // JwtProperties Mock
+        JwtProperties.Expiration expiration = new JwtProperties.Expiration();
+        expiration.setRefresh(3600L);
+        when(jwtProperties.getExpiration()).thenReturn(expiration);
 
         // when
         UserResponseDTO.LoginResultDTO result = userService.loginUser(request);
 
         // then
         assertNotNull(result.getAccessToken());
-        verify(userStatusValidator).validateLoginAllowed(user);
-        verify(tokenIssueService).issueTokenPair(
-                eq(user.getId()),
-                eq("test@example.com"),
-                eq(Provider.GENERAL.name()),
-                eq(Role.USER),
-                eq("ios-iphone-16-pro"),
-                eq(DeviceType.PHONE)
-        );
+        verify(refreshTokenManager).saveToken(eq(user.getId()), anyString(), anyString(), anyLong());
     }
 }

@@ -1,11 +1,11 @@
 package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.AiArticleErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
-import com.umc.linkyou.jwt.CustomUserDetails;
+import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
 import com.umc.linkyou.web.dto.AiArticleResponsetDTO;
@@ -20,9 +20,9 @@ import org.springframework.web.bind.annotation.*;
 public interface AiArticleApi {
 
     @Operation(
-            summary = "AI 요약 저장 또는 조회",
+            summary = "AI 기사 저장 또는 조회",
             description = """
-                    링크 ID에 해당하는 AI 요약 정보를 저장하거나 조회합니다.
+                    링크 ID에 해당하는 AI 기사 정보를 저장하거나 조회합니다.
                     - 이미 분석 결과가 존재하면 기존 데이터를 조회합니다.
                     - 데이터가 없으면 Gemini AI를 통해 분석(제목, 요약, 카테고리 등)을 수행한 후 저장합니다.
                     - Gemini AI에 의존하기 때문에 종종 Gemini가 잘못된 데이터를 반환하는 경우에 에러가 발생할 수 있습니다.

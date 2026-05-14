@@ -1,9 +1,7 @@
 package com.umc.linkyou.apiPayload.exception;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;
-import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -52,13 +50,13 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
                 });
 
         log.error("[Method Argument Not Valid] Errors: {}", errors, e);
-        return handleExceptionInternalArgs(e, HttpHeaders.EMPTY, CommonErrorStatus._BAD_REQUEST, request, errors);
+        return handleExceptionInternalArgs(e,HttpHeaders.EMPTY,ErrorStatus.valueOf("_BAD_REQUEST"),request,errors);
     }
     @ExceptionHandler
     public ResponseEntity<Object> exception(Exception e, WebRequest request) {
         log.error("[Unhandled Exception] {}", e.getMessage(), e);
 
-        return handleExceptionInternalFalse(e, CommonErrorStatus._INTERNAL_SERVER_ERROR, HttpHeaders.EMPTY, CommonErrorStatus._INTERNAL_SERVER_ERROR.getHttpStatus(), request, e.getMessage());
+        return handleExceptionInternalFalse(e, ErrorStatus._INTERNAL_SERVER_ERROR, HttpHeaders.EMPTY, ErrorStatus._INTERNAL_SERVER_ERROR.getHttpStatus(),request, e.getMessage());
     }
 
 
@@ -98,57 +96,75 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         );
     }
 
-    private ResponseEntity<Object> handleExceptionInternalFalse(Exception e, BaseErrorCode errorCommonStatus,
+    private ResponseEntity<Object> handleExceptionInternalFalse(Exception e, ErrorStatus errorCommonStatus,
                                                                 HttpHeaders headers, HttpStatus status, WebRequest request, String errorPoint) {
-        var reason = errorCommonStatus.getReasonHttpStatus();
-        ApiResponse<Object> body = ApiResponse.onFailure(reason.getCode(), reason.getMessage(), errorPoint);
-
-        if (request instanceof ServletWebRequest servletRequest) {
-            log.error("[API Error] URI: {}, Method: {}, Code: {}, Message: {}, ErrorPoint: {}",
-                    servletRequest.getRequest().getRequestURI(),
+        ApiResponse<Object> body = ApiResponse.onFailure(errorCommonStatus.getCode(),errorCommonStatus.getMessage(),errorPoint);
+        
+        if (request instanceof ServletWebRequest) {
+            ServletWebRequest servletRequest = (ServletWebRequest) request;
+            log.error("[API Error] URI: {}, Method: {}, Code: {}, Message: {}, ErrorPoint: {}", 
+                    servletRequest.getRequest().getRequestURI(), 
                     servletRequest.getRequest().getMethod(),
-                    reason.getCode(),
-                    reason.getMessage(),
+                    errorCommonStatus.getCode(), 
+                    errorCommonStatus.getMessage(),
                     errorPoint,
                     e);
         }
-
-        return super.handleExceptionInternal(e, body, headers, status, request);
+        
+        return super.handleExceptionInternal(
+                e,
+                body,
+                headers,
+                status,
+                request
+        );
     }
 
-    private ResponseEntity<Object> handleExceptionInternalArgs(Exception e, HttpHeaders headers, BaseErrorCode errorCommonStatus,
-                                                               WebRequest request, Map<String, String> errorArgs) {
-        var reason = errorCommonStatus.getReasonHttpStatus();
-        ApiResponse<Object> body = ApiResponse.onFailure(reason.getCode(), reason.getMessage(), errorArgs);
 
-        if (request instanceof ServletWebRequest servletRequest) {
-            log.error("[API Validation Error] URI: {}, Method: {}, Code: {}, Message: {}, Errors: {}",
-                    servletRequest.getRequest().getRequestURI(),
+    private ResponseEntity<Object> handleExceptionInternalArgs(Exception e, HttpHeaders headers, ErrorStatus errorCommonStatus,
+                                                               WebRequest request, Map<String, String> errorArgs) {
+        ApiResponse<Object> body = ApiResponse.onFailure(errorCommonStatus.getCode(),errorCommonStatus.getMessage(),errorArgs);
+        
+        if (request instanceof ServletWebRequest) {
+            ServletWebRequest servletRequest = (ServletWebRequest) request;
+            log.error("[API Validation Error] URI: {}, Method: {}, Code: {}, Message: {}, Errors: {}", 
+                    servletRequest.getRequest().getRequestURI(), 
                     servletRequest.getRequest().getMethod(),
-                    reason.getCode(),
-                    reason.getMessage(),
+                    errorCommonStatus.getCode(), 
+                    errorCommonStatus.getMessage(),
                     errorArgs,
                     e);
         }
-
-        return super.handleExceptionInternal(e, body, headers, reason.getHttpStatus(), request);
+        
+        return super.handleExceptionInternal(
+                e,
+                body,
+                headers,
+                errorCommonStatus.getHttpStatus(),
+                request
+        );
     }
-
-    private ResponseEntity<Object> handleExceptionInternalConstraint(Exception e, BaseErrorCode errorCommonStatus,
+    private ResponseEntity<Object> handleExceptionInternalConstraint(Exception e, ErrorStatus errorCommonStatus,
                                                                      HttpHeaders headers, WebRequest request) {
-        var reason = errorCommonStatus.getReasonHttpStatus();
-        ApiResponse<Object> body = ApiResponse.onFailure(reason.getCode(), reason.getMessage(), null);
-
-        if (request instanceof ServletWebRequest servletRequest) {
-            log.error("[API Constraint Error] URI: {}, Method: {}, Code: {}, Message: {}",
-                    servletRequest.getRequest().getRequestURI(),
+        ApiResponse<Object> body = ApiResponse.onFailure(errorCommonStatus.getCode(), errorCommonStatus.getMessage(), null);
+        
+        if (request instanceof ServletWebRequest) {
+            ServletWebRequest servletRequest = (ServletWebRequest) request;
+            log.error("[API Constraint Error] URI: {}, Method: {}, Code: {}, Message: {}", 
+                    servletRequest.getRequest().getRequestURI(), 
                     servletRequest.getRequest().getMethod(),
-                    reason.getCode(),
-                    reason.getMessage(),
+                    errorCommonStatus.getCode(), 
+                    errorCommonStatus.getMessage(),
                     e);
         }
-
-        return super.handleExceptionInternal(e, body, headers, reason.getHttpStatus(), request);
+        
+        return super.handleExceptionInternal(
+                e,
+                body,
+                headers,
+                errorCommonStatus.getHttpStatus(),
+                request
+        );
     }
 
 }

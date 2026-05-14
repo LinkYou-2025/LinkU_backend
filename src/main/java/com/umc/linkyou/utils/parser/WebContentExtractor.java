@@ -1,9 +1,10 @@
 package com.umc.linkyou.utils.parser;
 
-import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.AiArticleErrorStatus;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.CrawlStrategy;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.utils.UrlUtils;
 import lombok.extern.slf4j.Slf4j;

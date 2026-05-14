@@ -10,8 +10,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import org.springframework.security.test.context.support.WithMockUser;
-
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
@@ -31,9 +29,8 @@ public class TestControllerDocsTest {
     private ObjectMapper objectMapper;
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void 테스트_GET_API_문서화() throws Exception {
-        mockMvc.perform(get("/api/v1/admin/api/test")
+        mockMvc.perform(get("/api/test")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andDo(document("test-get", // 스니펫 폴더명
@@ -49,12 +46,11 @@ public class TestControllerDocsTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void 테스트_BODY_API_문서화() throws Exception {
         TestDTO request = new TestDTO();
         request.setTest("Hello LinkU");
 
-        mockMvc.perform(post("/api/v1/admin/api/test/body")
+        mockMvc.perform(post("/api/test/body")
                         .content(objectMapper.writeValueAsString(request))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

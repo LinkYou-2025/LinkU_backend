@@ -1,11 +1,11 @@
 package com.umc.linkyou.web.controller;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleSuccessStatus;
-import com.umc.linkyou.jwt.CurrentUser;
-import com.umc.linkyou.jwt.CustomUserDetails;
+import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.service.aiArticle.AiArticleService;
+import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.api.AiArticleApi;
 import com.umc.linkyou.web.dto.AiArticleResponsetDTO;
@@ -21,16 +21,16 @@ import org.springframework.web.bind.annotation.*;
 public class AiArticleController implements AiArticleApi {
 
     private final AiArticleService aiArticleService;
+    private final UsersUtils usersUtils;
 
     @Override
     public ApiResponse<AiArticleResponsetDTO.AiArticleResultDTO> saveOrGetAiArticle(
             @PathVariable("linkuid") Long linkuId,
-            @CurrentUser CustomUserDetails userDetails
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long userId = userDetails.getUserId();
-        AiArticleResponsetDTO.AiArticleResultDTO result =
-                aiArticleService.saveOrGetAiArticle(linkuId, userId);
-        return ApiResponse.of(AiArticleSuccessStatus.AI_ARTICLE_OK, result);
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        AiArticleResponsetDTO.AiArticleResultDTO result = aiArticleService.saveOrGetAiArticle(linkuId, userId);
+        return ApiResponse.of(SuccessStatus._OK, result);
     }
 
     @Override
@@ -40,8 +40,8 @@ public class AiArticleController implements AiArticleApi {
             @RequestParam(name = "limit", defaultValue = "10") int limit,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long userId = userDetails.getUserId();
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         LinkuResponseDTO.LinkuSliceResultDTO result = aiArticleService.getMyAiArticlesByCategory(userId, categoryId, cursor, limit);
-        return ApiResponse.of(AiArticleSuccessStatus.AI_ARTICLE_LIST_OK, result);
+        return ApiResponse.of(SuccessStatus._OK, result);
     }
 }

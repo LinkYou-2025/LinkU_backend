@@ -1,28 +1,15 @@
 package com.umc.linkyou.config.common;
 
-import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
 import com.umc.linkyou.validation.annotation.ApiAdmin;
 import com.umc.linkyou.validation.annotation.ApiManager;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.validation.annotation.ApiV2;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.util.List;
-
 @Configuration
-@RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
-
-    private final CurrentUserArgumentResolver currentUserArgumentResolver;
-
-    @Override
-    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.add(currentUserArgumentResolver);
-    }
 
     @Override
     public void configurePathMatch(PathMatchConfigurer configurer) {

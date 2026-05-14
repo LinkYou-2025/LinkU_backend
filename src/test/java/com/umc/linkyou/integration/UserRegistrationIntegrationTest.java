@@ -1,12 +1,12 @@
 package com.umc.linkyou.integration;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.jwt.JwtTokenProvider;
+import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
-import com.umc.linkyou.oauth2.utils.UserSocialLoginHelper;
+import com.umc.linkyou.oauth2.UserSocialLoginHelper;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.classification.JobRepository;
 import com.umc.linkyou.service.users.UserService;
@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -24,14 +23,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest // 실제 스프링 컨텍스트를 다 띄움
-@TestPropertySource(properties = {
-        "spring.datasource.url=jdbc:h2:mem:userregistrationtest;MODE=MySQL;DB_CLOSE_DELAY=-1",
-        "spring.datasource.driver-class-name=org.h2.Driver",
-        "spring.datasource.username=sa",
-        "spring.datasource.password=",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.sql.init.mode=never"
-})
 @Transactional  // 테스트가 끝나면 DB 데이터를 자동으로 롤백 (깔끔함 유지)
 public class UserRegistrationIntegrationTest {
     @MockitoBean
@@ -98,7 +89,7 @@ public class UserRegistrationIntegrationTest {
         // 3. 예외 발생 검증
         com.umc.linkyou.apiPayload.exception.handler.UserHandler exception = assertThrows(
                 com.umc.linkyou.apiPayload.exception.handler.UserHandler.class,
-                () -> userService.socialCompleteProfile(activeUser.getId(), completeReq)
+                () -> userService.socialCompleteProfile(activeUser, completeReq)
         );
 
         // getErrorStatus()를 getErrorCode()로 변경

@@ -1,4 +1,4 @@
-package com.umc.linkyou.jwt;
+package com.umc.linkyou.config.security.jwt;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -12,36 +12,42 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-import io.jsonwebtoken.JwtException;
+import com.umc.linkyou.config.properties.Constants;
 
 import java.io.IOException;
 
 @RequiredArgsConstructor
 @Component
+@Order(0)
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final AccessTokenBlackListManager accessTokenBlackListManager;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
-        String token = JwtTokenProvider.resolveToken(request);
+        try {
+            String token = resolveToken(request);
 
-        if (!StringUtils.hasText(token)) {
+            if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
+                Authentication authentication = jwtTokenProvider.getAuthentication(token);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+        } catch (Exception e) {
+            request.setAttribute("exception", e);
+        }
             filterChain.doFilter(request, response);
-            return;
-        }
+    }
 
-        if (accessTokenBlackListManager.isBlacklisted(token)) {
-            throw new JwtException("Blacklisted access token");
+    private String resolveToken(HttpServletRequest request) {
+        String bearerToken = request.getHeader(Constants.AUTH_HEADER);
+        if(StringUtils.hasText(bearerToken) && bearerToken.startsWith(Constants.TOKEN_PREFIX)) {
+            return bearerToken.substring(Constants.TOKEN_PREFIX.length());
         }
-
-        Authentication authentication = jwtTokenProvider.getAuthentication(token);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        filterChain.doFilter(request, response);
+        return null;
     }
 }
+

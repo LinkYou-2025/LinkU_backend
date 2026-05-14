@@ -1,16 +1,17 @@
 package com.umc.linkyou.web.controller;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.jwt.CustomUserDetails;
+import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.DomainConverter;
 import com.umc.linkyou.service.domain.DomainService;
+import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.DomainDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import com.umc.linkyou.jwt.CurrentUser;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class DomainController {
 
     private final DomainService domainService;
+    private final UsersUtils usersUtils;
 
     @Operation(
             summary = "도메인 생성",
@@ -29,12 +31,12 @@ public class DomainController {
     )
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<DomainDTO.DomainReponseDTO> createLinku(
-            @CurrentUser CustomUserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String domainTail,
             @RequestParam(required = false) MultipartFile image
     ) {
-        Long userId = userDetails.getUserId();
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         DomainDTO.DomainRequestDTO domainCreateDTO = DomainConverter.toDomainCreateDTO(name, domainTail);
 
         DomainDTO.DomainReponseDTO result = domainService.createDomain(userId,domainCreateDTO, image);
@@ -47,13 +49,13 @@ public class DomainController {
     )
     @PatchMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<DomainDTO.DomainReponseDTO> updateLinku(
-            @CurrentUser CustomUserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam Long id,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String domainTail,
             @RequestParam(required = false) MultipartFile image
     ) {
-        Long userId = userDetails.getUserId();
+        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
         // id 포함한 DTO 생성
         DomainDTO.DomainRequestDTO domainUpdateDTO = DomainDTO.DomainRequestDTO.builder()
                 .id(id)

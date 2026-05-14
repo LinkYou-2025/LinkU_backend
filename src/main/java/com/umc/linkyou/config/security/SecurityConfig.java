@@ -1,9 +1,7 @@
 package com.umc.linkyou.config.security;
 
-import com.umc.linkyou.jwt.CustomAccessDeniedHandler;
-import com.umc.linkyou.jwt.CustomAuthenticationEntryPoint;
-import com.umc.linkyou.jwt.JwtAuthenticationFilter;
-import com.umc.linkyou.jwt.JwtExceptionFilter;
+import com.umc.linkyou.config.security.jwt.JwtAuthenticationFilter;
+import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,9 +28,6 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final JwtExceptionFilter jwtExceptionFilter;
-    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
-    private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
     //ADMIN -> MANAGER -> USER
     @Bean
@@ -73,14 +68,9 @@ public class SecurityConfig {
                 )
                 .csrf(csrf -> csrf.disable())
                 .formLogin(form -> form.disable())
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(customAuthenticationEntryPoint)
-                        .accessDeniedHandler(customAccessDeniedHandler)
-                )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // ← IF_REQUIRED → STATELESS
                 )
-                .addFilterBefore(jwtExceptionFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

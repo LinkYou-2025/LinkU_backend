@@ -1,12 +1,10 @@
 package com.umc.linkyou.web.controller;
 
-import com.umc.linkyou.domain.enums.Role;
-import com.umc.linkyou.jwt.AccessTokenBlackListManager;
-import com.umc.linkyou.jwt.CustomUserDetails;
-import com.umc.linkyou.jwt.JwtTokenProvider;
+import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
+import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.service.AiArticleService;
+import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,8 +13,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -41,24 +37,19 @@ class AiArticleControllerTest {
     private AiArticleService aiArticleService;
 
     @MockitoBean
+    private UsersUtils usersUtils;
+
+    @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
     @MockitoBean
-    private AccessTokenBlackListManager accessTokenBlackListManager;
+    private AiArticleRepository aiArticleRepository;
 
     private final Long TEST_USER_ID = 1L;
 
     @BeforeEach
     void setUp() {
-        CustomUserDetails userDetails = new CustomUserDetails(TEST_USER_ID, Role.USER, "KAKAO");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
-    }
-
-    @AfterEach
-    void tearDown() {
-        SecurityContextHolder.clearContext();
+        given(usersUtils.getAuthenticatedUserId(any())).willReturn(TEST_USER_ID);
     }
 
     @Test
@@ -66,21 +57,28 @@ class AiArticleControllerTest {
     void getMyAiArticlesByCategory_Success() throws Exception {
         // given
         Long categoryId = 1L;
+        Long cursor = 0L;
+        int limit = 10;
 
+        // 1. 내부 리스트 데이터 준비
         LinkuResponseDTO.LinkuResultDTO article1 = LinkuResponseDTO.LinkuResultDTO.builder()
                 .linkuId(101L)
-                .userLinkuId(1001L)
+                .userLinkuId(1001L) // 커서로 사용될 ID
                 .categoryId(categoryId)
                 .title("첫 번째 AI 제목")
                 .aiArticleExists(true)
                 .build();
 
+        List<LinkuResponseDTO.LinkuResultDTO> mockList = List.of(article1);
+
+        // 2. Slice 결과 DTO 생성
         LinkuResponseDTO.LinkuSliceResultDTO mockSlice = LinkuResponseDTO.LinkuSliceResultDTO.builder()
-                .linkuList(List.of(article1))
+                .linkuList(mockList)
                 .nextCursor("1001")
                 .hasNext(true)
                 .build();
 
+        // 서비스 메서드 시그니처 변경 반영 (userId, categoryId, cursor, limit)
         given(aiArticleService.getMyAiArticlesByCategory(eq(TEST_USER_ID), eq(categoryId), any(), anyInt()))
                 .willReturn(mockSlice);
 
@@ -91,6 +89,7 @@ class AiArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
+                // 3. JSON 구조 검증 ($.result.linkuList[0] 형태)
                 .andExpect(jsonPath("$.result.linkuList.length()").value(1))
                 .andExpect(jsonPath("$.result.linkuList[0].linkuId").value(101L))
                 .andExpect(jsonPath("$.result.nextCursor").value("1001"))
