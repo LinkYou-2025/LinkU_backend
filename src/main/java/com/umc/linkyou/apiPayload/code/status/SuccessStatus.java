@@ -12,12 +12,14 @@ public enum SuccessStatus implements BaseCode {
 
     // 일반적인 응답
     _OK(HttpStatus.OK, "COMMON200", "성공입니다."),
-
+    // 생성 관련 응답
+    _CREATED(HttpStatus.CREATED, "COMMON201", "성공적으로 생성(저장)되었습니다."),
     // 회원가입 관련 응답
-    _VERIFICATION_CODE_SENT(HttpStatus.ACCEPTED, "EMAIL202", "인증 코드 전송 성공했습니다."),
-    _NICKNAME_AVAILABLE(HttpStatus.ACCEPTED, "NICKNAME202", "닉네임 중복 확인 성공했습니다."),
-    _EMAIL_VERIFICATION_SUCCESS(HttpStatus.ACCEPTED, "EMAIL202", "이메일 인증 성공했습니다."),
-    _RESET_LINK_SENT(HttpStatus.OK, "EMAIL200", "비밀번호 재설정 링크 전송 성공했습니다."),
+    _VERIFICATION_CODE_SENT(HttpStatus.ACCEPTED, "EMAIL202", "인증 코드 전송 성공."),
+    _NICKNAME_AVAILABLE(HttpStatus.ACCEPTED, "NICKNAME202", "닉네임 중복 확인 성공."),
+    _EMAIL_VERIFICATION_SUCCESS(HttpStatus.ACCEPTED, "EMAIL202", "이메일 인증 성공."),
+    // 로그인 관련 응답
+    _TEMP_PASSWORD_SENT(HttpStatus.ACCEPTED, "USER205", "임시 비밀번호 전송 성공."),
 
     //링크 생성
     _LINKU_SUS_URL(HttpStatus.ACCEPTED, "LINKU_SUS200", "유효하지 않은 링크일 가능성이 있습니다."),
@@ -35,13 +37,15 @@ public enum SuccessStatus implements BaseCode {
     _FOLDER_LINK_OK(HttpStatus.OK, "FOLDER_LINK200", "폴더 내부 소분류 폴더+링크 목록 조회를 성공했습니다."),
 
     // 공유 폴더 관련 응답
+    _FOLDER_SHARE_OK(HttpStatus.OK, "FOLDER_SHARE200", "폴더를 공유했습니다."),
     _FOLDER_UNSHARE_OK(HttpStatus.OK, "FOLDER_UNSHARE200", "폴더를 비공개로 전환했습니다."),
     _FOLDER_SHARED_OK(HttpStatus.OK, "FOLDER_SHARED200", "공유 받은 폴더 목록 조회를 성공했습니다."),
     _FOLDER_MEMBERS_OK(HttpStatus.OK, "FOLDER_MEMBERS200", "폴더 참여자 목록 조회를 성공했습니다"),
     _FOLDER_PERMISSION_OK(HttpStatus.OK, "FOLDER_PERMISSION200", "폴더 권한 수정을 성공했습니다."),
 
     // 북마크 관련 응답
-    _FOLDER_BOOKMARK_OK(HttpStatus.OK, "FOLDER_BOOKMARK200", "폴더 북마크 상태 변경을 성공했습니다");
+    _FOLDER_BOOKMARK_OK(HttpStatus.OK, "FOLDER_BOOKMARK200", "폴더 북마크 상태 변경을 성공했습니다"),
+    ;
 
     private final HttpStatus httpStatus;
     private final String code;

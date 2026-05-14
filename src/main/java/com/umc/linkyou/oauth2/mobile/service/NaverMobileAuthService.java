@@ -1,7 +1,6 @@
 package com.umc.linkyou.oauth2.mobile.service;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
 import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
@@ -45,10 +44,10 @@ public class NaverMobileAuthService implements MobileAuthService {
                 .orElse(info.email());
 
         if (user.getStatus() != UserStatus.ACTIVE && user.getStatus() != UserStatus.TEMP) {
-            throw new GeneralException(UserErrorStatus._USER_INACTIVE);
+            throw new GeneralException(ErrorStatus._USER_INACTIVE);
         }
 
-        String accessTokenJwt = jwtTokenProvider.createAccessToken(resolvedEmail, Provider.NAVER.name(),user.getRole());
+        String accessTokenJwt = jwtTokenProvider.createAccessToken(resolvedEmail, Provider.NAVER.name());
 
         if (user.getStatus() == UserStatus.TEMP) {
             return MobileLoginResponse.builder()
@@ -60,7 +59,7 @@ public class NaverMobileAuthService implements MobileAuthService {
         }
 
         // ACTIVE 전용: refreshToken + Redis 세션
-        String refreshToken = jwtTokenProvider.createRefreshToken(resolvedEmail, Provider.NAVER.name());
+        String refreshToken = jwtTokenProvider.createRefreshToken(resolvedEmail);
         String tokenId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
         refreshTokenManager.saveToken(user.getId(), tokenId, Provider.NAVER.name(), refreshTtlMs);
 

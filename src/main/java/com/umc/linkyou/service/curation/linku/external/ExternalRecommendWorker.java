@@ -1,6 +1,6 @@
 package com.umc.linkyou.service.curation.linku.external;
 
-import com.umc.linkyou.utils.parser.LinkToImageService;
+import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
 import com.umc.linkyou.domain.enums.KeywordType;

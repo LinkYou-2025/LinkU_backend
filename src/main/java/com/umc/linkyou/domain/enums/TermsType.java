@@ -1,7 +1,6 @@
 package com.umc.linkyou.domain.enums;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 
 public enum TermsType {
@@ -10,12 +9,12 @@ public enum TermsType {
     MARKETING;          // 마케팅수신동의
     public static TermsType fromString(String value) {
         if (value == null) {
-            throw new GeneralException(UserErrorStatus.INVALID_TERMS_TYPE);
+            throw new GeneralException(ErrorStatus.INVALID_TERMS_TYPE);
         }
         try {
             return TermsType.valueOf(value);
         } catch (IllegalArgumentException e) {
-            throw new GeneralException(UserErrorStatus.INVALID_TERMS_TYPE);
+            throw new GeneralException(ErrorStatus.INVALID_TERMS_TYPE);
         }
     }
 }

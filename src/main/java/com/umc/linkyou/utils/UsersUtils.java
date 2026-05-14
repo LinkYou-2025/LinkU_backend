@@ -1,7 +1,6 @@
 package com.umc.linkyou.utils;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.domain.Users;
@@ -31,9 +30,9 @@ public class UsersUtils {
         return userRepository.findNotInactiveUserById(userId)
                 .orElseThrow(() -> {
                     if (!userRepository.existsById(userId)) {
-                        return new UserHandler(UserErrorStatus._USER_NOT_FOUND);
+                        return new UserHandler(ErrorStatus._USER_NOT_FOUND);
                     }
-                    return new UserHandler(UserErrorStatus._USER_INACTIVE);
+                    return new UserHandler(ErrorStatus._USER_INACTIVE);
                 });
     }
 
@@ -49,7 +48,7 @@ public class UsersUtils {
 
         // 3. userId로 DB 조회 → 없으면 404
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new UserHandler(ErrorStatus._USER_NOT_FOUND));
 
         // 4. 조회된 유저가 TEMP 상태인지 확인 → 아니면 에러
         //    (이미 프로필 완성한 ACTIVE 유저가 이 API 재호출하는 것 방지)
@@ -61,11 +60,6 @@ public class UsersUtils {
         return user;
     }
 
-    public void validateNickNameNotDuplicate(String nickname) {
-        if (userRepository.findByNickName(nickname).isPresent()) {
-            throw new UserHandler(UserErrorStatus._DUPLICATE_NICKNAME);
-        }
-    }
 }
 
 

@@ -1,7 +1,6 @@
 package com.umc.linkyou.oauth2;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
@@ -170,7 +169,7 @@ public class UserSocialLoginHelper {
         if (userRepository.existsByNickName(finalCandidate)) {
             log.error("닉네임 생성 실패: 모든 시도가 중복됨. base={}", base);
             // 무한 루프 대신 명확한 에러를 던져 트랜잭션을 중단시킵니다.
-            throw new GeneralException(UserErrorStatus._DUPLICATE_NICKNAME);
+            throw new GeneralException(ErrorStatus._DUPLICATE_NICKNAME);
         }
 
         return finalCandidate;

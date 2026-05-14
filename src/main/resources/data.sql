@@ -11,7 +11,7 @@ INSERT INTO domain (domain_id, domain_tail, image_url, name, crawl_strategy) VAL
      (9, 'google.com', 'https://d3f9zmi4jicqrs.cloudfront.net/domain/222e6458-2bbd-47a1-8154-c911b059cc89.png', 'google', 'DEFAULT'),
      (10, 'nytimes.com', 'https://d3f9zmi4jicqrs.cloudfront.net/domain/0d02a4f3-f447-426f-8dfc-803973507f3d.png', 'nytimes', 'DEFAULT'),
      (11, 'brunch.co.kr', 'https://d3f9zmi4jicqrs.cloudfront.net/domain/d6adf9f7-344c-4cec-8cac-7e64f12d8af0.png', 'brunch', 'DEFAULT'),
-     (12, 'velog.io', 'https://d3f9zmi4jicqrs.cloudfront.net', 'velog', 'DEFAULT'),
+     (12, 'velog.io', 'https://d3f9zmi4jicqrs.cloudfront.net/domain/ef86fa27-2b0a-421b-b51c-ee881cf45cf7.png', 'velog', 'DEFAULT'),
      (13, 'daum.net', 'https://d3f9zmi4jicqrs.cloudfront.net/domain/7d1e7dc0-36dd-4b9e-a593-e9a6045d2dca.png', 'daum', 'DEFAULT'),
      (14, 'jobkorea.co.kr', 'https://d3f9zmi4jicqrs.cloudfront.net/domain/d56fa67f-d64e-4f88-a159-c6f421297a50.png', 'jobkorea', 'DEFAULT'),
      (15, 'wanted.co.kr', 'https://d3f9zmi4jicqrs.cloudfront.net/domain/dd7b199e-818f-4118-8410-637d15100df2.png', 'wanted', 'DEFAULT'),

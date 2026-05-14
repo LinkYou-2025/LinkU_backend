@@ -1,9 +1,10 @@
 package com.umc.linkyou.web.dto.linku;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 public class LinkuResponseDTO {
     @Setter
@@ -65,16 +66,5 @@ public class LinkuResponseDTO {
     public static class LinkuCreateResult {
         private LinkuResponseDTO.LinkuResultDTO data;
         private boolean validUrl;
-    }
-
-    @Getter
-    @Setter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class LinkuSliceResultDTO {
-        private List<LinkuResultDTO> linkuList;
-        private String nextCursor;
-        private Boolean hasNext;
     }
 }

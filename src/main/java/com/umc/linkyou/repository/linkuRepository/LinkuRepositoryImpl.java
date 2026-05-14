@@ -2,7 +2,6 @@ package com.umc.linkyou.repository.linkuRepository;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.QLinku;
@@ -24,46 +23,40 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
 
     @Override
     public List<LinkuSearchSuggestionResponse> findUserSavedSuggestions(Long userId, String keyword) {
-        String q = keyword == null ? "" : keyword.trim();
+        String q = (keyword == null) ? "" : keyword.trim();
         if (q.length() < 2) return List.of();
 
         QUsersLinku ul = QUsersLinku.usersLinku;
         QLinku l = QLinku.linku1;
         QDomain d = QDomain.domain;
 
-        // 대소문자 무시 검색 위치 계산
-        var pos = Expressions.numberTemplate(
-                Integer.class,
-                "LOCATE(LOWER({0}), LOWER({1}))",
-                q, (Object) l.title // Ambiguous call 방지를 위한 캐스팅
-        );
+        var pos = Expressions.numberTemplate(Integer.class, "INSTR({0}, {1})", l.title, q);
 
         return queryFactory
                 .select(Projections.constructor(
                         LinkuSearchSuggestionResponse.class,
-                        l.linkuId,
-                        l.title,
-                        d.imageUrl,
-                        l.linku
+                        l.linkuId,       // ✅ linkuId
+                        l.title,    // title
+                        d.imageUrl, // domainImageUrl
+                        l.linku     // linkUrl
                 ))
                 .from(ul)
-                .join(ul.linku, l)
-                .leftJoin(l.domain, d)
+                .join(ul.linku, l)        // (fetchJoin 제거 유지)
+                .leftJoin(l.domain, d)    // (fetchJoin 제거 유지)
                 .where(
-                        ul.user.id.eq(userId),
-                        l.title.containsIgnoreCase(q) // QueryDSL이 내부적으로 lower() 처리해줌
+                        ul.user.id.eq(userId)
+                                .and(l.title.containsIgnoreCase(q))
                 )
                 .orderBy(
                         Expressions.numberTemplate(
                                 Integer.class,
-                                "CASE WHEN {0} = 0 THEN 9999 ELSE {0} END",
-                                (Object) pos // Ambiguous call 방지를 위한 캐스팅
+                                "CASE WHEN {0}=0 THEN 9999 ELSE {0} END", pos
                         ).asc(),
                         l.title.asc()
                 )
-                .limit(10) // 누락되었던 성능 최적화 포인트 추가
                 .fetch();
     }
+
     @Override
     public Optional<Linku> findByLinku(String normalizedLink) {
         QLinku l = QLinku.linku1;

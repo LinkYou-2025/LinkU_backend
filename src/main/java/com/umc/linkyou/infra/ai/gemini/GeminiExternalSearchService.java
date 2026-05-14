@@ -8,7 +8,7 @@ import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GoogleSearch;
 import com.google.genai.types.Part;
 import com.google.genai.types.Tool;
-import com.umc.linkyou.gemini.GeminiJsonUtils;
+import com.umc.linkyou.infra.ai.GeminiJsonUtils;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
