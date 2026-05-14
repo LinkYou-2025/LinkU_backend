@@ -1,11 +1,14 @@
 package com.umc.linkyou.web.controller.user;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthSuccessStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
+import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.service.email.EmailVerificationService;
 import com.umc.linkyou.service.email.PasswordResetService;
 import com.umc.linkyou.service.users.UserService;
@@ -83,7 +86,11 @@ public class AuthController implements AuthApi {
             @RequestParam String deviceId,
             HttpServletRequest request
     ) {
-        userService.logoutUser(userDetails.getUserId(), request, deviceId);
+        String accessToken = JwtTokenProvider.resolveToken(request);
+        if (accessToken == null) {
+            throw new GeneralException(AuthErrorStatus.UNAUTHORIZED);
+        }
+        userService.logoutUser(userDetails.getUserId(), accessToken, deviceId);
         return ApiResponse.onSuccess(AuthSuccessStatus.LOGOUT_SUCCESS);
     }
 }

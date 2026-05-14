@@ -2,9 +2,7 @@ package com.umc.linkyou.service.users;
 
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
-import jakarta.servlet.http.HttpServletRequest;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
@@ -347,14 +345,9 @@ public class UserService {
     }
 
     // 로그아웃
-    public void logoutUser(Long userId, HttpServletRequest request, String deviceId) {
+    public void logoutUser(Long userId, String accessToken, String deviceId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
-
-        String accessToken = JwtTokenProvider.resolveToken(request);
-        if (accessToken == null) {
-            throw new GeneralException(AuthErrorStatus.UNAUTHORIZED);
-        }
 
         refreshTokenManager.deleteTokenForDevice(userId, deviceId);
 
