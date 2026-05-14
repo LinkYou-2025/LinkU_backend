@@ -160,13 +160,13 @@ public class LinkuController {
             description = "사용자가 저장한 링크를 삭제합니다."
     )
     @DeleteMapping("/{userLinkuId}")
-    public ApiResponse<Void> deleteUsersLinku(
+    public ApiResponse<Object> deleteUsersLinku(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long userLinkuId
     ) {
         Long userId = userDetails.getUserId();
         linkuService.deleteUsersLinku(userId, userLinkuId);
-        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_DELETED, null);
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_DELETED);
 
     }
 

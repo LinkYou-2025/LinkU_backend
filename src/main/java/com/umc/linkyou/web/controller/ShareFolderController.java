@@ -41,12 +41,12 @@ public class ShareFolderController {
 
     @Operation(summary = "초대 링크 삭제", description = "초대 링크를 비활성화합니다.")
     @DeleteMapping("/{folderId}/invitation")
-    public ApiResponse<Void> deactivateInviteLink(
+    public ApiResponse<Object> deactivateInviteLink(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long folderId
     ) {
         shareFolderService.deactivateInviteLink(userDetails.getUserId(), folderId);
-        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_INVITE_LINK_DEACTIVATED, null);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_INVITE_LINK_DEACTIVATED);
     }
 
     @Operation(summary = "폴더 멤버 조회", description = "공유된 폴더의 멤버 목록을 조회합니다.")

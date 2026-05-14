@@ -33,11 +33,11 @@ public class SharedFolderController {
 
     @Operation(summary = "공유 받은 폴더 삭제", description = "공유 받은 폴더를 자신의 목록에서 제거합니다. (폴더 자체는 삭제되지 않습니다)")
     @DeleteMapping("/{folderId}")
-    public ApiResponse<Void> deleteSharedFolder(
+    public ApiResponse<Object> deleteSharedFolder(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long folderId
     ) {
         sharedFolderService.deleteSharedFolder(userDetails.getUserId(), folderId);
-        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_LEAVE_OK, null);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_LEAVE_OK);
     }
 }

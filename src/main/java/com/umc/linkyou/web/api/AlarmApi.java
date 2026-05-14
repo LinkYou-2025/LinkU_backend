@@ -38,7 +38,7 @@ public interface AlarmApi {
     @ApiSuccessCode(SuccessStatus._OK)
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @PostMapping("/fcmtoken")
-    ApiResponse<Void> registerFcmToken(
+    ApiResponse<Object> registerFcmToken(
             @CurrentUser CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO
     );
@@ -49,7 +49,7 @@ public interface AlarmApi {
             """)
     @ApiSuccessCode(SuccessStatus._OK)
     @DeleteMapping("/fcmtoken")
-    ApiResponse<Void> deleteFcmToken(
+    ApiResponse<Object> deleteFcmToken(
             @CurrentUser CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO
     );
@@ -63,7 +63,7 @@ public interface AlarmApi {
     @ApiErrorCode(errorStatus = {ErrorStatus._FORBIDDEN})
     @ApiErrorCode(alarmErrorStatus = {AlarmErrorStatus.ALARM_SEND_FAILED})
     @PostMapping("/test/send")
-    ApiResponse<Void> sendTestAlarm(
+    ApiResponse<Object> sendTestAlarm(
             @CurrentUser CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.TestAlarmSendDTO request
     );
@@ -128,7 +128,7 @@ public interface AlarmApi {
     @ApiErrorCode(errorStatus = {ErrorStatus._FORBIDDEN})
     @ApiErrorCode(alarmErrorStatus = {AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED})
     @PostMapping("/admin/broadcast")
-    ApiResponse<Void> registerAdminAlarm(
+    ApiResponse<Object> registerAdminAlarm(
             @CurrentUser CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.AdminAlarmSendRequestDTO request
     );
@@ -140,7 +140,7 @@ public interface AlarmApi {
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @ApiErrorCode(alarmErrorStatus = {AlarmErrorStatus.ALARM_NOT_FOUND})
     @PatchMapping("/{alarmId}/read")
-    ApiResponse<Void> markAlarmAsRead(
+    ApiResponse<Object> markAlarmAsRead(
             @CurrentUser CustomUserDetails userDetails,
             @Parameter(description = "읽음 처리할 알림 ID")
             @PathVariable Long alarmId

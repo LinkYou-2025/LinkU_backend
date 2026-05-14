@@ -59,12 +59,12 @@ public class FolderController {
             description = "소분류 폴더를 삭제합니다."
     )
     @DeleteMapping("/subfolders/{folderId}")
-    public ApiResponse<Void> deleteFolder(
+    public ApiResponse<Object> deleteFolder(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long folderId
     ) {
         folderService.deleteFolder(userDetails.getUserId(), folderId);
-        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_DELETED, null);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_DELETED);
     }
 
     @Operation(

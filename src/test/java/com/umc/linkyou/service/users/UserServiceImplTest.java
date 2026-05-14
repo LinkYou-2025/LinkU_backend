@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.users;
 
 import com.umc.linkyou.config.properties.JwtProperties;
+import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.RefreshTokenManager;
 import com.umc.linkyou.jwt.TokenIssueService;
@@ -63,6 +64,7 @@ class UserServiceImplTest {
     @Mock private UsersCategoryColorRepository usersCategoryColorRepository;
     @Mock private RefreshTokenManager refreshTokenManager;
     @Mock private TokenIssueService tokenIssueService;
+    @Mock private AccessTokenBlackListManager accessTokenBlackListManager;
     @Mock private UserStatusValidator userStatusValidator;
     @Mock private AuthAccountRepository authAccountRepository;
     @Mock private JwtProperties jwtProperties;

@@ -35,25 +35,25 @@ public class AlarmController implements AlarmApi {
     private final FcmPushSender fcmPushSender;
 
     @Override
-    public ApiResponse<Void> registerFcmToken(
+    public ApiResponse<Object> registerFcmToken(
             @CurrentUser CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO
     ) {
         alarmService.registerFcmToken(userDetails.getUserId(), alarmFcmTokenDTO);
-        return ApiResponse.onSuccess(AlarmSuccessStatus.FCM_TOKEN_REGISTERED, null);
+        return ApiResponse.onSuccess(AlarmSuccessStatus.FCM_TOKEN_REGISTERED);
     }
 
     @Override
-    public ApiResponse<Void> deleteFcmToken(
+    public ApiResponse<Object> deleteFcmToken(
             @CurrentUser CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO
     ) {
         alarmService.deleteFcmToken(userDetails.getUserId(), alarmFcmTokenDTO.fcmToken());
-        return ApiResponse.onSuccess(AlarmSuccessStatus.FCM_TOKEN_DELETED, null);
+        return ApiResponse.onSuccess(AlarmSuccessStatus.FCM_TOKEN_DELETED);
     }
 
     @Override
-    public ApiResponse<Void> sendTestAlarm(
+    public ApiResponse<Object> sendTestAlarm(
             @CurrentUser CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.TestAlarmSendDTO request
     ) {
@@ -62,7 +62,7 @@ public class AlarmController implements AlarmApi {
                 request.fcmToken(),
                 FcmSendRequestDTO.of(AlarmType.ANNOUNCEMENT_UPDATE, userDetails.getUserId())
         );
-        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_TEST_SENT, null);
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_TEST_SENT);
     }
 
     @Override
@@ -100,22 +100,22 @@ public class AlarmController implements AlarmApi {
     }
 
     @Override
-    public ApiResponse<Void> registerAdminAlarm(
+    public ApiResponse<Object> registerAdminAlarm(
             @CurrentUser CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.AdminAlarmSendRequestDTO request
     ) {
         validateAdmin(userDetails);
         alarmService.registerAdminAlarm(request);
-        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_BROADCAST_REGISTERED, null);
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_BROADCAST_REGISTERED);
     }
 
     @Override
-    public ApiResponse<Void> markAlarmAsRead(
+    public ApiResponse<Object> markAlarmAsRead(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long alarmId
     ) {
         alarmService.markAlarmAsRead(userDetails.getUserId(), alarmId);
-        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_READ, null);
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_READ);
     }
 
     private void validateAdmin(CustomUserDetails userDetails) {

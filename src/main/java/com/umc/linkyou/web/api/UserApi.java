@@ -47,7 +47,7 @@ public interface UserApi {
     @ApiErrorCode(errorStatus = {ErrorStatus._BAD_REQUEST}) // 잘못된 Job ID 등
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus._DUPLICATE_NICKNAME})
     @PatchMapping("/profile")
-    ApiResponse<Void> updateUserProfile(
+    ApiResponse<Object> updateUserProfile(
             @CurrentUser CustomUserDetails userDetails,
             @RequestBody @Valid UserRequestDTO.UpdateProfileDTO updateDTO);
 
