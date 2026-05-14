@@ -3,6 +3,7 @@ package com.umc.linkyou.web.api;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
@@ -28,7 +29,8 @@ public interface UserApi {
                     """
     )
     @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(errorStatus = {ErrorStatus._UNAUTHORIZED, ErrorStatus._INTERNAL_SERVER_ERROR})
+    @ApiErrorCode(authErrorStatus = {AuthErrorStatus.UNAUTHORIZED})
+    @ApiErrorCode(errorStatus = {ErrorStatus._INTERNAL_SERVER_ERROR})
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @GetMapping("/me")
     ApiResponse<UserResponseDTO.UserProfileSummaryDto> getUserInfo(

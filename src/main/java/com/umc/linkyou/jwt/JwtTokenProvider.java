@@ -19,7 +19,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.config.properties.Constants;
 import com.umc.linkyou.config.properties.JwtProperties;
 
@@ -130,7 +129,7 @@ public class JwtTokenProvider {
         String providerStr = claims.get("provider", String.class);  // String 그대로!
 
         if (providerStr == null || providerStr.isBlank()) {
-            throw new UserHandler(ErrorStatus._INVALID_TOKEN);
+            throw new UserHandler(AuthErrorStatus.INVALID_TOKEN);
         }
 
         // 3) 토큰 소유자 userId 조회
@@ -142,7 +141,7 @@ public class JwtTokenProvider {
 
         // 5) Redis Hash 화이트리스트에 키가 존재하는지 확인
         if (!refreshTokenManager.validateToken(expectedUserId, providerStr, deviceId, id)) {
-            throw new UserHandler(ErrorStatus._INVALID_TOKEN);
+            throw new UserHandler(AuthErrorStatus.INVALID_TOKEN);
         }
     }
 
