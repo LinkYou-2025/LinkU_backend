@@ -109,6 +109,7 @@ public class UserRequestDTO {
         private List<String> interestList;
 
         @Schema(description = "약관 동의 맵", example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}")
+        @NotEmpty(message = "약관 동의 정보는 필수입니다.")
         private Map<String, Boolean> termsMap;
     }
 
