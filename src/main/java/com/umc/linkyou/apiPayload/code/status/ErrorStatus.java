@@ -13,13 +13,9 @@ public enum ErrorStatus implements BaseErrorCode {
     // 가장 일반적인 응답
     _INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON500", "서버 에러, 관리자에게 문의 바랍니다."),
     _BAD_REQUEST(HttpStatus.BAD_REQUEST,"COMMON400","잘못된 요청입니다."),
-    _EXPIRED_VERIFICATION_CODE(HttpStatus.BAD_REQUEST,"COMMON400","인증 코드가 만료되었습니다."),
     _UNAUTHORIZED(HttpStatus.UNAUTHORIZED,"COMMON401","인증이 필요합니다."),
     _FORBIDDEN(HttpStatus.FORBIDDEN, "COMMON403", "금지된 요청입니다."),
     _TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "COMMON429", "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
-    _INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "COMMON4011", "잘못된 토큰입니다."),
-    _INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "COMMON4012", "잘못된 비밀번호입니다."),
-    _PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "COMMON4013", "비밀번호와 비밀번호 확인이 일치하지 않습니다."),
 
     // S3 관련 오류
     _S3_FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "S3404", "S3 파일을 찾을 수 없습니다."),

@@ -36,9 +36,9 @@ public class UserController implements UserApi {
     }
 
     @Override
-    public ApiResponse<Void> updateUserProfile(@CurrentUser CustomUserDetails userDetails, UserRequestDTO.UpdateProfileDTO updateDTO) {
+    public ApiResponse<Object> updateUserProfile(@CurrentUser CustomUserDetails userDetails, UserRequestDTO.UpdateProfileDTO updateDTO) {
         userService.updateUserProfile(userDetails.getUserId(), updateDTO);
-        return ApiResponse.onSuccess(UserSuccessStatus.USER_PROFILE_UPDATED, null);
+        return ApiResponse.onSuccess(UserSuccessStatus.USER_PROFILE_UPDATED);
     }
 
     @Override

@@ -91,7 +91,7 @@ public interface AuthApi {
     @ApiErrorCode(commonErrorStatus = {CommonErrorStatus._TOO_MANY_REQUESTS})
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._SEND_MAIL_FAILED})
     @PostMapping("/email/code")
-    ApiResponse<Void> sendCode(@RequestBody @Valid EmailRequestDTO.CodeSendDTO request);
+    ApiResponse<Object> sendCode(@RequestBody @Valid EmailRequestDTO.CodeSendDTO request);
 
     @Operation(
             summary = "이메일 인증 코드 검증",
@@ -106,7 +106,7 @@ public interface AuthApi {
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._EXPIRED_VERIFICATION_CODE})
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._VERIFICATION_FAILED})
     @PostMapping("/email/verify")
-    ApiResponse<Void> verifyCode(@RequestBody @Valid EmailRequestDTO.CodeVerifyDTO request);
+    ApiResponse<Object> verifyCode(@RequestBody @Valid EmailRequestDTO.CodeVerifyDTO request);
 
     @Operation(
             summary = "닉네임 중복 확인",
@@ -119,7 +119,7 @@ public interface AuthApi {
     @ApiAuthSuccessCode(AuthSuccessStatus.NICKNAME_AVAILABLE)
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._DUPLICATE_NICKNAME})
     @GetMapping("/check-nickname")
-    ApiResponse<Void> checkNickname(@RequestParam String nickname);
+    ApiResponse<Object> checkNickname(@RequestParam String nickname);
 
     @Operation(
             summary = "비밀번호 재설정 링크 전송",
@@ -134,7 +134,7 @@ public interface AuthApi {
     @ApiErrorCode(commonErrorStatus = {CommonErrorStatus._TOO_MANY_REQUESTS})
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._SEND_MAIL_FAILED})
     @PostMapping("/password/reset/send")
-    ApiResponse<Void> sendPasswordResetLink(@RequestBody @Valid EmailRequestDTO.ResetLinkDTO request);
+    ApiResponse<Object> sendPasswordResetLink(@RequestBody @Valid EmailRequestDTO.ResetLinkDTO request);
 
     @Operation(
             summary = "비밀번호 재설정",
@@ -152,7 +152,7 @@ public interface AuthApi {
             UserErrorStatus._USER_NOT_FOUND
     })
     @PutMapping("/password/reset")
-    ApiResponse<Void> resetPassword(@RequestBody @Valid PasswordResetRequestDTO request);
+    ApiResponse<Object> resetPassword(@RequestBody @Valid PasswordResetRequestDTO request);
 
     @Operation(
             summary = "로그아웃",
@@ -166,5 +166,5 @@ public interface AuthApi {
     @ApiAuthSuccessCode(AuthSuccessStatus.LOGOUT_SUCCESS)
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @PostMapping("/logout")
-    ApiResponse<Void> logout(@CurrentUser CustomUserDetails userDetails, @RequestParam String deviceId, HttpServletRequest request);
+    ApiResponse<Object> logout(@CurrentUser CustomUserDetails userDetails, @RequestParam String deviceId, HttpServletRequest request);
 }

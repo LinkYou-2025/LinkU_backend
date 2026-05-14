@@ -4,6 +4,7 @@ import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.service.curation.CurationLikeService;
 import com.umc.linkyou.service.curation.CurationService;
 import com.umc.linkyou.service.curation.CurationTopLogService;
@@ -40,9 +41,9 @@ public class CurationController {
             description = "모든 사용자에 대해 월간 큐레이션을 즉시 생성합니다. 운영/개발 전용 엔드포인트입니다."
     )
     @GetMapping("/batch/manual")
-    public ResponseEntity<ApiResponse<Void>> triggerBatch() {
+    public ResponseEntity<ApiResponse<Object>> triggerBatch() {
         curationService.generateMonthlyCurationForAllUsers();
-        return ResponseEntity.ok(ApiResponse.onSuccess(null));
+        return ResponseEntity.ok(ApiResponse.onSuccess(SuccessStatus._OK));
     }
 
     @Operation(
@@ -50,11 +51,11 @@ public class CurationController {
             description = "기존 운영 코드 변경 없이, 테스트 데이터만 일괄 생성합니다. 이미 존재하는 (user, month)는 스킵합니다."
     )
     @PostMapping("/seed-feb-to-jul-2025")
-    public ResponseEntity<ApiResponse<Void>> seedFebToJul2025(
+    public ResponseEntity<ApiResponse<Object>> seedFebToJul2025(
             @RequestParam(defaultValue = "false") boolean materializeExternal
     ) {
         curationService.seedFebToJul2025(materializeExternal);
-        return ResponseEntity.ok(ApiResponse.onSuccess(null));
+        return ResponseEntity.ok(ApiResponse.onSuccess(SuccessStatus._OK));
     }
 
     /**
@@ -112,9 +113,9 @@ public class CurationController {
             description = "해당 큐레이션에 좋아요를 등록합니다."
     )
     @PostMapping("/{curationId}/like")
-    public ResponseEntity<ApiResponse<Void>> likeCuration(@PathVariable Long curationId, @RequestParam Long userId) {
+    public ResponseEntity<ApiResponse<Object>> likeCuration(@PathVariable Long curationId, @RequestParam Long userId) {
         curationLikeService.likeCuration(userId, curationId);
-        return ResponseEntity.ok(ApiResponse.onSuccess(null));
+        return ResponseEntity.ok(ApiResponse.onSuccess(SuccessStatus._OK));
     }
     /**
      * 큐레이션 좋아요 취소
@@ -124,9 +125,9 @@ public class CurationController {
             description = "해당 큐레이션의 좋아요를 취소합니다."
     )
     @DeleteMapping("/{curationId}/like")
-    public ResponseEntity<ApiResponse<Void>> unlikeCuration(@PathVariable Long curationId, @RequestParam Long userId) {
+    public ResponseEntity<ApiResponse<Object>> unlikeCuration(@PathVariable Long curationId, @RequestParam Long userId) {
         curationLikeService.unlikeCuration(userId, curationId);
-        return ResponseEntity.ok(ApiResponse.onSuccess(null));
+        return ResponseEntity.ok(ApiResponse.onSuccess(SuccessStatus._OK));
     }
 
     /**

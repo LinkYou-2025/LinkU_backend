@@ -2,8 +2,8 @@ package com.umc.linkyou.web.controller.user;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthSuccessStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.jwt.CurrentUser;
@@ -31,7 +31,6 @@ public class AuthController implements AuthApi {
     private final UserService userService;
     private final EmailVerificationService emailVerificationService;
     private final PasswordResetService passwordResetService;
-    private final JwtTokenProvider jwtTokenProvider;
 
     @Override
     public ApiResponse<UserResponseDTO.JoinResultDTO> join(@RequestBody @Valid UserRequestDTO.JoinDTO request) {
@@ -50,37 +49,39 @@ public class AuthController implements AuthApi {
     }
 
     @Override
-    public ApiResponse<Void> sendCode(@RequestBody @Valid EmailRequestDTO.CodeSendDTO request) {
+    public ApiResponse<Object> sendCode(@RequestBody @Valid EmailRequestDTO.CodeSendDTO request) {
         emailVerificationService.sendCode(request.email());
-        return ApiResponse.onSuccess(AuthSuccessStatus.SEND_VERIFICATION_CODE, null);
+        return ApiResponse.onSuccess(
+                AuthSuccessStatus.SEND_VERIFICATION_CODE);
     }
 
     @Override
-    public ApiResponse<Void> verifyCode(@RequestBody @Valid EmailRequestDTO.CodeVerifyDTO request) {
+    public ApiResponse<Object> verifyCode(@RequestBody @Valid EmailRequestDTO.CodeVerifyDTO request) {
         emailVerificationService.verifyCode(request.email(), request.code());
-        return ApiResponse.onSuccess(AuthSuccessStatus.EMAIL_VERIFICATION_SUCCESS, null);
+        return ApiResponse.onSuccess(
+                AuthSuccessStatus.EMAIL_VERIFICATION_SUCCESS);
     }
 
     @Override
-    public ApiResponse<Void> checkNickname(@RequestParam String nickname) {
+    public ApiResponse<Object> checkNickname(@RequestParam String nickname) {
         userService.checkNicknameAvailable(nickname);
-        return ApiResponse.onSuccess(AuthSuccessStatus.NICKNAME_AVAILABLE, null);
+        return ApiResponse.onSuccess(AuthSuccessStatus.NICKNAME_AVAILABLE);
     }
 
     @Override
-    public ApiResponse<Void> sendPasswordResetLink(@RequestBody @Valid EmailRequestDTO.ResetLinkDTO request) {
+    public ApiResponse<Object> sendPasswordResetLink(@RequestBody @Valid EmailRequestDTO.ResetLinkDTO request) {
         passwordResetService.sendResetLink(request.email());
-        return ApiResponse.onSuccess(AuthSuccessStatus.PASSWORD_RESET_LINK_SENT, null);
+        return ApiResponse.onSuccess(AuthSuccessStatus.PASSWORD_RESET_LINK_SENT);
     }
 
     @Override
-    public ApiResponse<Void> resetPassword(@RequestBody @Valid PasswordResetRequestDTO request) {
+    public ApiResponse<Object> resetPassword(@RequestBody @Valid PasswordResetRequestDTO request) {
         passwordResetService.resetPassword(request.getToken(), request.getNewPassword(), request.getConfirmPassword());
-        return ApiResponse.onSuccess(AuthSuccessStatus.PASSWORD_RESET_SUCCESS, null);
+        return ApiResponse.onSuccess(AuthSuccessStatus.PASSWORD_RESET_SUCCESS);
     }
 
     @Override
-    public ApiResponse<Void> logout(
+    public ApiResponse<Object> logout(
             @CurrentUser CustomUserDetails userDetails,
             @RequestParam String deviceId,
             HttpServletRequest request
@@ -89,8 +90,7 @@ public class AuthController implements AuthApi {
         if (accessToken == null) {
             throw new GeneralException(AuthErrorStatus.UNAUTHORIZED);
         }
-
         userService.logoutUser(userDetails.getUserId(), accessToken, deviceId);
-        return ApiResponse.onSuccess(AuthSuccessStatus.LOGOUT_SUCCESS, null);
+        return ApiResponse.onSuccess(AuthSuccessStatus.LOGOUT_SUCCESS);
     }
 }

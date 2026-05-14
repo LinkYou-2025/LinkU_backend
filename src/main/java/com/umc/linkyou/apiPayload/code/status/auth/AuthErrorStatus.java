@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum AuthErrorStatus implements BaseErrorCode {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH4001", "인증이 필요합니다."),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH4011", "잘못된 토큰입니다."),
     EXPIRED_TOKEN(HttpStatus.BAD_REQUEST, "AUTH4002", "만료된 토큰입니다."),
     PERMISSION_DENIED(HttpStatus.FORBIDDEN, "AUTH4003", "권한이 없습니다."),
     _REFRESH_TOKEN_SESSION_SAVE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AUTH5002", "세션 저장 중 오류가 발생했습니다.");

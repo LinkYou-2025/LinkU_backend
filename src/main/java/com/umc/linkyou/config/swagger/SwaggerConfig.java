@@ -151,7 +151,7 @@ public class SwaggerConfig {
         ReasonDTO reason = status.getReasonHttpStatus();
 
         com.umc.linkyou.apiPayload.ApiResponse<Object> exampleResponse =
-                com.umc.linkyou.apiPayload.ApiResponse.onSuccess(null);
+                com.umc.linkyou.apiPayload.ApiResponse.onSuccess(status);
 
         addExample(responses, reason.getHttpStatus().value(), status.name(), reason.getMessage(), exampleResponse);
     }

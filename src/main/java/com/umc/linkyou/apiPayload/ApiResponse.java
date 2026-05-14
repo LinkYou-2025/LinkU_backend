@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 
 @Getter
 @AllArgsConstructor
@@ -30,30 +31,37 @@ public class ApiResponse<T> {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private final LocalDateTime timestamp;
 
-    private T result;
+    @Schema(type = "object")
+    private final T result;
 
+    // Code, result 모두 커스텀
     public static <T> ApiResponse<T> onSuccess(BaseSuccessCode code, T result) {
-        return new ApiResponse<>(true, code.getReason().getCode(), code.getReason().getMessage(), LocalDateTime.now(), result);
+        return success(code.getReason().getCode(), code.getReason().getMessage(), result);
     }
 
+    // result가 비어 있을 경우
+    public static ApiResponse<Object> onSuccess(BaseSuccessCode code) {
+        return success(code.getReason().getCode(), code.getReason().getMessage(), Collections.emptyMap());
+    }
+
+    // 기본 SUCCESS, result 포함
     public static <T> ApiResponse<T> onSuccess(T result) {
-        return new ApiResponse<>(
-                true,
-                SuccessStatus._OK.getReason().getCode(),
-                SuccessStatus._OK.getReason().getMessage(),
-                LocalDateTime.now(),
-                result
-        );
+        return success(SuccessStatus._OK.getReason().getCode(), SuccessStatus._OK.getReason().getMessage(), result);
     }
 
-
-    // 실패한 경우 응답 생성 - 해당 메서드 사용 권장
-    public static <T> ApiResponse<T> onFailure(BaseErrorCode code, T data){
-        return new ApiResponse<>(false, code.getReason().getCode(), code.getReason().getMessage(), LocalDateTime.now(), data);
+    private static <T> ApiResponse<T> success(String code, String message, T result) {
+        return new ApiResponse<>(true, code, message, LocalDateTime.now(), result);
     }
 
-    // 실패한 경우 응답 생성
-    public static <T> ApiResponse<T> onFailure(String code, String message, T data){
+    private static <T> ApiResponse<T> failure(String code, String message, T data) {
         return new ApiResponse<>(false, code, message, LocalDateTime.now(), data);
+    }
+
+    public static <T> ApiResponse<T> onFailure(BaseErrorCode code, T data) {
+        return failure(code.getReason().getCode(), code.getReason().getMessage(), data);
+    }
+
+    public static <T> ApiResponse<T> onFailure(String code, String message, T data) {
+        return failure(code, message, data);
     }
 }
