@@ -1,6 +1,6 @@
 package com.umc.linkyou.gemini.service;
 
-import com.umc.linkyou.gemini.dto.SummaryAnalysisResultDTO;
+import com.umc.linkyou.gemini.dto.ClassifyResultDTO;
 import com.umc.linkyou.gemini.dto.SummaryResultDTO;
 import com.umc.linkyou.gemini.prompt.common.PromptComposer;
 import com.umc.linkyou.gemini.prompt.linku.CategoryClassifyPrompt;
@@ -30,7 +30,7 @@ public class GeminiLinkuService {
     /**
      * 단순 분류 (Linku 생성 시 사용)
      */
-    public SummaryAnalysisResultDTO classify(String url) {
+    public ClassifyResultDTO classify(String url) {
         // 1. 도구(Infra)를 사용하여 데이터 수집
         TitleDomainParser.ParsedPageInfo pageInfo = titleDomainParser.parseUrl(url);
         String content = webContentExtractor.extractTextFromUrl(url);
@@ -49,7 +49,7 @@ public class GeminiLinkuService {
         return geminiService.callAndParse(
                 "당신은 주어진 카테고리별로 폴더를 분류하는 전문가다.",
                 finalUserPrompt,
-                SummaryAnalysisResultDTO.class
+                ClassifyResultDTO.class
         );
     }
     /**

@@ -2,12 +2,10 @@ package com.umc.linkyou.infra.ai.summary;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.domain.AiArticle;
-import com.umc.linkyou.gemini.GeminiJsonUtils;
-import com.umc.linkyou.gemini.dto.SummaryAnalysisResultDTO;
-import com.umc.linkyou.utils.parser.WebContentExtractor;
+import com.umc.linkyou.infra.ai.GeminiJsonUtils;
+import com.umc.linkyou.infra.ai.dto.SummaryAnalysisResultDTO;
+import com.umc.linkyou.infra.parser.WebContentExtractor;
 import com.umc.linkyou.infra.ai.gemini.GeminiTextService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -110,7 +108,7 @@ public class GeminiSummaryUtil {
         String sanitized = GeminiJsonUtils.extractJson(rawContent);
         if (sanitized == null) {
             log.error("[sanitizeJson] 유효 JSON 범위 찾을 수 없음. 원본: {}", rawContent);
-            throw new GeneralException(AiArticleErrorStatus._AI_PARSE_ERROR);
+            throw new GeneralException(ErrorStatus._AI_PARSE_ERROR);
         }
 
         log.info("[정제된 응답 JSON]:\n{}", sanitized);
@@ -120,7 +118,7 @@ public class GeminiSummaryUtil {
             return objectMapper.readValue(sanitized, SummaryAnalysisResultDTO.class);
         } catch (Exception e) {
             log.error("[AI 응답 파싱 실패]: {}", sanitized, e);
-            throw new GeneralException(AiArticleErrorStatus._AI_PARSE_ERROR);
+            throw new GeneralException(ErrorStatus._AI_PARSE_ERROR);
         }
     }
 }
