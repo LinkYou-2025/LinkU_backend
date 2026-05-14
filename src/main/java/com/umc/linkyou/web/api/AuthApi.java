@@ -1,7 +1,9 @@
 package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthSuccessStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.validation.annotation.swagger.ApiAuthSuccessCode;
@@ -66,7 +68,7 @@ public interface AuthApi {
                     """
     )
     @ApiAuthSuccessCode(AuthSuccessStatus.TOKEN_REISSUE_SUCCESS)
-    @ApiErrorCode(errorStatus = {ErrorStatus._INVALID_TOKEN})
+    @ApiErrorCode(authErrorStatus = {AuthErrorStatus.UNAUTHORIZED})
     @ApiErrorCode(userErrorStatus = {
             UserErrorStatus._INVALID_REFRESH_TOKEN,
             UserErrorStatus._REFRESH_TOKEN_SESSION_INVALID,
@@ -86,7 +88,7 @@ public interface AuthApi {
     )
     @ApiAuthSuccessCode(AuthSuccessStatus.SEND_VERIFICATION_CODE)
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._DUPLICATE_JOIN_REQUEST})
-    @ApiErrorCode(errorStatus = {ErrorStatus._TOO_MANY_REQUESTS})
+    @ApiErrorCode(commonErrorStatus = {CommonErrorStatus._TOO_MANY_REQUESTS})
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._SEND_MAIL_FAILED})
     @PostMapping("/email/code")
     ApiResponse<Void> sendCode(@RequestBody @Valid EmailRequestDTO.CodeSendDTO request);
@@ -101,7 +103,7 @@ public interface AuthApi {
                     """
     )
     @ApiAuthSuccessCode(AuthSuccessStatus.EMAIL_VERIFICATION_SUCCESS)
-    @ApiErrorCode(errorStatus = {ErrorStatus._EXPIRED_VERIFICATION_CODE})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._EXPIRED_VERIFICATION_CODE})
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._VERIFICATION_FAILED})
     @PostMapping("/email/verify")
     ApiResponse<Void> verifyCode(@RequestBody @Valid EmailRequestDTO.CodeVerifyDTO request);
@@ -129,7 +131,7 @@ public interface AuthApi {
                     """
     )
     @ApiAuthSuccessCode(AuthSuccessStatus.PASSWORD_RESET_LINK_SENT)
-    @ApiErrorCode(errorStatus = {ErrorStatus._TOO_MANY_REQUESTS})
+    @ApiErrorCode(commonErrorStatus = {CommonErrorStatus._TOO_MANY_REQUESTS})
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._SEND_MAIL_FAILED})
     @PostMapping("/password/reset/send")
     ApiResponse<Void> sendPasswordResetLink(@RequestBody @Valid EmailRequestDTO.ResetLinkDTO request);
@@ -144,8 +146,11 @@ public interface AuthApi {
                     """
     )
     @ApiAuthSuccessCode(AuthSuccessStatus.PASSWORD_RESET_SUCCESS)
-    @ApiErrorCode(errorStatus = {ErrorStatus._INVALID_PASSWORD, ErrorStatus._PASSWORD_MISMATCH})
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @ApiErrorCode(userErrorStatus = {
+            UserErrorStatus._INVALID_PASSWORD,
+            UserErrorStatus._PASSWORD_MISMATCH,
+            UserErrorStatus._USER_NOT_FOUND
+    })
     @PutMapping("/password/reset")
     ApiResponse<Void> resetPassword(@RequestBody @Valid PasswordResetRequestDTO request);
 

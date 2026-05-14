@@ -138,6 +138,11 @@ public class SwaggerConfig {
         Example example = new Example();
         example.setValue(value);
         mediaType.addExamples(name, example);
+
+        // Swagger UI의 Example Value가 공통 스키마 예시 대신 실제 응답 예시를 우선 표시하도록 맞춘다.
+        if (mediaType.getExample() == null) {
+            mediaType.setExample(value);
+        }
     }
 
     // 성공 예시 생성
@@ -156,7 +161,7 @@ public class SwaggerConfig {
         SuccessReasonDTO reason = status.getReasonHttpStatus();
 
         com.umc.linkyou.apiPayload.ApiResponse<Object> exampleResponse =
-                com.umc.linkyou.apiPayload.ApiResponse.of(status, null);
+                com.umc.linkyou.apiPayload.ApiResponse.onSuccess(status, null);
 
         addExample(responses, reason.getHttpStatus().value(), status.name(), reason.getMessage(), exampleResponse);
     }

@@ -32,25 +32,25 @@ public class UserController implements UserApi {
 
     @Override
     public ApiResponse<UserResponseDTO.UserProfileSummaryDto> getUserInfo(@CurrentUser CustomUserDetails userDetails) {
-        return ApiResponse.of(UserSuccessStatus.USER_INFO_OK, userService.userInfo(userDetails.getUserId(), userDetails.getProvider()));
+        return ApiResponse.onSuccess(UserSuccessStatus.USER_INFO_OK, userService.userInfo(userDetails.getUserId(), userDetails.getProvider()));
     }
 
     @Override
     public ApiResponse<Void> updateUserProfile(@CurrentUser CustomUserDetails userDetails, UserRequestDTO.UpdateProfileDTO updateDTO) {
         userService.updateUserProfile(userDetails.getUserId(), updateDTO);
-        return ApiResponse.of(UserSuccessStatus.USER_PROFILE_UPDATED, null);
+        return ApiResponse.onSuccess(UserSuccessStatus.USER_PROFILE_UPDATED, null);
     }
 
     @Override
     public ApiResponse<UserResponseDTO.withDrawalResultDTO> withdrawMe(@CurrentUser CustomUserDetails userDetails, UserRequestDTO.DeleteReasonDTO deleteReasonDTO) {
         Users user = userWithdrawService.withdrawUser(userDetails.getUserId(), deleteReasonDTO);
-        return ApiResponse.of(UserSuccessStatus.USER_WITHDRAW_OK, UserConverter.toWithDrawalResultDTO(user));
+        return ApiResponse.onSuccess(UserSuccessStatus.USER_WITHDRAW_OK, UserConverter.toWithDrawalResultDTO(user));
     }
 
     @Override
     public ApiResponse<UserResponseDTO.JoinResultDTO> completeSocialProfile(UserRequestDTO.SocialCompleteDTO request, @CurrentUser CustomUserDetails userDetails) {
         Users updatedUser = userService.socialCompleteProfile(userDetails.getUserId(), request);
-        return ApiResponse.of(UserSuccessStatus.SOCIAL_PROFILE_COMPLETED, UserConverter.toJoinResultDTO(updatedUser));
+        return ApiResponse.onSuccess(UserSuccessStatus.SOCIAL_PROFILE_COMPLETED, UserConverter.toJoinResultDTO(updatedUser));
     }
 
     @Override

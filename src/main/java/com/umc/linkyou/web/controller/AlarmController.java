@@ -40,7 +40,7 @@ public class AlarmController implements AlarmApi {
             @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO
     ) {
         alarmService.registerFcmToken(userDetails.getUserId(), alarmFcmTokenDTO);
-        return ApiResponse.of(AlarmSuccessStatus.FCM_TOKEN_REGISTERED, null);
+        return ApiResponse.onSuccess(AlarmSuccessStatus.FCM_TOKEN_REGISTERED, null);
     }
 
     @Override
@@ -49,7 +49,7 @@ public class AlarmController implements AlarmApi {
             @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO
     ) {
         alarmService.deleteFcmToken(userDetails.getUserId(), alarmFcmTokenDTO.fcmToken());
-        return ApiResponse.of(AlarmSuccessStatus.FCM_TOKEN_DELETED, null);
+        return ApiResponse.onSuccess(AlarmSuccessStatus.FCM_TOKEN_DELETED, null);
     }
 
     @Override
@@ -62,14 +62,14 @@ public class AlarmController implements AlarmApi {
                 request.fcmToken(),
                 FcmSendRequestDTO.of(AlarmType.ANNOUNCEMENT_UPDATE, userDetails.getUserId())
         );
-        return ApiResponse.of(AlarmSuccessStatus.ALARM_TEST_SENT, null);
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_TEST_SENT, null);
     }
 
     @Override
     public ApiResponse<AlarmSettingResponseDTO> viewAlarmSetting(
             @CurrentUser CustomUserDetails userDetails
     ) {
-        return ApiResponse.of(AlarmSuccessStatus.ALARM_SETTING_OK, alarmService.viewAlarm(userDetails.getUserId()));
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_SETTING_OK, alarmService.viewAlarm(userDetails.getUserId()));
     }
 
     @Override
@@ -78,7 +78,7 @@ public class AlarmController implements AlarmApi {
             @Valid @RequestBody AlarmRequestDTO.AlarmSettingUpdateDTO request
     ) {
         boolean isEnabled = alarmService.updateNoticeAlarmSetting(userDetails.getUserId(), request.alarmType());
-        return ApiResponse.of(AlarmSuccessStatus.ALARM_SETTING_UPDATED, isEnabled);
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_SETTING_UPDATED, isEnabled);
     }
 
     @Override
@@ -88,7 +88,7 @@ public class AlarmController implements AlarmApi {
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(20) int size
     ) {
-        return ApiResponse.of(AlarmSuccessStatus.ALARM_LIST_OK, alarmService.viewAlarmList(userDetails.getUserId(), alarmType, cursor, size));
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_LIST_OK, alarmService.viewAlarmList(userDetails.getUserId(), alarmType, cursor, size));
     }
 
     @Override
@@ -96,7 +96,7 @@ public class AlarmController implements AlarmApi {
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long alarmId
     ) {
-        return ApiResponse.of(AlarmSuccessStatus.ALARM_DETAIL_OK, alarmService.viewAlarmDetail(userDetails.getUserId(), alarmId));
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_DETAIL_OK, alarmService.viewAlarmDetail(userDetails.getUserId(), alarmId));
     }
 
     @Override
@@ -106,7 +106,7 @@ public class AlarmController implements AlarmApi {
     ) {
         validateAdmin(userDetails);
         alarmService.registerAdminAlarm(request);
-        return ApiResponse.of(AlarmSuccessStatus.ALARM_BROADCAST_REGISTERED, null);
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_BROADCAST_REGISTERED, null);
     }
 
     @Override
@@ -115,7 +115,7 @@ public class AlarmController implements AlarmApi {
             @PathVariable Long alarmId
     ) {
         alarmService.markAlarmAsRead(userDetails.getUserId(), alarmId);
-        return ApiResponse.of(AlarmSuccessStatus.ALARM_READ, null);
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_READ, null);
     }
 
     private void validateAdmin(CustomUserDetails userDetails) {
