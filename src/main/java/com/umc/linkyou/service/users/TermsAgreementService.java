@@ -53,7 +53,7 @@ public class TermsAgreementService {
     /**
      * 약관 Upsert 로직
      */
-    public void upsertTerms(Users user, Map<String, Boolean> termsMap) {
+    public void upsertTerms(Users user, Map<TermsType, Boolean> termsMap) {
         if (termsMap == null || termsMap.isEmpty()) {
             throw new GeneralException(UserErrorStatus.INVALID_TERMS_TYPE);
         }
@@ -66,12 +66,11 @@ public class TermsAgreementService {
                         LinkedHashMap::new
                 ));
 
-        termsMap.forEach((typeStr, isAgreed) -> {
-            TermsType type = TermsType.fromString(typeStr);
-            if (existingMap.containsKey(type)) {
-                TermsConverter.updateAgreement(existingMap.get(type), isAgreed);
+        termsMap.forEach((termsType, isAgreed) -> {
+            if (existingMap.containsKey(termsType)) {
+                TermsConverter.updateAgreement(existingMap.get(termsType), isAgreed);
             } else {
-                termsAgreementRepository.save(TermsConverter.toSingleTermAgreement(user, typeStr, isAgreed));
+                termsAgreementRepository.save(TermsConverter.toSingleTermAgreement(user, termsType, isAgreed));
             }
         });
     }

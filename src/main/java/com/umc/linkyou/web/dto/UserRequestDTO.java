@@ -1,10 +1,6 @@
 package com.umc.linkyou.web.dto;
 
-import com.umc.linkyou.domain.classification.Interests;
-import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.domain.enums.DeviceType;
-import com.umc.linkyou.domain.enums.Interest;
-import com.umc.linkyou.domain.enums.Purpose;
 import com.umc.linkyou.domain.enums.TermsType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
@@ -27,7 +23,7 @@ public class UserRequestDTO {
             @Schema(example = "1") @NotNull Long jobId,
             @Schema(example = "[\"CAREER\", \"STUDY\"]") @NotEmpty(message = "목적 리스트는 최소 1개 이상 선택해야 합니다") List<String> purposeList,
             @Schema(example = "[\"IT\", \"DESIGN\"]") @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다") List<String> interestList,
-            @Schema(description = "약관 동의 맵", example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}") Map<String, Boolean> termsMap
+            @Schema(description = "약관 동의 맵", example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}")  Map<TermsType, Boolean> termsMap
     ) {}
 
     public record LoginRequestDTO(
@@ -110,7 +106,7 @@ public class UserRequestDTO {
 
         @Schema(description = "약관 동의 맵", example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}")
         @NotEmpty(message = "약관 동의 정보는 필수입니다.")
-        private Map<String, Boolean> termsMap;
+        private  Map<TermsType, Boolean> termsMap;
     }
 
     /**
@@ -124,7 +120,7 @@ public class UserRequestDTO {
                     anyOf = {TermsType.class}
             )
             @NotEmpty(message = "변경할 약관 상태를 하나 이상 입력해주세요.")
-            Map<String, Boolean> termsMap,
+            Map<TermsType, Boolean> termsMap,
 
             @Schema(description = "약관 버전", example = "v1.0")
             String termsVersion

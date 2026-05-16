@@ -23,9 +23,9 @@ public class TermsConverter {
      */
     public static UserResponseDTO.TermsStatusDTO toTermsStatusDTO(Long userId, List<TermsAgreement> agreements) {
         // 1. 약관 타입별 동의 여부 Map 생성 (순서 보장)
-        Map<String, Boolean> termsStatusMap = agreements.stream()
+        Map<TermsType, Boolean> termsStatusMap = agreements.stream()
                 .collect(Collectors.toMap(
-                        agreement -> agreement.getTermsType().name(),
+                        TermsAgreement::getTermsType,
                         TermsAgreement::getIsAgreed,
                         (existing, replacement) -> replacement,
                         LinkedHashMap::new
@@ -50,8 +50,7 @@ public class TermsConverter {
     /**
      * 신규 약관 동의 객체 생성 (Insert용)
      */
-    public static TermsAgreement toSingleTermAgreement(Users user, String termsTypeStr, boolean isAgreed) {
-        TermsType termsType = TermsType.fromString(termsTypeStr);
+    public static TermsAgreement toSingleTermAgreement(Users user, TermsType termsType, boolean isAgreed) {
         return TermsAgreement.builder()
                 .user(user)
                 .termsType(termsType)
