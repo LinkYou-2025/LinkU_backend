@@ -43,10 +43,9 @@ class TermsAgreementServiceTest {
             void upsert_new_agreement_success() {
                 // given
                 Users user = Users.builder().id(1L).build();
-                Map<String, Boolean> termsMap = Map.of("TERMS_OF_USE", true);
+                Map<TermsType, Boolean> termsMap = Map.of(TermsType.TERMS_OF_USE, true);
 
                 when(termsAgreementRepository.findAllByUserId(1L)).thenReturn(Collections.emptyList());
-
                 // when
                 termsAgreementService.upsertTerms(user, termsMap);
 
@@ -65,7 +64,7 @@ class TermsAgreementServiceTest {
                         .build();
 
                 when(termsAgreementRepository.findAllByUserId(1L)).thenReturn(List.of(existing));
-                Map<String, Boolean> termsMap = Map.of("MARKETING", true);
+                Map<TermsType, Boolean> termsMap = Map.of(TermsType.MARKETING, true);
 
                 // when
                 termsAgreementService.upsertTerms(user, termsMap);
@@ -85,7 +84,7 @@ class TermsAgreementServiceTest {
             void fail_when_map_is_empty() {
                 // given
                 Users user = Users.builder().id(1L).build();
-                Map<String, Boolean> emptyMap = Collections.emptyMap();
+                Map<TermsType, Boolean> emptyMap = Map.of();
 
                 // when & then
                 GeneralException exception = assertThrows(GeneralException.class,

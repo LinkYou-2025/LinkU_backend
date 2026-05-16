@@ -1,6 +1,7 @@
 package com.umc.linkyou.integration;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Job;
@@ -60,7 +61,7 @@ public class UserRegistrationIntegrationTest {
                 .jobId(testJob.getId())
                 .purposeList(List.of("STUDY"))
                 .interestList(List.of("IT"))
-                .termsMap(Map.of("TERMS_OF_USE", true))
+                .termsMap(Map.of(TermsType.TERMS_OF_USE, true))
                 .build();
 
         Users generalUser = userService.joinUser(joinReq);
@@ -92,7 +93,7 @@ public class UserRegistrationIntegrationTest {
                 .jobId(testJob.getId())
                 .purposeList(List.of("STUDY"))
                 .interestList(List.of("IT"))
-                .termsMap(Map.of("TERMS_OF_USE", true))
+                .termsMap(Map.of(TermsType.TERMS_OF_USE, true))
                 .build();
 
         Users activeUser = userService.joinUser(joinReq);

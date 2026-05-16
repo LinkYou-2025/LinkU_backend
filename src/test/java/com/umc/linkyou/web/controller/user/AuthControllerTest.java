@@ -3,6 +3,7 @@ package com.umc.linkyou.web.controller.user;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
 import com.umc.linkyou.jwt.JwtTokenProvider;
@@ -98,8 +99,8 @@ class AuthControllerTest {
                     List.of("CAREER"),
                     List.of("IT"),
                     Map.of(
-                            "PRIVACY_POLICY", true,
-                            "TERMS_OF_USE", true
+                            TermsType.PRIVACY_POLICY, true,
+                            TermsType.TERMS_OF_USE, true
                     )
             );
 

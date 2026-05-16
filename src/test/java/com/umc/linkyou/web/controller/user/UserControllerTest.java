@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
@@ -88,144 +89,96 @@ class UserControllerTest {
     @MockitoBean
     private SecurityErrorResponseWriter securityErrorResponseWriter;
 
+    // ────────────────────────────────────────────────────────────────
+    // 소셜 프로필 완성 엔드포인트
+    // ────────────────────────────────────────────────────────────────
     @Nested
     @DisplayName("소셜 프로필 완성 엔드포인트")
     class CompleteSocialProfile {
 
-        @Test
-        @DisplayName("성공 - 소셜 프로필 완성 요청을 처리하고 가입 결과를 반환한다")
-        @WithCustomUser(userId = 2L)
-        void social_complete_docs() throws Exception {
-            UserRequestDTO.SocialCompleteDTO request = new UserRequestDTO.SocialCompleteDTO(
-                    "social_nick",
-                    1,
-                    1L,
-                    List.of("STUDY"),
-                    List.of("DESIGN"),
-                    Map.of("TERMS_OF_USE", true)
-            );
+        @Nested
+        @DisplayName("성공")
+        class Success {
 
-            Users mockUser = Users.builder()
-                    .id(2L)
-                    .status(UserStatus.ACTIVE)
-                    .build();
-            mockUser.setCreatedAt(LocalDateTime.now());
+            @Test
+            @DisplayName("성공 - 소셜 프로필 완성 요청을 처리하고 가입 결과를 반환한다")
+            @WithCustomUser(userId = 2L)
+            void social_complete_success() throws Exception {
+                UserRequestDTO.SocialCompleteDTO request = new UserRequestDTO.SocialCompleteDTO(
+                        "social_nick",
+                        1,
+                        1L,
+                        List.of("STUDY"),
+                        List.of("DESIGN"),
+                        Map.of(TermsType.TERMS_OF_USE, true)
+                );
 
-            given(userService.socialCompleteProfile(any(), any())).willReturn(mockUser);
+                Users mockUser = Users.builder()
+                        .id(2L)
+                        .status(UserStatus.ACTIVE)
+                        .build();
+                mockUser.setCreatedAt(LocalDateTime.now());
 
-            mockMvc.perform(patch("/api/v1/users/social/complete")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request))
-                            .with(csrf()))
-                    .andExpect(status().isOk())
-                    .andDo(document("user/social-complete",
-                            preprocessRequest(prettyPrint()),
-                            preprocessResponse(prettyPrint()),
-                            requestFields(
-                                    fieldWithPath("nickName").description("닉네임"),
-                                    fieldWithPath("gender").description("성별"),
-                                    fieldWithPath("jobId").description("직업 ID"),
-                                    fieldWithPath("purposeList").description("사용 목적"),
-                                    fieldWithPath("interestList").description("관심사"),
-                                    fieldWithPath("termsMap").type(JsonFieldType.OBJECT).description("약관 동의 맵"),
-                                    fieldWithPath("termsMap.*").type(JsonFieldType.BOOLEAN).description("각 약관별 동의 여부")
-                            ),
-                            responseFields(
-                                    fieldWithPath("isSuccess").description("성공 여부"),
-                                    fieldWithPath("code").description("응답 코드"),
-                                    fieldWithPath("message").description("응답 메시지"),
-                                    fieldWithPath("timestamp").description("응답 시간"),
-                                    fieldWithPath("result.userId").description("유저 ID"),
-                                    fieldWithPath("result.createdAt").description("수정 일시")
-                            )
-                    ));
+                given(userService.socialCompleteProfile(any(), any())).willReturn(mockUser);
+
+                mockMvc.perform(patch("/api/v1/users/social/complete")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                                .with(csrf()))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andDo(document("user/social-complete",
+                                preprocessRequest(prettyPrint()),
+                                preprocessResponse(prettyPrint()),
+                                requestFields(
+                                        fieldWithPath("nickName").description("닉네임"),
+                                        fieldWithPath("gender").description("성별"),
+                                        fieldWithPath("jobId").description("직업 ID"),
+                                        fieldWithPath("purposeList").description("사용 목적"),
+                                        fieldWithPath("interestList").description("관심사"),
+                                        fieldWithPath("termsMap").type(JsonFieldType.OBJECT).description("약관 동의 맵"),
+                                        fieldWithPath("termsMap.*").type(JsonFieldType.BOOLEAN).description("각 약관별 동의 여부")
+                                ),
+                                responseFields(
+                                        fieldWithPath("isSuccess").description("성공 여부"),
+                                        fieldWithPath("code").description("응답 코드"),
+                                        fieldWithPath("message").description("응답 메시지"),
+                                        fieldWithPath("timestamp").description("응답 시간"),
+                                        fieldWithPath("result.userId").description("유저 ID"),
+                                        fieldWithPath("result.createdAt").description("수정 일시")
+                                )
+                        ));
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+
+            @Test
+            @DisplayName("실패 - 비인증 사용자가 요청 시 401 에러를 반환한다")
+            void social_complete_unauthorized() throws Exception {
+                UserRequestDTO.SocialCompleteDTO request = new UserRequestDTO.SocialCompleteDTO(
+                        "social_nick",
+                        1,
+                        1L,
+                        List.of("STUDY"),
+                        List.of("DESIGN"),
+                        Map.of(TermsType.MARKETING, true)
+                );
+
+                mockMvc.perform(patch("/api/v1/users/social/complete")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                                .with(csrf()))
+                        .andExpect(status().isUnauthorized());
+            }
         }
     }
 
-    @Nested
-    @DisplayName("약관 관련 엔드포인트")
-    class Terms {
-
-        @Test
-        @DisplayName("성공 - 약관 상태를 일괄 업데이트하고 전체 상태를 반환한다")
-        @WithCustomUser(userId = 1L)
-        void update_terms_agree_docs() throws Exception {
-            UserRequestDTO.TermsAgreeDTO request = new UserRequestDTO.TermsAgreeDTO(
-                    Map.of("TERMS_OF_USE", true, "MARKETING", false),
-                    "v1.0"
-            );
-
-            UserResponseDTO.TermsStatusDTO response = UserResponseDTO.TermsStatusDTO.builder()
-                    .userId(1L)
-                    .termsStatus(Map.of(
-                            "TERMS_OF_USE", true,
-                            "PRIVACY_POLICY", true,
-                            "MARKETING", false
-                    ))
-                    .allRequiredAgreed(true)
-                    .build();
-
-            given(termsAgreementService.updateTermsAgree(any(), any())).willReturn(response);
-
-            mockMvc.perform(patch("/api/v1/users/terms/agree")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request))
-                            .with(csrf()))
-                    .andExpect(status().isOk())
-                    .andDo(document("user/terms-update",
-                            preprocessRequest(prettyPrint()),
-                            preprocessResponse(prettyPrint()),
-                            requestFields(
-                                    fieldWithPath("termsMap").type(JsonFieldType.OBJECT).description("변경할 약관 상태 맵"),
-                                    fieldWithPath("termsMap.*").type(JsonFieldType.BOOLEAN).description("각 약관별 동의 여부"),
-                                    fieldWithPath("termsVersion").description("약관 버전")
-                            ),
-                            responseFields(
-                                    fieldWithPath("isSuccess").description("성공 여부"),
-                                    fieldWithPath("code").description("응답 코드"),
-                                    fieldWithPath("message").description("응답 메시지"),
-                                    fieldWithPath("timestamp").description("응답 시간"),
-                                    fieldWithPath("result.userId").description("사용자 ID"),
-                                    fieldWithPath("result.termsStatus").type(JsonFieldType.OBJECT).description("약관별 현재 동의 상태"),
-                                    fieldWithPath("result.termsStatus.*").type(JsonFieldType.BOOLEAN).description("각 약관 동의 여부"),
-                                    fieldWithPath("result.allRequiredAgreed").description("필수 약관 모두 동의 여부")
-                            )
-                    ));
-        }
-
-        @Test
-        @DisplayName("성공 - 현재 사용자의 약관 동의 상태를 조회한다")
-        @WithCustomUser(userId = 1L)
-        void get_terms_status_docs() throws Exception {
-            UserResponseDTO.TermsStatusDTO response = UserResponseDTO.TermsStatusDTO.builder()
-                    .userId(1L)
-                    .termsStatus(Map.of(
-                            "TERMS_OF_USE", true,
-                            "PRIVACY_POLICY", true,
-                            "MARKETING", true
-                    ))
-                    .allRequiredAgreed(true)
-                    .build();
-
-            given(termsAgreementService.getTermsStatus(any())).willReturn(response);
-
-            mockMvc.perform(get("/api/v1/users/terms/status"))
-                    .andExpect(status().isOk())
-                    .andDo(document("user/terms-status",
-                            preprocessResponse(prettyPrint()),
-                            responseFields(
-                                    fieldWithPath("isSuccess").description("성공 여부"),
-                                    fieldWithPath("code").description("응답 코드"),
-                                    fieldWithPath("message").description("응답 메시지"),
-                                    fieldWithPath("timestamp").description("응답 시간"),
-                                    fieldWithPath("result.userId").description("사용자 ID"),
-                                    fieldWithPath("result.termsStatus").type(JsonFieldType.OBJECT).description("약관별 현재 동의 상태"),
-                                    fieldWithPath("result.termsStatus.*").type(JsonFieldType.BOOLEAN).description("각 약관 동의 여부"),
-                                    fieldWithPath("result.allRequiredAgreed").description("필수 약관 모두 동의 여부")
-                            )
-                    ));
-        }
-    }
+    // ────────────────────────────────────────────────────────────────
+    // 약관 상태 조회 엔드포인트
+    // ────────────────────────────────────────────────────────────────
     @Nested
     @DisplayName("약관 상태 조회 엔드포인트")
     class GetTermsStatus {
@@ -241,9 +194,9 @@ class UserControllerTest {
                 UserResponseDTO.TermsStatusDTO mockResponse = UserResponseDTO.TermsStatusDTO.builder()
                         .userId(1L)
                         .termsStatus(Map.of(
-                                "TERMS_OF_USE", true,
-                                "PRIVACY_POLICY", true,
-                                "MARKETING", false
+                                TermsType.TERMS_OF_USE, true,
+                                TermsType.PRIVACY_POLICY, true,
+                                TermsType.MARKETING, false
                         ))
                         .allRequiredAgreed(true)
                         .build();
@@ -276,7 +229,7 @@ class UserControllerTest {
 
             @Test
             @DisplayName("실패 - 비인증 사용자가 조회 시 401 에러를 반환한다")
-            void get_terms_status_fail_unauthorized() throws Exception {
+            void get_terms_status_unauthorized() throws Exception {
                 mockMvc.perform(get("/api/v1/users/terms/status")
                                 .accept(MediaType.APPLICATION_JSON))
                         .andExpect(status().isUnauthorized());
@@ -284,6 +237,9 @@ class UserControllerTest {
         }
     }
 
+    // ────────────────────────────────────────────────────────────────
+    // 약관 일괄 업데이트 엔드포인트
+    // ────────────────────────────────────────────────────────────────
     @Nested
     @DisplayName("약관 일괄 업데이트 엔드포인트")
     class UpdateTermsAgree {
@@ -297,16 +253,16 @@ class UserControllerTest {
             @WithCustomUser(userId = 1L)
             void update_terms_success() throws Exception {
                 UserRequestDTO.TermsAgreeDTO request = UserRequestDTO.TermsAgreeDTO.builder()
-                        .termsMap(Map.of("MARKETING", true))
+                        .termsMap(Map.of(TermsType.MARKETING, true))
                         .termsVersion("v1.0")
                         .build();
 
                 UserResponseDTO.TermsStatusDTO mockResponse = UserResponseDTO.TermsStatusDTO.builder()
                         .userId(1L)
                         .termsStatus(Map.of(
-                                "TERMS_OF_USE", true,
-                                "PRIVACY_POLICY", true,
-                                "MARKETING", true
+                                TermsType.TERMS_OF_USE, true,
+                                TermsType.PRIVACY_POLICY, true,
+                                TermsType.MARKETING, true
                         ))
                         .allRequiredAgreed(true)
                         .build();
@@ -318,6 +274,7 @@ class UserControllerTest {
                                 .content(objectMapper.writeValueAsString(request))
                                 .with(csrf()))
                         .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
                         .andDo(document("user/terms-update",
                                 preprocessRequest(prettyPrint()),
                                 preprocessResponse(prettyPrint()),
@@ -345,23 +302,41 @@ class UserControllerTest {
         class Failure {
 
             @Test
-            @DisplayName("실패 - 유효하지 않은 약관 타입이 포함된 경우 예외 응답을 반환한다")
+            @DisplayName("실패 - 유효하지 않은 약관 타입이 포함된 경우 Jackson 역직렬화 시점에 400을 반환한다")
             @WithCustomUser(userId = 1L)
             void update_terms_fail_invalid_type() throws Exception {
+                // [변경] Map<TermsType, Boolean>으로 바뀌었으므로
+                // 컴파일 타임에 "INVALID_TYPE" 같은 잘못된 키를 넣을 수 없음
+                // → raw JSON 문자열을 직접 작성해서 Jackson 역직렬화 실패를 유도
+                String invalidJson = """
+                        {
+                          "termsMap": { "INVALID_TYPE": true },
+                          "termsVersion": "v1.0"
+                        }
+                        """;
+
+                // [변경] given() 제거 — 서비스까지 도달하지 않고 Jackson이 400 반환
+                mockMvc.perform(patch("/api/v1/users/terms/agree")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(invalidJson)
+                                .with(csrf()))
+                        .andExpect(status().isBadRequest());
+            }
+
+            @Test
+            @DisplayName("실패 - 비인증 사용자가 요청 시 401 에러를 반환한다")
+            void update_terms_unauthorized() throws Exception {
+                // [변경] Map.of("MARKETING", true) → Map.of(TermsType.MARKETING, true)
                 UserRequestDTO.TermsAgreeDTO request = UserRequestDTO.TermsAgreeDTO.builder()
-                        .termsMap(Map.of("INVALID_TYPE", true))
+                        .termsMap(Map.of(TermsType.MARKETING, true))
                         .termsVersion("v1.0")
                         .build();
-
-                given(termsAgreementService.updateTermsAgree(any(), any()))
-                        .willThrow(new UserHandler(UserErrorStatus.INVALID_TERMS_TYPE));
 
                 mockMvc.perform(patch("/api/v1/users/terms/agree")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                                 .with(csrf()))
-                        .andExpect(status().isBadRequest())
-                        .andExpect(jsonPath("$.code").value("TERMS4001"));
+                        .andExpect(status().isUnauthorized());
             }
         }
     }

@@ -1,5 +1,7 @@
 package com.umc.linkyou.web.controller;
 
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CustomUserDetails;
@@ -141,11 +143,6 @@ class AiArticleControllerTest {
                         .andExpect(jsonPath("$.result.nextCursor").doesNotExist())
                         .andDo(print());
             }
-        }
-
-        @Nested
-        @DisplayName("실패 케이스")
-        class Failure {
 
             @Test
             @DisplayName("존재하지 않는 카테고리 ID여도 서비스가 빈 결과를 반환하면 정상 응답한다")
@@ -172,6 +169,38 @@ class AiArticleControllerTest {
                         .andExpect(jsonPath("$.result.linkuList").isEmpty())
                         .andExpect(jsonPath("$.result.hasNext").value(false))
                         .andExpect(jsonPath("$.result.nextCursor").doesNotExist())
+                        .andDo(print());
+            }
+        }
+
+        @Nested
+        @DisplayName("실패 케이스")
+        class Failure {
+
+            @Test
+            @DisplayName("categoryId가 문자열이면 400 Bad Request를 반환한다")
+            void getMyAiArticlesByCategory_InvalidCategoryIdType() throws Exception {
+                // when & then
+                mockMvc.perform(get("/api/v1/aiarticle/category/{categoryId}", "invalid")
+                                .contentType(MediaType.APPLICATION_JSON))
+                        .andExpect(status().isBadRequest())
+                        .andDo(print());
+            }
+
+            @Test
+            @DisplayName("서비스에서 예외가 발생하면 에러 응답을 반환한다")
+            void getMyAiArticlesByCategory_ServiceThrowsException_ReturnsErrorResponse() throws Exception {
+                // given
+                given(aiArticleService.getMyAiArticlesByCategory(any(), any(), any(), anyInt()))
+                        .willThrow(new GeneralException(ErrorStatus._INTERNAL_SERVER_ERROR));
+
+                // when & then
+                mockMvc.perform(get("/api/v1/aiarticle/category/{categoryId}", 1L)
+                                .param("cursor", "0")
+                                .param("limit", "10")
+                                .contentType(MediaType.APPLICATION_JSON))
+                        .andExpect(status().isInternalServerError())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
                         .andDo(print());
             }
         }

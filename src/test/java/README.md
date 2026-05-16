@@ -442,15 +442,15 @@ class FolderServiceTest {
 | 전체 API 흐름 검증 (DB 포함) | 통합 테스트 | `@SpringBootTest` + `@Import(TestSecurityConfig.class)` + `authFor()` |
 | 컨트롤러 응답 포맷/라우팅 검증 | 슬라이스 테스트 | `@WebMvcTest` + `@WithCustomUser` |
 | 비즈니스 로직 단독 검증 | 단위 테스트 | `@ExtendWith(MockitoExtension.class)` |
-| 인증 없이 테스트 (관리자 제외) | 슬라이스/통합 | `@WithCustomUser(role = Role.MANAGER)` |
+| 개발자 권한으로 테스트 (`ADMIN`) | 슬라이스/통합 | `@WithCustomUser(role = Role.ADMIN)` |
+| 관리자 인증 주입 (`MANAGER` 권한으로 테스트) | 슬라이스/통합 | `@WithCustomUser(role = Role.MANAGER)` |
 
 ### 인증 주입 방법 비교
 
 | 방법 | 사용 상황 | 코드 |
 |------|----------|------|
-| `@WithCustomUser` | `@WebMvcTest` + 메서드/클래스 레벨 어노테이션 | `@WithCustomUser(userId = 1L)` |
+| `@WithCustomUser` | `@WebMvcTest` 또는 `@SpringBootTest`에서 메서드/클래스 레벨 인증 주입 | `@WithCustomUser(userId = 1L)` |
 | `authentication()` PostProcessor | `@SpringBootTest` + 실제 Users 엔티티 필요 시 | `.with(authentication(authFor(user)))` |
-
 ### `application-test.yml` 활용
 
 각 테스트 클래스에서 `@TestPropertySource`로 중복 선언하는 대신, `application-test.yml`을 공통으로 사용합니다.

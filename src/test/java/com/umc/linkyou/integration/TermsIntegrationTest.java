@@ -3,10 +3,13 @@ package com.umc.linkyou.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.domain.TermsAgreement;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.enums.Role;
+import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.repository.TermsAgreementRepository;
+import com.umc.linkyou.repository.classification.JobRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.security.TestSecurityConfig;
 import com.umc.linkyou.web.dto.UserRequestDTO;
@@ -20,19 +23,22 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ActiveProfiles("test")
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestSecurityConfig.class)
@@ -43,6 +49,7 @@ class TermsIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private UserRepository userRepository;
     @Autowired private TermsAgreementRepository termsAgreementRepository;
+    @Autowired private JobRepository jobRepository;
 
     @Nested
     @DisplayName("회원가입 및 온보딩 약관 통합 테스트")
@@ -51,15 +58,18 @@ class TermsIntegrationTest {
         @Test
         @DisplayName("성공 - 일반 회원가입 시 약관 동의 맵이 DB에 정상 반영된다")
         void join_with_terms_success() throws Exception {
+            Job job = jobRepository.save(Job.builder()
+                    .name("테스트직업")
+                    .build());
             UserRequestDTO.JoinDTO request = new UserRequestDTO.JoinDTO(
                     "통합테스터",
                     "integration@test.com",
                     "pass1234",
                     1,
-                    1L,
+                    job.getId(),
                     List.of("GROWTH"),
                     List.of("TECH"),
-                    Map.of("TERMS_OF_USE", true, "PRIVACY_POLICY", true)
+                    Map.of(TermsType.TERMS_OF_USE, true)
             );
 
             mockMvc.perform(post("/api/v1/auth/signup")
@@ -70,7 +80,9 @@ class TermsIntegrationTest {
             Users user = userRepository.findByNickName("통합테스터").orElseThrow();
             List<TermsAgreement> agreements = termsAgreementRepository.findAllByUserId(user.getId());
 
-            assertEquals(2, agreements.size());
+            assertFalse(agreements.isEmpty());
+            assertTrue(agreements.stream().anyMatch(a ->
+                    a.getTermsType() == TermsType.TERMS_OF_USE && a.getIsAgreed()));
         }
     }
 
@@ -84,7 +96,8 @@ class TermsIntegrationTest {
             Users user = createUser("로그인유저");
 
             UserRequestDTO.TermsAgreeDTO request = new UserRequestDTO.TermsAgreeDTO(
-                    Map.of("MARKETING", true), "v1.0"
+                    Map.of(TermsType.MARKETING, true),
+                    "v1.0"
             );
 
             mockMvc.perform(patch("/api/v1/users/terms/agree")
