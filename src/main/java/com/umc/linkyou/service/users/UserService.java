@@ -35,6 +35,7 @@ import com.umc.linkyou.repository.classification.PurposeRepository;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import io.jsonwebtoken.Claims;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -79,51 +80,54 @@ public class UserService {
     private final AuthAccountRepository authAccountRepository;
 
     private final AlarmSettingRepository alarmSettingRepository;
+    private final TermsAgreementService termsAgreementService;
+
+    @Value("${jwt.hmac-secret}")
+    private String hmacSecret;
 
 
     @Transactional
     public Users joinUser(UserRequestDTO.JoinDTO request) {
-
-        log.info("=== gender 확인: {} ==={}", request.getGender(), request);
         // 1. 닉네임 중복 체크
-        validateNickNameNotDuplicate(request.getNickName());
+        validateNickNameNotDuplicate(request.nickName());
 
         // 2. 현재 시도하는 경로(GENERAL)로 이미 가입된 계정이 있는지 체크
-        if (authAccountRepository.existsByProviderAndExternalId(Provider.GENERAL, request.getEmail())) {
+        if (authAccountRepository.existsByProviderAndExternalId(Provider.GENERAL, request.email())) {
             throw new UserHandler(UserErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
 
         // 3. 기존 유저 통합 로직: 이메일로 가입된 다른 소셜 계정이 있는지 확인
-        Users user = authAccountRepository.findUserByEmailAndProvider(request.getEmail(), Provider.GENERAL)
+        Users user = authAccountRepository.findUserByEmailAndProvider(request.email(), Provider.GENERAL)
                 .orElseGet(() -> {
                     // 3-1. 기존 유저가 아예 없으면 새로 생성
-                    Job job = jobRepository.findById(request.getJobId())
+                    Job job = jobRepository.findById(request.jobId())
                             .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
 
                     Users newUser = UserConverter.toUser(request, job);
                     // 일반 로그인용 비밀번호 인코딩
-                    newUser.encodePassword(passwordEncoder.encode(request.getPassword()));
+                    newUser.encodePassword(passwordEncoder.encode(request.password()));
 
                     // Purposes / Interests 설정
-                    UserConverter.setupUserPurposes(newUser, request.getPurposeList());
-                    UserConverter.setupUserInterests(newUser, request.getInterestList());
+                    UserConverter.setupUserPurposes(newUser, request.purposeList());
+                    UserConverter.setupUserInterests(newUser, request.interestList());
 
                     Users savedUser = userRepository.save(newUser);
+                    termsAgreementService.upsertTerms(savedUser, request.termsMap());
                     setupUserAlarmSetting(savedUser);
                     return savedUser;
                 });
 
         // 4. 기존 유저가 소셜 유저였다면, 일반 로그인용 비밀번호가 없을 수 있으므로 업데이트
         if (user.getPassword() == null || user.getPassword().startsWith("social_")) {
-            user.encodePassword(passwordEncoder.encode(request.getPassword()));
+            user.encodePassword(passwordEncoder.encode(request.password()));
         }
 
         // 5. 일반(GENERAL) 가입 정보(AuthAccount) 저장
         authAccountRepository.save(AuthAccount.builder()
                 .user(user)
                 .provider(Provider.GENERAL)
-                .externalId(request.getEmail())
-                .email(request.getEmail())
+                .externalId(request.email())
+                .email(request.email())
                 .build());
 
         // 6. 상태 업데이트 및 초기 폴더 설정
@@ -200,6 +204,8 @@ public class UserService {
         // Purposes / Interests 설정
         UserConverter.setupUserPurposes(user, request.getPurposeList());
         UserConverter.setupUserInterests(user, request.getInterestList());
+
+        termsAgreementService.upsertTerms(user, request.getTermsMap());
 
         // 알림 설정
         setupUserAlarmSetting(user);

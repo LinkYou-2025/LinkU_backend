@@ -54,17 +54,16 @@ public class UserController implements UserApi {
     }
 
     @Override
-    public ApiResponse<UserResponseDTO.TermsStatusDTO> termsAgreeBatch(@CurrentUser CustomUserDetails userDetails, UserRequestDTO.TermsAgreeDTO request) {
-        return ApiResponse.onSuccess(UserSuccessStatus.TERMS_BATCH_OK, termsAgreementService.termsAgreeBatch(request, userDetails.getUserId()));
-    }
+    public ApiResponse<UserResponseDTO.TermsStatusDTO> updateTermsAgree(
+            @CurrentUser CustomUserDetails userDetails,
+            UserRequestDTO.TermsAgreeDTO request) {
 
-    @Override
-    public ApiResponse<UserResponseDTO.TermsStatusDTO> updateTermsAgree(@CurrentUser CustomUserDetails userDetails, UserRequestDTO.SingleTermUpdateDTO request) {
-        return ApiResponse.onSuccess(UserSuccessStatus.TERMS_UPDATE_OK, termsAgreementService.updateTermsAgree(userDetails.getUserId(), request.getTermsType(), request.getIsAgreed()));
+        return ApiResponse.onSuccess(termsAgreementService.updateTermsAgree(userDetails, request));
     }
 
     @Override
     public ApiResponse<UserResponseDTO.TermsStatusDTO> getTermsStatus(@CurrentUser CustomUserDetails userDetails) {
-        return ApiResponse.onSuccess(UserSuccessStatus.TERMS_STATUS_OK, termsAgreementService.getTermsStatus(userDetails.getUserId()));
+        return ApiResponse.onSuccess(termsAgreementService.getTermsStatus(userDetails));
     }
+
 }

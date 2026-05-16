@@ -16,22 +16,23 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+
+@ActiveProfiles("test")
 @SpringBootTest(properties = "spring.sql.init.mode=never")
 @DisplayName("Gemini AI 통합 테스트")
 class GeminiAiIntegrationTest {
 
     @Autowired GeminiLinkuService geminiLinkuService;
-    @Autowired GeminiCurationService geminiCurationService; // [수정] 리팩토링된 서비스
+    @Autowired GeminiCurationService geminiCurationService;
     @Autowired CurationServiceImpl curationService;
 
-    @Autowired SituationRepository situationRepository;
-    @Autowired EmotionRepository emotionRepository;
     @Autowired CategoryRepository categoryRepository;
     @Autowired CurationRepository curationRepository;
 

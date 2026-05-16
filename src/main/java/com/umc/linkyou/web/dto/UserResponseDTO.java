@@ -2,6 +2,7 @@ package com.umc.linkyou.web.dto;
 
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.enums.Gender;
+import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.domain.enums.UserStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
@@ -116,7 +117,7 @@ public class UserResponseDTO {
 
         @Schema(description = "약관별 동의 상태 맵",
                 example = "{\"TERMS_OF_USE\":true,\"MARKETING\":true,\"PRIVACY_POLICY\":false}")
-        private Map<String, Boolean> termsStatus;
+        private Map<TermsType, Boolean> termsStatus;
 
         @Schema(description = "필수 약관 모두 동의했는지 여부", example = "true")
         private boolean allRequiredAgreed;

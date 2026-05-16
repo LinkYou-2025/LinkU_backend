@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.users;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.converter.TermsConverter;
 import com.umc.linkyou.domain.TermsAgreement;
@@ -12,6 +13,7 @@ import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import com.umc.linkyou.jwt.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,70 +31,54 @@ public class TermsAgreementService {
 
     private final TermsAgreementRepository termsAgreementRepository;
     private final UserRepository userRepository;
+    private final UserStatusValidator userStatusValidator;
 
+    /**
+     * DTO로 전달받은 약관 리스트를 일괄적으로 처리 (Update or Insert)
+     */
+    // 1. Controller에서 호출하는 용도 (userDetails 기반)
     @Transactional
-    public UserResponseDTO.TermsStatusDTO termsAgreeBatch(@Valid UserRequestDTO.TermsAgreeDTO request, Long userId) {
-        Users user = loadActiveUser(userId);
+    public UserResponseDTO.TermsStatusDTO updateTermsAgree(CustomUserDetails userDetails, UserRequestDTO.TermsAgreeDTO request) {
+        Users user = userRepository.findById(userDetails.getUserId()) // userDetails.getUserId() 직접 호출
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
-        Map<TermsType, TermsAgreement> existingMap = termsAgreementRepository.findByUserId(user.getId())
-                .stream()
+        userStatusValidator.validateLoginAllowed(user); // UserStatusValidator 활용
+
+        upsertTerms(user, request.termsMap());
+
+        List<TermsAgreement> updatedList = termsAgreementRepository.findAllByUserId(user.getId());
+        return TermsConverter.toTermsStatusDTO(user.getId(), updatedList);
+    }
+
+    /**
+     * 약관 Upsert 로직
+     */
+    public void upsertTerms(Users user, Map<TermsType, Boolean> termsMap) {
+        if (termsMap == null || termsMap.isEmpty()) {
+            throw new GeneralException(UserErrorStatus.INVALID_TERMS_TYPE);
+        }
+
+        Map<TermsType, TermsAgreement> existingMap = termsAgreementRepository.findAllByUserId(user.getId()).stream()
                 .collect(Collectors.toMap(
                         TermsAgreement::getTermsType,
                         Function.identity(),
-                        (a, b) -> a,
+                        (existing, replacement) -> replacement,
                         LinkedHashMap::new
                 ));
 
-        List<TermsAgreement> toSave = TermsConverter.toTermsAgreements(user, request)
-                .stream()
-                .map(incoming -> {
-                    TermsAgreement existing = existingMap.get(incoming.getTermsType());
-                    if (existing != null) {
-                        TermsConverter.updateAgreement(existing, incoming.getIsAgreed());
-                        return existing;
-                    }
-                    return incoming;
-                }).toList();
-        termsAgreementRepository.saveAll(toSave);
-
-        List<TermsAgreement> saved = termsAgreementRepository.findByUserId(user.getId());
-        return TermsConverter.toTermsStatusDTO(user.getId(), saved);
+        termsMap.forEach((termsType, isAgreed) -> {
+            if (existingMap.containsKey(termsType)) {
+                TermsConverter.updateAgreement(existingMap.get(termsType), isAgreed);
+            } else {
+                termsAgreementRepository.save(TermsConverter.toSingleTermAgreement(user, termsType, isAgreed));
+            }
+        });
     }
-
-    @Transactional
-    public UserResponseDTO.TermsStatusDTO updateTermsAgree(Long userId, @NotNull String termsTypeStr, Boolean isAgreed) {
-        Users user = loadActiveUser(userId);
-        TermsType termsType = TermsType.fromString(termsTypeStr);
-
-        Optional<TermsAgreement> existing = termsAgreementRepository.findByUserIdAndTermsType(user.getId(), termsType);
-
-        TermsAgreement agreement;
-        if (existing.isPresent()) {
-            agreement = existing.get();
-            TermsConverter.updateAgreement(agreement, isAgreed);
-        } else {
-            agreement = TermsConverter.toSingleTermAgreement(user, termsTypeStr, isAgreed);
-        }
-        termsAgreementRepository.save(agreement);
-
-        List<TermsAgreement> updated = termsAgreementRepository.findByUserId(user.getId());
-        return TermsConverter.toTermsStatusDTO(user.getId(), updated);
-    }
-
+    // GET /terms/status - 약관 상태 조회
     @Transactional(readOnly = true)
-    public UserResponseDTO.TermsStatusDTO getTermsStatus(Long userId) {
-        Users user = loadActiveUser(userId);
-        List<TermsAgreement> agreements = termsAgreementRepository.findByUserId(user.getId());
-        return TermsConverter.toTermsStatusDTO(user.getId(), agreements);
-    }
-
-    private Users loadActiveUser(Long userId) {
-        return userRepository.findNotInactiveUserById(userId)
-                .orElseThrow(() -> {
-                    if (!userRepository.existsById(userId)) {
-                        return new UserHandler(UserErrorStatus._USER_NOT_FOUND);
-                    }
-                    return new UserHandler(UserErrorStatus._USER_INACTIVE);
-                });
+    public UserResponseDTO.TermsStatusDTO getTermsStatus(CustomUserDetails userDetails) {
+        // userDetails.getUserId()를 사용하여 단순 조회
+        List<TermsAgreement> agreements = termsAgreementRepository.findAllByUserId(userDetails.getUserId());
+        return TermsConverter.toTermsStatusDTO(userDetails.getUserId(), agreements);
     }
 }
