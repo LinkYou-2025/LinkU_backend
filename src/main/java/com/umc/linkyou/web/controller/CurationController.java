@@ -4,6 +4,8 @@ import com.umc.linkyou.config.security.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.service.curation.CurationLikeService;
 import com.umc.linkyou.service.curation.CurationService;
 import com.umc.linkyou.service.curation.linku.CurationRecommendBuilderService;
 import com.umc.linkyou.web.dto.curation.*;
@@ -33,7 +35,7 @@ public class CurationController {
     @PostMapping("/batch/manual")
     public ResponseEntity<ApiResponse<Void>> triggerBatch() {
         curationService.generateMonthlyCurationForAllUsers();
-        return ResponseEntity.ok(ApiResponse.onSuccess(null));
+        return ResponseEntity.ok(ApiResponse.onSuccess(SuccessStatus._OK));
     }
 
     // TODO 관리자 api로 수정 필요
@@ -47,7 +49,7 @@ public class CurationController {
             @RequestParam String month
     ) {
         curationService.generateCurationForUser(userId, month);
-        return ResponseEntity.ok(ApiResponse.onSuccess(null));
+        return ResponseEntity.ok(ApiResponse.onSuccess(SuccessStatus._OK));
     }
 
     // 월별 섹션 정보 조회 (제목, 설명, 대표 이미지)

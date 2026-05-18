@@ -38,9 +38,18 @@ public class AiArticleController {
 
         AiArticleResponsetDTO.AiArticleResultDTO result =
                 aiArticleService.saveOrGetAiArticle(linkuId, userId);
-
-        return ApiResponse.of(SuccessStatus._OK, result); // 상태는 서비스 단에서 조정하지 않고 항상 OK로 반환
+        return ApiResponse.onSuccess(AiArticleSuccessStatus.AI_ARTICLE_OK, result);
     }
 
-
+    @Override
+    public ApiResponse<LinkuResponseDTO.LinkuSliceResultDTO> getMyAiArticlesByCategory(
+            @PathVariable("categoryId") Long categoryId,
+            @RequestParam(name = "cursor", required = false) Long cursor,
+            @RequestParam(name = "limit", defaultValue = "10") int limit,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUserId();
+        LinkuResponseDTO.LinkuSliceResultDTO result = aiArticleService.getMyAiArticlesByCategory(userId, categoryId, cursor, limit);
+        return ApiResponse.onSuccess(AiArticleSuccessStatus.AI_ARTICLE_LIST_OK, result);
+    }
 }

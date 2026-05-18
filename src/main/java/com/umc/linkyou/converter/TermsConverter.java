@@ -3,7 +3,6 @@ package com.umc.linkyou.converter;
 import com.umc.linkyou.domain.TermsAgreement;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.TermsType;
-import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -16,70 +15,67 @@ import java.util.stream.Collectors;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class TermsConverter {
+
     public static final String CURRENT_TERMS_VERSION = "v1.0";
-    //List<TermsAgreement> ->  Map<String, Boolean> 변환; key value형태로 변환해서 반환
-    public static Map<String, Boolean> toTermsStatusMap(List<TermsAgreement> agreements) {
-        return agreements.stream() //순서대로 계산
-                .collect(Collectors.toMap(
-                        agreement -> agreement.getTermsType().name(), //Key: "TERMS_OF_USE"
-                        TermsAgreement::getIsAgreed,  // Value: true/false
-                        (existing, replacement)->replacement, //이미 같은 TermsType으로 row가 있으면 최신값으로 변경
-                        LinkedHashMap::new
-                ));  // result: {"TERMS_OF_USE":true, "MARKETING":false}
-    }
-    //TermsStatus response 전체 빌드
+
+    /**
+     * 전체 약관 상태 응답 DTO 생성
+     */
     public static UserResponseDTO.TermsStatusDTO toTermsStatusDTO(Long userId, List<TermsAgreement> agreements) {
-        Map<String, Boolean> termsStatus = toTermsStatusMap(agreements);
+        // 1. 약관 타입별 동의 여부 Map 생성 (순서 보장)
+        Map<TermsType, Boolean> termsStatusMap = agreements.stream()
+                .collect(Collectors.toMap(
+                        TermsAgreement::getTermsType,
+                        TermsAgreement::getIsAgreed,
+                        (existing, replacement) -> replacement,
+                        LinkedHashMap::new
+                ));
+
+        // 2. 필수 약관 리스트 필터링
         List<TermsAgreement> requiredList = agreements.stream()
                 .filter(TermsAgreement::getIsRequired)
                 .toList();
+
+        // 3. 필수 약관이 존재하고, 모두 동의(true)했는지 확인
         boolean allRequiredAgreed = !requiredList.isEmpty()
                 && requiredList.stream().allMatch(TermsAgreement::getIsAgreed);
+
         return UserResponseDTO.TermsStatusDTO.builder()
                 .userId(userId)
-                .termsStatus(termsStatus)
-                .allRequiredAgreed(allRequiredAgreed) //필수 완료 여부
+                .termsStatus(termsStatusMap)
+                .allRequiredAgreed(allRequiredAgreed)
                 .build();
     }
 
-    // 전체 동의여부 TermsAgreeDTO  → List<TermsAgreement> 변환
-    public static List<TermsAgreement> toTermsAgreements(Users user, UserRequestDTO.TermsAgreeDTO request) {
-        return request.getTermsTypes().stream()
-                .map(termsTypeStr -> {
-                    TermsType termsType = TermsType.fromString(termsTypeStr);
-                    return TermsAgreement.builder()
-                            .user(user)
-                            .termsType(termsType)
-                            .isRequired(TermsConverter.isRequiredTerms(termsType))
-                            .termsVersion(request.getTermsVersion())
-                            .agreedAt(LocalDateTime.now())
-                            .isAgreed(true)
-                            .build();
-                })
-                .toList();
+    /**
+     * 신규 약관 동의 객체 생성 (Insert용)
+     */
+    public static TermsAgreement toSingleTermAgreement(Users user, TermsType termsType, boolean isAgreed) {
+        return TermsAgreement.builder()
+                .user(user)
+                .termsType(termsType)
+                .isRequired(isRequiredTerms(termsType))
+                .termsVersion(CURRENT_TERMS_VERSION)
+                .agreedAt(LocalDateTime.now())
+                .isAgreed(isAgreed)
+                .build();
     }
 
-    // 개별 약관 상태 확인
+    /**
+     * 기존 약관 동의 객체 업데이트 (Update용)
+     */
+    public static void updateAgreement(TermsAgreement agreement, boolean isAgreed) {
+        agreement.setIsAgreed(isAgreed);
+        agreement.setAgreedAt(LocalDateTime.now());
+    }
+
+    /**
+     * 약관 타입별 필수 여부 판단 (비즈니스 로직)
+     */
     private static boolean isRequiredTerms(TermsType termsType) {
         return switch (termsType) {
             case TERMS_OF_USE, PRIVACY_POLICY -> true;
             case MARKETING -> false;
         };
-    }
-    public static TermsAgreement toSingleTermAgreement(Users user, String termsTypeStr, boolean isAgreed) {
-        TermsType termsType = TermsType.fromString(termsTypeStr);
-        return TermsAgreement.builder()
-                .user(user)
-                .termsType(termsType)
-                .isRequired(isRequiredTerms(termsType))
-                .termsVersion(CURRENT_TERMS_VERSION)  // 기본 버전
-                .agreedAt(LocalDateTime.now())
-                .isAgreed(isAgreed)
-                .build();
-    }
-    //기존 레코드 업데이트
-    public static void updateAgreement(TermsAgreement agreement, boolean isAgreed) {
-        agreement.setIsAgreed(isAgreed);
-        agreement.setAgreedAt(LocalDateTime.now());
     }
 }

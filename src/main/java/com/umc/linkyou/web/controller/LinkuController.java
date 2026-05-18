@@ -1,16 +1,13 @@
 package com.umc.linkyou.web.controller;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
-import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
-import com.umc.linkyou.config.security.jwt.CustomUserDetails;
+import com.umc.linkyou.apiPayload.code.status.linku.LinkuSuccessStatus;
+import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.service.Linku.LinkuCreateService;
 import com.umc.linkyou.service.Linku.LinkuRecommendService;
 import com.umc.linkyou.service.Linku.LinkuSearchService;
 import com.umc.linkyou.service.Linku.LinkuService;
-import com.umc.linkyou.utils.UsersUtils;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
@@ -18,10 +15,8 @@ import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.umc.linkyou.jwt.CurrentUser;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,7 +33,6 @@ public class LinkuController {
     private final LinkuCreateService linkuCreateService;
     private final LinkuSearchService linkuSearchService;
     private final LinkuRecommendService linkuRecommendService;
-    private final UsersUtils usersUtils;
 
     @Operation(
             summary = "링크 생성",
@@ -46,22 +40,22 @@ public class LinkuController {
     )
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<LinkuResponseDTO.LinkuResultDTO> createLinku(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser CustomUserDetails userDetails,
             @RequestParam String linku,
             @RequestParam(required = false) String memo,
             @RequestParam(required = false) Long emotionId,
             @RequestParam(required = false) MultipartFile image
     ) {
-        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        Long userId = userDetails.getUserId();
         LinkuRequestDTO.LinkuCreateDTO linkuCreateDTO =
                 LinkuConverter.toLinkuCreateDTO(linku, memo, emotionId);
 
         LinkuResponseDTO.LinkuCreateResult serviceResult = linkuCreateService.createLinku(userId, linkuCreateDTO, image);
 
         if (serviceResult.isValidUrl()) {
-            return ApiResponse.of(SuccessStatus._OK, serviceResult.getData());
+            return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_CREATED, serviceResult.getData());
         } else {
-            return ApiResponse.of(SuccessStatus._LINKU_SUS_URL, serviceResult.getData());
+            return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_SUSPICIOUS_URL, serviceResult.getData());
         }
     }//linku 생성
 
@@ -71,10 +65,10 @@ public class LinkuController {
     )
     @GetMapping("/exist")
     public ApiResponse<LinkuResponseDTO.LinkuIsExistDTO> existLinku(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser CustomUserDetails userDetails,
             @RequestParam String url
     ){
-        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        Long userId = userDetails.getUserId();
         return linkuService.existLinku(userId, url);
     }//linku 존재여부 확인
 
@@ -84,10 +78,10 @@ public class LinkuController {
     )
     @GetMapping("/{linkuid}")
     public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser CustomUserDetails userDetails,
             @PathVariable("linkuid") Long linkuid
     ){
-        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        Long userId = userDetails.getUserId();
         return linkuService.detailGetLinku(userId, linkuid);
     } //linku 상세보기
 
@@ -108,11 +102,11 @@ public class LinkuController {
     )
     @GetMapping("/recent")
     public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getRecentViewedLinkus(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser CustomUserDetails userDetails,
             @RequestParam(defaultValue = "10") int limit) {
-        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        Long userId = userDetails.getUserId();
         List<LinkuResponseDTO.LinkuSimpleDTO> result = linkuService.getRecentViewedLinkus(userId, limit);
-        return ApiResponse.onSuccess("최근 열람한 링크를 가져왔습니다.",result);
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_RECENT_OK, result);
     } //최근 열람한 링크 보기
 
     @Operation(
@@ -121,13 +115,13 @@ public class LinkuController {
     )
     @PatchMapping(value = "/{linkuId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long linkuId,
             @RequestBody LinkuRequestDTO.LinkuUpdateDTO updateDTO
     ) {
-        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        Long userId = userDetails.getUserId();
         LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(userId, linkuId, updateDTO);
-        return ApiResponse.onSuccess("링크 수정에 성공했습니다.",result);
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_UPDATED, result);
     } //링큐 수정하기
 
     @Operation(
@@ -136,13 +130,13 @@ public class LinkuController {
     )
     @GetMapping("/recommend")
     public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser CustomUserDetails userDetails,
             @RequestParam Long situationId,
             @RequestParam Long emotionId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size
     ) {
-        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        Long userId = userDetails.getUserId();
         return linkuRecommendService.recommendLinku(userId, situationId, emotionId, page, size);
     }//linku 추천 내부로
 
@@ -153,12 +147,12 @@ public class LinkuController {
     )
     @GetMapping("/search/quick")
     public ApiResponse<List<LinkuSearchSuggestionResponse>> quickSearch(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @CurrentUser CustomUserDetails userDetails,
             @RequestParam String keyword
     ) {
-        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        Long userId = userDetails.getUserId();
         List<LinkuSearchSuggestionResponse> result = linkuSearchService.suggest(userId, keyword);
-        return ApiResponse.onSuccess(result);
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_SEARCH_OK, result);
     }
 
     @Operation(
@@ -166,13 +160,13 @@ public class LinkuController {
             description = "사용자가 저장한 링크를 삭제합니다."
     )
     @DeleteMapping("/{userLinkuId}")
-    public ApiResponse<Void> deleteUsersLinku(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+    public ApiResponse<Object> deleteUsersLinku(
+            @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long userLinkuId
     ) {
-        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        Long userId = userDetails.getUserId();
         linkuService.deleteUsersLinku(userId, userLinkuId);
-        return ApiResponse.<Void>onSuccess("링크 삭제에 성공했습니다.", null);
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_DELETED);
 
     }
 

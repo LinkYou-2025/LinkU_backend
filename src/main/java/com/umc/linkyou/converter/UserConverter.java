@@ -1,9 +1,12 @@
 package com.umc.linkyou.converter;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.classification.Interests;
 import com.umc.linkyou.domain.classification.Job;
+import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.web.dto.UserRequestDTO;
@@ -15,22 +18,12 @@ import java.util.List;
 
 @Slf4j
 public class UserConverter {
+
+    // 기존 toUser는 joinUser에서 사용
     public static Users toUser(UserRequestDTO.JoinDTO request, Job job){
-        log.info("toUser gender input: {}", request.getGender());
-
-        Integer genderInt = request.getGender();
-        if (genderInt == null || (genderInt != 1 && genderInt != 2)) {
-            log.error("Invalid gender: {}", genderInt);
-            throw new GeneralException(ErrorStatus._INVALID_GENDER);
-        }
-
-        // 2. 🔥 올바른 변환
-        Gender gender = genderInt == 1 ? Gender.MALE : Gender.FEMALE;
-        log.info("Converted gender: {}", gender);
         return Users.builder()
-                .nickName(request.getNickName())
-                .password(request.getPassword())
-                .gender(gender)
+                .nickName(request.nickName())
+                .gender(toGender(request.gender()))
                 .job(job)
                 .status(UserStatus.ACTIVE)
                 .build();
@@ -58,7 +51,8 @@ public class UserConverter {
             UserResponseDTO.UserProfileSummaryDto s,
             String email,
             List<String> purposes,
-            List<String> interests
+            List<String> interests,
+            String loginProvider
     ) {
         return UserResponseDTO.UserProfileSummaryDto.builder()
                 .nickName(s.getNickName())
@@ -70,6 +64,7 @@ public class UserConverter {
                 .myAiLinku(s.getMyAiLinku())
                 .purposes(purposes)
                 .interests(interests)
+                .loginProvider(loginProvider)
                 .build();
     }
 
@@ -85,4 +80,39 @@ public class UserConverter {
     }
 
 
+    /* 공통 메서드 */
+    // 성별 변환 로직 공통 메서드
+    public static Gender toGender(Integer genderCode) {
+        if (genderCode == null || (genderCode != 1 && genderCode != 2)) {
+            throw new GeneralException(UserErrorStatus._INVALID_GENDER);
+        }
+        return (genderCode == 1) ? Gender.MALE : Gender.FEMALE;
+    }
+
+
+
+    public static void setupUserPurposes(Users user, List<String> purposeNames) {
+        if (purposeNames == null) return;
+        if (user.getPurposes() != null) {
+            user.getPurposes().clear();
+        }
+        if (!purposeNames.isEmpty()) {
+            purposeNames.stream()
+                    .map(name -> new Purposes(name, user))
+                    .forEach(purpose -> user.getPurposes().add(purpose));
+        }
+    }
+
+    // 엔티티의 초기 Interests 설정
+    public static void setupUserInterests(Users user, List<String> interestNames) {
+        if (interestNames == null) return;
+        if (user.getInterests() != null) {
+            user.getInterests().clear();
+        }
+        if (!interestNames.isEmpty()) {
+            interestNames.stream()
+                    .map(name -> new Interests(name, user))
+                    .forEach(interest -> user.getInterests().add(interest));
+        }
+    }
 }

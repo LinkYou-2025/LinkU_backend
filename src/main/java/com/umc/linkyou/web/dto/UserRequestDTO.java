@@ -1,69 +1,60 @@
 package com.umc.linkyou.web.dto;
 
-import com.umc.linkyou.domain.classification.Interests;
-import com.umc.linkyou.domain.classification.Purposes;
-import com.umc.linkyou.domain.enums.Interest;
-import com.umc.linkyou.domain.enums.Purpose;
+import com.umc.linkyou.domain.enums.DeviceType;
+import com.umc.linkyou.domain.enums.TermsType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.List;
+import java.util.Map;
 
 public class UserRequestDTO {
 
-    @Getter
-    @Setter
-    public static class JoinDTO {
+    @Builder // 테스트 코드에서 편리하게 생성하기 위해 추가
+    public record JoinDTO(
+            @Schema(example = "별명") @NotBlank String nickName,
+            @Schema(example = "example@gmail.com") @NotBlank @Email String email,
+            @Schema(example = "zaq123") @NotBlank String password,
+            @Schema(example = "1") @NotNull Integer gender,
+            @Schema(example = "1") @NotNull Long jobId,
+            @Schema(example = "[\"CAREER\", \"STUDY\"]") @NotEmpty(message = "목적 리스트는 최소 1개 이상 선택해야 합니다") List<String> purposeList,
+            @Schema(example = "[\"IT\", \"DESIGN\"]") @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다") List<String> interestList,
+            @Schema(description = "약관 동의 맵", example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}")  Map<TermsType, Boolean> termsMap
+    ) {}
 
-        @Schema(example = "별명")
-        @NotBlank
-        String nickName;
+    public record LoginRequestDTO(
+            @Schema(example = "example@gmail.com")
+            @NotBlank(message = "이메일은 필수입니다.")
+            @Email(message = "올바른 이메일 형식이어야 합니다.")
+            String email,
 
-        @Schema(example = "example@gmail.com")
-        @NotBlank
-        @Email
-        String email;
+            @Schema(example = "zaq123")
+            @NotBlank(message = "패스워드는 필수입니다.")
+            String password,
 
-        @Schema(example = "zaq123")
-        @NotBlank
-        String password;
+            @Schema(example = "ios-iphone-16-pro")
+            @NotBlank(message = "deviceId는 필수입니다.")
+            String deviceId,
 
-        @Schema(example = "1")
-        @NotNull
-        Integer gender;
-
-        @Schema(example = "1")
-        @NotNull
-        Long jobId;
-
-        @Schema(example = "[\"CAREER\", \"STUDY\"]")
-        @NotEmpty(message = "목적 리스트는 최소 1개 이상 선택해야 합니다")
-        List<String> purposeList;
-
-        @Schema(example = "[\"IT\", \"DESIGN\"]")
-        @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다")
-        List<String> interestList;
+            @Schema(example = "PHONE")
+            @NotNull(message = "deviceType은 필수입니다.")
+            DeviceType deviceType
+    ) {
     }
 
-    @Getter
-    @Setter
-    public static class LoginRequestDTO {
-        @Schema(example = "example@gmail.com")
-        @NotBlank(message = "이메일은 필수입니다.")
-        @Email(message = "올바른 이메일 형식이어야 합니다.")
-        private String email;
+    public record TokenReissueRequestDTO(
+            @Schema(example = "jwt_refresh_token")
+            @NotBlank(message = "리프레시 토큰은 필수입니다.")
+            String refreshToken,
 
-        @Schema(example = "zaq123")
-        @NotBlank(message = "패스워드는 필수입니다.")
-        private String password;
-
+            @Schema(example = "ios-iphone-16-pro")
+            @NotBlank(message = "deviceId는 필수입니다.")
+            String deviceId
+    ) {
     }
 
     @Getter
@@ -112,28 +103,32 @@ public class UserRequestDTO {
         @Schema(description = "관심사 리스트", example = "[\"IT\", \"DESIGN\"]")
         @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다")
         private List<String> interestList;
+
+        @Schema(description = "약관 동의 맵", example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}")
+        @NotEmpty(message = "약관 동의 정보는 필수입니다.")
+        private  Map<TermsType, Boolean> termsMap;
     }
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class TermsAgreeDTO {
-        @Schema(example = "[\"TERMS_OF_USE\", \"PRIVACY_POLICY\", \"MARKETING\"]")
-        @NotNull(message = "약관 동의 목록은 필수입니다")
-        private List<String> termsTypes;
+    /**
+     * 약관 일괄 동의/변경 처리 DTO
+     */
+    @Builder
+    public record TermsAgreeDTO(
+            @Schema(
+                    description = "변경할 약관 상태 맵 (Key: 약관타입, Value: 동의여부)",
+                    example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}",
+                    anyOf = {TermsType.class}
+            )
+            @NotEmpty(message = "변경할 약관 상태를 하나 이상 입력해주세요.")
+            Map<TermsType, Boolean> termsMap,
 
-        @Schema(example = "v1.0")
-        @NotNull(message = "약관 버전은 필수입니다")
-        private String termsVersion;
+            @Schema(description = "약관 버전", example = "v1.0")
+            String termsVersion
+    ) {
+        // 컴팩트 생성자를 사용하여 기본값 설정
+        public TermsAgreeDTO {
+            if (termsVersion == null) termsVersion = "v1.0";
+        }
     }
-    @Getter @Setter
-    public static class SingleTermUpdateDTO {
-        @Schema(example = "MARKETING")
-        @NotNull
-        private String termsType;
 
-        @Schema(example = "true")
-        private Boolean isAgreed;
-    }
 }
