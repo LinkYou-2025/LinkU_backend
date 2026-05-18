@@ -1,4 +1,4 @@
-package com.umc.linkyou.infra.ai;
+package com.umc.linkyou.infra.gemini;
 
 // Gemini 응답 JSON 추출 공통 유틸
 public final class GeminiJsonUtils {

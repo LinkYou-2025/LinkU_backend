@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SummaryAnalysisResultDTO {
+public class AiArticleResultDTO {
     private String title;
     private String summary;
     private Long situationId;
