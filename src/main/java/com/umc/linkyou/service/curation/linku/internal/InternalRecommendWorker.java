@@ -6,7 +6,6 @@ import com.umc.linkyou.domain.mapping.CurationLinku;
 import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.repository.curationRepository.CurationRepository;
 import com.umc.linkyou.repository.curationRepository.CurationLinkuRepository;
-import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,7 +31,7 @@ public class InternalRecommendWorker {
                 .orElseThrow(() -> new IllegalArgumentException("curation not found"));
         Long userId = curation.getUser().getId();
 
-        List<RecommendedLinkResponse> candidates = internalLinkCandidateService.getInternalCandidates(userId, curationId, 4);
+        List<InternalCandidateDTO> candidates = internalLinkCandidateService.getInternalCandidates(userId, curationId, 4);
 
         curationLinkuRepository.deleteAllByCurationIdAndType(curationId, CurationLinkuType.RECOMMENDED);
 

@@ -6,7 +6,7 @@ import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.infra.ai.dto.SummaryAnalysisResultDTO;
+import com.umc.linkyou.infra.ai.dto.AiArticleResultDTO;
 import com.umc.linkyou.web.dto.AiArticleResponsetDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class AiArticleConverter {
     // 엔티티 생성 메서드
-    public static AiArticle toEntity(SummaryAnalysisResultDTO result,
+    public static AiArticle toEntity(AiArticleResultDTO result,
                                      Situation selectedSituation,
                                      Emotion selectedEmotion,
                                      Category selectedCategory,

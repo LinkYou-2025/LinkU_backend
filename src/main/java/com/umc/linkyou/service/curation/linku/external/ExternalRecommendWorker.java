@@ -9,9 +9,9 @@ import com.umc.linkyou.repository.curationRepository.CurationRepository;
 import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.umc.linkyou.repository.curationRepository.CurationLinkuRepository;
-import com.umc.linkyou.infra.ai.gemini.GeminiExternalSearchService;
+import com.umc.linkyou.infra.ai.AiSearchService;
+import com.umc.linkyou.infra.ai.dto.ExternalLinkDTO;
 import com.umc.linkyou.service.common.EmotionTagMapper;
-import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -28,7 +28,7 @@ public class ExternalRecommendWorker {
     private final CurationRepository curationRepository;
     private final CurationLinkuRepository curationLinkuRepository;
     private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
-    private final GeminiExternalSearchService geminiExternalSearchService;
+    private final AiSearchService aiSearchService;
     private final LinkToImageService linkToImageService;
     private final EmotionTagMapper emotionTagMapper;
     private final SituationJobRepository situationJobRepository;
@@ -61,10 +61,10 @@ public class ExternalRecommendWorker {
         String gender  = user.getGender() != null ? user.getGender().name() : null;
 
         // Gemini
-        List<RecommendedLinkResponse> external;
+        List<ExternalLinkDTO> external;
         try {
             long t0 = System.currentTimeMillis();
-            external = geminiExternalSearchService.searchExternalLinks(
+            external = aiSearchService.searchExternalLinks(
                     topTags, externalLimit, jobName, gender
             );
             log.info("[Gemini] elapsed={}ms", System.currentTimeMillis() - t0);

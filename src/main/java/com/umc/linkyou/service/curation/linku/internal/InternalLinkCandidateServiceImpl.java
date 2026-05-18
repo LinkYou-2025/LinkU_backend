@@ -10,7 +10,6 @@ import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
 import com.umc.linkyou.service.Linku.SituationCategoryService;
 import com.umc.linkyou.utils.EmotionSimilarityUtil;
-import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.data.domain.PageRequest;
@@ -32,7 +31,7 @@ public class InternalLinkCandidateServiceImpl implements InternalLinkCandidateSe
     private final SituationCategoryService situationCategoryService;
 
     @Override
-    public List<RecommendedLinkResponse> getInternalCandidates(Long userId, Long curationId, int limit) {
+    public List<InternalCandidateDTO> getInternalCandidates(Long userId, Long curationId, int limit) {
         Curation curation = curationRepository.findById(curationId)
                 .orElseThrow(() -> new IllegalArgumentException("큐레이션 없음"));
 
@@ -99,16 +98,11 @@ public class InternalLinkCandidateServiceImpl implements InternalLinkCandidateSe
                 .limit(limit)
                 .toList();
 
-        // DTO 변환
         return finalLinks.stream()
-                .map(link -> RecommendedLinkResponse.builder()
-                        .userLinkuId(link.getUserLinkuId())
-                        .title(link.getLinku().getTitle())
-                        .url(link.getLinku().getLinku())
-                        .domain(link.getLinku().getDomain().getName())
-                        .domainImageUrl(link.getLinku().getDomain().getImageUrl())
-                        .build()
-                )
+                .map(link -> new InternalCandidateDTO(
+                        link.getLinku().getLinku(),
+                        link.getLinku().getTitle()
+                ))
                 .toList();
     }
 }
