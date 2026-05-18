@@ -25,20 +25,22 @@ public class CurationController {
     private final CurationService curationService;
     private final CurationRecommendBuilderService curationRecommendBuilderService;
 
-    // [관리용] 전체 유저 월간 큐레이션 즉시 생성
+    // TODO 관리자 api로 수정 필요
+    // 전체 유저 월간 큐레이션 즉시 생성
     @Operation(
             summary = "전체 유저 월간 큐레이션 생성",
-            description = "[관리용] 전월 기준으로 모든 유저의 큐레이션을 즉시 생성합니다.")
+            description = "전월 기준으로 모든 유저의 큐레이션을 즉시 생성합니다.")
     @PostMapping("/batch/manual")
     public ResponseEntity<ApiResponse<Void>> triggerBatch() {
         curationService.generateMonthlyCurationForAllUsers();
         return ResponseEntity.ok(ApiResponse.onSuccess(null));
     }
 
-    // [테스트용] 특정 유저·월 큐레이션 즉시 생성
+    // TODO 관리자 api로 수정 필요
+    // 특정 유저·월 큐레이션 즉시 생성
     @Operation(
             summary = "단일 유저 큐레이션 생성",
-            description = "[테스트용] userId와 month(YYYY-MM)를 지정해 큐레이션을 즉시 생성합니다.")
+            description = "userId와 month(YYYY-MM)를 지정해 큐레이션을 즉시 생성합니다.")
     @PostMapping("/batch/manual/test")
     public ResponseEntity<ApiResponse<Void>> triggerBatchForUser(
             @RequestParam Long userId,
