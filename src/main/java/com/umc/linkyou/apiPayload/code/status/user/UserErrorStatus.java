@@ -23,6 +23,7 @@ public enum UserErrorStatus implements BaseErrorCode {
     _USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USERS4041", "사용자를 찾을 수 없습니다."),
     _USER_INACTIVE(HttpStatus.NOT_FOUND, "USERS4042", "사용자가 INACTIVE 임시 회원탈퇴 상태입니다."),
     //409 Conflict
+    _JOB_NOT_SET(HttpStatus.BAD_REQUEST, "USERS4007", "직업이 설정되지 않은 사용자입니다."),
     _DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "USERS4091", "중복된 닉네임입니다."),
     _DUPLICATE_JOIN_REQUEST(HttpStatus.CONFLICT, "USERS4092", "중복된 이메일입니다."),
     // 인증 코드 전송실패
