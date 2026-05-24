@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -54,17 +54,17 @@ public class CurationMentWorker {
         String footer = null;
 
         try {
-            AiMentService.MentResult ment = aiMentService.generateMent(emotionName);
-            header = ment.header();
-            footer = ment.footer();
+            AiMentService.MentResult result = aiMentService.generateMent(emotionName);
+            header = result.header();
+            footer = result.footer();
         } catch (Exception e) {
-            log.warn("[Gemini 멘트 생성 실패] curationId={}, cause={}", curationId, e.getMessage());
+            log.warn("[AI 멘트 생성 실패] curationId={}, cause={}", curationId, e.getMessage());
         }
 
         if (header == null || footer == null) {
             List<CurationMent> mentList = curationMentRepository.findAllByEmotion_EmotionId(emotionId);
             if (!mentList.isEmpty()) {
-                CurationMent fallback = mentList.get(ThreadLocalRandom.current().nextInt(mentList.size()));
+                CurationMent fallback = mentList.get(new Random().nextInt(mentList.size()));
                 header = fallback.getHeaderText();
                 footer = fallback.getFooterText();
             }

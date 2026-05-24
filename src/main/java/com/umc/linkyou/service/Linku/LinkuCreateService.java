@@ -81,8 +81,11 @@ public class LinkuCreateService {
             // [Case 1] 기존 Linku가 존재하는 경우: AI 호출 생략
             linku = existingLinku.get();
             category = linku.getCategory();
+            // 기존 AiArticle이 있다면 해당 키워드를 사용, 없으면 null/기본값 처리
             aiKeywords = (linku.getAiArticle() != null) ? linku.getAiArticle().getKeyword() : "키워드 없음";
         } else {
+            // [경쟁 상태 방지 로직]
+            // AI 분류 및 도메인 결정 로직은 그대로 유지 (이미 생성된 데이터가 있더라도 분류 결과는 필요할 수 있음)
             CategoryResultDTO aiResult = geminiLinkuService.classifyCategoryByUrl(normalizedLink, categoryRepository.findAll());
             category = resolveCategory(aiResult != null ? aiResult.getCategoryId() : null);
             aiKeywords = (aiResult != null && aiResult.getKeywords() != null) ? aiResult.getKeywords() : "키워드 없음";
