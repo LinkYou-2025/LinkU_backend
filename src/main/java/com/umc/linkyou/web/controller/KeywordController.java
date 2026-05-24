@@ -1,7 +1,7 @@
 package com.umc.linkyou.web.controller;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.config.security.jwt.CustomUserDetails;
+import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.service.keyword.KeywordService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.keyword.KeywordRankResponse;
@@ -30,7 +30,7 @@ public class KeywordController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam String month
     ) {
-        Long userId = userDetails.getUsers().getId();
+        Long userId = userDetails.getUserId();
         return ResponseEntity.ok(ApiResponse.onSuccess(keywordService.getMyTop3Keywords(userId, month)));
     }
 
@@ -40,7 +40,7 @@ public class KeywordController {
     getJobTop15Keywords(
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long userId = userDetails.getUsers().getId();
+        Long userId = userDetails.getUserId();
         return ResponseEntity.ok(ApiResponse.onSuccess(keywordService.getJobTop15Keywords(userId)));
     }
 }

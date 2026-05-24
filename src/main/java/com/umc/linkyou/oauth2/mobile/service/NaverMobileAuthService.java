@@ -1,19 +1,15 @@
 package com.umc.linkyou.oauth2.mobile.service;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.config.security.jwt.JwtTokenProvider;
-import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
 import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Provider;
-import com.umc.linkyou.domain.enums.UserStatus;
-import com.umc.linkyou.oauth2.UserSocialLoginHelper;
+import com.umc.linkyou.oauth2.utils.UserSocialLoginHelper;
 import com.umc.linkyou.oauth2.mobile.client.NaverTokenClient;
 import com.umc.linkyou.oauth2.mobile.dto.MobileLoginResponse;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
+import com.umc.linkyou.service.users.UserLoginService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,15 +20,11 @@ public class NaverMobileAuthService implements MobileAuthService {
 
     private final NaverTokenClient naverTokenClient;
     private final UserSocialLoginHelper userSocialLoginHelper;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final RefreshTokenManager refreshTokenManager;
+    private final UserLoginService userLoginService;
     private final AuthAccountRepository authAccountRepository;
 
-    @Value("${jwt.token.expiration.refresh}")
-    private long refreshTtlMs;
-
     @Override
-    public MobileLoginResponse login(String accessToken) {
+    public MobileLoginResponse login(String accessToken, String deviceId, DeviceType deviceType) {
         NaverTokenClient.NaverUserInfo info = naverTokenClient.getUserInfo(accessToken);
 
         Users user = userSocialLoginHelper.findOrCreateUser(
@@ -42,33 +34,7 @@ public class NaverMobileAuthService implements MobileAuthService {
         String resolvedEmail = authAccountRepository.findByUserIdAndProvider(user.getId(), Provider.NAVER)
                 .map(AuthAccount::getEmail)
                 .orElse(info.email());
-
-        if (user.getStatus() != UserStatus.ACTIVE && user.getStatus() != UserStatus.TEMP) {
-            throw new GeneralException(ErrorStatus._USER_INACTIVE);
-        }
-
-        String accessTokenJwt = jwtTokenProvider.createAccessToken(resolvedEmail, Provider.NAVER.name());
-
-        if (user.getStatus() == UserStatus.TEMP) {
-            return MobileLoginResponse.builder()
-                    .userId(user.getId())
-                    .accessToken(accessTokenJwt)
-                    .refreshToken(null)
-                    .status(UserStatus.TEMP)
-                    .build();
-        }
-
-        // ACTIVE 전용: refreshToken + Redis 세션
-        String refreshToken = jwtTokenProvider.createRefreshToken(resolvedEmail);
-        String tokenId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
-        refreshTokenManager.saveToken(user.getId(), tokenId, Provider.NAVER.name(), refreshTtlMs);
-
-        return MobileLoginResponse.builder()
-                .userId(user.getId())
-                .accessToken(accessTokenJwt)
-                .refreshToken(refreshToken)
-                .status(UserStatus.ACTIVE)
-                .build();
+        return userLoginService.handleSocialLogin(user, resolvedEmail, Provider.NAVER, deviceId, deviceType);
     }
 
 }

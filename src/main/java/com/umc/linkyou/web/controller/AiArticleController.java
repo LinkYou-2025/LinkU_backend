@@ -1,13 +1,13 @@
 package com.umc.linkyou.web.controller;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
-import com.umc.linkyou.config.security.jwt.CustomUserDetails;
+import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleSuccessStatus;
+import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
-import com.umc.linkyou.service.aiArticle.AiArticleService;
-import com.umc.linkyou.utils.UsersUtils;
+import com.umc.linkyou.service.AiArticleService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.dto.AiArticleResponsetDTO;
+import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,6 @@ public class AiArticleController {
 
     final private AiArticleService aiArticleService;
     final private AiArticleRepository aiArticleRepository;
-    final private UsersUtils usersUtils;
 
     @Operation(
             summary = "AI 기사 저장 또는 조회",
@@ -34,14 +33,13 @@ public class AiArticleController {
             @PathVariable("linkuid") Long linkuId,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long userId = usersUtils.getAuthenticatedUserId(userDetails);
+        Long userId = userDetails.getUserId();
 
         AiArticleResponsetDTO.AiArticleResultDTO result =
                 aiArticleService.saveOrGetAiArticle(linkuId, userId);
         return ApiResponse.onSuccess(AiArticleSuccessStatus.AI_ARTICLE_OK, result);
     }
 
-    @Override
     public ApiResponse<LinkuResponseDTO.LinkuSliceResultDTO> getMyAiArticlesByCategory(
             @PathVariable("categoryId") Long categoryId,
             @RequestParam(name = "cursor", required = false) Long cursor,

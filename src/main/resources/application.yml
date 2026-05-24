@@ -41,13 +41,6 @@ spring:
       url: ${REDIS_URL}
       timeout: ${REDIS_TIMEOUT}
 
-  sendgrid:
-    from: ${SENDGRID_FROM_EMAIL}
-    api-key: ${SENDGRID_API_KEY}
-    templates:
-      verify-id: ${SENDGRID_TEMPLATE_VERIFY_ID}
-      temp-id: ${SENDGRID_TEMPLATE_TEMP_ID}
-
   cloud:
     gcp:
       project-id: linku-server
@@ -80,6 +73,10 @@ spring:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
+
+springdoc:
+  swagger-ui:
+    persist-authorization: true
 
 management:
   endpoints:
@@ -127,6 +124,11 @@ cloud:
       auto: false
     cloudfront:
       domain: ${AWS_CLOUDFRONT_DOMAIN}
+    ses:
+      from: ${AWS_EMAIL_FROM}
+      access-key: ${AWS_SES_ACCESS_KEY}
+      secret-key: ${AWS_SES_SECRET_KEY}
+      region: ${AWS_SES_REGION:ap-northeast-2}
 
 auth-code-expiration-millis: 600000
 
@@ -146,13 +148,14 @@ gemini:
 app:
   deeplink:
     base-url: ${DEEPLINK_BASE_URL}
+  server:
+    base-url: ${SERVER_BASE_URL}
 
 kakao:
   admin-key: ${KAKAO_ADMIN_KEY}
 
 google:
-  client-id:
-    android: ${GOOGLE_ANDROID_CLIENT_ID}
+  client-id: ${GOOGLE_CLIENT_ID}
 
 server:
   forward-headers-strategy: framework

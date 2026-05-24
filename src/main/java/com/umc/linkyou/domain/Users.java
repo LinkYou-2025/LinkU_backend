@@ -51,6 +51,7 @@ public class Users extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private Role role = Role.USER;
+    // enum 값은 USER로 저장하고, authority 문자열은 "ROLE_USER"로 꺼내 씀
 
     @Enumerated(EnumType.STRING)
     @Builder.Default

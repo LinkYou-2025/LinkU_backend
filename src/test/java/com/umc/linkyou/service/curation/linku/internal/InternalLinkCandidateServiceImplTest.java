@@ -13,7 +13,7 @@ import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.repository.curationRepository.CurationRepository;
 import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
-import com.umc.linkyou.repository.mapping.UsersLinkuRepository;
+import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.service.Linku.SituationCategoryService;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import org.junit.jupiter.api.DisplayName;

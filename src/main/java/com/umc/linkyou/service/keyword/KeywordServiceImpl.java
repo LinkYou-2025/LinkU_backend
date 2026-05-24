@@ -1,6 +1,6 @@
 package com.umc.linkyou.service.keyword;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.KeywordType;
@@ -43,10 +43,10 @@ public class KeywordServiceImpl implements KeywordService {
     @Transactional(readOnly = true)
     public List<KeywordRankResponse> getJobTop15Keywords(Long userId) {
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
         if (user.getJob() == null) {
-            throw new GeneralException(ErrorStatus._JOB_NOT_SET);
+            throw new GeneralException(UserErrorStatus._JOB_NOT_SET);
         }
 
         return keywordMonthlyCountRepository

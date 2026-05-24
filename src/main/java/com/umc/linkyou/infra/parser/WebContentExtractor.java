@@ -3,7 +3,7 @@ package com.umc.linkyou.infra.parser;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.CrawlStrategy;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.utils.UrlUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -195,7 +195,7 @@ public class WebContentExtractor {
         try {
             if (!isAllowedByRobotsTxt(url, "Mozilla/5.0")) {
                 log.warn("[크롤링 제한] robots.txt에 의해 접근 금지된 URL: {}", url);
-                throw new GeneralException(ErrorStatus._CONTENT_EXTRACTION_PROHIBITED);
+                throw new GeneralException(AiArticleErrorStatus._CONTENT_EXTRACTION_PROHIBITED);
             }
 
             String safeUrl = UrlUtils.normalizeUrl(url);
@@ -219,7 +219,7 @@ public class WebContentExtractor {
 
             if (extracted == null || extracted.isBlank()) {
                 log.warn("[본문 추출 실패] URL: {}", url);
-                throw new GeneralException(ErrorStatus._CONTENT_EXTRACTION_FAILED);
+                throw new GeneralException(AiArticleErrorStatus._CONTENT_EXTRACTION_FAILED);
             }
 
             return extracted;
@@ -228,7 +228,7 @@ public class WebContentExtractor {
             throw e;
         } catch (Exception e) {
             log.error("[크롤링 실패] URL: {}, 이유: {}", url, e.getMessage());
-            throw new GeneralException(ErrorStatus._CONTENT_EXTRACTION_FAILED);
+            throw new GeneralException(AiArticleErrorStatus._CONTENT_EXTRACTION_FAILED);
         }
     }
 }

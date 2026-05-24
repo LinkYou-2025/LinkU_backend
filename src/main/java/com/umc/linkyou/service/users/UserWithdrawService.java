@@ -1,8 +1,8 @@
 package com.umc.linkyou.service.users;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.config.security.jwt.RefreshTokenManager;
+import com.umc.linkyou.jwt.RefreshTokenManager;
 import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
@@ -33,7 +33,7 @@ public class UserWithdrawService{
     @Transactional
     public Users withdrawUser(Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO) {
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         // 1. 토큰 즉시 무효화
         refreshTokenManager.deleteAllTokens(userId);
         user.setStatus(UserStatus.INACTIVE);
@@ -79,7 +79,7 @@ public class UserWithdrawService{
     public Users testImmediateDelete(Long userId) {
         // 1. 엔티티 로드 (없으면 예외 발생)
         Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
         // 2. Redis 토큰 삭제
         refreshTokenManager.deleteAllTokens(userId);
@@ -129,7 +129,7 @@ public class UserWithdrawService{
     public void handleKakaoUnlinkWebhook(String kakaoExternalId) {
         // 1. 카카오 연동 정보 조회 (기존 Custom 인터페이스의 findByProviderAndExternalId 활용)
         AuthAccount kakaoAccount = authAccountRepository.findByProviderAndExternalId(Provider.KAKAO, kakaoExternalId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
         Users user = kakaoAccount.getUser();
 
