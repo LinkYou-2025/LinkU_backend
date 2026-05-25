@@ -1,13 +1,14 @@
-package com.umc.linkyou.service.curation.linku.external;
+package com.umc.linkyou.service.curation.recommend.external;
 
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
+import com.umc.linkyou.domain.mapping.CurationLinku;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepositoryCustom;
 import com.umc.linkyou.repository.curationRepository.CurationLinkuRepository;
 import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -15,58 +16,58 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Service
+@Component
 @RequiredArgsConstructor
-public class ExternalRecommendCacheReader {
+public class ExternalRecommendReader {
 
     private final CurationLinkuRepository curationLinkuRepository;
     private final DomainRepositoryCustom domainRepository;
 
-    private static final Domain UNKNOWN_DOMAIN =
-            Domain.builder().name("unknown").imageUrl(null).build();
-
-    /** DB 캐시(EXTERNAL) → 도메인 보강 후 DTO (이미지 URL은 DB 저장값 그대로 사용) */
     @Transactional(readOnly = true)
     public List<RecommendedLinkResponse> read(Long curationId) {
-        var entities = curationLinkuRepository
-                .findByCuration_CurationIdAndType(curationId, CurationLinkuType.EXTERNAL);
+        List<CurationLinku> entities = curationLinkuRepository
+                .findByCurationIdAndType(curationId, CurationLinkuType.EXTERNAL);
 
-        // 1) URL → domainTail 추출
-        var items = entities.stream()
-                .map(e -> new Temp(
+        List<ExternalItem> items = entities.stream()
+                .map(e -> new ExternalItem(
                         e.getUrl(),
                         e.getTitle(),
-                        e.getImageUrl(),                      // ← DB에 저장된 이미지 그대로 사용
+                        e.getImageUrl(),
                         UrlValidUtils.extractDomainTail(e.getUrl())))
                 .toList();
 
-        // 2) 고유 domainTail 수집 후 일괄 조회
-        var tails = items.stream()
-                .map(Temp::domainTail)
+        List<String> tails = items.stream()
+                .map(ExternalItem::domainTail)
                 .filter(t -> t != null && !t.isBlank())
                 .distinct()
                 .toList();
 
+        if (tails.isEmpty()) {
+            return items.stream()
+                    .map(item -> RecommendedLinkResponse.builder()
+                            .url(item.url())
+                            .title(item.title())
+                            .imageUrl(item.imageUrl())
+                            .build())
+                    .toList();
+        }
+
         Map<String, Domain> domainMap = domainRepository.findByDomainTailIn(tails).stream()
                 .collect(Collectors.toMap(Domain::getDomainTail, Function.identity()));
 
-        // 3) DTO 매핑
         return items.stream()
-                .map(t -> {
-                    var domain = t.domainTail()!=null
-                            ? domainMap.getOrDefault(t.domainTail(), UNKNOWN_DOMAIN)
-                            : UNKNOWN_DOMAIN;
-
+                .map(item -> {
+                    Domain domain = item.domainTail() != null ? domainMap.get(item.domainTail()) : null;
                     return RecommendedLinkResponse.builder()
-                            .url(t.url())
-                            .title(t.title())
-                            .domain(domain.getName())
-                            .domainImageUrl(domain.getImageUrl())
-                            .imageUrl(t.imageUrl()) // ← 크롤링 없이 DB 값
+                            .url(item.url())
+                            .title(item.title())
+                            .domain(domain != null ? domain.getName() : null)
+                            .domainImageUrl(domain != null ? domain.getImageUrl() : null)
+                            .imageUrl(item.imageUrl())
                             .build();
                 })
                 .toList();
     }
 
-    private record Temp(String url, String title, String imageUrl, String domainTail) {}
+    private record ExternalItem(String url, String title, String imageUrl, String domainTail) {}
 }

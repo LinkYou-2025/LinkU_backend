@@ -1,13 +1,13 @@
-package com.umc.linkyou.service.curation.linku.internal;
+package com.umc.linkyou.service.curation.recommend.internal;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.util.concurrent.Semaphore;
 
-@Service
+@Component
 @RequiredArgsConstructor
 @Slf4j
 public class InternalRecommendMaterializer {
@@ -16,17 +16,17 @@ public class InternalRecommendMaterializer {
     private final Semaphore internalRecoLimiter;
 
     @Async("defaultTaskExecutor")
-    public void generateAndStoreInternalAsync(Long curationId) {
+    public void generateInternalAsync(Long curationId) {
         boolean acquired = false;
         try {
             internalRecoLimiter.acquire();
             acquired = true;
-            worker.generateAndStoreInternal(curationId);
+            worker.generateInternal(curationId);
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
-            log.warn("internal recommend interrupted for curationId={}", curationId);
+            log.warn("내부 추천 인터럽트 curationId={}", curationId);
         } catch (Exception e) {
-            log.error("internal recommend failed for curationId={}", curationId, e);
+            log.error("내부 추천 실패 curationId={}", curationId, e);
         } finally {
             if (acquired) internalRecoLimiter.release();
         }

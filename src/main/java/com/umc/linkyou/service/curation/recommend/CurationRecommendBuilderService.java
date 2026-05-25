@@ -1,4 +1,4 @@
-package com.umc.linkyou.service.curation.linku;
+package com.umc.linkyou.service.curation.recommend;
 
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import java.util.List;
