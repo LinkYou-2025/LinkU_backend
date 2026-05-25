@@ -17,4 +17,7 @@ public interface SituationJobRepository extends CrudRepository<SituationJob, Lon
 
     @Query("SELECT sj FROM SituationJob sj JOIN FETCH sj.situation WHERE sj.id IN :ids")
     List<SituationJob> findAllByIdsWithSituation(@Param("ids") List<Long> ids);
+
+    @Query("SELECT sj.situation.id FROM SituationJob sj WHERE sj.id = :id")
+    Optional<Long> findSituationIdById(@Param("id") Long id);
 }

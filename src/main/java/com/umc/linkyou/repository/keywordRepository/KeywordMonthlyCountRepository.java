@@ -2,6 +2,7 @@ package com.umc.linkyou.repository.keywordRepository;
 
 import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.domain.log.KeywordMonthlyCount;
+import com.umc.linkyou.service.keyword.KeywordStatRow;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -54,15 +55,15 @@ public interface KeywordMonthlyCountRepository extends JpaRepository<KeywordMont
             @Param("type") KeywordType type,
             Pageable pageable);
 
-    // 같은 직업 유저들의 키워드 합산 상위 15건
+    // 같은 직업 유저들의 키워드 합산 상위 N건
     @Query("""
-            SELECT k.type, k.refId, SUM(k.count) as totalCount
+            SELECT new com.umc.linkyou.service.keyword.KeywordStatRow(k.type, k.refId, SUM(k.count))
             FROM KeywordMonthlyCount k
             WHERE k.user.job.id = :jobId
             GROUP BY k.type, k.refId
-            ORDER BY totalCount DESC
+            ORDER BY SUM(k.count) DESC
             """)
-    List<Object[]> findTopKeywordByJobId(
+    List<KeywordStatRow> findTopKeywordByJobId(
             @Param("jobId") Long jobId,
             Pageable pageable);
 }
