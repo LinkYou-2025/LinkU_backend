@@ -10,6 +10,9 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum CurationErrorStatus implements BaseErrorCode {
 
+    // 400 Bad Request
+    _CURATION_INVALID_YEAR(HttpStatus.BAD_REQUEST, "CURATION4001", "2025년부터 조회 가능합니다."),
+
     // 403 Forbidden
     _CURATION_FORBIDDEN(HttpStatus.FORBIDDEN, "CURATION4031", "해당 큐레이션에 접근할 권한이 없습니다."),
 
