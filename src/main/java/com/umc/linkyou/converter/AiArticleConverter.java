@@ -25,12 +25,12 @@ public class AiArticleConverter {
         return AiArticle.builder()
                 .linku(linku)
                 .situation(selectedSituation)
-                .title(result.getTitle())
+                .title(result.title())
                 .aiFeelingId(selectedEmotion.getEmotionId())
                 .aiCategoryId(selectedCategory.getCategoryId())
-                .summary(result.getSummary())
+                .summary(result.summary())
                 .imgUrl(imageUrl)
-                .keyword(result.getKeywords())
+                .keyword(result.keywords())
                 .build();
     }
 
