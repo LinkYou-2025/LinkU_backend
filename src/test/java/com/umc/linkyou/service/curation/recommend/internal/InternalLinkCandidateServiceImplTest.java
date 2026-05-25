@@ -1,21 +1,17 @@
-package com.umc.linkyou.service.curation.linku.internal;
+package com.umc.linkyou.service.curation.recommend.internal;
 
 import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
-import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.domain.log.KeywordMonthlyCount;
-import com.umc.linkyou.domain.mapping.SituationJob;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.repository.curationRepository.CurationRepository;
 import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
-import com.umc.linkyou.repository.mapping.SituationJobRepository;
+import com.umc.linkyou.repository.mapping.SituationCategoryRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
-import com.umc.linkyou.service.Linku.SituationCategoryService;
-import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,23 +37,19 @@ class InternalLinkCandidateServiceImplTest {
     @Mock private UsersLinkuRepository usersLinkuRepository;
     @Mock private CurationRepository curationRepository;
     @Mock private KeywordMonthlyCountRepository keywordMonthlyCountRepository;
-    @Mock private SituationJobRepository situationJobRepository;
-    @Mock private SituationCategoryService situationCategoryService;
+    @Mock private SituationCategoryRepository situationCategoryRepository;
 
     private static final Long USER_ID = 48L;
     private static final Long CURATION_ID = 181L;
     private static final String MONTH = "2026-04";
 
-    // 감정 ID
-    private static final long EMOTION_JOY = 1L; // 즐거움
-    private static final long EMOTION_EXCITEMENT = 3L; // 설렘
-    private static final long EMOTION_SADNESS = 4L; // 슬픔
+    private static final long EMOTION_JOY = 1L;
+    private static final long EMOTION_EXCITEMENT = 3L;
+    private static final long EMOTION_SADNESS = 4L;
 
-    // 상황/카테고리 ID
-    private static final long SITUATION_JOB_ID = 5L;
+    private static final long SITUATION_ID = 5L;
     private static final long AI_CATEGORY_ID = 10L;
 
-    // 링크 ID
     private static final long LINK_ID_1 = 1L;
     private static final long LINK_ID_2 = 2L;
     private static final long LINK_ID_3 = 3L;
@@ -105,7 +97,7 @@ class InternalLinkCandidateServiceImplTest {
         when(usersLinkuRepository.findAllByUserIdAndCreatedAtBetween(eq(USER_ID), any(), any()))
                 .thenReturn(List.of());
 
-        List<RecommendedLinkResponse> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);
+        List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);
 
         assertThat(result).isEmpty();
     }
@@ -124,25 +116,20 @@ class InternalLinkCandidateServiceImplTest {
         UsersLinku link3 = makeLink(LINK_ID_3, EMOTION_SADNESS, null, base);
 
         when(usersLinkuRepository.findAllByUserIdAndCreatedAtBetween(eq(USER_ID), any(), any()))
-                .thenReturn(List.of(link3, link2, link1)); // 순서 섞어서 전달
+                .thenReturn(List.of(link3, link2, link1));
 
-        // topEmotion = 즐거움
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
                 eq(USER_ID), eq(MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
                 .thenReturn(List.of(makeKmc(KeywordType.EMOTION, EMOTION_JOY)));
 
-        // topSituation refId → situationJob.getSituation().getId() = SITUATION_JOB_ID
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
                 eq(USER_ID), eq(MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
-                .thenReturn(List.of(makeKmc(KeywordType.SITUATION, SITUATION_JOB_ID)));
+                .thenReturn(List.of(makeKmc(KeywordType.SITUATION, SITUATION_ID)));
 
-        SituationJob sj = SituationJob.builder()
-                .situation(Situation.builder().id(SITUATION_JOB_ID).build())
-                .build();
-        when(situationJobRepository.findById(SITUATION_JOB_ID)).thenReturn(Optional.of(sj));
-        when(situationCategoryService.getCategoryIdsBySituation(SITUATION_JOB_ID)).thenReturn(List.of(AI_CATEGORY_ID));
+        when(situationCategoryRepository.findCategoryIdsBySituationId(SITUATION_ID))
+                .thenReturn(List.of(AI_CATEGORY_ID));
 
-        List<RecommendedLinkResponse> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);
+        List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);
 
         assertThat(result).hasSize(3);
         assertThat(result.get(0).getUserLinkuId()).isEqualTo(LINK_ID_1); // 100점
@@ -170,7 +157,7 @@ class InternalLinkCandidateServiceImplTest {
                 eq(USER_ID), eq(MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
                 .thenReturn(List.of());
 
-        List<RecommendedLinkResponse> result = service.getInternalCandidates(USER_ID, CURATION_ID, 2);
+        List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 2);
 
         assertThat(result).hasSize(2);
     }
@@ -194,7 +181,7 @@ class InternalLinkCandidateServiceImplTest {
                 eq(USER_ID), eq(MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
                 .thenReturn(List.of());
 
-        List<RecommendedLinkResponse> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);
+        List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);
 
         assertThat(result.get(0).getUserLinkuId()).isEqualTo(LINK_ID_2); // 최신이 먼저
         assertThat(result.get(1).getUserLinkuId()).isEqualTo(LINK_ID_1);
@@ -206,7 +193,6 @@ class InternalLinkCandidateServiceImplTest {
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(makeCuration()));
 
         LocalDateTime base = LocalDateTime.now();
-        // 감정 ID가 달라도 topEmotion이 없으면 모두 0점
         UsersLinku link1 = makeLink(LINK_ID_1, EMOTION_JOY, null, base.minusDays(1));
         UsersLinku link2 = makeLink(LINK_ID_2, EMOTION_EXCITEMENT, null, base);
 
@@ -214,12 +200,12 @@ class InternalLinkCandidateServiceImplTest {
                 .thenReturn(List.of(link1, link2));
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
                 eq(USER_ID), eq(MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
-                .thenReturn(List.of()); // topEmotion 없음
+                .thenReturn(List.of());
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
                 eq(USER_ID), eq(MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
                 .thenReturn(List.of());
 
-        List<RecommendedLinkResponse> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);
+        List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);
 
         // 감정 점수 0, 상황 점수 0 → 동점 → 최신 link2가 먼저
         assertThat(result.get(0).getUserLinkuId()).isEqualTo(LINK_ID_2);

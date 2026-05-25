@@ -96,6 +96,7 @@ class CurationServiceImplTest {
                 .month("2026-03")
                 .build();
 
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(curation));
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonth(
                 eq(USER_ID), eq("2026-03"), any()))
@@ -113,12 +114,14 @@ class CurationServiceImplTest {
     @Test
     @DisplayName("타인의 큐레이션을 조회하면 FORBIDDEN 예외가 발생한다")
     void getCurationDetail_throws_forbidden_whenNotOwner() {
+        Users caller = Users.builder().id(USER_ID).build();
         Users owner = Users.builder().id(OTHER_USER_ID).build();
         Curation curation = Curation.builder()
                 .user(owner)
                 .month("2026-03")
                 .build();
 
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(caller));
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(curation));
 
         assertThatThrownBy(() -> service.getCurationDetail(USER_ID, CURATION_ID)) // 다른 userId
@@ -128,6 +131,8 @@ class CurationServiceImplTest {
     @Test
     @DisplayName("존재하지 않는 curationId를 조회하면 NOT_FOUND 예외가 발생한다")
     void getCurationDetail_throws_notFound_whenNotExists() {
+        Users user = Users.builder().id(USER_ID).build();
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
         when(curationRepository.findById(UNKNOWN_CURATION_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getCurationDetail(USER_ID, UNKNOWN_CURATION_ID))
@@ -144,6 +149,7 @@ class CurationServiceImplTest {
                 .build();
         curation.updateMent("header", "footer");
 
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(curation));
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonth(
                 eq(USER_ID), eq("2026-03"), any()))
