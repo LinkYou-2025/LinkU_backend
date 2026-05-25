@@ -4,9 +4,8 @@ import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.service.curation.CurationService;
-import com.umc.linkyou.service.curation.linku.CurationRecommendBuilderService;
+import com.umc.linkyou.service.curation.recommend.CurationRecommendBuilderService;
 import com.umc.linkyou.web.dto.curation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,31 +25,6 @@ public class CurationController {
     private final CurationService curationService;
     private final CurationRecommendBuilderService curationRecommendBuilderService;
 
-    // TODO 관리자 api로 수정 필요
-    // 전체 유저 월간 큐레이션 즉시 생성
-    @Operation(
-            summary = "전체 유저 월간 큐레이션 생성",
-            description = "전월 기준으로 모든 유저의 큐레이션을 즉시 생성합니다.")
-    @PostMapping("/batch/manual")
-    public ResponseEntity<ApiResponse<Object>> triggerBatch() {
-        curationService.generateMonthlyCurationForAllUsers();
-        return ResponseEntity.ok(ApiResponse.onSuccess(SuccessStatus._OK));
-    }
-
-    // TODO 관리자 api로 수정 필요
-    // 특정 유저·월 큐레이션 즉시 생성
-    @Operation(
-            summary = "단일 유저 큐레이션 생성",
-            description = "userId와 month(YYYY-MM)를 지정해 큐레이션을 즉시 생성합니다.")
-    @PostMapping("/batch/manual/test")
-    public ResponseEntity<ApiResponse<Object>> triggerBatchForUser(
-            @RequestParam Long userId,
-            @RequestParam String month
-    ) {
-        curationService.generateCurationForUser(userId, month);
-        return ResponseEntity.ok(ApiResponse.onSuccess(SuccessStatus._OK));
-    }
-
     // 월별 섹션 정보 조회 (제목, 설명, 대표 이미지)
     @Operation(
             summary = "큐레이션 섹션 정보 조회",
@@ -60,7 +34,7 @@ public class CurationController {
             @RequestParam(required = false) String month
     ) {
         String resolvedMonth = (month != null) ? month : YearMonth.now().toString();
-        return ResponseEntity.ok(ApiResponse.onSuccess(curationService.getSectionInfo(resolvedMonth)));
+        return ResponseEntity.ok(ApiResponse.onSuccess(curationService.getCurationSections(resolvedMonth)));
     }
 
     // 올해 12개 큐레이션 히스토리 (없는 달은 빈 상태)
@@ -74,13 +48,13 @@ public class CurationController {
     ) {
         Long userId = userDetails.getUserId();
         int resolvedYear = (year != null) ? year : YearMonth.now().getYear();
-        return ResponseEntity.ok(ApiResponse.onSuccess(curationService.getMyCurationList(userId, resolvedYear)));
+        return ResponseEntity.ok(ApiResponse.onSuccess(curationService.getCurationList(userId, resolvedYear)));
     }
 
     // 가장 최근 큐레이션 조회
     @Operation(
             summary = "가장 최근 큐레이션 조회",
-            description = "내 최신 큐레이션을 조회합니다. 큐레이션이 없으면 204(No Content)를 반환합니다.")
+            description = "내 최신 큐레이션을 조회합니다.")
     @GetMapping("/latest")
     public ResponseEntity<ApiResponse<CurationLatestResponse>> getLatestCuration(
             @CurrentUser CustomUserDetails userDetails) {
@@ -93,7 +67,7 @@ public class CurationController {
     // 큐레이션 상세 조회
     @Operation(
             summary = "큐레이션 상세 조회",
-            description = "큐레이션 ID로 상세 정보를 조회합니다. 본인 큐레이션만 조회 가능합니다.")
+            description = "큐레이션 ID로 상세 정보를 조회합니다.")
     @GetMapping("/detail/{curationId}")
     public ResponseEntity<ApiResponse<CurationDetailResponse>> getCurationDetail(
             @CurrentUser CustomUserDetails userDetails,
@@ -105,7 +79,7 @@ public class CurationController {
     // 큐레이션 링크 추천
     @Operation(
             summary = "큐레이션 기반 링크 추천",
-            description = "해당 큐레이션을 기반으로 내부/외부 추천 로직을 종합하여 링크를 추천합니다."
+            description = "내부/외부 링크를 추천합니다."
     )
     @GetMapping("/recommend-links")
     public ResponseEntity<ApiResponse<List<RecommendedLinkResponse>>> getRecommendedLinks(
@@ -113,7 +87,7 @@ public class CurationController {
             @RequestParam Long curationId
     ) {
         Long userId = userDetails.getUserId();
-        var recommendations = curationRecommendBuilderService.buildRecommendedLinks(userId, curationId);
+        List<RecommendedLinkResponse> recommendations = curationRecommendBuilderService.buildRecommendedLinks(userId, curationId);
         return ResponseEntity.ok(ApiResponse.onSuccess(recommendations));
     }
 }
