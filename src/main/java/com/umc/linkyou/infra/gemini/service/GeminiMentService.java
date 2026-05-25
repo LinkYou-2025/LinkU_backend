@@ -1,13 +1,13 @@
 package com.umc.linkyou.infra.gemini.service;
 
 import com.umc.linkyou.infra.ai.AiMentService;
+import com.umc.linkyou.infra.ai.dto.MentResultDTO;
 import com.umc.linkyou.infra.gemini.prompt.common.PromptComposer;
 import com.umc.linkyou.infra.gemini.prompt.curation.CurationMentPrompt;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GeminiMentService implements AiMentService {
@@ -15,15 +15,12 @@ public class GeminiMentService implements AiMentService {
     private final GeminiService geminiService;
     private final PromptComposer promptComposer;
 
-    private record MentJson(String header, String footer) {}
-
     @Override
-    public MentResult generateMent(String emotionName) {
-        MentJson result = geminiService.callAndParse(
+    public MentResultDTO generateMent(String emotionName) {
+        return geminiService.callAndParseCreative(
                 promptComposer.mention(),
                 new CurationMentPrompt(emotionName).render(),
-                MentJson.class
+                MentResultDTO.class
         );
-        return new MentResult(result.header(), result.footer());
     }
 }

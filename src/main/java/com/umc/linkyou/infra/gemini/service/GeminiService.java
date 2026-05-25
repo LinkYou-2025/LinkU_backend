@@ -19,7 +19,14 @@ public class GeminiService {
     private final ObjectMapper objectMapper;
 
     public <T> T callAndParse(String systemMsg, String userMsg, Class<T> clazz) {
-        String raw = geminiClient.completion(systemMsg, userMsg);
+        return parseJson(geminiClient.completion(systemMsg, userMsg), clazz);
+    }
+
+    public <T> T callAndParseCreative(String systemMsg, String userMsg, Class<T> clazz) {
+        return parseJson(geminiClient.completionCreative(systemMsg, userMsg), clazz);
+    }
+
+    private <T> T parseJson(String raw, Class<T> clazz) {
         String sanitized = GeminiJsonUtils.extractJson(raw);
         if (sanitized == null) {
             throw new GeneralException(GeminiErrorStatus.GEMINI_PARSE_ERROR);
@@ -31,7 +38,7 @@ public class GeminiService {
         }
     }
 
-    public <T> List<T> callAndParseList(String systemMsg, String userMsg, TypeReference<List<T>> typeRef) {
+    public <T> List<T> callAndParseWithSearch(String systemMsg, String userMsg, TypeReference<List<T>> typeRef) {
         String raw = geminiClient.completionWithSearch(systemMsg, userMsg);
         String sanitized = GeminiJsonUtils.extractJsonArray(raw);
         if (sanitized == null) {

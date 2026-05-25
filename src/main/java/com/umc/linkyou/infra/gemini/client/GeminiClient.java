@@ -26,15 +26,25 @@ public class GeminiClient {
             .googleSearch(GoogleSearch.builder().build())
             .build();
 
-    public String completion(String systemInstruction, String userPrompt) {
+    public String completion(String systemInstruction, String userPrompt)
+    {
         return generate(systemInstruction, userPrompt, null, 1024, 0.3f);
     }
 
-    public String completionWithSearch(String systemInstruction, String userPrompt) {
-        return generate(systemInstruction, userPrompt, GOOGLE_SEARCH_TOOL, 2048, 0.9f);
+    // 창의적인 응답 생성
+    public String completionCreative(String systemInstruction, String userPrompt)
+    {
+        return generate(systemInstruction, userPrompt, null, 1024, 0.9f);
     }
 
-    private String generate(String systemInstruction, String userPrompt, Tool tool, int maxTokens, float temp) {
+    // Google Search로 실시간 정보 반영
+    public String completionWithSearch(String systemInstruction, String userPrompt)
+    {
+        return generate(systemInstruction, userPrompt, GOOGLE_SEARCH_TOOL, 2048, 0.3f);
+    }
+
+    private String generate(String systemInstruction, String userPrompt, Tool tool, int maxTokens, float temp)
+    {
         try {
             GenerateContentConfig.Builder builder = GenerateContentConfig.builder()
                     .systemInstruction(Content.fromParts(Part.fromText(systemInstruction)))
@@ -46,8 +56,10 @@ public class GeminiClient {
             }
 
             return client.models.generateContent(modelName, userPrompt, builder.build()).text();
+        } catch (GeneralException e) {
+            throw e;
         } catch (Exception e) {
-            if (e instanceof TimeoutException || e.getCause() instanceof TimeoutException) {
+            if (e.getCause() instanceof TimeoutException) {
                 throw new GeneralException(GeminiErrorStatus.GEMINI_TIMEOUT);
             }
             log.error("Gemini API 호출 오류", e);
