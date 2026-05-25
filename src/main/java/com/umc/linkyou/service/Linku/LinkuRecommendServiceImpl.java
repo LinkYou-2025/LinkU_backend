@@ -103,7 +103,7 @@ public class LinkuRecommendServiceImpl implements LinkuRecommendService{
         // 키워드 월별 집계
         String baseMonth = YearMonth.now().toString();
         keywordMonthlyCountRepository.upsertCount(userId, KeywordType.EMOTION.name(), emotionId, baseMonth);
-        keywordMonthlyCountRepository.upsertCount(userId, KeywordType.SITUATION.name(), situationJob.getId(), baseMonth);
+        keywordMonthlyCountRepository.upsertCount(userId, KeywordType.SITUATION.name(), situationId, baseMonth);
 
         return new EntitiesContext(userLinkus, mappedCategories, selectedEmotion);
     }

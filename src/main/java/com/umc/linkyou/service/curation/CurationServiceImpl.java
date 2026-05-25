@@ -8,9 +8,8 @@ import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepositor
 import com.umc.linkyou.service.common.KeywordNameResolver;
 import com.umc.linkyou.service.curation.ment.CurationMentMaterializer;
 import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
-import com.umc.linkyou.service.curation.linku.external.ExternalRecommendMaterializer;
-import com.umc.linkyou.service.curation.linku.internal.InternalRecommendMaterializer;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.service.curation.recommend.external.ExternalRecommendMaterializer;
+import com.umc.linkyou.service.curation.recommend.internal.InternalRecommendMaterializer;
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.repository.curationRepository.CurationRepository;
 import com.umc.linkyou.repository.curationRepository.CurationSectionInfoRepository;
@@ -27,7 +26,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import com.umc.linkyou.web.dto.curation.CurationListResponse;
 import org.springframework.data.domain.PageRequest;
 
-import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -50,75 +48,107 @@ public class CurationServiceImpl implements CurationService {
     private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
     private final KeywordNameResolver keywordNameResolver;
 
-    // 모든 유저 호출한 시점의 이전 달에 해당하는 큐레이션 생성
-    @Override
-    @Transactional
-    public void generateMonthlyCurationForAllUsers() {
-        // 이전 달 설정
-        String month = YearMonth.now().minusMonths(1).toString();
-
-        // 모든 유저에 대해 생성
-        List<Users> users = userRepository.findAll();
-        for (Users user : users) {
-            doGenerateCuration(user, month);
-        }
-    }
-
     // 단일 유저의 특정 월 큐레이션 생성
     @Override
     @Transactional
-    public void generateCurationForUser(Long userId, String month) {
+    public boolean generateCurationForUser(Long userId, String month) {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
-        doGenerateCuration(user, month);
+        return doGenerateCuration(user, month);
     }
 
-    // 큐레이션 생성
-    private void doGenerateCuration(Users user, String month) {
-        // 같은 유저, 같은 달 큐레이션이 이미 있으면 중복 생성을 막음
+    private boolean doGenerateCuration(Users user, String month) {
         if (curationRepository.existsByUserAndMonth(user, month)) {
-            log.info("[Curation] skip userId={} month={} (already exists)", user.getId(), month);
-            return;
+            return false;
         }
 
-        // 큐레이션 레코드 저장
         Curation curation = Curation.builder()
                 .user(user)
                 .month(month)
                 .build();
         curationRepository.save(curation);
 
-        // 멘트, 내/외부 링크 추천 생성
         Long cid = curation.getCurationId();
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override public void afterCommit() {
-                curationMentMaterializer.generateAndStoreMentAsync(cid);
-                internalRecommendMaterializer.generateAndStoreInternalAsync(cid);
-                externalRecommendMaterializer.generateAndStoreExternalAsync(cid);
+                curationMentMaterializer.generateMentAsync(cid);
+                internalRecommendMaterializer.generateInternalAsync(cid);
+                externalRecommendMaterializer.generateExternalAsync(cid);
             }
         });
+        return true;
+    }
+
+    // 연도별 12개 큐레이션 히스토리 (없는 달은 빈 상태)
+    @Override
+    @Transactional(readOnly = true)
+    public List<CurationListResponse> getCurationList(Long userId, int year) {
+        if (year < 2025) {
+            throw new GeneralException(CurationErrorStatus._CURATION_INVALID_YEAR);
+        }
+        Map<String, Curation> existing = curationRepository
+                .findAllByUserIdAndYear(userId, String.valueOf(year))
+                .stream()
+                .collect(Collectors.toMap(Curation::getMonth, Function.identity()));
+
+        List<CurationListResponse> result = new ArrayList<>(12);
+        for (int m = 1; m <= 12; m++) {
+            String month = String.format("%d-%02d", year, m);
+            Curation c = existing.get(month);
+            if (c != null) {
+                result.add(CurationListResponse.builder()
+                        .curationId(c.getCurationId())
+                        .month(month)
+                        .thumbnailUrl(thumbnailUrlProvider.getUrlForMonth(month))
+                        .build());
+            } else {
+                result.add(CurationListResponse.builder()
+                        .month(month)
+                        .build());
+            }
+        }
+        return result;
     }
 
     // 유저의 최근 큐레이션 정보를 가져옴
     @Override
     @Transactional(readOnly = true)
     public Optional<CurationLatestResponse> getLatestCuration(Long userId) {
-        return curationRepository.findTopByUser_IdOrderByMonthDesc(userId)
+        return curationRepository.findLatestByUserId(userId)
                 .map(curation -> CurationLatestResponse.builder()
                         .curationId(curation.getCurationId())
                         .month(curation.getMonth())
-                        .thumbnailUrl(thumbnailUrlProvider.getUrlForMonth("curation", curation.getMonth()))
+                        .thumbnailUrl(thumbnailUrlProvider.getUrlForMonth(curation.getMonth()))
                         .build());
     }
 
-    // 유저의 큐레이션을 detail 정보를 가져옴
+    // 월별 섹션 정보 조회 (제목, 설명, 대표 이미지)
+    @Override
+    @Transactional(readOnly = true)
+    public List<CurationSectionResponse> getCurationSections(String month) {
+        return curationSectionInfoRepository
+                .findAllByMonth(month)
+                .stream()
+                .map(s -> CurationSectionResponse.builder()
+                        .section(s.getSectionNumber())
+                        .title(s.getTitle())
+                        .description(s.getDescription())
+                        .imageUrl(s.getImageUrl())
+                        .build())
+                .toList();
+    }
+
+    // 유저의 큐레이션 detail 정보를 가져옴
     @Override
     @Transactional(readOnly = true)
     public CurationDetailResponse getCurationDetail(Long userId, Long curationId) {
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+
         Curation curation = curationRepository.findById(curationId)
                 .orElseThrow(() -> new GeneralException(CurationErrorStatus._CURATION_NOT_FOUND));
 
-        if (!curation.getUser().getId().equals(userId)) {
+        if (!curation.getUser().getId().equals(user.getId())) {
             throw new GeneralException(CurationErrorStatus._CURATION_FORBIDDEN);
         }
 
@@ -137,53 +167,8 @@ public class CurationServiceImpl implements CurationService {
                 .topTags(tagNames)
                 .headerMent(curation.getHeaderMent())
                 .footerMent(curation.getFooterMent())
-                .mentReady(curation.getHeaderMent() != null && curation.getFooterMent() != null)
+                .mentReady(curation.getHeaderMent() != null && !curation.getHeaderMent().isBlank()
+                        && curation.getFooterMent() != null && !curation.getFooterMent().isBlank())
                 .build();
-    }
-
-    // 연도별 12개 큐레이션 히스토리 (없는 달은 빈 상태)
-    @Override
-    @Transactional(readOnly = true)
-    public List<CurationListResponse> getMyCurationList(Long userId, int year) {
-        String yearPrefix = year + "-";
-
-        Map<String, Curation> existing = curationRepository
-                .findAllByUser_IdAndMonthStartingWith(userId, yearPrefix)
-                .stream()
-                .collect(Collectors.toMap(Curation::getMonth, Function.identity()));
-
-        List<CurationListResponse> result = new ArrayList<>(12);
-        for (int m = 1; m <= 12; m++) {
-            String month = String.format("%d-%02d", year, m);
-            Curation c = existing.get(month);
-            if (c != null) {
-                result.add(CurationListResponse.builder()
-                        .curationId(c.getCurationId())
-                        .month(month)
-                        .thumbnailUrl(thumbnailUrlProvider.getUrlForMonth("curation", month))
-                        .build());
-            } else {
-                result.add(CurationListResponse.builder()
-                        .month(month)
-                        .build());
-            }
-        }
-        return result;
-    }
-
-    // 월별 섹션 정보 조회 (제목, 설명, 대표 이미지)
-    @Override
-    @Transactional(readOnly = true)
-    public List<CurationSectionResponse> getSectionInfo(String month) {
-        return curationSectionInfoRepository
-                .findAllByMonthOrderBySectionNumberAsc(month)
-                .stream()
-                .map(s -> CurationSectionResponse.builder()
-                        .section(s.getSectionNumber())
-                        .title(s.getTitle())
-                        .description(s.getDescription())
-                        .imageUrl(s.getImageUrl())
-                        .build())
-                .toList();
     }
 }

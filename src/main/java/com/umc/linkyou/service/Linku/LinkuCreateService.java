@@ -1,6 +1,6 @@
 package com.umc.linkyou.service.Linku;
 
-import com.umc.linkyou.infra.ai.dto.CategoryResultDTO;
+import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
 import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
 import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
@@ -86,9 +86,9 @@ public class LinkuCreateService {
         } else {
             // [경쟁 상태 방지 로직]
             // AI 분류 및 도메인 결정 로직은 그대로 유지 (이미 생성된 데이터가 있더라도 분류 결과는 필요할 수 있음)
-            CategoryResultDTO aiResult = geminiLinkuService.classifyCategoryByUrl(normalizedLink, categoryRepository.findAll());
-            category = resolveCategory(aiResult != null ? aiResult.getCategoryId() : null);
-            aiKeywords = (aiResult != null && aiResult.getKeywords() != null) ? aiResult.getKeywords() : "키워드 없음";
+            Optional<LinkuResultDTO> aiResult = geminiLinkuService.analyzeByUrl(normalizedLink, categoryRepository.findAll());
+            category = resolveCategory(aiResult.map(LinkuResultDTO::categoryId).orElse(null));
+            aiKeywords = aiResult.map(LinkuResultDTO::keywords).filter(k -> k != null && !k.isBlank()).orElse("키워드 없음");
             Domain domain = resolveDomain(domainTail);
 
             try {
