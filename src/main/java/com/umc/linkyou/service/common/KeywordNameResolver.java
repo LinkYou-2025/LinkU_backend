@@ -1,7 +1,7 @@
 package com.umc.linkyou.service.common;
 
 import com.umc.linkyou.domain.enums.KeywordType;
-import com.umc.linkyou.repository.mapping.SituationJobRepository;
+import com.umc.linkyou.repository.classification.SituationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -9,15 +9,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class KeywordNameResolver {
 
-    private final EmotionTagMapper emotionTagMapper;
-    private final SituationJobRepository situationJobRepository;
+    private final EmotionMapper emotionMapper;
+    private final SituationRepository situationRepository;
 
     public String resolve(KeywordType type, Long refId) {
         if (type == KeywordType.EMOTION) {
-            return emotionTagMapper.getEmotionName(refId);
+            return emotionMapper.getEmotionName(refId);
         }
-        return situationJobRepository.findById(refId)
-                .map(sj -> sj.getSituation().getName())
-                .orElse("");
+        return situationRepository.findNameById(refId).orElse("");
     }
 }

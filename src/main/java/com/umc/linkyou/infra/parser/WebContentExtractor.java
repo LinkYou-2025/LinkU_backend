@@ -6,6 +6,7 @@ import com.umc.linkyou.repository.classification.domainRepository.DomainReposito
 import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.utils.UrlUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -17,29 +18,26 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.umc.linkyou.utils.UrlValidUtils.extractDomainTail;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class WebContentExtractor {
 
     private final DomainRepository domainRepository;
 
-    private Map<String, ContentExtractorStrategy> crawlerStrategies;
-
-    public WebContentExtractor(DomainRepository domainRepository) {
-        this.domainRepository = domainRepository;
-        this.crawlerStrategies = new HashMap<>();
-    }
+    private final Map<String, ContentExtractorStrategy> crawlerStrategies = new ConcurrentHashMap<>();
 
     interface ContentExtractorStrategy {
         String extract(Document doc, String url) throws Exception;
     }
 
+    // 크롤링 전략 구현체
     static class DefaultExtractor implements ContentExtractorStrategy {
         @Override
         public String extract(Document doc, String url) {
@@ -90,50 +88,31 @@ public class WebContentExtractor {
                     }
                     if (!containers.isEmpty() && !containers.text().isBlank())
                         return containers.text();
-
-                    String iframeBody = iframeDoc.body().text();
-                    if (!iframeBody.isBlank())
-                        return iframeBody;
                 }
+                return iframeDoc.body().text();
             }
-            return "";
+            return doc.body().text();
         }
     }
 
     static class BodyExtractor implements ContentExtractorStrategy {
         @Override
         public String extract(Document doc, String url) {
-            return doc.body() != null ? doc.body().text() : "";
+            return doc.body().text();
         }
     }
 
-    private void initStrategies(String domainTail) {
-        if (domainTail == null) {
-            return;
-        }
-        Domain domain =  domainRepository.findByDomainTail(domainTail)
-                .orElse(null);
-        if (domain == null) {
-            return;
-        }
-        // if crawlstrategy null -> default
+
+    private ContentExtractorStrategy createStrategy(String domainTail) {
+        Domain domain = domainRepository.findByDomainTail(domainTail).orElse(null);
+        if (domain == null) return new DefaultExtractor();
+
         CrawlStrategy strategy = domain.getCrawlStrategy() != null ? domain.getCrawlStrategy() : CrawlStrategy.DEFAULT;
-        ContentExtractorStrategy extractorStrategy;
-        switch (strategy) {
-            case IFRAME:
-                extractorStrategy = new NaverBlogExtractor();
-                break;
-            case BODY:
-                extractorStrategy = new BodyExtractor();
-                break;
-            case DEFAULT:
-            default:
-                extractorStrategy = new DefaultExtractor();
-                break;
-        }
-        Map<String, ContentExtractorStrategy> map = new HashMap<>();
-        map.put(domainTail, extractorStrategy);
-        crawlerStrategies = map;
+        return switch (strategy) {
+            case IFRAME -> new NaverBlogExtractor();
+            case BODY -> new BodyExtractor();
+            default -> new DefaultExtractor();
+        };
     }
 
     private boolean isAllowedByRobotsTxt(String urlStr, String userAgent) {
@@ -152,27 +131,27 @@ public class WebContentExtractor {
                 return true;
             }
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            String line;
             boolean applicableUserAgent = false;
             List<String> disallowPaths = new ArrayList<>();
 
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
 
-                if (line.toLowerCase().startsWith("user-agent")) {
-                    String ua = line.split(":")[1].trim();
-                    applicableUserAgent = ua.equals("*") || ua.equalsIgnoreCase(userAgent);
-                } else if (applicableUserAgent && line.toLowerCase().startsWith("disallow")) {
-                    String path = line.split(":")[1].trim();
-                    if (!path.isEmpty()) {
-                        disallowPaths.add(path);
+                    if (line.toLowerCase().startsWith("user-agent")) {
+                        String ua = line.split(":")[1].trim();
+                        applicableUserAgent = ua.equals("*") || ua.equalsIgnoreCase(userAgent);
+                    } else if (applicableUserAgent && line.toLowerCase().startsWith("disallow")) {
+                        String path = line.split(":")[1].trim();
+                        if (!path.isEmpty()) {
+                            disallowPaths.add(path);
+                        }
+                    } else if (line.isEmpty()) {
+                        applicableUserAgent = false;
                     }
-                } else if (line.isEmpty()) {
-                    applicableUserAgent = false; // user-agent 블록 종료
                 }
             }
-            reader.close();
 
             String path = url.getPath();
 
@@ -200,24 +179,16 @@ public class WebContentExtractor {
 
             String safeUrl = UrlUtils.normalizeUrl(url);
             String domainTail = extractDomainTail(safeUrl);
-            if (!crawlerStrategies.containsKey(domainTail)) {
-                initStrategies(domainTail);
-            }
+            ContentExtractorStrategy strategy = crawlerStrategies.computeIfAbsent(domainTail, this::createStrategy);
 
             Document doc = Jsoup.connect(safeUrl)
                     .userAgent("Mozilla/5.0")
                     .timeout(15000)
                     .get();
 
-            ContentExtractorStrategy strategy = crawlerStrategies.getOrDefault(domainTail, new DefaultExtractor());
-
             String extracted = strategy.extract(doc, safeUrl);
 
-            if (extracted == null || extracted.isBlank()) {
-                extracted = doc.body() != null ? doc.body().text() : "";
-            }
-
-            if (extracted == null || extracted.isBlank()) {
+            if (extracted.isBlank()) {
                 log.warn("[본문 추출 실패] URL: {}", url);
                 throw new GeneralException(AiArticleErrorStatus._CONTENT_EXTRACTION_FAILED);
             }

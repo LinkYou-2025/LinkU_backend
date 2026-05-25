@@ -19,26 +19,22 @@ import java.util.List;
 public class LinkToImageService {
 
     private final DomainRepository domainRepository;
+    private final TitleDomainParser titleDomainParser;
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final int MAX_IMAGE_SEARCH_TRY = 5;
+    private static final int IMAGE_FETCH_TIMEOUT_MS = 5000;
 
     @Value("${custom.search.api.key}")
     private String apiKey;
     @Value("${custom.search.engine.id}")
     private String searchEngineId;
 
-    // URL에서 제목 크롤링
     public String extractTitle(String url) {
-        try {
-            Document doc = Jsoup.connect(url)
-                    .userAgent("Mozilla/5.0")
-                    .get();
-            String ogTitle = doc.select("meta[property=og:title]").attr("content");
-            if (ogTitle != null && !ogTitle.isEmpty()) {
-                return ogTitle.replaceAll("[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\s]", "");
-            }
-            return doc.title().replaceAll("[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\s]", "");
-        } catch (Exception e) {
-            return null;
-        }
+        String title = titleDomainParser.parseUrl(url).title();
+        if (title == null || title.isBlank()) return null;
+        return title.replaceAll("[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\s]", "");
     }
 
     // URL에서 도메인 추출
@@ -72,20 +68,22 @@ public class LinkToImageService {
         try {
             Document doc = Jsoup.connect(blogUrl)
                     .userAgent("Mozilla/5.0")
+                    .timeout(IMAGE_FETCH_TIMEOUT_MS)
                     .get();
             String frameSrc = doc.select("iframe#mainFrame").attr("src");
-            if (frameSrc == null || frameSrc.isEmpty()) return null;
+            if (frameSrc.isEmpty()) return null;
 
             String realUrl = "https://blog.naver.com" + frameSrc;
             Document realDoc = Jsoup.connect(realUrl)
                     .userAgent("Mozilla/5.0")
+                    .timeout(IMAGE_FETCH_TIMEOUT_MS)
                     .get();
 
             String ogImage = realDoc.select("meta[property=og:image]").attr("content");
-            if (ogImage != null && !ogImage.isEmpty()) return ogImage;
+            if (!ogImage.isEmpty()) return ogImage;
 
             String firstImg = realDoc.select("img").attr("src");
-            return firstImg != null && !firstImg.isEmpty() ? firstImg : null;
+            return !firstImg.isEmpty() ? firstImg : null;
         } catch (Exception e) {
             return null;
         }
@@ -96,6 +94,7 @@ public class LinkToImageService {
         try {
             Document doc = Jsoup.connect(url)
                     .userAgent("Mozilla/5.0")
+                    .timeout(IMAGE_FETCH_TIMEOUT_MS)
                     .get();
 
             String[] selectors = {
@@ -107,16 +106,16 @@ public class LinkToImageService {
 
             for (String selector : selectors) {
                 String imgUrl = doc.select(selector).attr("content");
-                if (imgUrl == null || imgUrl.isEmpty()) {
+                if (imgUrl.isEmpty()) {
                     imgUrl = doc.select(selector).attr("href");
                 }
-                if (imgUrl != null && !imgUrl.isEmpty()) {
+                if (!imgUrl.isEmpty()) {
                     return imgUrl;
                 }
             }
 
             String imgTag = doc.select("img").attr("src");
-            if (imgTag != null && !imgTag.isEmpty()) {
+            if (!imgTag.isEmpty()) {
                 return imgTag;
             }
         } catch (Exception e) {
@@ -127,7 +126,6 @@ public class LinkToImageService {
 
     // Google Custom Search API 특정 이미지 직접 검색
     public String searchFirstDirectImageUrl(String query) {
-        final int MAX_TRY = 5;
         try {
             String url = "https://www.googleapis.com/customsearch/v1?"
                     + "key=" + apiKey
@@ -135,14 +133,12 @@ public class LinkToImageService {
                     + "&searchType=image"
                     + "&q=" + java.net.URLEncoder.encode(query, "UTF-8");
 
-            RestTemplate restTemplate = new RestTemplate();
             String response = restTemplate.getForObject(url, String.class);
 
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(response);
+            JsonNode root = objectMapper.readTree(response);
             JsonNode items = root.get("items");
             if (items != null && items.isArray()) {
-                for (int i = 0; i < items.size() && i < MAX_TRY; i++) {
+                for (int i = 0; i < items.size() && i < MAX_IMAGE_SEARCH_TRY; i++) {
                     String link = items.get(i).get("link").asText();
                     if (isImageUrl(link)) {
                         return link;
