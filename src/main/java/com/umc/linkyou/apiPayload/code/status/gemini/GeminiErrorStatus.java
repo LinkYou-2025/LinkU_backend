@@ -16,7 +16,6 @@ public enum GeminiErrorStatus implements BaseErrorCode {
     GEMINI_TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "GEMINI4291", "AI 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
 
     // 500 Internal Server Error
-    GEMINI_UNKNOWN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "GEMINI5001", "AI 처리 중 알 수 없는 오류가 발생했습니다."),
     GEMINI_RESPONSE_FORMAT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "GEMINI5002", "AI 응답 형식이 올바르지 않습니다."),
 
     // 502 Bad Gateway (외부 API 호출 실패)
