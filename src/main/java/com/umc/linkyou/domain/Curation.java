@@ -21,8 +21,8 @@ public class Curation extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private Users user;
 
-    @Column(length = 7, nullable = false)
-    private String month;
+    @Column(name = "base_month", length = 7, nullable = false)
+    private String baseMonth;
 
     @Column(columnDefinition = "TEXT")
     private String headerMent;

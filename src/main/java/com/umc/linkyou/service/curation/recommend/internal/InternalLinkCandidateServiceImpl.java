@@ -37,7 +37,7 @@ public class InternalLinkCandidateServiceImpl implements InternalLinkCandidateSe
         Curation curation = curationRepository.findById(curationId)
                 .orElseThrow(() -> new GeneralException(CurationErrorStatus._CURATION_NOT_FOUND));
 
-        String baseMonth = curation.getMonth();
+        String baseMonth = curation.getBaseMonth();
 
         // 큐레이션 생성 월 계산
         YearMonth ym = YearMonth.parse(baseMonth);

@@ -49,9 +49,9 @@ class CurationServiceImplTest {
     void generateCurationForUser_creates_whenNotExists() {
         Users user = Users.builder().id(USER_ID).build();
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(curationRepository.existsByUserAndMonth(user, "2026-03")).thenReturn(false);
+        when(curationRepository.existsByUserAndBaseMonth(user, "2026-03")).thenReturn(false);
 
-        Curation saved = Curation.builder().user(user).month("2026-03").build();
+        Curation saved = Curation.builder().user(user).baseMonth("2026-03").build();
         when(curationRepository.save(any())).thenReturn(saved);
 
         try (MockedStatic<TransactionSynchronizationManager> tsm =
@@ -70,7 +70,7 @@ class CurationServiceImplTest {
     void generateCurationForUser_skips_whenAlreadyExists() {
         Users user = Users.builder().id(USER_ID).build();
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(curationRepository.existsByUserAndMonth(user, "2026-03")).thenReturn(true);
+        when(curationRepository.existsByUserAndBaseMonth(user, "2026-03")).thenReturn(true);
 
         service.generateCurationForUser(USER_ID, "2026-03");
 
@@ -93,7 +93,7 @@ class CurationServiceImplTest {
         Users user = Users.builder().id(USER_ID).build();
         Curation curation = Curation.builder()
                 .user(user)
-                .month("2026-03")
+                .baseMonth("2026-03")
                 .build();
 
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
@@ -118,7 +118,7 @@ class CurationServiceImplTest {
         Users owner = Users.builder().id(OTHER_USER_ID).build();
         Curation curation = Curation.builder()
                 .user(owner)
-                .month("2026-03")
+                .baseMonth("2026-03")
                 .build();
 
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(caller));
@@ -145,7 +145,7 @@ class CurationServiceImplTest {
         Users user = Users.builder().id(USER_ID).build();
         Curation curation = Curation.builder()
                 .user(user)
-                .month("2026-03")
+                .baseMonth("2026-03")
                 .build();
         curation.updateMent("header", "footer");
 

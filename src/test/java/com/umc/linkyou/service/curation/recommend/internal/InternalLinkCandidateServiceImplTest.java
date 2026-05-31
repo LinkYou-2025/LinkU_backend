@@ -56,7 +56,7 @@ class InternalLinkCandidateServiceImplTest {
 
     private Curation makeCuration() {
         return Curation.builder()
-                .month(MONTH)
+                .baseMonth(MONTH)
                 .build();
     }
 

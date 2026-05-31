@@ -42,7 +42,7 @@ public class CurationMentWorker {
         Users user = curation.getUser();
         Long userId = user.getId();
         String nickname = user.getNickName();
-        String baseMonth = curation.getMonth();
+        String baseMonth = curation.getBaseMonth();
 
         // 상위 1개 감정 조회
         Optional<KeywordMonthlyCount> topEmotionCount = keywordMonthlyCountRepository

@@ -50,7 +50,7 @@ public class ExternalRecommendWorker {
         Users user = curation.getUser();
         Long userId = user.getId();
 
-        List<String> topTags = keywordMonthlyCountRepository.findTopByUserIdAndBaseMonth(userId, curation.getMonth(), PageRequest.of(0, 3))
+        List<String> topTags = keywordMonthlyCountRepository.findTopByUserIdAndBaseMonth(userId, curation.getBaseMonth(), PageRequest.of(0, 3))
                 .stream()
                 .map(kmc -> kmc.getType() == KeywordType.EMOTION
                         ? emotionMapper.getEmotionName(kmc.getRefId())

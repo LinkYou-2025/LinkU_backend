@@ -58,13 +58,13 @@ public class CurationServiceImpl implements CurationService {
     }
 
     private boolean doGenerateCuration(Users user, String month) {
-        if (curationRepository.existsByUserAndMonth(user, month)) {
+        if (curationRepository.existsByUserAndBaseMonth(user, month)) {
             return false;
         }
 
         Curation curation = Curation.builder()
                 .user(user)
-                .month(month)
+                .baseMonth(month)
                 .build();
         curationRepository.save(curation);
 
@@ -89,7 +89,7 @@ public class CurationServiceImpl implements CurationService {
         Map<String, Curation> existing = curationRepository
                 .findAllByUserIdAndYear(userId, String.valueOf(year))
                 .stream()
-                .collect(Collectors.toMap(Curation::getMonth, Function.identity()));
+                .collect(Collectors.toMap(Curation::getBaseMonth, Function.identity()));
 
         List<CurationListResponse> result = new ArrayList<>(12);
         for (int m = 1; m <= 12; m++) {
@@ -117,8 +117,8 @@ public class CurationServiceImpl implements CurationService {
         return curationRepository.findLatestByUserId(userId)
                 .map(curation -> CurationLatestResponse.builder()
                         .curationId(curation.getCurationId())
-                        .month(curation.getMonth())
-                        .thumbnailUrl(thumbnailUrlProvider.getUrlForMonth(curation.getMonth()))
+                        .month(curation.getBaseMonth())
+                        .thumbnailUrl(thumbnailUrlProvider.getUrlForMonth(curation.getBaseMonth()))
                         .build());
     }
 
@@ -152,7 +152,7 @@ public class CurationServiceImpl implements CurationService {
             throw new GeneralException(CurationErrorStatus._CURATION_FORBIDDEN);
         }
 
-        String baseMonth = curation.getMonth();
+        String baseMonth = curation.getBaseMonth();
 
         // 상위 태그 3개 조회
         List<String> tagNames = keywordMonthlyCountRepository
@@ -163,7 +163,7 @@ public class CurationServiceImpl implements CurationService {
 
         return CurationDetailResponse.builder()
                 .curationId(curation.getCurationId())
-                .month(curation.getMonth())
+                .month(curation.getBaseMonth())
                 .topTags(tagNames)
                 .headerMent(curation.getHeaderMent())
                 .footerMent(curation.getFooterMent())
