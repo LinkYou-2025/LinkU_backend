@@ -27,8 +27,6 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
             SELECT ul FROM UsersLinku ul
             JOIN FETCH ul.emotion
             JOIN FETCH ul.linku l
-            JOIN FETCH l.category
-            JOIN FETCH l.domain
             LEFT JOIN FETCH l.aiArticle
             WHERE ul.user.id = :userId
             AND ul.createdAt >= :start AND ul.createdAt < :end
