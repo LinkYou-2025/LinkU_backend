@@ -63,7 +63,7 @@ public class KakaoTokenClient {
             return new KakaoUserInfo(externalId, email, name, profileImage);
         } catch (GeneralException e) {
             throw e;  // 명시적 재throw (호출자 일관성)
-    } catch (Exception e) {
+        } catch (Exception e) {
             log.error("카카오 사용자 정보 조회 실패", e);
             throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
         }

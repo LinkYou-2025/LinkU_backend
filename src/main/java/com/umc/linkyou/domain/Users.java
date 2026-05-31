@@ -6,7 +6,6 @@ import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.domain.common.BaseEntity;
 import com.umc.linkyou.domain.enums.*;
 import com.umc.linkyou.domain.folder.FolderShareLink;
-import com.umc.linkyou.domain.log.EmotionLog;
 import com.umc.linkyou.domain.mapping.CurationLike;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
@@ -103,10 +102,6 @@ public class Users extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CurationLike> curationLikes = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<EmotionLog> emotionLogs = new ArrayList<>();
 
     @Builder.Default
     @OneToMany(mappedBy = "creator", cascade = CascadeType.ALL, orphanRemoval = true)

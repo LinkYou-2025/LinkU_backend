@@ -16,7 +16,7 @@ import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
-import com.umc.linkyou.repository.curationLinkuRepository.CurationLinkuRepository;
+import com.umc.linkyou.repository.curationRepository.CurationLinkuRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
@@ -251,7 +251,7 @@ public class LinkuServiceImpl implements LinkuService {
         linkuFolderRepository.deleteAll(linkuFolders);
 
         // 2. curation_linku 관련 삭제
-        List<CurationLinku> curationLinkus = curationLinkuRepository.findByUsersLinku_UserLinkuId(userLinkuId);
+        List<CurationLinku> curationLinkus = curationLinkuRepository.findByUsersLinkuId(userLinkuId);
         curationLinkuRepository.deleteAll(curationLinkus);
 
         // 3. UsersLinku 삭제

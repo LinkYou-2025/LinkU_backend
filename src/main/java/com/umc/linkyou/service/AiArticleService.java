@@ -12,8 +12,9 @@ import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.gemini.dto.SummaryResultDTO;
-import com.umc.linkyou.gemini.service.GeminiLinkuService;
+import com.umc.linkyou.infra.ai.AiArticleAnalyzer;
+import com.umc.linkyou.infra.ai.dto.AiArticleResultDTO;
+import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
@@ -21,7 +22,6 @@ import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.utils.parser.LinkToImageService;
 import com.umc.linkyou.web.dto.AiArticleResponsetDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +45,7 @@ public class AiArticleService {
     private final AiArticleRepository aiArticleRepository;
     private final UsersLinkuRepository usersLinkuRepository;
     private final LinkToImageService linkToImageService;
-    private final GeminiLinkuService geminiLinkuService;
+    private final AiArticleAnalyzer aiArticleAnalyzer;
 
     /**
      * 링크 생성
@@ -61,11 +61,14 @@ public class AiArticleService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
 
         // 2. Gemini 호출 (객관적 요약, 제목, 카테고리 추출)
-        SummaryResultDTO result = geminiLinkuService.getFullAnalysis(linku.getLinku());
+        AiArticleResultDTO result = aiArticleAnalyzer.analyzeByUrl(
+                linku.getLinku(),
+                situationRepository.findAll(),
+                emotionRepository.findAll()
+        );
 
-        // 3. 분석 결과 기반 엔티티 확정
-        Category selectedCategory = categoryRepository.findById(result.getCategoryId())
-                .orElseThrow(() -> new GeneralException(ErrorStatus._CATEGORY_NOT_FOUND));
+        // 3. 분석 결과 기반 엔티티 확정 (카테고리는 링크 생성 시 분류된 값 재사용)
+        Category selectedCategory = linku.getCategory();
 
         // [수정 포인트] 상황은 시스템 기본값, 감정은 유저가 링크 생성 시 선택했던 값을 활용
         Situation defaultSituation = situationRepository.findById(1L)
@@ -78,8 +81,8 @@ public class AiArticleService {
         // 5. AiArticle 저장 또는 업데이트 (Dirty Checking 활용)
         AiArticle article = aiArticleRepository.findByLinku(linku)
                 .map(existing -> {
-                    existing.setTitle(result.getTitle());
-                    existing.setSummary(result.getSummary());
+                    existing.setTitle(result.title());
+                    existing.setSummary(result.summary());
                     existing.setAiCategoryId(selectedCategory.getCategoryId());
                     existing.setAiFeelingId(userSelectedEmotion.getEmotionId()); // 생성 시점 감정 반영
                     existing.setImgUrl(imageUrl);

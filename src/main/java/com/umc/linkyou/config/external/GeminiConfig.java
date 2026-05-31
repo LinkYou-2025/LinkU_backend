@@ -17,21 +17,21 @@ import java.util.Collections;
 public class GeminiConfig {
 
     @Bean(destroyMethod = "close")
-    public Client geminiClient(
+    public Client vertexAiClient(
             @Value("${spring.cloud.gcp.project-id}") String projectId,
             @Value("${spring.cloud.gcp.location}") String location,
             @Value("${gemini.credentials.path}") Resource credentialsResource
     ) {
         try (InputStream is = credentialsResource.getInputStream()) {
+            // Vertex AI 용 최소 요구 스코프 설정
             GoogleCredentials credentials = GoogleCredentials.fromStream(is)
-                    // 필요 시 스코프 명시 (Vertex AI용)
                     .createScoped(Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
 
             Client client = Client.builder()
                     .vertexAI(true)
                     .project(projectId)
                     .location(location)
-                    .credentials(credentials) // 생성한 credentials를 직접 주입
+                    .credentials(credentials)
                     .build();
 
             log.info("Gemini Client 초기화 성공: {}", credentialsResource.getFilename());

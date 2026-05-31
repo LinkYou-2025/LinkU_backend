@@ -1,14 +1,14 @@
 package com.umc.linkyou.service.Linku;
 
-import com.umc.linkyou.gemini.dto.ClassifyResultDTO;
-import com.umc.linkyou.gemini.service.GeminiLinkuService;
+import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
+import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
+import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
-import com.umc.linkyou.utils.parser.LinkToImageService;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awss3.AwsS3Service;
@@ -83,16 +83,12 @@ public class LinkuCreateService {
             category = linku.getCategory();
             // 기존 AiArticle이 있다면 해당 키워드를 사용, 없으면 null/기본값 처리
             aiKeywords = (linku.getAiArticle() != null) ? linku.getAiArticle().getKeyword() : "키워드 없음";
-        } if (existingLinku.isPresent()) {
-            linku = existingLinku.get();
-            category = linku.getCategory();
-            aiKeywords = (linku.getAiArticle() != null) ? linku.getAiArticle().getKeyword() : "키워드 없음";
         } else {
             // [경쟁 상태 방지 로직]
             // AI 분류 및 도메인 결정 로직은 그대로 유지 (이미 생성된 데이터가 있더라도 분류 결과는 필요할 수 있음)
-            ClassifyResultDTO aiResult = geminiLinkuService.classify(normalizedLink);
-            category = resolveCategory(aiResult.getCategoryId());
-            aiKeywords = aiResult.getKeywords();
+            Optional<LinkuResultDTO> aiResult = geminiLinkuService.analyzeByUrl(normalizedLink, categoryRepository.findAll());
+            category = resolveCategory(aiResult.map(LinkuResultDTO::categoryId).orElse(null));
+            aiKeywords = aiResult.map(LinkuResultDTO::keywords).filter(k -> k != null && !k.isBlank()).orElse("키워드 없음");
             Domain domain = resolveDomain(domainTail);
 
             try {

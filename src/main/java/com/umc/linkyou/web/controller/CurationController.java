@@ -1,214 +1,93 @@
 package com.umc.linkyou.web.controller;
 
+import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.ApiV1;
-import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
-import com.umc.linkyou.service.curation.CurationLikeService;
 import com.umc.linkyou.service.curation.CurationService;
-import com.umc.linkyou.service.curation.CurationTopLogService;
-import com.umc.linkyou.service.curation.linku.CurationRecommendBuilderService;
-import com.umc.linkyou.service.curation.linku.InternalLinkCandidateService;
+import com.umc.linkyou.service.curation.recommend.CurationRecommendBuilderService;
 import com.umc.linkyou.web.dto.curation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.umc.linkyou.web.dto.curation.CurationListResponse;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 
+import java.time.YearMonth;
 import java.util.List;
 
 @Tag(name = "curation-controller", description = "큐레이션 관련 API")
 @ApiV1
-@RestController
 @RequiredArgsConstructor
 @RequestMapping("/curations")
 public class CurationController {
 
-    private final CurationTopLogService curationTopLogService;
     private final CurationService curationService;
-    private final CurationLikeService curationLikeService;
     private final CurationRecommendBuilderService curationRecommendBuilderService;
-    private final InternalLinkCandidateService internalLinkCandidateService;
 
-    // 자동생성 테스트
+    // 월별 섹션 정보 조회 (제목, 설명, 대표 이미지)
     @Operation(
-            summary = "배치 트리거(관리용)",
-            description = "모든 사용자에 대해 월간 큐레이션을 즉시 생성합니다. 운영/개발 전용 엔드포인트입니다."
-    )
-    @GetMapping("/batch/manual")
-    public ResponseEntity<ApiResponse<Object>> triggerBatch() {
-        curationService.generateMonthlyCurationForAllUsers();
-        return ResponseEntity.ok(ApiResponse.onSuccess(SuccessStatus._OK));
-    }
-
-    @Operation(
-            summary = "개발용 시드: 2025-02 ~ 2025-07 큐레이션 생성",
-            description = "기존 운영 코드 변경 없이, 테스트 데이터만 일괄 생성합니다. 이미 존재하는 (user, month)는 스킵합니다."
-    )
-    @PostMapping("/seed-feb-to-jul-2025")
-    public ResponseEntity<ApiResponse<Object>> seedFebToJul2025(
-            @RequestParam(defaultValue = "false") boolean materializeExternal
+            summary = "큐레이션 섹션 정보 조회",
+            description = "지정한 월(YYYY-MM)의 섹션별 제목, 설명, 대표 이미지를 반환합니다. 미입력 시 이번 달 기준. 모든 유저 동일.")
+    @GetMapping("/sections")
+    public ResponseEntity<ApiResponse<List<CurationSectionResponse>>> getSectionInfo(
+            @RequestParam(required = false) String month
     ) {
-        curationService.seedFebToJul2025(materializeExternal);
-        return ResponseEntity.ok(ApiResponse.onSuccess(SuccessStatus._OK));
+        String resolvedMonth = (month != null) ? month : YearMonth.now().toString();
+        return ResponseEntity.ok(ApiResponse.onSuccess(curationService.getCurationSections(resolvedMonth)));
     }
 
-    /**
-     * 큐레이션 상세 조회 API
-     */
+    // 올해 12개 큐레이션 히스토리 (없는 달은 빈 상태)
     @Operation(
-            summary = "큐레이션 상세 조회",
-            description = "큐레이션 ID로 상세 정보를 조회합니다."
-    )
-    @GetMapping("/detail/{curationId}")
-    public ResponseEntity<ApiResponse<CurationDetailResponse>> getCurationDetail(@PathVariable Long curationId) {
-        CurationDetailResponse response = curationService.getCurationDetail(curationId);
-        return ResponseEntity.ok(ApiResponse.onSuccess(response));
+            summary = "연도별 큐레이션 히스토리 조회",
+            description = "지정한 연도의 1~12월 큐레이션 목록을 반환합니다. 미입력 시 올해 기준. 생성되지 않은 달은 curationId, thumbnailUrl이 null입니다.")
+    @GetMapping("/history")
+    public ResponseEntity<ApiResponse<List<CurationListResponse>>> getMyCurationList(
+            @CurrentUser CustomUserDetails userDetails,
+            @RequestParam(required = false) Integer year
+    ) {
+        Long userId = userDetails.getUserId();
+        int resolvedYear = (year != null) ? year : YearMonth.now().getYear();
+        return ResponseEntity.ok(ApiResponse.onSuccess(curationService.getCurationList(userId, resolvedYear)));
     }
 
-    /**
-     * [기존] 가장 최근 큐레이션 조회
-     */
+    // 가장 최근 큐레이션 조회
     @Operation(
             summary = "가장 최근 큐레이션 조회",
-            description = "사용자 ID로 해당 사용자의 최신 큐레이션을 조회합니다. 없으면 204(No Content) 반환."
-    )
-    @GetMapping("/latest/{userId}")
-    public ResponseEntity<ApiResponse<CurationLatestResponse>> getLatestCuration(@PathVariable Long userId) {
-        var body = curationService.getLatestCuration(userId).orElse(null);
-        return ResponseEntity.ok(ApiResponse.onSuccess(body));
-    }
-
-    /**
-     * [수정] 내 큐레이션 히스토리 (전체보기 + 페이징)
-     */
-    @Operation(
-            summary = "내 큐레이션 전체 히스토리 조회",
-            description = "나의 월별 큐레이션 전체 목록을 최신순으로 페이징하여 조회합니다. (size 기본값: 10)"
-    )
-    @GetMapping("/history")
-    public ResponseEntity<ApiResponse<Page<CurationListResponse>>> getMyCurationList(
-            @CurrentUser CustomUserDetails userDetails,
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "10") int size
-    ) {
+            description = "내 최신 큐레이션을 조회합니다.")
+    @GetMapping("/latest")
+    public ResponseEntity<ApiResponse<CurationLatestResponse>> getLatestCuration(
+            @CurrentUser CustomUserDetails userDetails) {
         Long userId = userDetails.getUserId();
-
-        // 0페이지부터 시작, size 개수만큼 가져오기
-        PageRequest pageRequest = PageRequest.of(page, size);
-        Page<CurationListResponse> result = curationService.getMyCurationList(userId, pageRequest);
-        return ResponseEntity.ok(ApiResponse.onSuccess(result));
+        return curationService.getLatestCuration(userId)
+                .map(body -> ResponseEntity.ok(ApiResponse.onSuccess(body)))
+                .orElse(ResponseEntity.noContent().build());
     }
 
-    /**
-     * 큐레이션 좋아요 등록
-     */
+    // 큐레이션 상세 조회
     @Operation(
-            summary = "큐레이션 좋아요 등록",
-            description = "해당 큐레이션에 좋아요를 등록합니다."
-    )
-    @PostMapping("/{curationId}/like")
-    public ResponseEntity<ApiResponse<Object>> likeCuration(@PathVariable Long curationId, @RequestParam Long userId) {
-        curationLikeService.likeCuration(userId, curationId);
-        return ResponseEntity.ok(ApiResponse.onSuccess(SuccessStatus._OK));
-    }
-    /**
-     * 큐레이션 좋아요 취소
-     */
-    @Operation(
-            summary = "큐레이션 좋아요 취소",
-            description = "해당 큐레이션의 좋아요를 취소합니다."
-    )
-    @DeleteMapping("/{curationId}/like")
-    public ResponseEntity<ApiResponse<Object>> unlikeCuration(@PathVariable Long curationId, @RequestParam Long userId) {
-        curationLikeService.unlikeCuration(userId, curationId);
-        return ResponseEntity.ok(ApiResponse.onSuccess(SuccessStatus._OK));
-    }
-
-    /**
-     * 큐레이션 좋아요 여부 확인
-     */
-    @Operation(
-            summary = "큐레이션 좋아요 여부 조회",
-            description = "해당 큐레이션에 사용자가 좋아요를 눌렀는지 여부를 조회합니다."
-    )
-    @GetMapping("/{curationId}/like")
-    public ResponseEntity<ApiResponse<CurationLikeStatusResponse>> isLiked(
-            @PathVariable Long curationId,
-            @RequestParam Long userId
-    ) {
-        boolean liked = curationLikeService.isLiked(userId, curationId);
-        return ResponseEntity.ok(ApiResponse.onSuccess(new CurationLikeStatusResponse(liked)));
-    }
-
-    /**
-     * [기존] 큐레이션 좋아요 리스트 가져오기
-     */
-    @Operation(
-            summary = "최근 좋아요한 큐레이션 목록",
-            description = "사용자의 최근 좋아요 기록을 최신순으로 조회합니다."
-    )
-    @GetMapping("/likes/recent")
-    public ResponseEntity<ApiResponse<List<LikedCurationResponse>>> getRecentLikedCurations(@RequestParam Long userId) {
-        var list = curationLikeService.getRecentLikedCurations(userId);
-        return ResponseEntity.ok(ApiResponse.onSuccess(list));
-    }
-
-    /**
-     * [수정] 좋아요한 큐레이션 전체 리스트 (전체보기 + 페이징)
-     */
-    @Operation(
-            summary = "좋아요한 큐레이션 전체 조회",
-            description = "내가 좋아요를 누른 큐레이션 전체 목록을 좋아요 누른 최신순으로 페이징하여 조회합니다."
-    )
-    @GetMapping("/likes")
-    public ResponseEntity<ApiResponse<Page<CurationListResponse>>> getLikedCurationList(
+            summary = "큐레이션 상세 조회",
+            description = "큐레이션 ID로 상세 정보를 조회합니다.")
+    @GetMapping("/detail/{curationId}")
+    public ResponseEntity<ApiResponse<CurationDetailResponse>> getCurationDetail(
             @CurrentUser CustomUserDetails userDetails,
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "10") int size
-    ) {
+            @PathVariable Long curationId) {
         Long userId = userDetails.getUserId();
-
-        PageRequest pageRequest = PageRequest.of(page, size);
-        Page<CurationListResponse> result = curationLikeService.getLikedCurationList(userId, pageRequest);
-        return ResponseEntity.ok(ApiResponse.onSuccess(result));
+        return ResponseEntity.ok(ApiResponse.onSuccess(curationService.getCurationDetail(userId, curationId)));
     }
 
-    /**
-     * 큐레이션 링크 추천
-     */
+    // 큐레이션 링크 추천
     @Operation(
             summary = "큐레이션 기반 링크 추천",
-            description = "해당 큐레이션을 기반으로 내부/외부 추천 로직을 종합하여 링크를 추천합니다."
+            description = "내부/외부 링크를 추천합니다."
     )
     @GetMapping("/recommend-links")
     public ResponseEntity<ApiResponse<List<RecommendedLinkResponse>>> getRecommendedLinks(
-            @RequestParam Long userId,
+            @CurrentUser CustomUserDetails userDetails,
             @RequestParam Long curationId
     ) {
-        var recommendations = curationRecommendBuilderService.buildRecommendedLinks(userId, curationId);
+        Long userId = userDetails.getUserId();
+        List<RecommendedLinkResponse> recommendations = curationRecommendBuilderService.buildRecommendedLinks(userId, curationId);
         return ResponseEntity.ok(ApiResponse.onSuccess(recommendations));
-    }
-
-
-    /**
-     * 내부 링크 유사도 상위 2개
-     */
-    @Operation(
-            summary = "내부 유사 링크 상위 2개",
-            description = "내부 보유 링크 중 해당 큐레이션과 유사도가 높은 상위 2개 링크를 조회합니다."
-    )
-    @GetMapping("/recommend-links/internal/top2")
-    public ResponseEntity<ApiResponse<List<RecommendedLinkResponse>>> getInternalSimilarLinks(
-            @RequestParam Long userId,
-            @RequestParam Long curationId
-    ) {
-        var result = internalLinkCandidateService.getTop2SimilarInternalLinks(userId, curationId);
-        return ResponseEntity.ok(ApiResponse.onSuccess(result));
     }
 }

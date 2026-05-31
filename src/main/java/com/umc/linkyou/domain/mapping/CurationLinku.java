@@ -52,4 +52,15 @@ public class CurationLinku {
                 .build();
     }
 
+    public static CurationLinku ofInternal(Curation curation, UsersLinku usersLinku, String imageUrl) {
+        return CurationLinku.builder()
+                .curation(curation)
+                .usersLinku(usersLinku)
+                .type(CurationLinkuType.RECOMMENDED)
+                .url(usersLinku.getLinku().getLinku())
+                .title(usersLinku.getLinku().getTitle())
+                .imageUrl(imageUrl)
+                .build();
+    }
+
 }

@@ -2,7 +2,6 @@ package com.umc.linkyou.service.curation.utils;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import java.time.YearMonth;
 
 @Component
 public class ThumbnailUrlProvider {
@@ -14,13 +13,8 @@ public class ThumbnailUrlProvider {
         this.baseUrl = baseUrl;
     }
 
-    public String getUrlForMonth(String folder, String month) {
-        String monthPart = month.split("-")[1];
-        return String.format("%s/%s/%s%s", baseUrl, folder, monthPart, EXTENSION);
-    }
-
-    public String getUrlForMonth(String folder, YearMonth yearMonth) {
-        String monthPart = String.format("%02d", yearMonth.getMonthValue());
-        return String.format("%s/%s/%s%s", baseUrl, folder, monthPart, EXTENSION);
+    public String getUrlForMonth(String month) {
+        String[] parts = month.split("-");
+        return String.format("%s/curation/%s/%s%s", baseUrl, parts[0], parts[1], EXTENSION);
     }
 }

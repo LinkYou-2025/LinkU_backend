@@ -10,7 +10,6 @@ import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
-import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
 
 public class LinkuConverter {
     // Converter: RequestParam으로 받은 데이터 -> LinkuCreateDTO 생성
@@ -166,16 +165,6 @@ public class LinkuConverter {
                 .domain(domain != null ? domain.getName() : null)
                 .domainImageUrl(domain != null ? domain.getImageUrl() : null)
                 .linkuImageUrl(usersLinku.getImageUrl())
-                .build();
-    }
-
-    public static RecommendedLinkResponse toRecommendedLinkResponse(UsersLinku usersLinku) {
-        return RecommendedLinkResponse.builder()
-                .userLinkuId(usersLinku.getUserLinkuId())
-                .title(usersLinku.getLinku().getTitle())
-                .url(usersLinku.getLinku().getLinku())
-                .domain(usersLinku.getLinku().getDomain().getName())
-                .imageUrl(usersLinku.getImageUrl())
                 .build();
     }
 

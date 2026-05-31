@@ -10,7 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import com.umc.linkyou.jwt.CurrentUser;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,7 +29,7 @@ public class DomainController {
     )
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<DomainDTO.DomainReponseDTO> createLinku(
-            @CurrentUser CustomUserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String domainTail,
             @RequestParam(required = false) MultipartFile image
@@ -47,7 +47,7 @@ public class DomainController {
     )
     @PatchMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<DomainDTO.DomainReponseDTO> updateLinku(
-            @CurrentUser CustomUserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam Long id,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String domainTail,

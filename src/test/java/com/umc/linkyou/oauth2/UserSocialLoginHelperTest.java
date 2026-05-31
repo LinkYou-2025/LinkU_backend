@@ -5,12 +5,14 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.oauth2.utils.UserSocialLoginHelper;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 

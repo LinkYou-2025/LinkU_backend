@@ -1,11 +1,11 @@
 package com.umc.linkyou.service.gemini;
 
-import com.umc.linkyou.gemini.dto.SummaryResultDTO;
-import com.umc.linkyou.gemini.prompt.common.PromptComposer;
-import com.umc.linkyou.gemini.service.GeminiLinkuService;
-import com.umc.linkyou.gemini.service.GeminiService;
-import com.umc.linkyou.utils.parser.WebContentExtractor;
-import com.umc.linkyou.repository.classification.CategoryRepository;
+import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
+import com.umc.linkyou.infra.gemini.prompt.common.PromptComposer;
+import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
+import com.umc.linkyou.infra.gemini.service.GeminiService;
+import com.umc.linkyou.infra.parser.TitleDomainParser;
+import com.umc.linkyou.infra.parser.WebContentExtractor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -14,8 +14,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,42 +28,55 @@ class GeminiLinkuServiceTest {
 
     @Mock private GeminiService geminiService;
     @Mock private WebContentExtractor webContentExtractor;
-    @Mock private CategoryRepository categoryRepository;
-
-    // PromptComposer Mock 객체 선언
+    @Mock private TitleDomainParser titleDomainParser;
     @Mock private PromptComposer promptComposer;
 
     @InjectMocks
     private GeminiLinkuService geminiLinkuService;
 
     @Nested
-    @DisplayName("전체 분석 조회 (getFullAnalysis)")
-    class GetFullAnalysis {
+    @DisplayName("URL 분석 (analyzeByUrl)")
+    class AnalyzeByUrl {
 
         @Nested
         @DisplayName("성공 케이스")
         class Success {
 
             @Test
-            @DisplayName("정상적인 URL이 입력되면 분석 결과를 반환한다")
-            void 전체분석_조회_성공() {
-                // given
+            @DisplayName("제목과 본문이 있으면 분석 결과를 반환한다")
+            void URL분석_성공() {
                 String url = "https://tech-blog.com/post/1";
-                SummaryResultDTO mockResult = new SummaryResultDTO();
+                LinkuResultDTO mockResult = new LinkuResultDTO(1L, "Spring,Java");
 
-                given(webContentExtractor.extractTextFromUrl(url)).willReturn("본문");
-
-                // promptComposer 동작 정의
-                given(promptComposer.compose(any())).willReturn("Full Prompt Content");
-
-                given(geminiService.callAndParse(anyString(), anyString(), eq(SummaryResultDTO.class)))
+                given(titleDomainParser.parseUrl(url))
+                        .willReturn(new TitleDomainParser.ParsedPageInfo("tech-blog.com", "Tech Article"));
+                given(webContentExtractor.extractTextFromUrl(url)).willReturn("본문 내용");
+                given(promptComposer.general()).willReturn("system prompt");
+                given(geminiService.callAndParse(anyString(), anyString(), eq(LinkuResultDTO.class)))
                         .willReturn(mockResult);
 
-                // when
-                SummaryResultDTO result = geminiLinkuService.getFullAnalysis(url);
+                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of());
 
-                // then
-                assertThat(result).isNotNull();
+                assertThat(result).isPresent();
+                assertThat(result.get().categoryId()).isEqualTo(1L);
+            }
+
+            @Test
+            @DisplayName("본문 추출에 실패해도 제목이 있으면 분석 결과를 반환한다")
+            void 본문추출_실패시_제목으로_분석() {
+                String url = "https://tech-blog.com/post/2";
+                LinkuResultDTO mockResult = new LinkuResultDTO(2L, "Java");
+
+                given(titleDomainParser.parseUrl(url))
+                        .willReturn(new TitleDomainParser.ParsedPageInfo("tech-blog.com", "Tech Article"));
+                given(webContentExtractor.extractTextFromUrl(url)).willReturn(null);
+                given(promptComposer.general()).willReturn("system prompt");
+                given(geminiService.callAndParse(anyString(), anyString(), eq(LinkuResultDTO.class)))
+                        .willReturn(mockResult);
+
+                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of());
+
+                assertThat(result).isPresent();
             }
         }
 
@@ -68,25 +85,18 @@ class GeminiLinkuServiceTest {
         class Failure {
 
             @Test
-            @DisplayName("본문 추출에 실패해도 안전하게 처리한다")
-            void 본문추출_실패시_처리() {
-                // given
-                given(webContentExtractor.extractTextFromUrl(any())).willReturn(null);
+            @DisplayName("제목과 본문이 모두 없으면 빈 Optional을 반환한다")
+            void 제목_본문_모두_없으면_빈결과() {
+                String url = "https://empty.com";
 
-                // promptComposer 동작 정의
-                given(promptComposer.compose(any())).willReturn("Empty Content Prompt");
+                given(titleDomainParser.parseUrl(url))
+                        .willReturn(new TitleDomainParser.ParsedPageInfo("empty.com", null));
+                given(webContentExtractor.extractTextFromUrl(url)).willReturn(null);
 
-                given(geminiService.callAndParse(anyString(), anyString(), eq(SummaryResultDTO.class)))
-                        .willReturn(new SummaryResultDTO());
+                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of());
 
-                // when
-                SummaryResultDTO result = geminiLinkuService.getFullAnalysis("https://invalid.com");
-
-                // then
-                assertThat(result).isNotNull();
+                assertThat(result).isEmpty();
             }
         }
     }
-
-
 }

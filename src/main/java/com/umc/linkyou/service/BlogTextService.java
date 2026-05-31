@@ -1,8 +1,8 @@
 package com.umc.linkyou.service;
 
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.utils.parser.TitleDomainParser;
-import com.umc.linkyou.utils.parser.WebContentExtractor;
+import com.umc.linkyou.infra.parser.TitleDomainParser;
+import com.umc.linkyou.infra.parser.WebContentExtractor;
 import com.umc.linkyou.web.dto.BlogTextResponseDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

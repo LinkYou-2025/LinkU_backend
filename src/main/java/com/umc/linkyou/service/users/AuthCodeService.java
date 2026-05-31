@@ -25,7 +25,5 @@ public class AuthCodeService {
             throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
         }
         return new UserResponseDTO.TokenPair(tokens[0], tokens[1]);
-
     }
-
 }
