@@ -1,4 +1,4 @@
-# backend-server  
+# backend-server
 
 🔗 **링큐(Link:U)**: **Link**+**You**  
 링크와 당신을 잇다
@@ -9,7 +9,7 @@
 - 사용자가 앱에 저장한 링크를 바탕으로 AI가 정보를 간단히 요약하고 분류
 - 저장된 링크 기반으로 사용자의 라이프스타일, 감정 상태 등을 고려한 맞춤형 큐레이션 서비스 제공
 - 저장한 링크를 맞춤형 뉴스레터 형식으로 제공
-<img width="1920" height="1400" alt="표지" src="https://github.com/user-attachments/assets/7e92645c-c528-42fa-a393-73c301b2bf28" />
+  <img width="1920" height="1400" alt="표지" src="https://github.com/user-attachments/assets/7e92645c-c528-42fa-a393-73c301b2bf28" />
 
 
 ### ✅ 진행 사항 확인
@@ -19,51 +19,51 @@
 
 ### 💙 팀원 소개
 
-|장서원|김하진|나현주|조효림|
-|:---:|:---:|:---:|:---:|
-|<img src="https://github.com/user-attachments/assets/65b56c2f-15f4-4dcd-9871-ac4656773441" width="300" height="230">|<img src="https://github.com/user-attachments/assets/7319fc3a-29cd-48b9-b3a0-860368117081" width="300" height="230">|<img src="https://github.com/HyeonJooooo.png" width="300" height="230">|<img src="https://github.com/user-attachments/assets/8becc477-f7d2-4d85-96ba-0b9e8719413a" width="300" height="230">|
-|[@oculo0204](https://github.com/oculo0204)|[@Hajin99](https://github.com/Hajin99)|[@HyeonJooooo](https://github.com/HyeonJooooo)|[@hyorim-jo](https://github.com/hyorim-jo)|
-|ai기반 링크 생성 및 추천, 회원 탈퇴, 서버 배포| 회원정보 관련 기능, redis 설정 |ai기반 링크 큐레이션, cloudwatch 설정| 폴더 공유 포함 폴더 관련 기능|
+|장서원|이지원|나현주|                                                         조효림                                                          |
+|:---:|:---:|:---:|:--------------------------------------------------------------------------------------------------------------------:|
+|<img src="https://github.com/user-attachments/assets/65b56c2f-15f4-4dcd-9871-ac4656773441" width="300" height="230">|<img width="320" height="320" src="https://github.com/user-attachments/assets/5e6f4ba3-af45-4219-b5ed-a0cd71aa5237" />|<img src="https://github.com/HyeonJooooo.png" width="300" height="230">| <img src="https://github.com/user-attachments/assets/8becc477-f7d2-4d85-96ba-0b9e8719413a" width="300" height="230"> |
+|[@oculo0204](https://github.com/oculo0204)|[@JiwonLee42](https://github.com/JiwonLee42)|[@HyeonJooooo](https://github.com/HyeonJooooo)|                                      [@hyorim-jo](https://github.com/hyorim-jo)                                      |
+|ai기반 링크 생성 및 추천, 회원 탈퇴, 서버 배포| 로그인/이메일 인증, FCM 알림 기능 |ai기반 링크 큐레이션, cloudwatch 설정|                                 폴더 공유 포함 폴더 관련 기능, 큐레이션, AI 기반 내/외부 링크 추천 (큐레이션 내부)                                  |
 
 
 
 
 ## 🛠 기술 스택 및 환경
 
-- **Backend**  
-  - Java 17  
-  - Spring Boot 3.4.7  
-  - Gradle 8.14.2  
-  - Hibernate ORM 6.0.2  
+- **Backend**
+  - Java 17
+  - Spring Boot 3.4.7
+  - Gradle 8.14.2
+  - Hibernate ORM 6.0.2
 
-- **Database**  
-  - MariaDB 3.3.3 (JDBC 드라이버)  
+- **Database**
+  - MariaDB 3.3.3 (JDBC 드라이버)
 
-- **캐싱 및 세션**  
-  - Redis (spring-boot-starter-data-redis)  
+- **캐싱 및 세션**
+  - Redis (spring-boot-starter-data-redis)
 
-- **보안 및 인증**  
-  - Spring Security  
-  - JWT (jjwt 라이브러리)  
+- **보안 및 인증**
+  - Spring Security
+  - JWT (jjwt 라이브러리)
 
-- **API 문서화**  
-  - Swagger (springdoc-openapi-starter-webmvc-ui 2.7.0)  
+- **API 문서화**
+  - Swagger (springdoc-openapi-starter-webmvc-ui 2.7.0)
 
-- **UI 템플릿**  
-  - Thymeleaf + Spring Security  
+- **UI 템플릿**
+  - Thymeleaf + Spring Security
 
-- **클라우드 & 인프라**  
-  - AWS EC2, S3, Route53  
+- **클라우드 & 인프라**
+  - AWS EC2, S3, Route53
 
-- **CI/CD**  
-  - GitHub Actions  
+- **CI/CD**
+  - GitHub Actions
 
-- **주요 라이브러리**  
-  - Lombok, QueryDSL, JavaMail, SendGrid, Jsoup, Spring WebFlux  
+- **주요 라이브러리**
+  - Lombok, QueryDSL, JavaMail, SendGrid, Jsoup, Spring WebFlux
 
-- **Gradle 설정**  
-  - `java`, `org.springframework.boot`, `io.spring.dependency-management` 플러그인 적용  
-  - QueryDSL 자동 생성, 컴파일러 추가 옵션 설정  
+- **Gradle 설정**
+  - `java`, `org.springframework.boot`, `io.spring.dependency-management` 플러그인 적용
+  - QueryDSL 자동 생성, 컴파일러 추가 옵션 설정
 
 ---
 
@@ -73,7 +73,7 @@
 
 ---
 
-## 📂 프로젝트 구조  
+## 📂 프로젝트 구조
 ```
 backend-server/
 ├── src/
@@ -111,8 +111,8 @@ backend-server/
 3. 작업이 완료되면 `develop` 브랜치에 풀 요청을 작성하고, 팀원의 동의를 얻으면 병합합니다.
 
 # Branch	종류
-- main	기능 개발 통합 브랜치 (pull request하고 동료들에게 merge요청, 확인이 오래걸리면 스스로 merge) 
-데모용 프로젝트이기 때문에 배포용 브랜치를 따로 두지 않습니다.
+- main	기능 개발 통합 브랜치 (pull request하고 동료들에게 merge요청, 확인이 오래걸리면 스스로 merge)
+  데모용 프로젝트이기 때문에 배포용 브랜치를 따로 두지 않습니다.
 - feature/{이슈번호}{간단한설명}	새로운 기능 개발 브랜치
 - fix/{이슈번호}{간단한설명}	버그 수정 브랜치
 - hotfix/{이슈번호}{간단한설명}	긴급 수정 브랜치
@@ -121,32 +121,32 @@ backend-server/
 # Branch    설명
 1. 기능개발이 완료된 브랜치는 develop브랜치에 merge합니다.
 2. merge된 Branch는 삭제합니다.
-</br></br>
-✅ 예시
+   </br></br>
+   ✅ 예시
 - feature/#12-login-api
 - fix/#17-cors-error
 - chore/#20-env-setting
-</br></br>
-✅ Git 사용 규칙
+  </br></br>
+  ✅ Git 사용 규칙
 # 커밋 메시지 형식
-- #이슈번호 <타입>: <변경 요약> 
-</br>
+- #이슈번호 <타입>: <변경 요약>
+  </br>
 - <타입> 종류</br>
-태그 이름	설명</br>
-[init] 초기설정</br>
-[chore]	코드 수정, 내부 파일 수정</br>
-[feat]	새로운 기능 구현</br>
-[add]	FEAT 이외의 부수적인 코드 추가, 라이브러리 추가, 새로운 파일 생성</br>
-[hotfix]	issue나 QA에서 급한 버그 수정에 사용</br>
-[fix]	버그, 오류 해결</br>
-[del]	쓸모 없는 코드 삭제</br>
-[docs]	README나 WIKI 등의 문서 개정</br>
-[correct]	주로 문법의 오류나 타입의 변경, 이름 변경에 사용</br>
-[move]	프로젝트 내 파일이나 코드의 이동</br>
-[rename]	파일 이름 변경이 있을 때 사용</br>
-[improve]	향상이 있을 때 사용</br>
-[refactor]	전면 수정이 있을 때 사용</br>
-[test]	테스트 코드 추가 시 사용 </br>
+  태그 이름	설명</br>
+  [init] 초기설정</br>
+  [chore]	코드 수정, 내부 파일 수정</br>
+  [feat]	새로운 기능 구현</br>
+  [add]	FEAT 이외의 부수적인 코드 추가, 라이브러리 추가, 새로운 파일 생성</br>
+  [hotfix]	issue나 QA에서 급한 버그 수정에 사용</br>
+  [fix]	버그, 오류 해결</br>
+  [del]	쓸모 없는 코드 삭제</br>
+  [docs]	README나 WIKI 등의 문서 개정</br>
+  [correct]	주로 문법의 오류나 타입의 변경, 이름 변경에 사용</br>
+  [move]	프로젝트 내 파일이나 코드의 이동</br>
+  [rename]	파일 이름 변경이 있을 때 사용</br>
+  [improve]	향상이 있을 때 사용</br>
+  [refactor]	전면 수정이 있을 때 사용</br>
+  [test]	테스트 코드 추가 시 사용 </br>
 
 # 💙서비스 아키텍처
 
@@ -154,4 +154,3 @@ backend-server/
 
 # erd
 <img width="5340" height="2092" alt="linkU-BE" src="https://github.com/user-attachments/assets/920add42-371d-4b07-b7af-52fda4b913c2" />
-
