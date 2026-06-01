@@ -1,5 +1,6 @@
 package com.umc.linkyou.service.email;
 
+import jakarta.mail.internet.AddressException;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
@@ -58,7 +59,7 @@ class EmailVerificationServiceTest {
 
     @Test
     @DisplayName("유효하지 않은 이메일 주소면 인증 코드를 전송하지 않는다")
-    void sendCode_whenEmailAddressInvalid_throwsBadRequest() {
+    void sendCode_whenEmailAddressInvalid_throwsBadRequest() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("test@invalid-domain.invalid")).willReturn(false);
 
         UserHandler exception = assertThrows(UserHandler.class,
@@ -70,7 +71,7 @@ class EmailVerificationServiceTest {
 
     @Test
     @DisplayName("cooldown 중이면 인증 코드를 전송하지 않는다")
-    void sendCode_whenCooldownActive_throwsTooManyRequests() {
+    void sendCode_whenCooldownActive_throwsTooManyRequests() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("test@example.com")).willReturn(true);
         given(authAccountRepository.existsByEmail("test@example.com")).willReturn(false);
         willThrow(new UserHandler(ErrorStatus._TOO_MANY_REQUESTS))
@@ -85,7 +86,7 @@ class EmailVerificationServiceTest {
 
     @Test
     @DisplayName("일일 제한을 넘기면 인증 코드를 전송하지 않는다")
-    void sendCode_whenDailyLimitExceeded_throwsTooManyRequests() {
+    void sendCode_whenDailyLimitExceeded_throwsTooManyRequests() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("test@example.com")).willReturn(true);
         given(authAccountRepository.existsByEmail("test@example.com")).willReturn(false);
         willThrow(new UserHandler(ErrorStatus._TOO_MANY_REQUESTS))
@@ -100,7 +101,7 @@ class EmailVerificationServiceTest {
 
     @Test
     @DisplayName("제한 이내면 인증 코드를 저장하고 메일을 전송한다")
-    void sendCode_whenAllowed_savesCodeAndSendsEmail() {
+    void sendCode_whenAllowed_savesCodeAndSendsEmail() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("test@example.com")).willReturn(true);
         given(authAccountRepository.existsByEmail("test@example.com")).willReturn(false);
 

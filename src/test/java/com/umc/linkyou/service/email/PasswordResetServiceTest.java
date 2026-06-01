@@ -1,5 +1,6 @@
 package com.umc.linkyou.service.email;
 
+import jakarta.mail.internet.AddressException;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
@@ -57,7 +58,7 @@ class PasswordResetServiceTest {
 
     @Test
     @DisplayName("유효하지 않은 이메일 주소면 비밀번호 재설정 링크를 전송하지 않는다")
-    void sendResetLink_whenEmailAddressInvalid_throwsBadRequest() {
+    void sendResetLink_whenEmailAddressInvalid_throwsBadRequest() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("user@invalid-domain.invalid")).willReturn(false);
 
         UserHandler exception = assertThrows(UserHandler.class,
@@ -69,7 +70,7 @@ class PasswordResetServiceTest {
 
     @Test
     @DisplayName("비밀번호 재설정 요청이 cooldown 중이면 차단한다")
-    void sendResetLink_whenCooldownActive_throwsTooManyRequests() {
+    void sendResetLink_whenCooldownActive_throwsTooManyRequests() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("user@example.com")).willReturn(true);
         willThrow(new UserHandler(ErrorStatus._TOO_MANY_REQUESTS))
                 .given(rateLimiter).enforce(anyString(), anyString(), anyString(), any(), any(), anyInt());
@@ -83,7 +84,7 @@ class PasswordResetServiceTest {
 
     @Test
     @DisplayName("비밀번호 재설정 요청이 일일 제한을 넘기면 차단한다")
-    void sendResetLink_whenDailyLimitExceeded_throwsTooManyRequests() {
+    void sendResetLink_whenDailyLimitExceeded_throwsTooManyRequests() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("user@example.com")).willReturn(true);
         willThrow(new UserHandler(ErrorStatus._TOO_MANY_REQUESTS))
                 .given(rateLimiter).enforce(anyString(), anyString(), anyString(), any(), any(), anyInt());
@@ -97,7 +98,7 @@ class PasswordResetServiceTest {
 
     @Test
     @DisplayName("일반 계정이 없으면 비밀번호 재설정 링크를 보내지 않고 성공처럼 종료한다")
-    void sendResetLink_absentGeneralAccount_returnsSilently() {
+    void sendResetLink_absentGeneralAccount_returnsSilently() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("missing@example.com")).willReturn(true);
         given(authAccountRepository.findUserByEmailAndProvider("missing@example.com", com.umc.linkyou.domain.enums.Provider.GENERAL))
                 .willReturn(Optional.empty());
@@ -110,7 +111,7 @@ class PasswordResetServiceTest {
 
     @Test
     @DisplayName("일반 계정이면 비밀번호 재설정 링크를 전송한다")
-    void sendResetLink_generalAccount_sendsResetEmail() {
+    void sendResetLink_generalAccount_sendsResetEmail() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("user@example.com")).willReturn(true);
         Users user = Users.builder()
                 .id(1L)

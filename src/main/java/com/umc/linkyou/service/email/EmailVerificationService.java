@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.mail.internet.AddressException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Objects;
@@ -118,9 +119,13 @@ public class EmailVerificationService {
         return builder.toString();
     }
 
-    // 도메인 검증
+    // 이메일 포맷 및 도메인 검증
     private void validateDeliverableEmail(String email) {
-        if (!emailDomainValidator.isDeliverableAddress(email)) {
+        try {
+            if (!emailDomainValidator.isDeliverableAddress(email)) {
+                throw new UserHandler(UserErrorStatus._INVALID_EMAIL_ADDRESS);
+            }
+        } catch (AddressException e) {
             throw new UserHandler(UserErrorStatus._INVALID_EMAIL_ADDRESS);
         }
     }

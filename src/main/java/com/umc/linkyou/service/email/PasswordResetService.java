@@ -11,6 +11,7 @@ import com.umc.linkyou.repository.userRepository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import jakarta.mail.internet.AddressException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -109,8 +110,13 @@ public class PasswordResetService {
         }
     }
 
+    // 이메일 포맷 및 도메인 검증
     private void validateDeliverableEmail(String email) {
-        if (!emailDomainValidator.isDeliverableAddress(email)) {
+        try {
+            if (!emailDomainValidator.isDeliverableAddress(email)) {
+                throw new UserHandler(UserErrorStatus._INVALID_EMAIL_ADDRESS);
+            }
+        } catch (AddressException e) {
             throw new UserHandler(UserErrorStatus._INVALID_EMAIL_ADDRESS);
         }
     }
