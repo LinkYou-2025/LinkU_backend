@@ -4,17 +4,13 @@ import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.xbill.DNS.Lookup;
-import org.xbill.DNS.MXRecord;
-import org.xbill.DNS.Record;
-import org.xbill.DNS.TextParseException;
-import org.xbill.DNS.Type;
 
+import javax.naming.NamingException;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.InitialDirContext;
+import java.util.Hashtable;
 import java.util.Locale;
 
-/**
- * 이메일 도메인 유효성 검사
- */
 @Slf4j
 @Component
 public class EmailDomainValidator {
@@ -39,25 +35,19 @@ public class EmailDomainValidator {
 
     private boolean hasDnsRecord(String domain) {
         try {
-            Record[] mx = new Lookup(domain, Type.MX).run();
-            if (mx != null && mx.length > 0) return hasUsableMx(mx);
+            Hashtable<String, String> env = new Hashtable<>();
+            env.put("java.naming.factory.initial", "com.sun.jndi.dns.DnsContextFactory");
+            env.put("java.naming.provider.url", "dns:");
+            InitialDirContext ctx = new InitialDirContext(env);
 
-            Record[] a = new Lookup(domain, Type.A).run();
-            if (a != null && a.length > 0) return true;
+            Attributes mxAttrs = ctx.getAttributes(domain, new String[]{"MX"});
+            if (mxAttrs.get("MX") != null) return true;
 
-            Record[] aaaa = new Lookup(domain, Type.AAAA).run();
-            return aaaa != null && aaaa.length > 0;
-        } catch (TextParseException e) {
+            Attributes aAttrs = ctx.getAttributes(domain, new String[]{"A", "AAAA"});
+            return aAttrs.get("A") != null || aAttrs.get("AAAA") != null;
+        } catch (NamingException e) {
             log.warn("이메일 도메인 DNS 조회 실패 domain={}", domain);
             return false;
         }
-    }
-
-    private boolean hasUsableMx(Record[] records) {
-        for (Record r : records) {
-            MXRecord mx = (MXRecord) r;
-            if (!mx.getTarget().toString().equals(".")) return true;
-        }
-        return false;
     }
 }
