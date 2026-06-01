@@ -48,6 +48,7 @@ public interface AlarmApi {
             - 요청 body의 `fcmToken`은 필수값입니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @DeleteMapping("/fcmtoken")
     ApiResponse<Object> deleteFcmToken(
             @CurrentUser CustomUserDetails userDetails,
