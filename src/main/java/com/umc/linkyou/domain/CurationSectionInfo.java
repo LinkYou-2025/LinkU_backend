@@ -9,7 +9,7 @@ import lombok.*;
         name = "curation_section_info",
         uniqueConstraints = @UniqueConstraint(
                 name = "uq_curation_section",
-                columnNames = {"month", "section_number"}
+                columnNames = {"base_month", "section_number"}
         )
 )
 @Getter
@@ -22,7 +22,7 @@ public class CurationSectionInfo extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 7, nullable = false)
+    @Column(name = "base_month", length = 7, nullable = false)
     private String month; // "YYYY-MM"
 
     @Column(name = "section_number", nullable = false)
