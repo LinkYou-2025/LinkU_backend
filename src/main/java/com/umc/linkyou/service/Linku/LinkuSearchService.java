@@ -1,7 +1,6 @@
 package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
-import com.umc.linkyou.repository.linkuRepository.LinkuRepositoryCustom;
 import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

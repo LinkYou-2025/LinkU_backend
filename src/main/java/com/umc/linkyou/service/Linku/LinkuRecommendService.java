@@ -45,12 +45,13 @@ public class LinkuRecommendService{
     private final SituationJobRepository situationJobRepository;
     private final AiArticleRepository aiArticleRepository;
     private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
+    private final LinkuViewService linkuViewService;
 
 
     private final SituationCategoryService situationCategoryService;
 
 
-    @Transactional
+    @Transactional(readOnly = true)
     public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
             Long userId, Long situationId, Long emotionId, int page, int size) {
 
@@ -71,7 +72,9 @@ public class LinkuRecommendService{
         // 5. AI 아티클 존재 여부 일괄 조회 및 DTO 변환
         List<LinkuResponseDTO.LinkuSimpleDTO> result = mapPagedListToDto(pagedList, userId);
 
-        // 6. 결과 반환
+        // 6. keyword count 집계
+        linkuViewService.recordRecommendKeywordCount(userId, emotionId, situationId);
+        // 7. 결과 반환
         return ApiResponse.onSuccess(result);
     }
 
