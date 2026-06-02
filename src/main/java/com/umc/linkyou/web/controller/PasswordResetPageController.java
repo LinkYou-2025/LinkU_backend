@@ -2,6 +2,7 @@ package com.umc.linkyou.web.controller;
 
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.service.email.PasswordResetService;
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+@Hidden
 @Controller
 @RequiredArgsConstructor
 public class PasswordResetPageController {

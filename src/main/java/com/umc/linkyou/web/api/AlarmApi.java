@@ -16,6 +16,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import com.umc.linkyou.jwt.CurrentUser;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -48,6 +50,7 @@ public interface AlarmApi {
             - 요청 body의 `fcmToken`은 필수값입니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @DeleteMapping("/fcmtoken")
     ApiResponse<Object> deleteFcmToken(
             @CurrentUser CustomUserDetails userDetails,
@@ -106,7 +109,7 @@ public interface AlarmApi {
             @Parameter(description = "커서(userAlarmId). null일 경우 최신부터 조회")
             @RequestParam(required = false) Long cursor,
             @Parameter(description = "조회 개수")
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") @Min(1) @Max(20) int size
     );
 
     @Operation(summary = "알림 상세 조회", description = """

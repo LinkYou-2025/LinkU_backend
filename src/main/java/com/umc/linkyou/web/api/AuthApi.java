@@ -14,6 +14,7 @@ import com.umc.linkyou.web.dto.EmailRequestDTO;
 import com.umc.linkyou.web.dto.PasswordResetRequestDTO;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -121,37 +122,12 @@ public interface AuthApi {
     @GetMapping("/check-nickname")
     ApiResponse<Object> checkNickname(@RequestParam String nickname);
 
-    @Operation(
-            summary = "비밀번호 재설정 링크 전송",
-            description = """
-                    등록된 이메일로 비밀번호 재설정 페이지 링크를 전송합니다.
-                    - 일반 로그인 계정이면 비밀번호 재설정 링크를 전송합니다.
-                    - 가입되지 않은 이메일이거나 소셜 전용 계정이어도 동일한 성공 응답을 반환합니다.
-                    - 재설정 링크는 Redis에 저장된 토큰 기준으로 10분 동안 유효합니다.
-                    """
-    )
-    @ApiAuthSuccessCode(AuthSuccessStatus.PASSWORD_RESET_LINK_SENT)
-    @ApiErrorCode(commonErrorStatus = {CommonErrorStatus._TOO_MANY_REQUESTS})
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._SEND_MAIL_FAILED})
+    @Operation(hidden = true)
     @PostMapping("/password/reset/send")
     ApiResponse<Object> sendPasswordResetLink(@RequestBody @Valid EmailRequestDTO.ResetLinkDTO request);
 
-    @Operation(
-            summary = "비밀번호 재설정",
-            description = """
-                    토큰, 새 비밀번호, 비밀번호 확인을 입력해 비밀번호를 변경합니다.
-                    - `token`은 메일의 비밀번호 재설정 링크에서 전달받은 값입니다.
-                    - 새 비밀번호와 비밀번호 확인이 일치하면 비밀번호를 변경합니다.
-                    - 토큰이 없거나 만료되면 비밀번호 재설정이 불가능합니다.
-                    """
-    )
-    @ApiAuthSuccessCode(AuthSuccessStatus.PASSWORD_RESET_SUCCESS)
-    @ApiErrorCode(userErrorStatus = {
-            UserErrorStatus._INVALID_PASSWORD,
-            UserErrorStatus._PASSWORD_MISMATCH,
-            UserErrorStatus._USER_NOT_FOUND
-    })
-    @PutMapping("/password/reset")
+    @Operation(hidden = true)
+    @PostMapping("/password/reset")
     ApiResponse<Object> resetPassword(@RequestBody @Valid PasswordResetRequestDTO request);
 
     @Operation(

@@ -40,6 +40,7 @@ public class AiArticleController {
         return ApiResponse.onSuccess(AiArticleSuccessStatus.AI_ARTICLE_OK, result);
     }
 
+    @GetMapping("/category/{categoryId}")
     public ApiResponse<LinkuResponseDTO.LinkuSliceResultDTO> getMyAiArticlesByCategory(
             @PathVariable("categoryId") Long categoryId,
             @RequestParam(name = "cursor", required = false) Long cursor,

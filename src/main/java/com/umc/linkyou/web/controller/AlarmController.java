@@ -86,7 +86,7 @@ public class AlarmController implements AlarmApi {
             @CurrentUser CustomUserDetails userDetails,
             @RequestParam("alarmType") AlarmSettingType alarmType,
             @RequestParam(required = false) Long cursor,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(20) int size
+            @RequestParam(defaultValue = "20") int size
     ) {
         return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_LIST_OK, alarmService.viewAlarmList(userDetails.getUserId(), alarmType, cursor, size));
     }
