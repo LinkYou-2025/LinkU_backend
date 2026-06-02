@@ -138,7 +138,7 @@ public class LinkuService {
                 })
                 .collect(Collectors.toList());
     }
-    //최근 열람한 링크 가져오기
+    //최근 열람한 링크 가져오기  /linku/recent
 
     @Transactional
     public LinkuResponseDTO.LinkuResultDTO updateLinku(Long userId, Long linkuId, LinkuRequestDTO.LinkuUpdateDTO dto) {
