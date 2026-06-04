@@ -11,6 +11,7 @@ import com.umc.linkyou.repository.userRepository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import jakarta.mail.internet.AddressException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +41,7 @@ public class PasswordResetService {
     private final PasswordResetRedisRepository passwordResetRedisRepository;
     private final EmailService emailService;
     private final EmailRateLimiter rateLimiter;
+    private final EmailDomainValidator emailDomainValidator;
 
     @Value("${app.server.base-url}")
     private String serverBaseUrl;
@@ -54,6 +56,8 @@ public class PasswordResetService {
     // 비밀번호 재설정 링크 전송
     @Transactional(readOnly = true)
     public void sendResetLink(String email) {
+        validateDeliverableEmail(email);
+
         rateLimiter.enforce(email, SEND_COOLDOWN_KEY, DAILY_SEND_COUNT_KEY,
                 SEND_COOLDOWN, DAILY_LIMIT_TTL, MAX_DAILY_SEND_COUNT);
         authAccountRepository.findUserByEmailAndProvider(email, Provider.GENERAL)
@@ -67,19 +71,7 @@ public class PasswordResetService {
 
         String nickname = (user.getNickName() == null || user.getNickName().isBlank()) ? "링큐 회원" : user.getNickName();
         String resetUrl = serverBaseUrl + "/password/reset?token=" + token;
-        try {
-            // 이메일 발송 실패 시 Redis에 저장된 토큰 삭제해서 재설정 시도 불가하도록 함
-            emailService.sendPasswordResetEmail(email, nickname, resetUrl, EXPIRY_MINUTES);
-        } catch (Exception e) {
-            try {
-                // 이메일 발송 실패 시 토큰 정리 시도, 실패해도 TTL로 자동 만료되므로 재시도 방지 가능
-                passwordResetRedisRepository.deleteById(token);
-            } catch (Exception redisEx) {
-                // 토큰 TTL로 자동 만료되므로 정리 실패는 로그만 남김
-                log.error("발송 실패 후 토큰 정리 실패", redisEx);
-            }
-            throw e;
-        }
+        emailService.sendPasswordResetEmail(email, nickname, resetUrl, EXPIRY_MINUTES);
         log.info("비밀번호 재설정 링크 전송: {}", user.getId());
     }
 
@@ -115,6 +107,17 @@ public class PasswordResetService {
         }
         if (!PASSWORD_POLICY_PATTERN.matcher(newPassword).matches()) {
             throw new UserHandler(UserErrorStatus._INVALID_PASSWORD);
+        }
+    }
+
+    // 이메일 포맷 및 도메인 검증
+    private void validateDeliverableEmail(String email) {
+        try {
+            if (!emailDomainValidator.isDeliverableAddress(email)) {
+                throw new UserHandler(UserErrorStatus._INVALID_EMAIL_ADDRESS);
+            }
+        } catch (AddressException e) {
+            throw new UserHandler(UserErrorStatus._INVALID_EMAIL_ADDRESS);
         }
     }
 }

@@ -10,7 +10,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.mail.internet.AddressException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Objects;
@@ -18,6 +20,7 @@ import java.util.Objects;
 /*
     * 이메일 인증 기능을 담당하는 서비스
     * 회원가입 시 이메일로 인증 코드를 발송하고, 사용자가 입력한 코드와 Redis에 저장된 코드를 비교하여 검증하는 로직을 포함
+    * 도메인 검증 로직 포함
  */
 @Slf4j
 @Service
@@ -29,6 +32,7 @@ public class EmailVerificationService {
     private final StringRedisTemplate stringRedisTemplate;
     private final EmailService emailService;
     private final EmailRateLimiter rateLimiter;
+    private final EmailDomainValidator emailDomainValidator;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int EXPIRY_MINUTES = 10;
@@ -43,7 +47,10 @@ public class EmailVerificationService {
 
     // 회원가입 이메일 인증 코드 전송
     // 이미 가입된 이메일이면 중복 에러
+    @Transactional(readOnly = true)
     public void sendCode(String email) {
+        validateDeliverableEmail(email);
+
         if (authAccountRepository.existsByEmail(email)) {
             throw new UserHandler(UserErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
@@ -55,14 +62,8 @@ public class EmailVerificationService {
         String code = generateCode();
         emailVerificationRedisRepository.save(EmailVerificationCache.of(hashedEmail, code));
 
-        try {
-            emailService.sendVerificationEmailTemplate(email, "링큐 회원", code, EXPIRY_MINUTES);
-            resetVerifyFailureCount(hashedEmail);
-        } catch (Exception e) {
-            log.error("이메일 인증 코드 전송 실패", e);
-            emailVerificationRedisRepository.deleteById(hashedEmail);
-            throw new UserHandler(UserErrorStatus._SEND_MAIL_FAILED);
-        }
+        emailService.sendVerificationEmailTemplate(email, "링큐 회원", code, EXPIRY_MINUTES);
+        resetVerifyFailureCount(hashedEmail);
         log.info("이메일 인증 코드 전송 완료");
     }
 
@@ -116,5 +117,16 @@ public class EmailVerificationService {
             builder.append(SECURE_RANDOM.nextInt(10));
         }
         return builder.toString();
+    }
+
+    // 이메일 포맷 및 도메인 검증
+    private void validateDeliverableEmail(String email) {
+        try {
+            if (!emailDomainValidator.isDeliverableAddress(email)) {
+                throw new UserHandler(UserErrorStatus._INVALID_EMAIL_ADDRESS);
+            }
+        } catch (AddressException e) {
+            throw new UserHandler(UserErrorStatus._INVALID_EMAIL_ADDRESS);
+        }
     }
 }

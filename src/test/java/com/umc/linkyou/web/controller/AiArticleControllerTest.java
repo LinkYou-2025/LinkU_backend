@@ -7,6 +7,9 @@ import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
+import com.umc.linkyou.config.common.WebConfig;
+import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
+import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.service.AiArticleService;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import org.junit.jupiter.api.AfterEach;
@@ -17,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,6 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AiArticleController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import({WebConfig.class, CurrentUserArgumentResolver.class})
 @DisplayName("AiArticleController 테스트")
 class AiArticleControllerTest {
 
@@ -44,6 +49,9 @@ class AiArticleControllerTest {
 
     @MockitoBean
     private AiArticleService aiArticleService;
+
+    @MockitoBean
+    private AiArticleRepository aiArticleRepository;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;

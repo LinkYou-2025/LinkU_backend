@@ -1,6 +1,5 @@
 package com.umc.linkyou.service.email;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.properties.SesProperties;
@@ -50,7 +49,7 @@ public class EmailService {
         }
     }
 
-    // 이메일 재설정 메일 전송
+    // 비밀번호 재설정 메일 전송
     public void sendPasswordResetEmail(String toEmail,
                                        String nickname,
                                        String resetUrl,

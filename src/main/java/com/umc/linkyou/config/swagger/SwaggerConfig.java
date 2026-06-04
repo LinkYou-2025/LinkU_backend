@@ -6,10 +6,16 @@ import com.umc.linkyou.apiPayload.code.ReasonDTO;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.apiPayload.code.SuccessReasonDTO;
+import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.alarm.AlarmErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthSuccessStatus;
+import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.gemini.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.validation.annotation.swagger.ApiAuthSuccessCode;
+import com.umc.linkyou.validation.annotation.swagger.ApiDomainErrorCodes;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCodes;
 import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
@@ -41,7 +47,7 @@ public class SwaggerConfig {
     public OpenAPI linkyouAPI() {
         Info info = new Info()
                 .title("linkyou API")
-                .description("linkyou API 명세서")
+                .description("linkyou API 명세서\n\n" + buildErrorCodeReference())
                 .version("1.0.0");
 
         String jwtSchemeName = "JWT TOKEN";
@@ -101,6 +107,23 @@ public class SwaggerConfig {
 
             if (!errorCodes.isEmpty()) {
                 generateErrorCodeResponseExample(operation, errorCodes.toArray(new ApiErrorCode[0]));
+            }
+
+            // 3. 클래스/인터페이스 단위 도메인 에러 전체 주입
+            ApiDomainErrorCodes domainCodes = handlerMethod.getBeanType().getAnnotation(ApiDomainErrorCodes.class);
+            if (domainCodes == null) {
+                for (Class<?> iface : handlerMethod.getBeanType().getInterfaces()) {
+                    domainCodes = iface.getAnnotation(ApiDomainErrorCodes.class);
+                    if (domainCodes != null) break;
+                }
+            }
+            if (domainCodes != null) {
+                ApiResponses responses = operation.getResponses();
+                for (Class<? extends BaseErrorCode> enumClass : domainCodes.value()) {
+                    for (BaseErrorCode code : enumClass.getEnumConstants()) {
+                        addErrorCodeExample(responses, code);
+                    }
+                }
             }
 
             return operation;
@@ -180,6 +203,9 @@ public class SwaggerConfig {
             for (AuthErrorStatus status : annotation.authErrorStatus()) {
                 addErrorCodeExample(responses, status);
             }
+            for (CurationErrorStatus status : annotation.curationErrorStatus()) {
+                addErrorCodeExample(responses, status);
+            }
         }
     }
 
@@ -189,6 +215,38 @@ public class SwaggerConfig {
                 com.umc.linkyou.apiPayload.ApiResponse.onFailure(reason.getCode(), reason.getMessage(), null);
 
         addExample(responses, reason.getHttpStatus().value(), ((Enum<?>)status).name(), reason.getMessage(), exampleResponse);
+    }
+
+    private String buildErrorCodeReference() {
+        List<Class<? extends BaseErrorCode>> errorEnums = List.of(
+                AuthErrorStatus.class,
+                UserErrorStatus.class,
+                ErrorStatus.class,
+                AlarmErrorStatus.class,
+                AiArticleErrorStatus.class,
+                CurationErrorStatus.class,
+                GeminiErrorStatus.class,
+                CommonErrorStatus.class
+        );
+
+        StringBuilder sb = new StringBuilder("---\n## 에러 코드 레퍼런스\n\n");
+
+        for (Class<? extends BaseErrorCode> errorEnum : errorEnums) {
+            sb.append("<details>\n");
+            sb.append("<summary><b>").append(errorEnum.getSimpleName()).append("</b></summary>\n\n");
+            sb.append("| Code | HTTP | Message |\n");
+            sb.append("|------|:----:|---------|\n");
+
+            for (BaseErrorCode code : errorEnum.getEnumConstants()) {
+                ErrorReasonDTO reason = code.getReasonHttpStatus();
+                sb.append("| `").append(reason.getCode()).append("` | ")
+                        .append(reason.getHttpStatus().value()).append(" | ")
+                        .append(reason.getMessage()).append(" |\n");
+            }
+            sb.append("\n</details>\n\n");
+        }
+
+        return sb.toString();
     }
 
 }

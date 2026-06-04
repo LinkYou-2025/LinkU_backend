@@ -18,6 +18,7 @@ import com.umc.linkyou.web.dto.EmailRequestDTO;
 import com.umc.linkyou.web.dto.PasswordResetRequestDTO;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
