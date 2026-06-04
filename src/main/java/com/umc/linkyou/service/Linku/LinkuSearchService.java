@@ -15,9 +15,9 @@ public class LinkuSearchService{
 
     private final LinkuRepository linkuRepository;
 
+    @Transactional(readOnly = true)
     public List<LinkuSearchSuggestionResponse> suggest(Long userId, String keyword) {
         String q = (keyword == null) ? "" : keyword.trim();
-        if (q.length() < 2) return List.of(); // 입력 2자 미만 가드
         return linkuRepository.findUserSavedSuggestions(userId, q);
     }
 }
