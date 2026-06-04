@@ -2,6 +2,7 @@ package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.AiArticle;
@@ -56,12 +57,12 @@ public class LinkuService {
 
         // 1. 영상 링크 차단 → 예외 던지기
         if (UrlValidUtils.isVideoLink(url)) {
-            throw new GeneralException(ErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
+            throw new GeneralException(LinkuErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
         }
 
         // 2. 유효하지 않은 링크 차단 → 예외 던지기
         if (!UrlValidUtils.isValidUrl(url)) {
-            throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
+            throw new GeneralException(LinkuErrorStatus._LINKU_INVALID_URL);
         }
 
         // 3. 기존에 링크 저장 여부 확인
@@ -87,7 +88,7 @@ public class LinkuService {
 
         UsersLinku usersLinku = list.stream()
                 .max(Comparator.comparing(UsersLinku::getCreatedAt)) // 혹은 정렬해서 가장 최근꺼 선택
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
 
         // 2. Linku는 UsersLinku에서 직접 꺼낼 수 있음
         Linku linku = usersLinku.getLinku();
@@ -147,7 +148,7 @@ public class LinkuService {
 
         UsersLinku usersLinku = list.stream()
                 .max(Comparator.comparing(UsersLinku::getCreatedAt))// 혹은 정렬해서 가장 최근꺼 선택
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
 
         // 2. 연관 Linku 엔티티 가져오기 (실제 링크 정보) 및 변경 플래그 준비
         Linku linku = usersLinku.getLinku();
@@ -231,10 +232,10 @@ public class LinkuService {
     @Transactional
     public void deleteUsersLinku(Long userId, Long userLinkuId) {
         UsersLinku usersLinku = usersLinkuRepository.findById(userLinkuId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
 
         if (!usersLinku.getUser().getId().equals(userId)) {
-            throw new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND);
+            throw new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND);
         }
 
         // 1. linku_folder 관련 삭제
