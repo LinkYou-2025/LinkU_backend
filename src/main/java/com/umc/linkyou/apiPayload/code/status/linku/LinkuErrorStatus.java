@@ -14,7 +14,8 @@ public enum LinkuErrorStatus implements BaseErrorCode {
     _LINKU_VIDEO_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "LINKU4001", "영상 링크는 저장할 수 없습니다."),
     _LINKU_INVALID_URL(HttpStatus.BAD_REQUEST, "LINKU4002", "유효하지 않은 링크입니다."),
     _USER_LINKU_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU404", "user_linku 테이블을 찾기 못했습니다." ),
-    _LINKU_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU4041", "해당 링크 정보를 찾을 수 없습니다.");
+    _LINKU_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU4041", "해당 링크 정보를 찾을 수 없습니다."),
+    _LINKU_SEARCH_KEYWORD_REQUIRED(HttpStatus.BAD_REQUEST, "LINKU4003", "검색어는 비어 있을 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
