@@ -220,21 +220,20 @@ class AlarmServiceTest {
             }
 
             @Test
-            @DisplayName("개별 설정을 모두 끄면 isAllEnabled도 false가 된다")
-            void 개별설정_모두끔_전체비활성화() {
+            @DisplayName("전체 off 상태에서 개별 설정을 켜도 isAllEnabled와 유효 알림 상태는 false 유지된다")
+            void 전체off후_개별켜도_마스터유지() {
                 Users user = user();
                 AlarmSetting setting = defaultSetting(user);
-                setting.updateNotice(false);
-                setting.updateFolder(false);
-                setting.updateCuration(false);
+                setting.updateAll(false);
 
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
                 given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(setting));
 
                 AlarmSettingResponseDTO result = alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.LINK);
 
-                assertThat(result.isLinkEnabled()).isFalse();
+                // isLinkEnabled는 isLinkActive() = alarmAllEnabled && linkEnabled = false && true = false
                 assertThat(result.isAllEnabled()).isFalse();
+                assertThat(result.isLinkEnabled()).isFalse();
             }
         }
 

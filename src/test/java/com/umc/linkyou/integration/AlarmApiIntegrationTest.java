@@ -124,26 +124,40 @@ class AlarmApiIntegrationTest {
     }
 
     @Test
-    @DisplayName("알림 설정 수정 - 개별 설정 모두 off 시 isAllEnabled도 false가 된다")
-    void updateAlarmSetting_allOff_disablesAllEnabled() throws Exception {
+    @DisplayName("알림 설정 수정 - 전체 off 상태에서 개별 켜도 isAllEnabled는 false 유지된다")
+    void updateAlarmSetting_individualOn_masterStaysFalse() throws Exception {
         Users user = createUser("alarm_user_5");
+        AlarmSetting setting = AlarmSetting.createDefault(user);
+        setting.updateAll(false);
+        alarmSettingRepository.save(setting);
+
+        mockMvc.perform(patch("/api/v1/alarm/settings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"alarmType\": \"LINK\"}")
+                        .with(authentication(authFor(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.isAllEnabled").value(false))
+                .andExpect(jsonPath("$.result.isLinkEnabled").value(false));
+    }
+
+    @Test
+    @DisplayName("알림 설정 수정 - 개별 설정 모두 OFF 이후 개별 ON 시 해당 항목이 다시 활성화된다")
+    void updateAlarmSetting_reenableAfterAllOff() throws Exception {
+        Users user = createUser("alarm_user_6");
         AlarmSetting setting = AlarmSetting.createDefault(user);
         setting.updateLink(false);
         setting.updateFolder(false);
         setting.updateCuration(false);
+        setting.updateNotice(false);
         alarmSettingRepository.save(setting);
 
-        // NOTICE만 남은 상태에서 NOTICE off → 전체 off
         mockMvc.perform(patch("/api/v1/alarm/settings")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"alarmType\": \"NOTICE\"}")
+                        .content("{\"alarmType\": \"LINK\"}")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.isAllEnabled").value(false))
-                .andExpect(jsonPath("$.result.isLinkEnabled").value(false))
-                .andExpect(jsonPath("$.result.isFolderEnabled").value(false))
-                .andExpect(jsonPath("$.result.isCurationEnabled").value(false))
-                .andExpect(jsonPath("$.result.isNoticeEnabled").value(false));
+                .andExpect(jsonPath("$.result.isLinkEnabled").value(true))
+                .andExpect(jsonPath("$.result.isAllEnabled").value(true));
     }
 
     private Users createUser(String nickName) {
