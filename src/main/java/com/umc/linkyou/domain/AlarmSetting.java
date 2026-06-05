@@ -73,18 +73,28 @@ public class AlarmSetting {
 
     public void updateNotice(boolean enabled) {
         this.noticeEnabled = enabled;
+        syncAllEnabled();
     }
 
     public void updateLink(boolean enabled) {
         this.linkEnabled = enabled;
+        syncAllEnabled();
     }
 
     public void updateCuration(boolean enabled) {
         this.curationEnabled = enabled;
+        syncAllEnabled();
     }
 
     public void updateFolder(boolean enabled) {
         this.folderEnabled = enabled;
+        syncAllEnabled();
+    }
+
+    private void syncAllEnabled() {
+        if (!noticeEnabled && !linkEnabled && !curationEnabled && !folderEnabled) {
+            this.alarmAllEnabled = false;
+        }
     }
 
     public boolean isNoticeActive() {
