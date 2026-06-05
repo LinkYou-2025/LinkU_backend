@@ -160,7 +160,7 @@ public class AlarmService {
     @Transactional
     public void registerAdminAlarm(AlarmRequestDTO.AdminAlarmSendRequestDTO requestDTO) {
         AlarmType alarmType = requestDTO.type();
-        if (alarmType.getSettingType() == AlarmSettingType.ALL) {
+        if (alarmType.getSettingType() != AlarmSettingType.NOTICE) {
             throw new GeneralException(AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED);
         }
 
