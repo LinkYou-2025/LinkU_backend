@@ -1,12 +1,14 @@
 package com.umc.linkyou.integration;
 
 import com.umc.linkyou.domain.Alarm;
+import com.umc.linkyou.domain.AlarmSetting;
 import com.umc.linkyou.domain.UserAlarm;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.AlarmType;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.repository.AlarmRepository;
+import com.umc.linkyou.repository.AlarmSettingRepository;
 import com.umc.linkyou.repository.UserAlarmRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.security.TestSecurityConfig;
@@ -16,15 +18,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -47,6 +50,9 @@ class AlarmApiIntegrationTest {
 
     @Autowired
     private UserAlarmRepository userAlarmRepository;
+
+    @Autowired
+    private AlarmSettingRepository alarmSettingRepository;
 
     @Test
     @DisplayName("알림 리스트 조회 - alarmType 파라미터로 정상 조회된다")
@@ -96,6 +102,48 @@ class AlarmApiIntegrationTest {
                         .param("size", "10")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("알림 설정 수정 - AlarmSettingResponseDTO 형태로 반환된다")
+    void updateAlarmSetting_returnsFullDto() throws Exception {
+        Users user = createUser("alarm_user_4");
+        alarmSettingRepository.save(AlarmSetting.createDefault(user));
+
+        mockMvc.perform(patch("/api/v1/alarm/settings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"alarmType\": \"LINK\"}")
+                        .with(authentication(authFor(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.result.isAllEnabled").exists())
+                .andExpect(jsonPath("$.result.isLinkEnabled").value(false))
+                .andExpect(jsonPath("$.result.isFolderEnabled").value(true))
+                .andExpect(jsonPath("$.result.isCurationEnabled").value(true))
+                .andExpect(jsonPath("$.result.isNoticeEnabled").value(true));
+    }
+
+    @Test
+    @DisplayName("알림 설정 수정 - 개별 설정 모두 off 시 isAllEnabled도 false가 된다")
+    void updateAlarmSetting_allOff_disablesAllEnabled() throws Exception {
+        Users user = createUser("alarm_user_5");
+        AlarmSetting setting = AlarmSetting.createDefault(user);
+        setting.updateLink(false);
+        setting.updateFolder(false);
+        setting.updateCuration(false);
+        alarmSettingRepository.save(setting);
+
+        // NOTICE만 남은 상태에서 NOTICE off → 전체 off
+        mockMvc.perform(patch("/api/v1/alarm/settings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"alarmType\": \"NOTICE\"}")
+                        .with(authentication(authFor(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.isAllEnabled").value(false))
+                .andExpect(jsonPath("$.result.isLinkEnabled").value(false))
+                .andExpect(jsonPath("$.result.isFolderEnabled").value(false))
+                .andExpect(jsonPath("$.result.isCurationEnabled").value(false))
+                .andExpect(jsonPath("$.result.isNoticeEnabled").value(false));
     }
 
     private Users createUser(String nickName) {
