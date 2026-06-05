@@ -63,7 +63,6 @@ public class AlarmSetting {
                 .build();
     }
 
-    // 전체를 off, false 할 때 사용
     public void updateAll(boolean enabled) {
         this.alarmAllEnabled = enabled;
         this.noticeEnabled = enabled;
@@ -86,6 +85,10 @@ public class AlarmSetting {
 
     public void updateFolder(boolean enabled) {
         this.folderEnabled = enabled;
+    }
+
+    public void updateAlarmAllEnabled(boolean enabled) {
+        this.alarmAllEnabled = enabled;
     }
 
     public boolean isNoticeActive() {

@@ -220,7 +220,28 @@ class AlarmServiceTest {
             }
 
             @Test
-            @DisplayName("전체 off 상태에서 개별 설정을 켜도 isAllEnabled와 유효 알림 상태는 false 유지된다")
+            @DisplayName("개별 설정 4개 모두 off 시 isAllEnabled도 false가 된다")
+            void 개별설정_모두끔_마스터비활성화() {
+                Users user = user();
+                AlarmSetting setting = defaultSetting(user);
+                setting.updateNotice(false);
+                setting.updateFolder(false);
+                setting.updateCuration(false);
+
+                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+                given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(setting));
+
+                AlarmSettingResponseDTO result = alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.LINK);
+
+                assertThat(result.isAllEnabled()).isFalse();
+                assertThat(result.isLinkEnabled()).isFalse();
+                assertThat(result.isNoticeEnabled()).isFalse();
+                assertThat(result.isFolderEnabled()).isFalse();
+                assertThat(result.isCurationEnabled()).isFalse();
+            }
+
+            @Test
+            @DisplayName("전체 off 상태에서 개별 설정을 켜도 isAllEnabled는 false 유지된다")
             void 전체off후_개별켜도_마스터유지() {
                 Users user = user();
                 AlarmSetting setting = defaultSetting(user);
@@ -231,9 +252,8 @@ class AlarmServiceTest {
 
                 AlarmSettingResponseDTO result = alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.LINK);
 
-                // isLinkEnabled는 isLinkActive() = alarmAllEnabled && linkEnabled = false && true = false
                 assertThat(result.isAllEnabled()).isFalse();
-                assertThat(result.isLinkEnabled()).isFalse();
+                assertThat(result.isLinkEnabled()).isFalse(); // alarmAllEnabled && linkEnabled = false
             }
         }
 

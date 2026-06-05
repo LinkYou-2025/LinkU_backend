@@ -124,7 +124,29 @@ class AlarmApiIntegrationTest {
     }
 
     @Test
-    @DisplayName("알림 설정 수정 - 전체 off 상태에서 개별 켜도 isAllEnabled는 false 유지된다")
+    @DisplayName("알림 설정 수정 - 개별 설정 4개 모두 off 시 isAllEnabled도 false가 된다")
+    void updateAlarmSetting_allIndividualOff_disablesMaster() throws Exception {
+        Users user = createUser("alarm_user_5");
+        AlarmSetting setting = AlarmSetting.createDefault(user);
+        setting.updateNotice(false);
+        setting.updateFolder(false);
+        setting.updateCuration(false);
+        alarmSettingRepository.save(setting);
+
+        mockMvc.perform(patch("/api/v1/alarm/settings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"alarmType\": \"LINK\"}")
+                        .with(authentication(authFor(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.isAllEnabled").value(false))
+                .andExpect(jsonPath("$.result.isLinkEnabled").value(false))
+                .andExpect(jsonPath("$.result.isNoticeEnabled").value(false))
+                .andExpect(jsonPath("$.result.isFolderEnabled").value(false))
+                .andExpect(jsonPath("$.result.isCurationEnabled").value(false));
+    }
+
+    @Test
+    @DisplayName("알림 설정 수정 - 전체 off 상태에서 개별 ON 시 isAllEnabled는 false 유지된다")
     void updateAlarmSetting_individualOn_masterStaysFalse() throws Exception {
         Users user = createUser("alarm_user_5");
         AlarmSetting setting = AlarmSetting.createDefault(user);

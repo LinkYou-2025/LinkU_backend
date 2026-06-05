@@ -95,12 +95,22 @@ public class AlarmService {
         AlarmSetting alarmSetting = alarmSettingRepository.findByUserId(userId)
                 .orElseThrow(() -> new GeneralException(AlarmErrorStatus.ALARM_SETTING_NOT_INITIALIZED));
 
+        // 알림 타입에 따른 분기
         switch (alarmSettingType) {
             case ALL -> alarmSetting.updateAll(!alarmSetting.isAlarmAllEnabled());
             case NOTICE -> alarmSetting.updateNotice(!alarmSetting.isNoticeEnabled());
             case LINK -> alarmSetting.updateLink(!alarmSetting.isLinkEnabled());
             case CURATION -> alarmSetting.updateCuration(!alarmSetting.isCurationEnabled());
             case FOLDER -> alarmSetting.updateFolder(!alarmSetting.isFolderEnabled());
+        }
+
+        // 전체 알림이 아니라면, 전체 알림도 같이 동기화
+        if (alarmSettingType != AlarmSettingType.ALL) {
+            boolean anyRawEnabled = alarmSetting.isNoticeEnabled() || alarmSetting.isLinkEnabled()
+                    || alarmSetting.isCurationEnabled() || alarmSetting.isFolderEnabled();
+            if (!anyRawEnabled) {
+                alarmSetting.updateAlarmAllEnabled(false);
+            }
         }
 
         alarmSettingRepository.save(alarmSetting);
