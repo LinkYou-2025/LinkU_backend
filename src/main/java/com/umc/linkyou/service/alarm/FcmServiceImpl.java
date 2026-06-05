@@ -57,6 +57,7 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
         try {
             firebaseMessaging.send(buildMessage(token, requestDTO));
         } catch (FirebaseMessagingException e) {
+            log.error("FCM 단일 토큰 전송 실패 - errorCode: {}, message: {}", e.getMessagingErrorCode(), e.getMessage(), e);
             throw new GeneralException(AlarmErrorStatus.ALARM_SEND_FAILED);
         }
     }
