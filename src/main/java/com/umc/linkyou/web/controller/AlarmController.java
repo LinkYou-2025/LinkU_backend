@@ -57,7 +57,6 @@ public class AlarmController implements AlarmApi {
             @CurrentUser CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.TestAlarmSendDTO request
     ) {
-        validateAdmin(userDetails);
         fcmPushSender.sendToToken(
                 request.fcmToken(),
                 FcmSendRequestDTO.of(AlarmType.ANNOUNCEMENT_UPDATE, userDetails.getUserId())
@@ -73,12 +72,12 @@ public class AlarmController implements AlarmApi {
     }
 
     @Override
-    public ApiResponse<Boolean> updateAlarmSetting(
+    public ApiResponse<AlarmSettingResponseDTO> updateAlarmSetting(
             @CurrentUser CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.AlarmSettingUpdateDTO request
     ) {
-        boolean isEnabled = alarmService.updateNoticeAlarmSetting(userDetails.getUserId(), request.alarmType());
-        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_SETTING_UPDATED, isEnabled);
+        AlarmSettingResponseDTO result = alarmService.updateNoticeAlarmSetting(userDetails.getUserId(), request.alarmType());
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_SETTING_UPDATED, result);
     }
 
     @Override

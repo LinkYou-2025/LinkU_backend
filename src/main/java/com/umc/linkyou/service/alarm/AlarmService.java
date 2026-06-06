@@ -1,18 +1,15 @@
 package com.umc.linkyou.service.alarm;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.alarm.AlarmErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.*;
 import com.umc.linkyou.domain.enums.AlarmSettingType;
 import com.umc.linkyou.domain.enums.AlarmType;
-import com.umc.linkyou.domain.redis.UserFcmTokenCache;
 import com.umc.linkyou.repository.AlarmRepository;
 import com.umc.linkyou.repository.AlarmSettingRepository;
 import com.umc.linkyou.repository.UserAlarmRepository;
 import com.umc.linkyou.repository.UserFcmTokenRepository;
-import com.umc.linkyou.repository.redis.FcmTokenRedisRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.service.alarm.event.AlarmSettingChangedEvent;
 import com.umc.linkyou.service.alarm.event.BroadCastAlarmEvent;
@@ -41,7 +38,6 @@ public class AlarmService {
     private final AlarmSettingRepository alarmSettingRepository;
     private final AlarmRepository alarmRepository;
     private final UserAlarmRepository userAlarmRepository;
-    private final FcmTokenRedisRepository fcmTokenRedisRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     // FCM 토큰 등록
@@ -65,23 +61,6 @@ public class AlarmService {
             existingToken.activate();
         }
 
-        addTokenToRedis(userId, newToken);
-    }
-
-    // redis에 토큰 저장
-    private void addTokenToRedis(Long userId, String token) {
-        UserFcmTokenCache cache = fcmTokenRedisRepository.findById(userId)
-                .orElseGet(() -> UserFcmTokenCache.builder().userId(userId).build());
-        cache.addToken(token);
-        fcmTokenRedisRepository.save(cache);
-    }
-
-    // redis에서 토큰 삭제
-    private void removeTokenFromRedis(Long userId, String token) {
-        fcmTokenRedisRepository.findById(userId).ifPresent(cache -> {
-            cache.removeToken(token);
-            fcmTokenRedisRepository.save(cache);
-        });
     }
 
     // FCM 토큰 비활성화
@@ -91,7 +70,6 @@ public class AlarmService {
         if (existingToken != null) {
             existingToken.deactivate();
         }
-        removeTokenFromRedis(userId, fcmToken);
     }
 
     // 알림 설정 조회
@@ -99,7 +77,7 @@ public class AlarmService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         AlarmSetting alarmSetting = alarmSettingRepository.findByUserId(userId)
-                .orElseThrow(() -> new GeneralException(AlarmErrorStatus.ALARM_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(AlarmErrorStatus.ALARM_SETTING_NOT_INITIALIZED));
         return new AlarmSettingResponseDTO(
                 alarmSetting.isAlarmAllEnabled(),
                 alarmSetting.isLinkActive(),
@@ -111,18 +89,28 @@ public class AlarmService {
 
     // 알림 설정 수정
     @Transactional
-    public boolean updateNoticeAlarmSetting(Long userId, AlarmSettingType alarmSettingType) {
+    public AlarmSettingResponseDTO updateNoticeAlarmSetting(Long userId, AlarmSettingType alarmSettingType) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         AlarmSetting alarmSetting = alarmSettingRepository.findByUserId(userId)
-                .orElseThrow(() -> new GeneralException(AlarmErrorStatus.ALARM_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(AlarmErrorStatus.ALARM_SETTING_NOT_INITIALIZED));
 
+        // 알림 타입에 따른 분기
         switch (alarmSettingType) {
             case ALL -> alarmSetting.updateAll(!alarmSetting.isAlarmAllEnabled());
             case NOTICE -> alarmSetting.updateNotice(!alarmSetting.isNoticeEnabled());
             case LINK -> alarmSetting.updateLink(!alarmSetting.isLinkEnabled());
             case CURATION -> alarmSetting.updateCuration(!alarmSetting.isCurationEnabled());
             case FOLDER -> alarmSetting.updateFolder(!alarmSetting.isFolderEnabled());
+        }
+
+        // 전체 알림이 아니라면, 전체 알림도 같이 동기화
+        if (alarmSettingType != AlarmSettingType.ALL) {
+            boolean anyRawEnabled = alarmSetting.isNoticeEnabled() || alarmSetting.isLinkEnabled()
+                    || alarmSetting.isCurationEnabled() || alarmSetting.isFolderEnabled();
+            if (!anyRawEnabled) {
+                alarmSetting.updateAlarmAllEnabled(false);
+            }
         }
 
         alarmSettingRepository.save(alarmSetting);
@@ -135,17 +123,15 @@ public class AlarmService {
             );
         }
 
-        return alarmSetting.isEnabled(alarmSettingType);
+        return new AlarmSettingResponseDTO(
+                alarmSetting.isAlarmAllEnabled(),
+                alarmSetting.isLinkActive(),
+                alarmSetting.isFolderActive(),
+                alarmSetting.isCurationActive(),
+                alarmSetting.isNoticeActive()
+        );
     }
 
-    // 알림 설정 타입별 조회
-    public boolean viewAlarmSettingByType(Long userId, AlarmSettingType alarmSettingType) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
-        AlarmSetting alarmSetting = alarmSettingRepository.findByUserId(userId)
-                .orElseThrow(() -> new GeneralException(AlarmErrorStatus.ALARM_NOT_FOUND));
-        return alarmSetting.isEnabled(alarmSettingType);
-    }
 
     // 개인 알림 전송 (알림 설정이 활성화된 경우에만 호출)
     // userId, 알림타입, targetId를 설정하면 메세지 내용을 자동으로 설정합니다.
@@ -174,7 +160,7 @@ public class AlarmService {
     @Transactional
     public void registerAdminAlarm(AlarmRequestDTO.AdminAlarmSendRequestDTO requestDTO) {
         AlarmType alarmType = requestDTO.type();
-        if (alarmType.getSettingType() == AlarmSettingType.ALL) {
+        if (alarmType.getSettingType() != AlarmSettingType.NOTICE) {
             throw new GeneralException(AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED);
         }
 
@@ -196,10 +182,6 @@ public class AlarmService {
     ) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
-
-        if (alarmSettingType == null) {
-            throw new GeneralException(ErrorStatus._BAD_REQUEST);
-        }
 
         if (size <= 0) {
             return new AlarmResponseDTO.AlarmCursorPageResponse(List.of(), null, false);
