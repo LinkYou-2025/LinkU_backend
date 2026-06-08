@@ -1,7 +1,7 @@
 package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.apiPayload.code.status.alarm.AlarmErrorStatus;
 import com.umc.linkyou.domain.enums.AlarmSettingType;
@@ -50,7 +50,6 @@ public interface AlarmApi {
             - 요청 body의 `fcmToken`은 필수값입니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @DeleteMapping("/fcmtoken")
     ApiResponse<Object> deleteFcmToken(
             @CurrentUser CustomUserDetails userDetails,
@@ -60,10 +59,9 @@ public interface AlarmApi {
     @Operation(summary = "테스트 알림 전송", description = """
             발급받은 FCM 토큰으로 테스트 알림을 전송합니다.
             - `fcmToken`은 필수값입니다.
-            - 관리자 권한으로만 호출할 수 있습니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(errorStatus = {ErrorStatus._FORBIDDEN})
+    @ApiErrorCode(commonErrorStatus = {CommonErrorStatus._FORBIDDEN})
     @ApiErrorCode(alarmErrorStatus = {AlarmErrorStatus.ALARM_SEND_FAILED})
     @PostMapping("/test/send")
     ApiResponse<Object> sendTestAlarm(
@@ -76,7 +74,7 @@ public interface AlarmApi {
             """)
     @ApiSuccessCode(SuccessStatus._OK)
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
-    @ApiErrorCode(alarmErrorStatus = {AlarmErrorStatus.ALARM_NOT_FOUND})
+    @ApiErrorCode(alarmErrorStatus = {AlarmErrorStatus.ALARM_SETTING_NOT_INITIALIZED})
     @GetMapping("/settings")
     ApiResponse<AlarmSettingResponseDTO> viewAlarmSetting(
             @CurrentUser CustomUserDetails userDetails
@@ -84,13 +82,14 @@ public interface AlarmApi {
 
     @Operation(summary = "알림 설정 수정", description = """
             선택한 알림 타입의 상태를 변경합니다.
+            - 타입: ALL/FOLDER/LINK/CURATION/NOTICE
             - 이미 off이면 on으로, on이면 off로 변경됩니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
-    @ApiErrorCode(alarmErrorStatus = {AlarmErrorStatus.ALARM_NOT_FOUND, AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED})
+    @ApiErrorCode(alarmErrorStatus = {AlarmErrorStatus.ALARM_SETTING_NOT_INITIALIZED, AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED})
     @PatchMapping("/settings")
-    ApiResponse<Boolean> updateAlarmSetting(
+    ApiResponse<AlarmSettingResponseDTO> updateAlarmSetting(
             @CurrentUser CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.AlarmSettingUpdateDTO request
     );
@@ -99,7 +98,7 @@ public interface AlarmApi {
             알림 목록을 커서 기반으로 조회합니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(errorStatus = {ErrorStatus._BAD_REQUEST})
+    @ApiErrorCode(commonErrorStatus = {CommonErrorStatus._BAD_REQUEST})
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @GetMapping("/list")
     ApiResponse<AlarmResponseDTO.AlarmCursorPageResponse> viewAlarmList(
@@ -126,10 +125,14 @@ public interface AlarmApi {
 
     @Operation(summary = "관리자 브로드캐스트 알림 발송", description = """
             관리자 권한으로 브로드캐스트 알림을 등록합니다.
+            `ANNOUNCEMENT_UPDATE`, `ANNOUNCEMENT_ERROR` 두 가지 유형의 알림만 발송할 수 있습니다.
+                - `ANNOUNCEMENT_UPDATE`: 공지사항 업데이트 알림
+                - `ANNOUNCEMENT_ERROR`: 서비스 장애 알림
+                - 요청 body의 `type`과 `content`는 필수값입니다.
+                - 등록된 브로드캐스트 알림은 알림을 설정한 모든 사용자에게 푸시 알림으로 전송됩니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(errorStatus = {ErrorStatus._FORBIDDEN})
-    @ApiErrorCode(alarmErrorStatus = {AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED})
+    @ApiErrorCode(commonErrorStatus = {CommonErrorStatus._FORBIDDEN, CommonErrorStatus._BAD_REQUEST})
     @PostMapping("/admin/broadcast")
     ApiResponse<Object> registerAdminAlarm(
             @CurrentUser CustomUserDetails userDetails,

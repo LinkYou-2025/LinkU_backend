@@ -66,17 +66,16 @@ jobs:
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
+            mkdir -p /home/ubuntu/linkyou
             echo "${{ secrets.GCP_KEY_BASE64 }}" | base64 -d > /home/ubuntu/linku-key.json
+
             sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
             sudo docker pull ${{ secrets.DOCKER_REPO_NAME }}:latest
-            sudo docker stop linku || true
-            sudo docker rm linku || true
-            sudo docker run -d --name linku --log-driver=syslog -p 8080:8080 \
-              -v /home/ubuntu/linku-key.json:/app/linku-key.json \
-              -e GOOGLE_APPLICATION_CREDENTIALS=/app/linku-key.json \
-              -e TZ=Asia/Seoul \
-              -e SPRING_PROFILES_ACTIVE= \
-              ${{ secrets.DOCKER_REPO_NAME }}:latest
+      
+            cd /home/ubuntu/linkyou
+            sudo docker compose -f docker-compose.remote.yml down
+            sudo docker compose -f docker-compose.remote.yml up -d
+      
             sudo docker image prune -a -f
 
       - name: Check logs and fail if MariaDB driver missing
