@@ -1,5 +1,6 @@
 package com.umc.linkyou.service.Linku;
 
+import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
 import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
 import com.umc.linkyou.infra.parser.LinkToImageService;
@@ -96,7 +97,7 @@ public class LinkuCreateService {
                 createAiArticleIfNeeded(linku, category, resolveEmotion(dto.getEmotionId()), aiKeywords);
             } catch (DataIntegrityViolationException e) {
                 linku = linkuRepository.findByLinku(normalizedLink)
-                        .orElseThrow(() -> new GeneralException(ErrorStatus._LINKU_NOT_FOUND));
+                        .orElseThrow(() -> new GeneralException(LinkuErrorStatus._LINKU_NOT_FOUND));
                 category = linku.getCategory();
                 aiKeywords = (linku.getAiArticle() != null) ? linku.getAiArticle().getKeyword() : aiKeywords;
             }
@@ -136,8 +137,8 @@ public class LinkuCreateService {
 
     public String validateAndNormalizeUrl(String url) {
         String normalized = UrlUtils.normalizeUrl(url);
-        if (UrlValidUtils.isVideoLink(normalized)) throw new GeneralException(ErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
-        if (!UrlValidUtils.isValidUrl(normalized)) throw new GeneralException(ErrorStatus._LINKU_INVALID_URL);
+        if (UrlValidUtils.isVideoLink(normalized)) throw new GeneralException(LinkuErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
+        if (!UrlValidUtils.isValidUrl(normalized)) throw new GeneralException(LinkuErrorStatus._LINKU_INVALID_URL);
         return normalized;
     }
 

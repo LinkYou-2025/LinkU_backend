@@ -6,6 +6,7 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.alarm.AlarmErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import java.lang.annotation.*;
 
@@ -20,4 +21,5 @@ public @interface ApiErrorCode {
     AuthErrorStatus[] authErrorStatus() default {};
     CommonErrorStatus[] commonErrorStatus() default {};
     CurationErrorStatus[] curationErrorStatus() default {};
+    LinkuErrorStatus[] linkuErrorStatus() default {};
 }

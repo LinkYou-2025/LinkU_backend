@@ -37,13 +37,6 @@ public enum ErrorStatus implements BaseErrorCode {
     _SOCIAL_EXTERNAL_ID_REQUIRED(HttpStatus.BAD_REQUEST, "OAUTH4009", "소셜 계정 ID가 필요합니다."),
     _INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "OAUTH4010", "올바른 이메일 형식이 아닙니다."),
 
-    //링큐 관련 코드
-    _LINKU_VIDEO_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "LINKU4001", "영상 링크는 저장할 수 없습니다."),
-    _LINKU_INVALID_URL(HttpStatus.BAD_REQUEST, "LINKU4002", "유효하지 않은 링크입니다."),
-    _USER_LINKU_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU404", "user_linku 테이블을 찾기 못했습니다." ),
-    _LINKU_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU4041", "해당 링크 정보를 찾을 수 없습니다."),
-
-
     //카테고리(폴더종류) 관련 에러
     _CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CATEGORY4041", "해당하는 카테고리를 찾을 수 없습니다."),
     //감정 관련 에러

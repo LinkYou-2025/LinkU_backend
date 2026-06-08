@@ -2,6 +2,7 @@ package com.umc.linkyou.service;
 
 import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.AiArticleConverter;
@@ -58,7 +59,7 @@ public class AiArticleService {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         UsersLinku usersLinku = usersLinkuRepository.findByUserAndLinku(user, linku)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._USER_LINKU_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
 
         // 2. Gemini 호출 (객관적 요약, 제목, 카테고리 추출)
         AiArticleResultDTO result = aiArticleAnalyzer.analyzeByUrl(

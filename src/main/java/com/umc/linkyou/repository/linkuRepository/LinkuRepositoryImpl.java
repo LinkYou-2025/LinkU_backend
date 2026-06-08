@@ -24,19 +24,9 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
 
     @Override
     public List<LinkuSearchSuggestionResponse> findUserSavedSuggestions(Long userId, String keyword) {
-        String q = keyword == null ? "" : keyword.trim();
-        if (q.length() < 2) return List.of();
-
         QUsersLinku ul = QUsersLinku.usersLinku;
         QLinku l = QLinku.linku1;
         QDomain d = QDomain.domain;
-
-        // 대소문자 무시 검색 위치 계산
-        var pos = Expressions.numberTemplate(
-                Integer.class,
-                "LOCATE(LOWER({0}), LOWER({1}))",
-                q, (Object) l.title // Ambiguous call 방지를 위한 캐스팅
-        );
 
         return queryFactory
                 .select(Projections.constructor(
@@ -51,17 +41,10 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
                 .leftJoin(l.domain, d)
                 .where(
                         ul.user.id.eq(userId),
-                        l.title.containsIgnoreCase(q) // QueryDSL이 내부적으로 lower() 처리해줌
+                        l.title.startsWith(keyword)
                 )
-                .orderBy(
-                        Expressions.numberTemplate(
-                                Integer.class,
-                                "CASE WHEN {0} = 0 THEN 9999 ELSE {0} END",
-                                (Object) pos // Ambiguous call 방지를 위한 캐스팅
-                        ).asc(),
-                        l.title.asc()
-                )
-                .limit(10) // 누락되었던 성능 최적화 포인트 추가
+                .orderBy(l.title.asc())
+                .limit(10)
                 .fetch();
     }
     @Override
@@ -73,7 +56,7 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
                 .selectFrom(l)
                 .leftJoin(l.aiArticle).fetchJoin()
                 .where(l.linku.eq(normalizedLink))
-                .fetchOne();
+                .fetchFirst();
 
         return Optional.ofNullable(result);
     }
