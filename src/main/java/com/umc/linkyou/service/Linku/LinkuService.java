@@ -55,15 +55,8 @@ public class LinkuService {
     @Transactional
     public ApiResponse<LinkuResponseDTO.LinkuIsExistDTO> existLinku(Long userId, String url) {
 
-        // 1. 영상 링크 차단 → 예외 던지기
-        if (UrlValidUtils.isVideoLink(url)) {
-            throw new GeneralException(LinkuErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
-        }
-
-        // 2. 유효하지 않은 링크 차단 → 예외 던지기
-        if (!UrlValidUtils.isValidUrl(url)) {
-            throw new GeneralException(LinkuErrorStatus._LINKU_INVALID_URL);
-        }
+        // 1. 영상 링크 차단 , 유효하지 않은 링크 차단 → 예외 던지기
+        UrlValidUtils.validateLinkuUrl(url);
 
         // 3. 기존에 링크 저장 여부 확인
         Optional<UsersLinku> usersLinkuOpt =
@@ -95,7 +88,6 @@ public class LinkuService {
 
         // 3. 기타 연관 엔티티 처리
         Category category = linku.getCategory();
-        Emotion emotion = usersLinku.getEmotion();
         Domain domain = linku.getDomain();
 
         // 4. LinkuFolder 최신 1개 조회
@@ -107,7 +99,7 @@ public class LinkuService {
         String keyword = null;
         String summary = null;
 
-        if (aiArticleExists) {
+        if (aiArticleExists && aiArticle != null) {
             keyword = aiArticle.getKeyword();
             summary = aiArticle.getSummary();
         }
@@ -179,6 +171,7 @@ public class LinkuService {
 
         // 5. 링크 주소(URL) 변경
         if (dto.getLinku() != null) {
+            UrlValidUtils.validateLinkuUrl(dto.getLinku());
             linku.setLinku(dto.getLinku());
             linkuModified = true;
         }

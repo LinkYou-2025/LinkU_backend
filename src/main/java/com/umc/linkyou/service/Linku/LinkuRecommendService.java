@@ -102,11 +102,6 @@ public class LinkuRecommendService{
 
         List<Long> mappedCategories = situationCategoryService.getCategoryIdsBySituation(situationId);
 
-        // 키워드 월별 집계
-        String baseMonth = YearMonth.now().toString();
-        keywordMonthlyCountRepository.upsertCount(userId, KeywordType.EMOTION.name(), emotionId, baseMonth);
-        keywordMonthlyCountRepository.upsertCount(userId, KeywordType.SITUATION.name(), situationId, baseMonth);
-
         return new EntitiesContext(userLinkus, mappedCategories, selectedEmotion);
     }
 
