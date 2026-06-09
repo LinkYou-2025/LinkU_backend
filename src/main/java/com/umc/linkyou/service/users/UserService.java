@@ -5,16 +5,15 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
+import com.umc.linkyou.domain.classification.Interests;
+import com.umc.linkyou.domain.classification.Purposes;
+import com.umc.linkyou.domain.enums.*;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.RefreshTokenManager;
 import com.umc.linkyou.jwt.TokenIssueService;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.*;
-import com.umc.linkyou.domain.enums.DeviceType;
-import com.umc.linkyou.domain.enums.PermissionType;
-import com.umc.linkyou.domain.enums.Provider;
-import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.classification.Category;
@@ -108,8 +107,8 @@ public class UserService {
                     newUser.encodePassword(passwordEncoder.encode(request.password()));
 
                     // Purposes / Interests 설정
-                    UserConverter.setupUserPurposes(newUser, request.purposeList());
-                    UserConverter.setupUserInterests(newUser, request.interestList());
+                    replacePurposes(newUser, request.purposeList());
+                    replaceInterests(newUser, request.interestList());
 
                     Users savedUser = userRepository.save(newUser);
                     termsAgreementService.upsertTerms(savedUser, request.termsMap());
@@ -202,8 +201,8 @@ public class UserService {
 
 
         // Purposes / Interests 설정
-        UserConverter.setupUserPurposes(user, request.getPurposeList());
-        UserConverter.setupUserInterests(user, request.getInterestList());
+        replacePurposes(user, request.getPurposeList());
+        replaceInterests(user, request.getInterestList());
 
         termsAgreementService.upsertTerms(user, request.getTermsMap());
 
@@ -295,8 +294,8 @@ public class UserService {
             user.setNickName(request.getNickname());
         }
 
-        UserConverter.setupUserPurposes(user, request.getPurposes());
-        UserConverter.setupUserInterests(user, request.getInterests());
+        replacePurposes(user, request.getPurposes());
+        replaceInterests(user, request.getInterests());
 
         userRepository.save(user);
     }
@@ -360,6 +359,38 @@ public class UserService {
         long ttlMs = jwtTokenProvider.getRemainingExpiryMs(accessToken);
         if (ttlMs > 0) {
             accessTokenBlackListManager.addToBlacklist(accessToken, ttlMs);
+        }
+    }
+
+
+    // purpose, interest 지우고 새 입력값으로 다시 세팅함
+    private void replacePurposes(Users user, List<String> purposeNames) {
+        if (purposeNames == null) return;
+
+        user.getPurposes().clear();
+
+        for (String name : purposeNames) {
+            try {
+                Purpose purpose = Purpose.valueOf(name);
+                user.getPurposes().add(new Purposes(purpose.name(), user));
+            } catch (IllegalArgumentException | NullPointerException e) {
+                throw new GeneralException(UserErrorStatus._INVALID_PURPOSE);
+            }
+        }
+    }
+
+    private void replaceInterests(Users user, List<String> interestNames) {
+        if (interestNames == null) return;
+
+        user.getInterests().clear();
+
+        for (String name : interestNames) {
+            try {
+                Interest interest = Interest.valueOf(name);
+                user.getInterests().add(new Interests(interest.name(), user));
+            } catch (IllegalArgumentException | NullPointerException e) {
+                throw new GeneralException(UserErrorStatus._INVALID_INTEREST);
+            }
         }
     }
 }

@@ -31,7 +31,6 @@ public class Interests {
         this.interest = enumInterest;
         this.user = newUser;
         this.selectedAt = LocalDateTime.now();
-        user.getInterests().add(this);
     }
 
     @PrePersist

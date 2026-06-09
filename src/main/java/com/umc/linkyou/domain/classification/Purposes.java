@@ -30,7 +30,6 @@ public class Purposes {
         this.purpose = enumPurpose;
         this.user = newUser;
         this.selectedAt = LocalDateTime.now();
-        user.getPurposes().add(this);
     }
 
     @PrePersist
