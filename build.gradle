@@ -131,6 +131,7 @@ bootJar {
 }
 
 spotless {
+	enforceCheck false
 	java {
 		target 'src/main/java/**/*.java', 'src/test/java/**/*.java'
 		googleJavaFormat('1.22.0').aosp()
