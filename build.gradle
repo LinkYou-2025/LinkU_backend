@@ -3,6 +3,8 @@ plugins {
 	id 'org.springframework.boot' version '3.4.7'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'org.asciidoctor.jvm.convert' version '4.0.5'
+	id 'com.diffplug.spotless' version '6.25.0'
+	id 'jacoco'
 }
 
 group = 'com.umc'
@@ -161,4 +163,22 @@ tasks.register('copyDocument', Copy) {
 // 2. build 태스크 실행 시 copyDocument가 자동으로 실행되도록 설정
 build {
 	dependsOn copyDocument
+}
+
+spotless {
+	java {
+		target 'src/main/java/**/*.java', 'src/test/java/**/*.java'
+		googleJavaFormat('1.22.0').aosp()
+		trimTrailingWhitespace()
+		endWithNewline()
+		importOrder('java', 'javax', 'jakarta', 'org', 'com', '')
+		removeUnusedImports()
+	}
+}
+
+jacocoTestReport {
+	dependsOn test
+	reports {
+		xml.required = true
+	}
 }
