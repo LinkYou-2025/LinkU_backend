@@ -54,11 +54,8 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Spotless Check
-        run: ./gradlew spotlessCheck
-
       - name: Build and Test
-        run: ./gradlew test jacocoTestReport
+        run: ./gradlew clean build jacocoTestReport
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
