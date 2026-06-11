@@ -11,6 +11,7 @@ import com.umc.linkyou.repository.AlarmSettingRepository;
 import com.umc.linkyou.repository.UserAlarmRepository;
 import com.umc.linkyou.repository.UserFcmTokenRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.service.alarm.event.AlarmSettingChangedEvent;
 import com.umc.linkyou.support.fixture.AlarmFixture;
 import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmResponseDTO;
@@ -60,27 +61,36 @@ class AlarmServiceTest {
             @Test
             @DisplayName("신규 토큰이면 UsersFcmToken을 저장한다")
             void 신규토큰_저장() {
-                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
+                Users user = user();
+                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
                 given(userFcmTokenRepository.findByUser_IdAndFcmToken(USER_ID, FCM_TOKEN)).willReturn(null);
+                given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user)));
 
                 alarmService.registerFcmToken(USER_ID, new AlarmRequestDTO.AlarmFcmTokenDTO(FCM_TOKEN));
 
                 verify(userFcmTokenRepository).save(any(UsersFcmToken.class));
+                ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+                verify(eventPublisher).publishEvent(eventCaptor.capture());
+                AlarmSettingChangedEvent event = (AlarmSettingChangedEvent) eventCaptor.getValue();
+                assertThat(event.shouldSubscribe()).isTrue();
+                assertThat(event.topics()).containsExactly("alarm-notice");
             }
 
             @Test
-            @DisplayName("이미 등록된 토큰이면 activate만 호출한다")
+            @DisplayName("이미 등록된 토큰이면 activate 후 토픽 구독 이벤트를 발행한다")
             void 기존토큰_활성화() {
                 Users user = user();
                 UsersFcmToken token = AlarmFixture.inactiveToken(user);
 
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
                 given(userFcmTokenRepository.findByUser_IdAndFcmToken(USER_ID, FCM_TOKEN)).willReturn(token);
+                given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user)));
 
                 alarmService.registerFcmToken(USER_ID, new AlarmRequestDTO.AlarmFcmTokenDTO(FCM_TOKEN));
 
                 assertThat(token.getIsActive()).isTrue();
                 verify(userFcmTokenRepository, never()).save(any());
+                verify(eventPublisher).publishEvent((Object) any());
             }
         }
 
