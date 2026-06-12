@@ -3,9 +3,11 @@ package com.umc.linkyou.support.config;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.genai.Client;
+import com.umc.linkyou.jwt.RefreshTokenManager;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 
 @TestConfiguration
 public class TestExternalConfig {
@@ -23,5 +25,11 @@ public class TestExternalConfig {
     @Bean
     public FirebaseMessaging firebaseMessaging() {
         return Mockito.mock(FirebaseMessaging.class);
+    }
+
+    @Bean
+    @Primary
+    public RefreshTokenManager refreshTokenManager() {
+        return Mockito.mock(RefreshTokenManager.class);
     }
 }
