@@ -40,6 +40,10 @@ jobs:
         env:
           APPLICATION: ${{ secrets.APPLICATION }}
 
+      - name: Create GCP credentials file
+        run: |
+          echo "${{ secrets.GCP_CREDENTIALS_BASE64 }}" | base64 --decode > src/main/resources/gcp-credentials.json
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
