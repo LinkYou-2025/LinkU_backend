@@ -4,6 +4,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +15,7 @@ import org.springframework.core.io.ResourceLoader;
 import java.io.IOException;
 import java.io.InputStream;
 
+@Slf4j
 @Configuration
 public class FcmConfig {
 
@@ -26,17 +28,17 @@ public class FcmConfig {
         this.resourceLoader = resourceLoader;
     }
 
-    @Bean
+    @Bean(destroyMethod = "")
     public FirebaseApp firebaseApp() throws IOException {
-        if (!FirebaseApp.getApps().isEmpty()) {
-            return FirebaseApp.getInstance();
-        }
         Resource resource = resourceLoader.getResource(firebaseCredentialsPath);
         if (!resource.exists() || resource.contentLength() == 0) {
-            // 백엔드 레벨의 에러이므로 RuntimeException 대신 IllegalStateException을 던지도록 설정
-            throw new IllegalStateException(
-                    "Firebase credentials file not found or empty: " + firebaseCredentialsPath
-            );
+            log.warn("Firebase credentials file not found or empty — FCM disabled: {}", firebaseCredentialsPath);
+            return null;
+        }
+        try {
+            return FirebaseApp.getInstance();
+        } catch (IllegalStateException ignored) {
+            // 기본 앱이 없으므로 초기화
         }
         try (InputStream inputStream = resource.getInputStream()) {
             GoogleCredentials credentials = GoogleCredentials.fromStream(inputStream);
