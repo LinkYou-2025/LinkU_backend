@@ -4,8 +4,6 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
@@ -18,8 +16,6 @@ import java.io.InputStream;
 
 @Configuration
 public class FcmConfig {
-
-    private static final Logger log = LoggerFactory.getLogger(FcmConfig.class);
 
     @Value("${fcm.credentials.path:classpath:linku-firebase-adminsdk.json}")
     private String firebaseCredentialsPath;
@@ -37,8 +33,10 @@ public class FcmConfig {
         }
         Resource resource = resourceLoader.getResource(firebaseCredentialsPath);
         if (!resource.exists() || resource.contentLength() == 0) {
-            log.warn("Firebase credentials file not found or empty — FCM disabled");
-            return null;
+            // 백엔드 레벨의 에러이므로 RuntimeException 대신 IllegalStateException을 던지도록 설정
+            throw new IllegalStateException(
+                    "Firebase credentials file not found or empty: " + firebaseCredentialsPath
+            );
         }
         try (InputStream inputStream = resource.getInputStream()) {
             GoogleCredentials credentials = GoogleCredentials.fromStream(inputStream);
