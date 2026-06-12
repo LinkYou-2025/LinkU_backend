@@ -468,3 +468,19 @@ class FolderServiceTest {
 @SpringBootTest  // 이것만 있으면 됨
 ```
 
+---
+
+## 7. 테스트 클래스 구조 가이드
+
+하나의 기능에 대해 테스트가 여러 개라면 `@Nested`를 사용해 `성공 케이스`, `실패 케이스`, `예외 케이스`로 나누어 작성합니다.  
+이렇게 하면 테스트 목적이 명확해지고, 같은 기능의 시나리오를 한눈에 확인할 수 있습니다.
+
+```java
+@Nested
+@DisplayName("성공 케이스")
+class SuccessCase { ... }
+
+@Nested
+@DisplayName("실패 케이스")
+class FailureCase { ... }
+```

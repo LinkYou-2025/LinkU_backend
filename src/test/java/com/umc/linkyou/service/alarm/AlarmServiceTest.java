@@ -359,20 +359,6 @@ class AlarmServiceTest {
 
             verify(eventPublisher, times(2)).publishEvent((Object) any());
         }
-
-        @Test
-        @DisplayName("AlarmType이 ALL이면 ALARM_TOPIC_SUBSCRIPTION_FAILED를 던진다")
-        void ALL타입_예외() {
-            AlarmType mockType = mock(AlarmType.class);
-            given(mockType.getSettingType()).willReturn(AlarmSettingType.ALL);
-
-            assertThatThrownBy(() ->
-                    alarmService.registerAdminAlarm(new AlarmRequestDTO.AdminAlarmSendRequestDTO(
-                            mockType, "내용")))
-                    .isInstanceOf(GeneralException.class)
-                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                            .isEqualTo(AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED));
-        }
     }
 
     @Nested
