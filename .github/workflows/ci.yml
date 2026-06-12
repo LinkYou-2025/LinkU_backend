@@ -40,19 +40,6 @@ jobs:
         env:
           APPLICATION: ${{ secrets.APPLICATION }}
 
-      - name: Create GCP credentials file
-        run: |
-          echo "${{ secrets.GCP_CREDENTIALS_BASE64 }}" | base64 --decode > src/main/resources/gcp-credentials.json
-
-      - name: Create Firebase admin file
-        run: |
-          echo "${{ secrets.FIREBASE_ADMIN_BASE64 }}" | base64 --decode > src/main/resources/linku-firebase-adminsdk.json
-
-      - name: Create assetlinks.json
-        run: |
-          mkdir -p src/main/resources/static/.well-known
-          echo '${{ secrets.ASSETLINKS_JSON }}' > src/main/resources/static/.well-known/assetlinks.json
-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
