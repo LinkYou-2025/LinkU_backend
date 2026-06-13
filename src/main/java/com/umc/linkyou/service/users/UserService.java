@@ -369,10 +369,9 @@ public class UserService {
 
         user.getPurposes().clear();
 
-        for (String name : purposeNames) {
+        for (String name : purposeNames.stream().distinct().toList()) {
             try {
-                Purpose purpose = Purpose.valueOf(name);
-                user.getPurposes().add(new Purposes(purpose.name(), user));
+                user.getPurposes().add(UserConverter.toPurposeEntity(name, user));
             } catch (IllegalArgumentException | NullPointerException e) {
                 throw new GeneralException(UserErrorStatus._INVALID_PURPOSE);
             }
@@ -384,10 +383,9 @@ public class UserService {
 
         user.getInterests().clear();
 
-        for (String name : interestNames) {
+        for (String name : interestNames.stream().distinct().toList()) {
             try {
-                Interest interest = Interest.valueOf(name);
-                user.getInterests().add(new Interests(interest.name(), user));
+                user.getInterests().add(UserConverter.toInterestEntity(name, user));
             } catch (IllegalArgumentException | NullPointerException e) {
                 throw new GeneralException(UserErrorStatus._INVALID_INTEREST);
             }
