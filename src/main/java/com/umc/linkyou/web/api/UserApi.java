@@ -88,6 +88,13 @@ public interface UserApi {
     )
     @ApiSuccessCode(SuccessStatus._OK)
     @ApiErrorCode(authErrorStatus = {AuthErrorStatus.UNAUTHORIZED})
+    @ApiErrorCode(userErrorStatus = {
+            UserErrorStatus._USER_NOT_FOUND,
+            UserErrorStatus._DUPLICATE_NICKNAME,
+            UserErrorStatus._INVALID_GENDER,
+            UserErrorStatus._INVALID_PURPOSE,
+            UserErrorStatus._INVALID_INTEREST
+            })
     @ApiErrorCode(errorStatus = {
             ErrorStatus._ALREADY_ACTIVE_USER,
             ErrorStatus._BAD_REQUEST
