@@ -14,6 +14,7 @@ import com.umc.linkyou.apiPayload.code.status.auth.AuthSuccessStatus;
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.gemini.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.validation.annotation.swagger.ApiAuthSuccessCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiDomainErrorCodes;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
@@ -226,6 +227,7 @@ public class SwaggerConfig {
                 AiArticleErrorStatus.class,
                 CurationErrorStatus.class,
                 GeminiErrorStatus.class,
+                LinkuErrorStatus.class,
                 CommonErrorStatus.class
         );
 
