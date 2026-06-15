@@ -18,14 +18,10 @@ import com.umc.linkyou.web.dto.UserRequestDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.restdocs.RestDocumentationExtension;
-import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -35,21 +31,12 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
-import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
-import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AuthController.class)
-@AutoConfigureRestDocs
-@ExtendWith(RestDocumentationExtension.class)
 @Import({WebConfig.class, CurrentUserArgumentResolver.class, TestSecurityConfig.class})
 class AuthControllerTest {
 
@@ -116,30 +103,7 @@ class AuthControllerTest {
                             .content(objectMapper.writeValueAsString(request))
                             .with(csrf()))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.isSuccess").value(true))
-                    .andDo(document("user/join",
-                            preprocessRequest(prettyPrint()),
-                            preprocessResponse(prettyPrint()),
-                            requestFields(
-                                    fieldWithPath("nickName").description("닉네임"),
-                                    fieldWithPath("email").description("이메일"),
-                                    fieldWithPath("password").description("비밀번호"),
-                                    fieldWithPath("gender").description("성별 (1:남, 2:여)"),
-                                    fieldWithPath("jobId").description("직업 ID"),
-                                    fieldWithPath("purposeList").description("가입 목적 리스트"),
-                                    fieldWithPath("interestList").description("관심사 리스트"),
-                                    fieldWithPath("termsMap").type(JsonFieldType.OBJECT).description("약관 동의 맵"),
-                                    fieldWithPath("termsMap.*").type(JsonFieldType.BOOLEAN).description("각 약관별 동의 여부")
-                            ),
-                            responseFields(
-                                    fieldWithPath("isSuccess").description("성공 여부"),
-                                    fieldWithPath("code").description("응답 코드"),
-                                    fieldWithPath("message").description("응답 메시지"),
-                                    fieldWithPath("timestamp").description("응답 시간"),
-                                    fieldWithPath("result.userId").description("생성된 유저 ID"),
-                                    fieldWithPath("result.createdAt").description("생성 일시")
-                            )
-                    ));
+                    .andExpect(jsonPath("$.isSuccess").value(true));
         }
     }
 }

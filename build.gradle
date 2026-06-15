@@ -2,7 +2,8 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.4.7'
 	id 'io.spring.dependency-management' version '1.1.7'
-	id 'org.asciidoctor.jvm.convert' version '4.0.5'
+	id 'com.diffplug.spotless' version '6.25.0'
+	id 'jacoco'
 }
 
 group = 'com.umc'
@@ -15,7 +16,6 @@ java {
 }
 
 configurations {
-	asciidoctorExt
 	compileOnly {
 		extendsFrom annotationProcessor
 	}
@@ -98,11 +98,7 @@ dependencies {
 	// Firebase Admin SDK
 	implementation 'com.google.firebase:firebase-admin:9.4.3'
 
-	// REST Docs
-	testImplementation 'org.springframework.restdocs:spring-restdocs-core'
 	implementation 'net.coobird:thumbnailator:0.4.20'
-	asciidoctorExt 'org.springframework.restdocs:spring-restdocs-asciidoctor'
-	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
 }
 
 clean {
@@ -126,39 +122,70 @@ clean {
 tasks.withType(JavaCompile) {
 	options.generatedSourceOutputDirectory = file(querydslSrcDir)
 }
-ext {
-	snippetsDir = file('build/generated-snippets')
-}
 
 test {
-	outputs.dir snippetsDir
 	useJUnitPlatform()
-}
-
-asciidoctor {
-	configurations 'asciidoctorExt'
-	baseDirFollowsSourceFile()
-	inputs.dir snippetsDir
-	dependsOn test
-	onlyIf {
-		snippetsDir.exists()
-	}
+	finalizedBy jacocoTestReport
 }
 
 bootJar {
-	dependsOn asciidoctor
-	from("${asciidoctor.outputDir}") {
-		into 'static/docs'
-	}
-}
-// 1. asciidoctor 작업이 끝나면 생성된 HTML을 static/docs 폴더로 물리적 복사
-tasks.register('copyDocument', Copy) {
-	dependsOn asciidoctor
-	from file("${asciidoctor.outputDir}")
-	into file("src/main/resources/static/docs")
 }
 
-// 2. build 태스크 실행 시 copyDocument가 자동으로 실행되도록 설정
-build {
-	dependsOn copyDocument
+spotless {
+	enforceCheck false
+	java {
+		target 'src/main/java/**/*.java', 'src/test/java/**/*.java'
+		googleJavaFormat('1.22.0').aosp()
+		trimTrailingWhitespace()
+		endWithNewline()
+		importOrder('java', 'javax', 'jakarta', 'org', 'com', '')
+		removeUnusedImports()
+	}
+}
+
+jacocoTestReport {
+	dependsOn test
+
+	reports {
+		html.required = true
+		xml.required = true
+	}
+
+	afterEvaluate {
+		classDirectories.setFrom(
+				files(classDirectories.files.collect {
+					fileTree(dir: it, exclude: [
+							// 인프라/설정
+							'**/config/**',
+							'**/*Application*',
+							'**/Q*',
+							// 도메인 모델 (엔티티, 열거형)
+							'**/domain/**',
+							// 데이터 전달 객체
+							'**/dto/**',
+							'**/converter/**',
+							// API 인터페이스
+							'**/web/api/**',
+							// 예외 처리
+							'**/apiPayload/**',
+							// 리포지토리
+							'**/repository/**',
+							// 유효성 검사 애노테이션
+							'**/validation/**',
+							// JWT / 보안 인프라
+							'**/jwt/CurrentUser*',
+							'**/jwt/CurrentUserArgumentResolver*',
+							'**/jwt/CustomUserDetails*',
+							'**/jwt/CustomAuthenticationEntryPoint*',
+							'**/jwt/CustomAccessDeniedHandler*',
+							'**/jwt/SecurityErrorResponseWriter*',
+							'**/jwt/JwtExceptionFilter*',
+							'**/jwt/JwtAuthenticationFilter*',
+							// OAuth2 인프라
+							'**/oauth2/utils/**',
+							'**/oauth2/mobile/client/**',
+					])
+				})
+		)
+	}
 }
