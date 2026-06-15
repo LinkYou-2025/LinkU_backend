@@ -43,16 +43,24 @@ public interface UserApi {
                     사용자의 프로필 정보를 변경합니다.
                     - 닉네임 변경 시 중복 여부를 체크합니다.
                     - 직업(Job ID), 관심사 리스트, 사용 목적 리스트를 전체 업데이트합니다.
+                    - 기존의 purpose, interest 지우고 새 입력값으로 다시 세팅합니다.
                     """
     )
     @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(errorStatus = {ErrorStatus._BAD_REQUEST}) // 잘못된 Job ID 등
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus._DUPLICATE_NICKNAME})
+    @ApiErrorCode(authErrorStatus = {AuthErrorStatus.UNAUTHORIZED})
+    @ApiErrorCode(errorStatus = {ErrorStatus._BAD_REQUEST})
+    @ApiErrorCode(userErrorStatus = {
+            UserErrorStatus._USER_NOT_FOUND,
+            UserErrorStatus._DUPLICATE_NICKNAME,
+            UserErrorStatus._INVALID_INTEREST,
+            UserErrorStatus._INVALID_PURPOSE
+    })
     @PatchMapping("/profile")
     ApiResponse<Object> updateUserProfile(
             @CurrentUser CustomUserDetails userDetails,
             @RequestBody @Valid UserRequestDTO.UpdateProfileDTO updateDTO);
 
+    // 소프트 회원탈퇴
     @Operation(
             summary = "회원 탈퇴 (비활성화)",
             description = """
@@ -62,6 +70,7 @@ public interface UserApi {
                     """
     )
     @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(authErrorStatus = {AuthErrorStatus.UNAUTHORIZED})
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @PostMapping("/inactive")
     ApiResponse<UserResponseDTO.withDrawalResultDTO> withdrawMe(
@@ -78,8 +87,18 @@ public interface UserApi {
                     """
     )
     @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(errorStatus = {ErrorStatus._ALREADY_ACTIVE_USER, ErrorStatus._BAD_REQUEST})
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._DUPLICATE_NICKNAME})
+    @ApiErrorCode(authErrorStatus = {AuthErrorStatus.UNAUTHORIZED})
+    @ApiErrorCode(userErrorStatus = {
+            UserErrorStatus._USER_NOT_FOUND,
+            UserErrorStatus._DUPLICATE_NICKNAME,
+            UserErrorStatus._INVALID_GENDER,
+            UserErrorStatus._INVALID_PURPOSE,
+            UserErrorStatus._INVALID_INTEREST
+            })
+    @ApiErrorCode(errorStatus = {
+            ErrorStatus._ALREADY_ACTIVE_USER,
+            ErrorStatus._BAD_REQUEST
+    })
     @PatchMapping("/social/complete")
     ApiResponse<UserResponseDTO.JoinResultDTO> completeSocialProfile(
             @RequestBody @Valid UserRequestDTO.SocialCompleteDTO request,
@@ -91,7 +110,11 @@ public interface UserApi {
     )
     // 첫 번째 PR: Common200 대신 SuccessStatus 또는 도메인별 성공코드 사용 규격 적용
     @ApiSuccessCode(com.umc.linkyou.apiPayload.code.status.SuccessStatus._OK)
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus.INVALID_TERMS_TYPE})
+    @ApiErrorCode(authErrorStatus = {AuthErrorStatus.UNAUTHORIZED})
+    @ApiErrorCode(userErrorStatus = {
+            UserErrorStatus._USER_NOT_FOUND,
+            UserErrorStatus.INVALID_TERMS_TYPE
+    })
     @PatchMapping("/terms/agree") // 두 번째 PR: POST에서 PATCH로 변경 및 경로 일치
     ApiResponse<UserResponseDTO.TermsStatusDTO> updateTermsAgree(
             @CurrentUser CustomUserDetails userDetails,
@@ -103,6 +126,7 @@ public interface UserApi {
             description = "사용자가 현재 어떤 약관에 동의했는지 전체 목록과 상태를 조회합니다."
     )
     @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(authErrorStatus = {AuthErrorStatus.UNAUTHORIZED})
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @GetMapping("/terms/status")
     ApiResponse<UserResponseDTO.TermsStatusDTO> getTermsStatus(

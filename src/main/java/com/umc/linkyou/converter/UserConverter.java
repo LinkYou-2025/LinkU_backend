@@ -8,6 +8,8 @@ import com.umc.linkyou.domain.classification.Interests;
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.domain.enums.Gender;
+import com.umc.linkyou.domain.enums.Interest;
+import com.umc.linkyou.domain.enums.Purpose;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
@@ -90,29 +92,12 @@ public class UserConverter {
     }
 
 
-
-    public static void setupUserPurposes(Users user, List<String> purposeNames) {
-        if (purposeNames == null) return;
-        if (user.getPurposes() != null) {
-            user.getPurposes().clear();
-        }
-        if (!purposeNames.isEmpty()) {
-            purposeNames.stream()
-                    .map(name -> new Purposes(name, user))
-                    .forEach(purpose -> user.getPurposes().add(purpose));
-        }
+    public static Purposes toPurposeEntity(String purposeName, Users user) {
+        return new Purposes(Purpose.valueOf(purposeName).name(), user);
     }
 
-    // 엔티티의 초기 Interests 설정
-    public static void setupUserInterests(Users user, List<String> interestNames) {
-        if (interestNames == null) return;
-        if (user.getInterests() != null) {
-            user.getInterests().clear();
-        }
-        if (!interestNames.isEmpty()) {
-            interestNames.stream()
-                    .map(name -> new Interests(name, user))
-                    .forEach(interest -> user.getInterests().add(interest));
-        }
+    public static Interests toInterestEntity(String interestName, Users user) {
+        return new Interests(Interest.valueOf(interestName).name(), user);
     }
+
 }

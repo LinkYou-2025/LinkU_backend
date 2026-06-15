@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class Interests {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
@@ -31,7 +31,6 @@ public class Interests {
         this.interest = enumInterest;
         this.user = newUser;
         this.selectedAt = LocalDateTime.now();
-        user.getInterests().add(this);
     }
 
     @PrePersist

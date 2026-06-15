@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Entity
 public class Purposes {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
@@ -30,7 +30,6 @@ public class Purposes {
         this.purpose = enumPurpose;
         this.user = newUser;
         this.selectedAt = LocalDateTime.now();
-        user.getPurposes().add(this);
     }
 
     @PrePersist
