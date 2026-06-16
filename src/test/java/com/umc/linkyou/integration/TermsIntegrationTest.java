@@ -11,6 +11,7 @@ import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.repository.TermsAgreementRepository;
 import com.umc.linkyou.repository.classification.JobRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.support.config.TestExternalConfig;
 import com.umc.linkyou.support.security.TestSecurityConfig;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import org.junit.jupiter.api.DisplayName;
@@ -41,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ActiveProfiles("test")
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestSecurityConfig.class)
+@Import({TestSecurityConfig.class, TestExternalConfig.class})
 @Transactional
 class TermsIntegrationTest {
 
@@ -67,8 +68,8 @@ class TermsIntegrationTest {
                     "pass1234",
                     1,
                     job.getId(),
-                    List.of("GROWTH"),
-                    List.of("TECH"),
+                    List.of("CAREER"),
+                    List.of("IT"),
                     Map.of(TermsType.TERMS_OF_USE, true)
             );
 

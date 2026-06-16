@@ -62,6 +62,11 @@ public class UserController implements UserApi {
     }
 
     @Override
+    public ApiResponse<UserResponseDTO.NicknameDTO> getNickname(@CurrentUser CustomUserDetails userDetails) {
+        return ApiResponse.onSuccess(UserSuccessStatus.USER_NICKNAME_OK, userService.getNickname(userDetails.getUserId()));
+    }
+
+    @Override
     public ApiResponse<UserResponseDTO.TermsStatusDTO> getTermsStatus(@CurrentUser CustomUserDetails userDetails) {
         return ApiResponse.onSuccess(termsAgreementService.getTermsStatus(userDetails));
     }

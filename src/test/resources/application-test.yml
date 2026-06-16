@@ -23,3 +23,10 @@ spring:
     redis:
       host: localhost
       port: 6379
+      url: redis://localhost:6379
+      timeout: 3000ms
+
+jwt:
+  redis:
+    host: localhost
+    port: 6379

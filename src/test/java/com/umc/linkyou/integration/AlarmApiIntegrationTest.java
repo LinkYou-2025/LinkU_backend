@@ -11,6 +11,7 @@ import com.umc.linkyou.repository.AlarmRepository;
 import com.umc.linkyou.repository.AlarmSettingRepository;
 import com.umc.linkyou.repository.UserAlarmRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.support.config.TestExternalConfig;
 import com.umc.linkyou.support.security.TestSecurityConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestSecurityConfig.class)
+@Import({TestSecurityConfig.class, TestExternalConfig.class})
 @Transactional
 class AlarmApiIntegrationTest {
 

@@ -106,6 +106,13 @@ public class UserResponseDTO {
     }
 
 
+    @Schema(description = "닉네임 조회 응답")
+    public record NicknameDTO(
+            @Schema(description = "사용자 닉네임", example = "링큐유저")
+            String nickname
+    ) {
+    }
+
     @Getter @Setter
     @Builder
     @NoArgsConstructor @AllArgsConstructor
