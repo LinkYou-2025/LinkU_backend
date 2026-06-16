@@ -112,8 +112,6 @@ jwt:
 
 cloud:
   aws:
-    credentials:
-      instanceProfile: true
     region:
       static-region: ap-southeast-2
     s3:

@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Slf4j
@@ -53,7 +54,7 @@ public class AwsS3Service {
 
                 try {
                     s3Client.putObject(request, RequestBody.fromBytes(resizedBytes));
-                } catch (SdkClientException e) {
+                } catch (SdkException e) {
                     log.error("S3 업로드 실패: {}", fileName, e);
                     throw new GeneralException(ErrorStatus._S3_UPLOAD_FAILED);
                 }
@@ -88,7 +89,7 @@ public class AwsS3Service {
 
                 try {
                     s3Client.putObject(request, RequestBody.fromBytes(resizedBytes));
-                } catch (SdkClientException e) {
+                } catch (SdkException e) {
                     log.error("S3 폴더 업로드 실패: {}", fileName, e);
                     throw new GeneralException(ErrorStatus._S3_UPLOAD_FAILED);
                 }
@@ -108,20 +109,20 @@ public class AwsS3Service {
                     .key(fileName)
                     .build();
             s3Client.deleteObject(request);
-        } catch (SdkClientException e) {
+        } catch (SdkException e) {
             throw new GeneralException(ErrorStatus._S3_DELETE_FAILED);
         }
     }
 
     public void deleteFileByUrl(String fileUrl) {
+        String fileName = extractFileNameFromUrl(fileUrl);
         try {
-            String fileName = extractFileNameFromUrl(fileUrl);
             DeleteObjectRequest request = DeleteObjectRequest.builder()
                     .bucket(awsProperties.s3().bucket())
                     .key(fileName)
                     .build();
             s3Client.deleteObject(request);
-        } catch (Exception e) {
+        } catch (SdkException e) {
             throw new GeneralException(ErrorStatus._S3_DELETE_FAILED);
         }
     }
@@ -135,7 +136,7 @@ public class AwsS3Service {
 
     public String extractFileNameFromUrl(String url) {
         try {
-            String decodedUrl = URLDecoder.decode(url, "UTF-8");
+            String decodedUrl = URLDecoder.decode(url, StandardCharsets.UTF_8);
             String domainSuffix = awsProperties.cloudfront().domain().endsWith("/")
                     ? awsProperties.cloudfront().domain()
                     : awsProperties.cloudfront().domain() + "/";
@@ -143,7 +144,11 @@ public class AwsS3Service {
                 return decodedUrl.substring(domainSuffix.length());
             }
             String bucketName = awsProperties.s3().bucket();
-            return decodedUrl.substring(decodedUrl.indexOf(bucketName) + bucketName.length() + 1);
+            int bucketIndex = decodedUrl.indexOf(bucketName);
+            if (bucketIndex == -1) {
+                throw new GeneralException(ErrorStatus._S3_EXTRACT_URL_FAILED);
+            }
+            return decodedUrl.substring(bucketIndex + bucketName.length() + 1);
         } catch (Exception e) {
             throw new GeneralException(ErrorStatus._S3_EXTRACT_URL_FAILED);
         }
@@ -172,14 +177,7 @@ public class AwsS3Service {
     }
 
     private byte[] readToByteArray(InputStream inputStream) throws IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        int nRead;
-        byte[] data = new byte[16384];
-        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-            buffer.write(data, 0, nRead);
-        }
-        buffer.flush();
-        return buffer.toByteArray();
+        return inputStream.readAllBytes();
     }
 
     private void validateImageBytes(byte[] bytes) {
