@@ -120,6 +120,18 @@ public interface UserApi {
             @CurrentUser CustomUserDetails userDetails,
             @RequestBody @Valid UserRequestDTO.TermsAgreeDTO request); // 두 번째 PR: Map 기반 DTO 사용
 
+    // 닉네임 조회
+    @Operation(
+            summary = "닉네임 조회",
+            description = "로그인한 사용자의 닉네임을 조회합니다."
+    )
+    @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(authErrorStatus = {AuthErrorStatus.UNAUTHORIZED})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @GetMapping("/nickname")
+    ApiResponse<UserResponseDTO.NicknameDTO> getNickname(
+            @CurrentUser CustomUserDetails userDetails);
+
     // 약관 상태 조회
     @Operation(
             summary = "약관 상태 조회",
