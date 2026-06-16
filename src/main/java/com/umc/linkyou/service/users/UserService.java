@@ -265,6 +265,14 @@ public class UserService {
         validateNickNameNotDuplicate(nickname);
     }
 
+    // 닉네임 조회
+    @Transactional(readOnly = true)
+    public UserResponseDTO.NicknameDTO getNickname(Long userId) {
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
+        return new UserResponseDTO.NicknameDTO(user.getNickName());
+    }
+
     // 마이페이지 조회
     @Transactional
     public UserResponseDTO.UserProfileSummaryDto userInfo(Long userId, String loginProvider) {

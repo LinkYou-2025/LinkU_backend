@@ -68,8 +68,8 @@ class TermsIntegrationTest {
                     "pass1234",
                     1,
                     job.getId(),
-                    List.of("GROWTH"),
-                    List.of("TECH"),
+                    List.of("CAREER"),
+                    List.of("IT"),
                     Map.of(TermsType.TERMS_OF_USE, true)
             );
 
