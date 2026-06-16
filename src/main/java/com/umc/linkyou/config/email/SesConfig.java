@@ -14,11 +14,11 @@ public class SesConfig {
     @Bean
     public SesV2Client sesV2Client(SesProperties sesProperties) {
         return SesV2Client.builder()
-                .region(Region.of(sesProperties.getRegion()))
+                .region(Region.of(sesProperties.region()))
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(
-                                sesProperties.getAccessKey(),
-                                sesProperties.getSecretKey()
+                                sesProperties.accessKey(),
+                                sesProperties.secretKey()
                         )
                 ))
                 .build();

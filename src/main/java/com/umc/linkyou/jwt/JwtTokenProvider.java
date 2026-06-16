@@ -47,8 +47,8 @@ public class JwtTokenProvider {
 
     @PostConstruct
     public void init() {
-        this.accessKey  = Keys.hmacShaKeyFor(jwtProperties.getKeys().getAccess().getBytes(StandardCharsets.UTF_8));
-        this.refreshKey = Keys.hmacShaKeyFor(jwtProperties.getKeys().getRefresh().getBytes(StandardCharsets.UTF_8));
+        this.accessKey  = Keys.hmacShaKeyFor(jwtProperties.keys().access().getBytes(StandardCharsets.UTF_8));
+        this.refreshKey = Keys.hmacShaKeyFor(jwtProperties.keys().refresh().getBytes(StandardCharsets.UTF_8));
     }
 
     // 액세스 토큰 생성 (subject 기반)
@@ -59,7 +59,7 @@ public class JwtTokenProvider {
                 .claim("provider", provider)
                 .claim("role", role.getAuthority())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getExpiration().getAccess()))
+                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.expiration().access()))
                 .signWith(accessKey, SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -101,9 +101,9 @@ public class JwtTokenProvider {
                 .setSubject(subjectEmail)
                 .claim("provider", provider)
                 .signWith(refreshKey, SignatureAlgorithm.HS256)
-                .setIssuer(jwtProperties.getIssuer())
+                .setIssuer(jwtProperties.issuer())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getExpiration().getRefresh()))
+                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.expiration().refresh()))
                 .compact();
     }
 
