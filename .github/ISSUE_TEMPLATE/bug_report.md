@@ -1,9 +1,10 @@
 ---
 name: Bug report
 about: '버그 리포트 이슈 '
-title: ''
-labels: ''
+title: "[BUG]"
+labels: "\U0001F41B Bug"
 assignees: ''
+type: Bug
 
 ---
 

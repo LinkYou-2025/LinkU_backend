@@ -1,9 +1,10 @@
 ---
 name: Feature request
 about: '기능 요청 이슈 '
-title: ''
-labels: ''
+title: "[FEAT]"
+labels: "✨ Feature"
 assignees: ''
+type: Feature
 
 ---
 
