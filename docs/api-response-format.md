@@ -199,25 +199,26 @@ LinkU API는 아래 공통 응답 포맷을 사용한다.
 
 | 예외 코드 | 예외 이름(서버에서 사용) | Http 코드 | 메시지 |
 | --- | --- | --- | --- |
-| `FOLDER404` | `_FOLDER_NOT_FOUND` | `404 (NOT_FOUND)` | 해당하는 폴더를 찾을 수 없습니다. |
-| `FOLDER_PARENT404` | `_FOLDER_PARENT_NOT_FOUND` | `404 (NOT_FOUND)` | 폴더의 부모 폴더가 없습니다. |
-| `FOLDER_CATEGORY404` | `_FOLDER_CATEGORY_NOT_FOUND` | `404 (NOT_FOUND)` | 폴더의 카테고리가 없습니다. |
-| `FOLDER_CREATE403` | `_FOLDER_CREATE_FORBIDDEN` | `403 (FORBIDDEN)` | 해당하는 폴더를 생성할 권한이 없습니다. |
-| `FOLDER_UPDATE403` | `_FOLDER_UPDATE_FORBIDDEN` | `403 (FORBIDDEN)` | 해당하는 폴더의 수정 권한이 없습니다. |
-| `FOLDER_DELETE403` | `_FOLDER_DELETE_FORBIDDEN` | `403 (FORBIDDEN)` | 해당하는 폴더의 삭제 권한이 없습니다. |
-| `FOLDER_ACCESS403` | `_FOLDER_ACCESS_FORBIDDEN` | `403 (FORBIDDEN)` | 해당 폴더에 접근 권한이 없습니다. |
-| `FOLDER_NAME409` | `_FOLDER_NAME_CONFLICT` | `409 (CONFLICT)` | 카테고리명과 동일한 폴더명은 사용할 수 없습니다. |
-| `FOLDER_CURSOR400` | `_FOLDER_INVALID_CURSOR` | `400 (BAD_REQUEST)` | 유효하지 않은 커서 값입니다. |
-| `FOLDER_OWNER500` | `_FOLDER_OWNER_NOT_FOUND` | `500 (INTERNAL_SERVER_ERROR)` | 폴더의 소유자 정보를 찾을 수 없습니다. |
-| `FOLDER_PERMISSION404` | `_FOLDER_PERMISSION_NOT_FOUND` | `404 (NOT_FOUND)` | 해당 유저의 폴더 권한 정보를 찾을 수 없습니다. |
-| `FOLDER_TOKEN404` | `INVITATION_NOT_FOUND` | `404 (NOT_FOUND)` | 공유 폴더 토큰을 찾을 수 없습니다. |
-| `FOLDER_TOKEN_INVALID404` | `INVITATION_EXPIRED` | `404 (NOT_FOUND)` | 공유 폴더 토큰이 유효하지 않습니다. |
-| `FOLDER_LINK_INVALID404` | `INVITATION_LINK_NOT_FOUND` | `404 (NOT_FOUND)` | 공유 폴더 링크가 유효하지 않습니다. |
-| `FOLDER_OWNER_403` | `_FOLDER_PERMISSION_NOT_ALLOWED` | `403 (FORBIDDEN)` | 폴더 수정 권한을 가지고 있지 않습니다. |
-| `FOLDER_OWNER_403` | `_FOLDER_OWNER_UPDATE_NOT_ALLOWED` | `403 (FORBIDDEN)` | 폴더 주인의 권한은 수정할 수 없습니다. |
-| `FOLDER_CREATOR403` | `INVITATION_CREATOR_CANNOT_ACCEPT` | `403 (FORBIDDEN)` | 초대 생성자는 자신의 링크로 참여할 수 없습니다. |
-| `PERMISSION400` | `_INVALID_PERMISSION_TYPE` | `400 (BAD_REQUEST)` | 유효하지 않은 권한 타입입니다. |
+| `FOLDER4001` | `_FOLDER_INVALID_CURSOR` | `400 (BAD_REQUEST)` | 유효하지 않은 커서 값입니다. |
+| `FOLDER4031` | `_FOLDER_CREATE_FORBIDDEN` | `403 (FORBIDDEN)` | 해당하는 폴더를 생성할 권한이 없습니다. |
+| `FOLDER4032` | `_FOLDER_UPDATE_FORBIDDEN` | `403 (FORBIDDEN)` | 해당하는 폴더의 수정 권한이 없습니다. |
+| `FOLDER4033` | `_FOLDER_DELETE_FORBIDDEN` | `403 (FORBIDDEN)` | 해당하는 폴더의 삭제 권한이 없습니다. |
+| `FOLDER4034` | `_FOLDER_ACCESS_FORBIDDEN` | `403 (FORBIDDEN)` | 해당 폴더에 접근 권한이 없습니다. |
+| `FOLDER4041` | `_FOLDER_NOT_FOUND` | `404 (NOT_FOUND)` | 해당하는 폴더를 찾을 수 없습니다. |
+| `FOLDER4042` | `_FOLDER_PARENT_NOT_FOUND` | `404 (NOT_FOUND)` | 폴더의 부모 폴더가 없습니다. |
+| `FOLDER4043` | `_FOLDER_CATEGORY_NOT_FOUND` | `404 (NOT_FOUND)` | 폴더의 카테고리가 없습니다. |
+| `FOLDER4091` | `_FOLDER_CREATE_DUPLICATE` | `409 (CONFLICT)` | 중복된 폴더명입니다. |
+| `FOLDER4092` | `_FOLDER_NAME_CONFLICT` | `409 (CONFLICT)` | 카테고리명과 동일한 폴더명은 사용할 수 없습니다. |
+| `FOLDER5001` | `_FOLDER_OWNER_NOT_FOUND` | `500 (INTERNAL_SERVER_ERROR)` | 폴더의 소유자 정보를 찾을 수 없습니다. |
 | `FOLDER_BOOKMARK404` | `_FOLDER_BOOKMARK_NOT_FOUND` | `404 (NOT_FOUND)` | 해당 유저의 북마크 정보가 존재하지 않습니다. |
+| `SHAREFOLDER4001` | `_INVALID_PERMISSION_TYPE` | `400 (BAD_REQUEST)` | 유효하지 않은 권한 타입입니다. |
+| `SHAREFOLDER4031` | `_FOLDER_PERMISSION_NOT_ALLOWED` | `403 (FORBIDDEN)` | 폴더 수정 권한을 가지고 있지 않습니다. |
+| `SHAREFOLDER4032` | `_FOLDER_OWNER_UPDATE_NOT_ALLOWED` | `403 (FORBIDDEN)` | 폴더 주인의 권한은 수정할 수 없습니다. |
+| `SHAREFOLDER4033` | `INVITATION_CREATOR_CANNOT_ACCEPT` | `403 (FORBIDDEN)` | 초대 생성자는 자신의 링크로 참여할 수 없습니다. |
+| `SHAREFOLDER4041` | `_FOLDER_PERMISSION_NOT_FOUND` | `404 (NOT_FOUND)` | 해당 유저의 폴더 권한 정보를 찾을 수 없습니다. |
+| `SHAREFOLDER4042` | `INVITATION_NOT_FOUND` | `404 (NOT_FOUND)` | 공유 폴더 토큰을 찾을 수 없습니다. |
+| `SHAREFOLDER4043` | `INVITATION_EXPIRED` | `404 (NOT_FOUND)` | 공유 폴더 토큰이 유효하지 않습니다. |
+| `SHAREFOLDER4044` | `INVITATION_LINK_NOT_FOUND` | `404 (NOT_FOUND)` | 공유 폴더 링크가 유효하지 않습니다. |
 
 ## 11. AI Article / Gemini 에러
 

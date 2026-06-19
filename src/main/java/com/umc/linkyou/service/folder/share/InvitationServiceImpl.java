@@ -1,6 +1,6 @@
 package com.umc.linkyou.service.folder.share;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Users;
@@ -28,10 +28,10 @@ public class InvitationServiceImpl implements InvitationService {
     // 초대 정보 조회
     public InvitationInfoResponseDTO getInvitationInfo(String token) {
         FolderShareLink link = folderShareLinkRepository.findByToken(token)
-                .orElseThrow(() -> new GeneralException(ErrorStatus.INVITATION_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(ShareFolderErrorStatus.INVITATION_NOT_FOUND));
 
         if (!link.isValid()) {
-            throw new GeneralException(ErrorStatus.INVITATION_EXPIRED);
+            throw new GeneralException(ShareFolderErrorStatus.INVITATION_EXPIRED);
         }
 
         return InvitationInfoResponseDTO.builder()
@@ -45,10 +45,10 @@ public class InvitationServiceImpl implements InvitationService {
     public Long acceptInvitation(Long userId, String token) {
         // 토큰 유효성 검증
         FolderShareLink link = folderShareLinkRepository.findByToken(token)
-                .orElseThrow(() -> new GeneralException(ErrorStatus.INVITATION_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(ShareFolderErrorStatus.INVITATION_NOT_FOUND));
 
         if (!link.isValid()) {
-            throw new GeneralException(ErrorStatus.INVITATION_EXPIRED);
+            throw new GeneralException(ShareFolderErrorStatus.INVITATION_EXPIRED);
         }
 
         Folder folder = link.getFolder();
@@ -57,8 +57,7 @@ public class InvitationServiceImpl implements InvitationService {
 
         //Owner caanot accpet its own
         if (link.getCreator().getId().equals(userId)) {
-            throw new GeneralException(ErrorStatus.INVITATION_CREATOR_CANNOT_ACCEPT);
-            // 또는 기존: ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED
+            throw new GeneralException(ShareFolderErrorStatus.INVITATION_CREATOR_CANNOT_ACCEPT);
         }
         // 이미 참여 중인지 확인
         boolean isAlreadyMember = usersFolderRepository.existsActiveMember(userId, folder.getFolderId());

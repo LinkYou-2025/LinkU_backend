@@ -2,6 +2,7 @@ package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.LinkuConverter;
@@ -150,7 +151,7 @@ public class LinkuService {
         // 3. 폴더 변경(해당 링크를 다른 폴더로 이동)
         if (dto.getFolderId() != null) {
             Folder folder = folderRepository.findById(dto.getFolderId())
-                    .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
+                    .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
             // 현재 링크-폴더 매핑 중 최신 1개 가져와서 폴더만 새로 세팅 (폴더 이동)
             LinkuFolder linkuFolder = linkuFolderRepository
                     .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId())
