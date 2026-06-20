@@ -85,6 +85,10 @@ public class ShareFolderServiceImpl implements ShareFolderService {
 
     // 초대 링크 비활성화
     public void deactivateInviteLink(Long userId, Long folderId) {
+        if (!folderRepository.existsById(folderId)) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND);
+        }
+
         // 폴더 주인 확인
         boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
         if (!isOwner) {
@@ -100,6 +104,10 @@ public class ShareFolderServiceImpl implements ShareFolderService {
     // 폴더 viewer and writer 조회
     @Transactional(readOnly = true)
     public List<ViewerResponseDTO> getViewers(Long userId, Long folderId) {
+        if (!folderRepository.existsById(folderId)) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND);
+        }
+
         boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
         if (!isOwner) {
             throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
@@ -120,6 +128,10 @@ public class ShareFolderServiceImpl implements ShareFolderService {
 
     // 유저의 폴더 권한 수정
     public ShareFolderResponseDTO updateViewerPermission(Long userId, Long folderId, Long userFolderId, FolderPermissionRequestDTO request) {
+        if (!folderRepository.existsById(folderId)) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND);
+        }
+
         // 요청자가 폴더 소유자인지 확인
         if (!usersFolderRepository.existsFolderOwner(userId, folderId)) {
             throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
@@ -156,6 +168,10 @@ public class ShareFolderServiceImpl implements ShareFolderService {
 
     // 폴더 비공개 전환
     public ShareFolderResponseDTO unshare(Long ownerId, Long folderId) {
+        if (!folderRepository.existsById(folderId)) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND);
+        }
+
         // 폴더 주인인지 확인
         boolean isOwner = usersFolderRepository
                 .existsFolderOwner(ownerId, folderId);
