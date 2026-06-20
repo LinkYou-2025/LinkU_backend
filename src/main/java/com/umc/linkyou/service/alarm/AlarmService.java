@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -147,17 +148,18 @@ public class AlarmService {
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         AlarmType alarmType = requestDTO.type();
 
-        String renderedBody = alarmType == AlarmType.CURATION_UPDATED
-                ? String.format(alarmType.getBody(), user.getNickName())
-                : alarmType.getBody();
+        Map<String, String> values = alarmType == AlarmType.CURATION_UPDATED
+                ? Map.of("nickname", user.getNickName())
+                : requestDTO.values();
+
+        String renderedBody = AlarmMessageRenderer.render(alarmType.getBody(), values);
 
         Alarm alarm = alarmRepository.save(Alarm.create(alarmType, requestDTO.targetId(), renderedBody));
         userAlarmRepository.save(UserAlarm.create(user, alarm));
 
-        // CURATION 알림은 닉네임을 포함한 이벤트 발행
-        PersonalAlarmEvent event = alarmType == AlarmType.CURATION_UPDATED
-                ? PersonalAlarmEvent.ofWithNickname(userId, alarmType, requestDTO.targetId(), user.getNickName())
-                : PersonalAlarmEvent.of(userId, alarmType, requestDTO.targetId());
+        PersonalAlarmEvent event = (values == null || values.isEmpty())
+                ? PersonalAlarmEvent.of(userId, alarmType, requestDTO.targetId())
+                : PersonalAlarmEvent.withValues(userId, alarmType, requestDTO.targetId(), values);
 
         eventPublisher.publishEvent(event);
     }

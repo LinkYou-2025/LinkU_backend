@@ -309,7 +309,7 @@ class AlarmServiceTest {
             given(alarmRepository.save(any())).willReturn(alarm(AlarmType.LINK_SUMMARY_COMPLETE));
 
             alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                    AlarmType.LINK_SUMMARY_COMPLETE, 100L));
+                    AlarmType.LINK_SUMMARY_COMPLETE, 100L, null));
 
             verify(alarmRepository).save(any());
             verify(userAlarmRepository).save(any());
@@ -324,7 +324,7 @@ class AlarmServiceTest {
             given(alarmRepository.save(alarmCaptor.capture())).willAnswer(inv -> inv.getArgument(0));
 
             alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                    AlarmType.CURATION_UPDATED, 200L));
+                    AlarmType.CURATION_UPDATED, 200L, null));
 
             assertThat(alarmCaptor.getValue().getBody()).contains("테스트유저");
         }
@@ -336,7 +336,7 @@ class AlarmServiceTest {
 
             assertThatThrownBy(() ->
                     alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                            AlarmType.LINK_SUMMARY_COMPLETE, 1L)))
+                            AlarmType.LINK_SUMMARY_COMPLETE, 1L, null)))
                     .isInstanceOf(GeneralException.class)
                     .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                             .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
