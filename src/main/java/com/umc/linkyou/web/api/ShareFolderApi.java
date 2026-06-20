@@ -22,7 +22,7 @@ import java.util.List;
 public interface ShareFolderApi {
 
     @Operation(summary = "초대 링크 생성", description = "해당 폴더의 초대용 토큰을 생성합니다.")
-    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_CREATE_FORBIDDEN})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}, shareFolderErrorStatus = {ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED})
     @PostMapping("/{folderId}/invitation")
     ApiResponse<String> createInviteLink(
             @CurrentUser CustomUserDetails userDetails,
