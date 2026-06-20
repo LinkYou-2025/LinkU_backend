@@ -38,7 +38,7 @@ public interface ShareFolderApi {
     );
 
     @Operation(summary = "폴더 멤버 조회", description = "공유된 폴더의 멤버 목록을 조회합니다.")
-    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}, shareFolderErrorStatus = {ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED})
     @GetMapping("/{folderId}/members")
     ApiResponse<List<ViewerResponseDTO>> getFolderViewers(
             @CurrentUser CustomUserDetails userDetails,
