@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 public interface InvitationApi {
 
     @Operation(summary = "초대장 미리보기", description = "토큰을 통해 초대된 폴더명과 초대자 닉네임을 확인합니다.")
-    @ApiErrorCode(invitationErrorStatus = {InvitationErrorStatus.INVITATION_NOT_FOUND, InvitationErrorStatus.INVITATION_EXPIRED, InvitationErrorStatus.INVITATION_LINK_NOT_FOUND})
+    @ApiErrorCode(invitationErrorStatus = {InvitationErrorStatus.INVITATION_NOT_FOUND, InvitationErrorStatus.INVITATION_EXPIRED})
     @GetMapping("/{token}")
     ApiResponse<InvitationInfoResponseDTO> getInvitationInfo(
             @PathVariable String token
