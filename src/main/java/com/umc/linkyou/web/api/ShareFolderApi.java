@@ -56,7 +56,7 @@ public interface ShareFolderApi {
     );
 
     @Operation(summary = "폴더 비공개 전환", description = "공유된 폴더를 비공개로 전환하고 모든 공유 권한을 제거합니다.")
-    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_UPDATE_FORBIDDEN})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}, shareFolderErrorStatus = {ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED})
     @PostMapping("/{folderId}/unshare")
     ApiResponse<ShareFolderResponseDTO> unshareFolder(
             @CurrentUser CustomUserDetails userDetails,
