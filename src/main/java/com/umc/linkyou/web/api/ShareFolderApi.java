@@ -2,6 +2,7 @@ package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.InvitationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
@@ -29,7 +30,7 @@ public interface ShareFolderApi {
     );
 
     @Operation(summary = "초대 링크 삭제", description = "초대 링크를 비활성화합니다.")
-    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}, shareFolderErrorStatus = {ShareFolderErrorStatus.INVITATION_NOT_FOUND})
+    @ApiErrorCode(shareFolderErrorStatus = {ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED}, invitationErrorStatus = {InvitationErrorStatus.INVITATION_LINK_NOT_FOUND})
     @DeleteMapping("/{folderId}/invitation")
     ApiResponse<Object> deactivateInviteLink(
             @CurrentUser CustomUserDetails userDetails,
