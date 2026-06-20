@@ -29,7 +29,7 @@ public interface FolderApi {
     );
 
     @Operation(summary = "소분류 폴더 수정", description = "기존 소분류 폴더의 정보를 수정합니다.")
-    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_UPDATE_FORBIDDEN})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_UPDATE_FORBIDDEN, FolderErrorStatus._FOLDER_PARENT_NOT_FOUND, FolderErrorStatus._FOLDER_NAME_CONFLICT, FolderErrorStatus._FOLDER_CREATE_DUPLICATE})
     @PutMapping("/subfolders/{folderId}")
     ApiResponse<FolderResponseDTO> updateFolder(
             @CurrentUser CustomUserDetails userDetails,
