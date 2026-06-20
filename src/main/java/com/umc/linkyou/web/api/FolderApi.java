@@ -20,7 +20,7 @@ import java.util.List;
 public interface FolderApi {
 
     @Operation(summary = "소분류 폴더 생성", description = "중분류 폴더 하위에 소분류 폴더를 생성합니다.")
-    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_CREATE_FORBIDDEN, FolderErrorStatus._FOLDER_CREATE_DUPLICATE})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_PARENT_NOT_FOUND, FolderErrorStatus._FOLDER_CREATE_FORBIDDEN, FolderErrorStatus._FOLDER_NAME_CONFLICT, FolderErrorStatus._FOLDER_CREATE_DUPLICATE})
     @PostMapping("/{parentFolderId}/subfolders")
     ApiResponse<FolderResponseDTO> createFolder(
             @CurrentUser CustomUserDetails userDetails,
