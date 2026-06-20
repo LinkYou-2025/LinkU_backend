@@ -7,6 +7,7 @@ import com.umc.linkyou.apiPayload.code.status.alarm.AlarmErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.InvitationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
@@ -26,4 +27,5 @@ public @interface ApiErrorCode {
     LinkuErrorStatus[] linkuErrorStatus() default {};
     FolderErrorStatus[] folderErrorStatus() default {};
     ShareFolderErrorStatus[] shareFolderErrorStatus() default {};
+    InvitationErrorStatus[] invitationErrorStatus() default {};
 }

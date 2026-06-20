@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.folder.share;
 
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.InvitationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -91,7 +92,7 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         }
 
         FolderShareLink link = folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(folderId)
-                .orElseThrow(() -> new GeneralException(ShareFolderErrorStatus.INVITATION_LINK_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(InvitationErrorStatus.INVITATION_LINK_NOT_FOUND));
 
         link.deactivate();
     }

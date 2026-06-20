@@ -13,6 +13,7 @@ import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthSuccessStatus;
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.InvitationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.gemini.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
@@ -215,6 +216,9 @@ public class SwaggerConfig {
             for (ShareFolderErrorStatus status : annotation.shareFolderErrorStatus()) {
                 addErrorCodeExample(responses, status);
             }
+            for (InvitationErrorStatus status : annotation.invitationErrorStatus()) {
+                addErrorCodeExample(responses, status);
+            }
         }
     }
 
@@ -236,6 +240,7 @@ public class SwaggerConfig {
                 CurationErrorStatus.class,
                 FolderErrorStatus.class,
                 ShareFolderErrorStatus.class,
+                InvitationErrorStatus.class,
                 GeminiErrorStatus.class,
                 LinkuErrorStatus.class,
                 CommonErrorStatus.class

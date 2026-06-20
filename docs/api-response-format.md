@@ -214,13 +214,18 @@ LinkU API는 아래 공통 응답 포맷을 사용한다.
 | `SHAREFOLDER4001` | `_INVALID_PERMISSION_TYPE` | `400 (BAD_REQUEST)` | 유효하지 않은 권한 타입입니다. |
 | `SHAREFOLDER4031` | `_FOLDER_PERMISSION_NOT_ALLOWED` | `403 (FORBIDDEN)` | 폴더 수정 권한을 가지고 있지 않습니다. |
 | `SHAREFOLDER4032` | `_FOLDER_OWNER_UPDATE_NOT_ALLOWED` | `403 (FORBIDDEN)` | 폴더 주인의 권한은 수정할 수 없습니다. |
-| `SHAREFOLDER4033` | `INVITATION_CREATOR_CANNOT_ACCEPT` | `403 (FORBIDDEN)` | 초대 생성자는 자신의 링크로 참여할 수 없습니다. |
 | `SHAREFOLDER4041` | `_FOLDER_PERMISSION_NOT_FOUND` | `404 (NOT_FOUND)` | 해당 유저의 폴더 권한 정보를 찾을 수 없습니다. |
-| `SHAREFOLDER4042` | `INVITATION_NOT_FOUND` | `404 (NOT_FOUND)` | 공유 폴더 토큰을 찾을 수 없습니다. |
-| `SHAREFOLDER4043` | `INVITATION_EXPIRED` | `404 (NOT_FOUND)` | 공유 폴더 토큰이 유효하지 않습니다. |
-| `SHAREFOLDER4044` | `INVITATION_LINK_NOT_FOUND` | `404 (NOT_FOUND)` | 공유 폴더 링크가 유효하지 않습니다. |
 
-## 11. AI Article / Gemini 에러
+## 11. 초대 관련 에러
+
+| 예외 코드 | 예외 이름(서버에서 사용) | Http 코드 | 메시지 |
+| --- | --- | --- | --- |
+| `INVITATION4031` | `INVITATION_CREATOR_CANNOT_ACCEPT` | `403 (FORBIDDEN)` | 초대 생성자는 자신의 링크로 참여할 수 없습니다. |
+| `INVITATION4041` | `INVITATION_NOT_FOUND` | `404 (NOT_FOUND)` | 공유 폴더 토큰을 찾을 수 없습니다. |
+| `INVITATION4042` | `INVITATION_EXPIRED` | `404 (NOT_FOUND)` | 공유 폴더 토큰이 유효하지 않습니다. |
+| `INVITATION4043` | `INVITATION_LINK_NOT_FOUND` | `404 (NOT_FOUND)` | 공유 폴더 링크가 유효하지 않습니다. |
+
+## 12. AI Article / Gemini 에러
 
 | 예외 코드 | 예외 이름(서버에서 사용) | Http 코드 | 메시지 |
 | --- | --- | --- | --- |
@@ -239,7 +244,7 @@ LinkU API는 아래 공통 응답 포맷을 사용한다.
 | `GEMINI5022` | `GEMINI_PARSE_ERROR` | `502 (BAD_GATEWAY)` | AI 응답 JSON 파싱에 실패했습니다. |
 | `GEMINI5041` | `GEMINI_TIMEOUT` | `504 (GATEWAY_TIMEOUT)` | Gemini 응답 시간이 초과되었습니다. |
 
-## 12. 알림 관련 에러
+## 13. 알림 관련 에러
 
 | 예외 코드 | 예외 이름(서버에서 사용) | Http 코드 | 메시지 |
 | --- | --- | --- | --- |
@@ -248,7 +253,7 @@ LinkU API는 아래 공통 응답 포맷을 사용한다.
 | `ALARM5001` | `ALARM_TOPIC_SUBSCRIPTION_FAILED` | `500 (INTERNAL_SERVER_ERROR)` | 알림 주제 구독 상태 변경에 실패했습니다. |
 | `ALARM5002` | `ALARM_SEND_FAILED` | `500 (INTERNAL_SERVER_ERROR)` | 알림 전송에 실패했습니다. |
 
-## 13. 구현 기준 메모
+## 14. 구현 기준 메모
 
 - 성공 응답 생성: `ApiResponse.onSuccess(...)`
 - 실패 응답 생성: `ApiResponse.onFailure(...)`
