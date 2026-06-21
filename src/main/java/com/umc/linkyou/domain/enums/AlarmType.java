@@ -22,8 +22,8 @@ public enum AlarmType {
     ),
 
     FOLDER_PERMISSION_CHANGED(
-            "공유폴더 권한 변경",
-            "공유 폴더의 편집 권한이 변경됐어요",
+            "공유 폴더 권한 변경",
+            "'{folderName}' 폴더의 편집 권한이 변경됐어요",
             AlarmSettingType.FOLDER,
             AlarmResponseType.FOLDER
     ),
