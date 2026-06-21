@@ -28,6 +28,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.umc.linkyou.support.fixture.AlarmFixture.*;
@@ -301,7 +302,6 @@ class AlarmServiceTest {
     @Nested
     @DisplayName("개인 알림 발송 (sendAlarm)")
     class SendAlarm {
-
         @Test
         @DisplayName("알림이 저장되고 PersonalAlarmEvent가 발행된다")
         void 알림발송_성공() {
@@ -317,6 +317,21 @@ class AlarmServiceTest {
         }
 
         @Test
+        @DisplayName("FOLDER_DELETED 타입이면 body에 닉네임과 폴더명이 정확히 치환된다")
+        void 폴더삭제알림_본문전체일치() {
+            ArgumentCaptor<Alarm> alarmCaptor = ArgumentCaptor.forClass(Alarm.class);
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
+            given(alarmRepository.save(alarmCaptor.capture())).willAnswer(inv -> inv.getArgument(0));
+
+            alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
+                    AlarmType.FOLDER_DELETED, 300L,
+                    Map.of("nickname", "주인", "folderName", "어학")));
+
+            assertThat(alarmCaptor.getValue().getBody())
+                    .isEqualTo("주인님이 '어학' 폴더를 삭제해 더 이상 접근할 수 없어요");
+        }
+
+        @Test
         @DisplayName("CURATION_UPDATED 타입이면 body에 닉네임이 포함된다")
         void 큐레이션알림_닉네임포함() {
             ArgumentCaptor<Alarm> alarmCaptor = ArgumentCaptor.forClass(Alarm.class);
@@ -326,7 +341,8 @@ class AlarmServiceTest {
             alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
                     AlarmType.CURATION_UPDATED, 200L, null));
 
-            assertThat(alarmCaptor.getValue().getBody()).contains("테스트유저");
+            assertThat(alarmCaptor.getValue().getBody())
+                    .isEqualTo("테스트유저님을 위한 이 달의 큐레이션이 도착했어요!");
         }
 
         @Test

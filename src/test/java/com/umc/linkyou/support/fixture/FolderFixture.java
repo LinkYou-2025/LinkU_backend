@@ -23,7 +23,7 @@ public class FolderFixture {
         return
                 Folder.builder()
                         .folderId(FOLDER_ID)
-                        .folderName("주인의 폴더").build();
+                        .folderName("어학").build();
     }
 
     public static UsersFolder participant(Long userId, PermissionType type) {

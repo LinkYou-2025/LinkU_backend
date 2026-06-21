@@ -1,7 +1,10 @@
 package com.umc.linkyou.service.alarm;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Map;
 
+@Slf4j
 public class AlarmMessageRenderer {
     private AlarmMessageRenderer() {}
 
@@ -14,6 +17,10 @@ public class AlarmMessageRenderer {
         for (Map.Entry<String, String> entry : values.entrySet()) {
             result = result.replace("{" + entry.getKey() + "}",
                     entry.getValue());
+        }
+
+        if (result.matches(".*\\{[a-zA-Z]+\\}.*")) {
+            log.warn("알람 본문에 치환되지 않은 placeholder가 남았습니다: {}", result);
         }
 
         return result;

@@ -40,7 +40,7 @@ class FolderServiceTest {
 
     @Nested
     @DisplayName("폴더 삭제")
-    class deleteFolder {
+    class DeleteFolder {
         @Nested
         @DisplayName("성공")
         class Success {
@@ -66,6 +66,8 @@ class FolderServiceTest {
                 FolderDeletedAlarmEvent event = captor.getValue();
                 assertThat(event.folderId()).isEqualTo(FOLDER_ID);
                 assertThat(event.memberIds()).containsExactlyInAnyOrder(2L, 3L);
+                assertThat(event.deleterNickname()).isEqualTo("주인");
+                assertThat(event.folderName()).isEqualTo("어학");
             }
 
             @Test
@@ -86,35 +88,35 @@ class FolderServiceTest {
                 verify(eventPublisher, never()).publishEvent(any());
             }
         }
-    }
 
-    @Nested
-    @DisplayName("실패")
-    class Failure {
-        @Test
-        @DisplayName("존재하지 않는 폴더면 _FOLDER_NOT_FOUND를 던진다")
-        void 폴더없음_예외() {
-            given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.empty());
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+            @Test
+            @DisplayName("존재하지 않는 폴더면 _FOLDER_NOT_FOUND를 던진다")
+            void 폴더없음_예외() {
+                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.empty());
 
-            assertThatThrownBy(() -> folderService.deleteFolder(OWNER_ID, FOLDER_ID))
-                    .isInstanceOf(GeneralException.class)
-                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                            .isEqualTo(FolderErrorStatus._FOLDER_NOT_FOUND));
-        }
+                assertThatThrownBy(() -> folderService.deleteFolder(OWNER_ID, FOLDER_ID))
+                        .isInstanceOf(GeneralException.class)
+                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                                .isEqualTo(FolderErrorStatus._FOLDER_NOT_FOUND));
+            }
 
-        @Test
-        @DisplayName("소유자가 아니면 _FOLDER_DELETE_FORBIDDEN을 던지고, 알람도 발행하지 않는다")
-        void 소유자아님_예외() {
-            given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
-            given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(false);
+            @Test
+            @DisplayName("소유자가 아니면 _FOLDER_DELETE_FORBIDDEN을 던지고, 알람도 발행하지 않는다")
+            void 소유자아님_예외() {
+                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(false);
 
-            assertThatThrownBy(() -> folderService.deleteFolder(OWNER_ID, FOLDER_ID))
-                    .isInstanceOf(GeneralException.class)
-                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                            .isEqualTo(FolderErrorStatus._FOLDER_DELETE_FORBIDDEN));
+                assertThatThrownBy(() -> folderService.deleteFolder(OWNER_ID, FOLDER_ID))
+                        .isInstanceOf(GeneralException.class)
+                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                                .isEqualTo(FolderErrorStatus._FOLDER_DELETE_FORBIDDEN));
 
-            verify(folderRepository, never()).delete(any());
-            verify(eventPublisher, never()).publishEvent(any());
+                verify(folderRepository, never()).delete(any());
+                verify(eventPublisher, never()).publishEvent(any());
+            }
         }
     }
 }
