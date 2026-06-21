@@ -24,12 +24,9 @@ import java.util.Optional;
 import static com.umc.linkyou.support.fixture.AlarmFixture.defaultSetting;
 import static com.umc.linkyou.support.fixture.FolderFixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FolderDeletedAlarmEventListener 단위 테스트")
@@ -46,7 +43,6 @@ class FolderDeletedAlarmEventListenerTest {
     @Nested
     @DisplayName("handle")
     class Handle {
-
         @Test
         @DisplayName("폴더 알림이 켜진 멤버에게만 sendAlarm을 호출한다")
         void 폴더알림켜진멤버만_발송() {
