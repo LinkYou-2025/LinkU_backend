@@ -1,7 +1,9 @@
 package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.InvitationErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
@@ -20,7 +22,7 @@ import java.util.List;
 public interface ShareFolderApi {
 
     @Operation(summary = "초대 링크 생성", description = "해당 폴더의 초대용 토큰을 생성합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._FOLDER_NOT_FOUND, ErrorStatus._FOLDER_CREATE_FORBIDDEN})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}, shareFolderErrorStatus = {ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED})
     @PostMapping("/{folderId}/invitation")
     ApiResponse<String> createInviteLink(
             @CurrentUser CustomUserDetails userDetails,
@@ -28,7 +30,7 @@ public interface ShareFolderApi {
     );
 
     @Operation(summary = "초대 링크 삭제", description = "초대 링크를 비활성화합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._FOLDER_NOT_FOUND, ErrorStatus.INVITATION_NOT_FOUND})
+    @ApiErrorCode(shareFolderErrorStatus = {ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED}, invitationErrorStatus = {InvitationErrorStatus.INVITATION_LINK_NOT_FOUND})
     @DeleteMapping("/{folderId}/invitation")
     ApiResponse<Object> deactivateInviteLink(
             @CurrentUser CustomUserDetails userDetails,
@@ -36,7 +38,7 @@ public interface ShareFolderApi {
     );
 
     @Operation(summary = "폴더 멤버 조회", description = "공유된 폴더의 멤버 목록을 조회합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._FOLDER_NOT_FOUND, ErrorStatus._FOLDER_ACCESS_FORBIDDEN})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}, shareFolderErrorStatus = {ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED})
     @GetMapping("/{folderId}/members")
     ApiResponse<List<ViewerResponseDTO>> getFolderViewers(
             @CurrentUser CustomUserDetails userDetails,
@@ -44,7 +46,7 @@ public interface ShareFolderApi {
     );
 
     @Operation(summary = "폴더 권한 수정", description = "폴더 공유 멤버의 권한(뷰어/라이터)을 수정합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._FOLDER_NOT_FOUND, ErrorStatus._FOLDER_PERMISSION_NOT_FOUND, ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED, ErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED, ErrorStatus._INVALID_PERMISSION_TYPE})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}, shareFolderErrorStatus = {ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND, ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED, ShareFolderErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED, ShareFolderErrorStatus._INVALID_PERMISSION_TYPE})
     @PutMapping("/{folderId}/members/{userFolderId}")
     ApiResponse<ShareFolderResponseDTO> updateViewerPermission(
             @CurrentUser CustomUserDetails userDetails,
@@ -54,7 +56,7 @@ public interface ShareFolderApi {
     );
 
     @Operation(summary = "폴더 비공개 전환", description = "공유된 폴더를 비공개로 전환하고 모든 공유 권한을 제거합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._FOLDER_NOT_FOUND, ErrorStatus._FOLDER_UPDATE_FORBIDDEN})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}, shareFolderErrorStatus = {ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED})
     @PostMapping("/{folderId}/unshare")
     ApiResponse<ShareFolderResponseDTO> unshareFolder(
             @CurrentUser CustomUserDetails userDetails,

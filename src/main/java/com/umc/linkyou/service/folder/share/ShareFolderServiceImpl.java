@@ -1,6 +1,8 @@
 package com.umc.linkyou.service.folder.share;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.InvitationErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.enums.PermissionType;
@@ -36,12 +38,12 @@ public class ShareFolderServiceImpl implements ShareFolderService {
     public String createInviteLink(Long userId, Long folderId) {
         // 폴더 존재 및 소유권 확인
         Folder folder = folderRepository.findById(folderId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
 
         boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
 
         if (!isOwner) {
-            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+            throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
         // 이미 존재하는 링크 확인
@@ -83,14 +85,18 @@ public class ShareFolderServiceImpl implements ShareFolderService {
 
     // 초대 링크 비활성화
     public void deactivateInviteLink(Long userId, Long folderId) {
+        if (!folderRepository.existsById(folderId)) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND);
+        }
+
         // 폴더 주인 확인
         boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
         if (!isOwner) {
-            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+            throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
         FolderShareLink link = folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(folderId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus.INVITATION_LINK_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(InvitationErrorStatus.INVITATION_LINK_NOT_FOUND));
 
         link.deactivate();
     }
@@ -98,9 +104,13 @@ public class ShareFolderServiceImpl implements ShareFolderService {
     // 폴더 viewer and writer 조회
     @Transactional(readOnly = true)
     public List<ViewerResponseDTO> getViewers(Long userId, Long folderId) {
+        if (!folderRepository.existsById(folderId)) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND);
+        }
+
         boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
         if (!isOwner) {
-            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+            throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
         List<UsersFolder> participants = usersFolderRepository.findAllParticipantsByFolderId(folderId);
@@ -118,27 +128,31 @@ public class ShareFolderServiceImpl implements ShareFolderService {
 
     // 유저의 폴더 권한 수정
     public ShareFolderResponseDTO updateViewerPermission(Long userId, Long folderId, Long userFolderId, FolderPermissionRequestDTO request) {
-        // 요청자가 폴더 소유자인지 확인
-        if (!usersFolderRepository.existsFolderOwner(userId, folderId)) {
-            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+        if (!folderRepository.existsById(folderId)) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND);
         }
 
-        UsersFolder usersFolder = usersFolderRepository.findById(userFolderId).orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_FOUND));
+        // 요청자가 폴더 소유자인지 확인
+        if (!usersFolderRepository.existsFolderOwner(userId, folderId)) {
+            throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+        }
+
+        UsersFolder usersFolder = usersFolderRepository.findById(userFolderId).orElseThrow(() -> new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND));
 
         if (!usersFolder.getFolder().getFolderId().equals(folderId)) {
-            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+            throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
         // 오너의 권한은 변경 불가
         if (usersFolder.getPermissionType() == PermissionType.OWNER) {
-            throw new GeneralException(ErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED);
+            throw new GeneralException(ShareFolderErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED);
         }
 
         PermissionType permission = request.getPermission();
 
         // OWNER 권한으로 변경은 허용하지 않음
         if (permission == PermissionType.OWNER) {
-            throw new GeneralException(ErrorStatus._INVALID_PERMISSION_TYPE);
+            throw new GeneralException(ShareFolderErrorStatus._INVALID_PERMISSION_TYPE);
         }
 
         usersFolder.setPermissionType(permission);
@@ -154,11 +168,15 @@ public class ShareFolderServiceImpl implements ShareFolderService {
 
     // 폴더 비공개 전환
     public ShareFolderResponseDTO unshare(Long ownerId, Long folderId) {
+        if (!folderRepository.existsById(folderId)) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND);
+        }
+
         // 폴더 주인인지 확인
         boolean isOwner = usersFolderRepository
                 .existsFolderOwner(ownerId, folderId);
         if (!isOwner) {
-            throw new GeneralException(ErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+            throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
         // 활성화된 초대 링크가 있다면 만료

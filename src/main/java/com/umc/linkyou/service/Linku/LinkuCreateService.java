@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.converter.AiArticleConverter;
@@ -146,7 +147,7 @@ public class LinkuCreateService {
         return Optional.ofNullable(aiCategoryId)
                 .flatMap(categoryRepository::findById)
                 .or(() -> categoryRepository.findById(DEFAULT_CATEGORY_ID))
-                .orElseThrow(() -> new GeneralException(ErrorStatus._CATEGORY_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(CategoryErrorStatus._CATEGORY_NOT_FOUND));
     }
 
 
