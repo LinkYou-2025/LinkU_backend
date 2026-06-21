@@ -15,11 +15,12 @@ public class AlarmMessageRenderer {
 
         String result = template;
         for (Map.Entry<String, String> entry : values.entrySet()) {
-            result = result.replace("{" + entry.getKey() + "}",
-                    entry.getValue());
+            if (entry.getValue() != null) {
+                result = result.replace("{" + entry.getKey() + "}", entry.getValue());
+            }
         }
 
-        if (result.matches(".*\\{[a-zA-Z]+\\}.*")) {
+        if (result.matches(".*\\{[^}]+\\}.*")) {
             log.warn("알람 본문에 치환되지 않은 placeholder가 남았습니다: {}", result);
         }
 
