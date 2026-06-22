@@ -6,6 +6,7 @@ import com.umc.linkyou.service.alarm.AlarmService;
 import com.umc.linkyou.service.alarm.event.FolderDeletedAlarmEvent;
 import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -14,6 +15,7 @@ import com.umc.linkyou.domain.AlarmSetting;
 
 import java.util.Map;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class FolderDeletedAlarmEventListener {
@@ -28,8 +30,15 @@ public class FolderDeletedAlarmEventListener {
                 "folderName", event.folderName()
         );
 
-        event.memberIds().forEach(memberId -> alarmSettingRepository.findByUserId(memberId)
+        alarmSettingRepository.findAllByUserIdIn(event.memberIds()).stream()
                 .filter(AlarmSetting::isFolderActive)
-                .ifPresent(setting -> alarmService.sendAlarm(memberId, new AlarmRequestDTO.AlarmSendRequestDTO(AlarmType.FOLDER_DELETED, event.folderId(), values))));
+                .forEach(setting -> {
+                    try {
+                        alarmService.sendAlarm(setting.getUser().getId(),
+                                new AlarmRequestDTO.AlarmSendRequestDTO(AlarmType.FOLDER_DELETED, event.folderId(), values));
+                    } catch (Exception e) {
+                        log.error("폴더 삭제 알림 발송 실패. userId={}", setting.getUser().getId(), e);
+                    }
+                });
     }
 }
