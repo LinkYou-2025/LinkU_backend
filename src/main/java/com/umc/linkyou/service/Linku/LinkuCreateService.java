@@ -14,7 +14,6 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awss3.AwsS3Service;
-import com.umc.linkyou.converter.AiArticleConverter;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.Linku;
@@ -28,6 +27,7 @@ import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.service.folder.FolderService;
+import com.umc.linkyou.service.keyword.KeywordService;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
@@ -61,6 +61,7 @@ public class LinkuCreateService {
     private final AiArticleRepository aiArticleRepository;
     private final GeminiLinkuService geminiLinkuService;
     private final FolderService folderService;
+    private final KeywordService keywordService;
 
     private static final Long DEFAULT_CATEGORY_ID = 16L;
     private static final Long DEFAULT_EMOTION_ID = 2L;
@@ -77,47 +78,50 @@ public class LinkuCreateService {
 
         Linku linku;
         Category category;
-        String aiKeywords;
+
+        String aiTitle = null;
 
         if (existingLinku.isPresent()) {
-            // [Case 1] 기존 Linku가 존재하는 경우: AI 호출 생략
             linku = existingLinku.get();
             category = linku.getCategory();
-            // 기존 AiArticle이 있다면 해당 키워드를 사용, 없으면 null/기본값 처리
-            aiKeywords = (linku.getAiArticle() != null) ? linku.getAiArticle().getKeyword() : "키워드 없음";
         } else {
-            // [경쟁 상태 방지 로직]
-            // AI 분류 및 도메인 결정 로직은 그대로 유지 (이미 생성된 데이터가 있더라도 분류 결과는 필요할 수 있음)
-            Optional<LinkuResultDTO> aiResult = geminiLinkuService.analyzeByUrl(normalizedLink, categoryRepository.findAll());
+            Optional<LinkuResultDTO> aiResult = geminiLinkuService.analyzeByUrl(normalizedLink, categoryRepository.findAll(), situationRepository.findAll(), emotionRepository.findAll());
             category = resolveCategory(aiResult.map(LinkuResultDTO::categoryId).orElse(null));
-            aiKeywords = aiResult.map(LinkuResultDTO::keywords).filter(k -> k != null && !k.isBlank()).orElse("키워드 없음");
+            String rawKeywords = aiResult.map(LinkuResultDTO::keywords).orElse(null);
+            aiTitle = aiResult.map(LinkuResultDTO::title).orElse(null);
             Domain domain = resolveDomain(domainTail);
 
             try {
                 linku = createNewLinku(normalizedLink, category, domain, domainTail);
-                createAiArticleIfNeeded(linku, category, resolveEmotion(dto.getEmotionId()), aiKeywords);
+                createAiArticleIfNeeded(linku);
+                keywordService.saveKeywords(linku, rawKeywords);
             } catch (DataIntegrityViolationException e) {
                 linku = linkuRepository.findByLinku(normalizedLink)
                         .orElseThrow(() -> new GeneralException(LinkuErrorStatus._LINKU_NOT_FOUND));
                 category = linku.getCategory();
-                aiKeywords = (linku.getAiArticle() != null) ? linku.getAiArticle().getKeyword() : aiKeywords;
             }
         }
 
-        // 3) 공통 로직 (사용자 매핑, 이미지 처리 등)
+        // 3) emotion/situation은 사용자 필수 입력, title만 AI 폴백 적용
+        String userTitle = dto.getTitle() != null ? dto.getTitle() : aiTitle;
+
         Emotion emotion = resolveEmotion(dto.getEmotionId());
+        Situation situation = resolveSituation(dto.getSituationId());
         Users user = findUser(userId);
         String imageUrl = processImage(image, linku);
 
-        UsersLinku usersLinku = createUsersLinku(user, linku, emotion, dto.getMemo(), imageUrl);
+        UsersLinku usersLinku = createUsersLinku(user, linku, emotion, situation, dto.getMemo(), imageUrl, userTitle);
         Folder folder = folderService.findFolder(userId, category);
 
         LinkuFolder linkuFolder = LinkuConverter.toLinkuFolder(folder, usersLinku);
         linkuFolderRepository.save(linkuFolder);
 
         // 응답 반환
+        String keyword = linku.getLinkuKeywords().stream()
+                .map(lk -> lk.getKeyword().getName())
+                .collect(java.util.stream.Collectors.joining(", "));
         LinkuResponseDTO.LinkuResultDTO resultDto =
-                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, linku.getDomain(), null, aiKeywords, null);
+                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, linku.getDomain(), null, keyword, null);
 
         return LinkuResponseDTO.LinkuCreateResult.builder()
                 .data(resultDto)
@@ -166,14 +170,13 @@ public class LinkuCreateService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND));
     }
 
-    public void createAiArticleIfNeeded(Linku linku, Category category, Emotion emotion, String aiKeywords) {
-        if (aiKeywords == null || aiKeywords.isBlank()) {
-            aiKeywords = "키워드 없음";
-        }
+    public void createAiArticleIfNeeded(Linku linku) {
         if (linku.getAiArticle() == null) {
-            Situation defaultSituation = situationRepository.findById(1L)
-                    .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
-            AiArticle aiArticle = AiArticleConverter.toEntityKeywordOnly(aiKeywords, linku, defaultSituation, category, emotion);
+            AiArticle aiArticle = AiArticle.builder()
+                    .linku(linku)
+                    .title(linku.getTitle())
+                    .summary("")
+                    .build();
             linku.setAiArticle(aiArticle);
             aiArticleRepository.save(aiArticle);
         }
@@ -188,11 +191,19 @@ public class LinkuCreateService {
         if (image != null && !image.isEmpty()) {
             return awsS3Service.uploadFile(image, "linkucreate");
         }
-        return linkToImageService.getRelatedImageFromUrl(linku.getLinku(), linku.getTitle());
+        return linkToImageService.getRelatedImageFromUrl(linku.getLinkuUrl(), linku.getTitle());
     }
 
-    public UsersLinku createUsersLinku(Users user, Linku linku, Emotion emotion, String memo, String imageUrl) {
-        UsersLinku usersLinku = LinkuConverter.toUsersLinku(user, linku, emotion, memo, imageUrl);
+    public Situation resolveSituation(Long situationId) {
+        if (situationId == null) {
+            throw new GeneralException(ErrorStatus._SITUATION_NOT_FOUND);
+        }
+        return situationRepository.findById(situationId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
+    }
+
+    public UsersLinku createUsersLinku(Users user, Linku linku, Emotion emotion, Situation situation, String memo, String imageUrl, String title) {
+        UsersLinku usersLinku = LinkuConverter.toUsersLinku(user, linku, emotion, situation, memo, imageUrl, title);
         return usersLinkuRepository.save(usersLinku);
     }
 
