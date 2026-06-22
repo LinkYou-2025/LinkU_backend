@@ -8,7 +8,7 @@ import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
-import com.umc.linkyou.web.dto.AiArticleResponsetDTO;
+import com.umc.linkyou.web.dto.AiArticleResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -43,7 +43,7 @@ public interface AiArticleApi {
             AiArticleErrorStatus._CONTENT_EXTRACTION_PROHIBITED
     })
     @PostMapping("/{linkuid}")
-    ApiResponse<AiArticleResponsetDTO.AiArticleResultDTO> saveOrGetAiArticle(
+    ApiResponse<AiArticleResponseDTO.AiArticleResultDTO> saveOrGetAiArticle(
             @Parameter(description = "대상 링크 ID", example = "101") @PathVariable("linkuid") Long linkuId,
             @AuthenticationPrincipal CustomUserDetails userDetails
     );
