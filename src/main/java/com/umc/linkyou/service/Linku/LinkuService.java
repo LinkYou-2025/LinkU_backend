@@ -62,7 +62,7 @@ public class LinkuService {
 
         // 3. 기존에 링크 저장 여부 확인
         Optional<UsersLinku> usersLinkuOpt =
-                usersLinkuRepository.findByUserIdAndLinku_Linku(userId, url);
+                usersLinkuRepository.findByUserIdAndLinku_LinkuUrl(userId, url);
 
         LinkuResponseDTO.LinkuIsExistDTO dto =
                 LinkuConverter.toLinkuIsExistDTO(userId, usersLinkuOpt.orElse(null));
@@ -102,7 +102,9 @@ public class LinkuService {
         String summary = null;
 
         if (aiArticleExists && aiArticle != null) {
-            keyword = aiArticle.getKeyword();
+            keyword = linku.getLinkuKeywords().stream()
+                    .map(lk -> lk.getKeyword().getName())
+                    .collect(java.util.stream.Collectors.joining(", "));
             summary = aiArticle.getSummary();
         }
 
@@ -174,7 +176,7 @@ public class LinkuService {
         // 5. 링크 주소(URL) 변경
         if (dto.getLinku() != null) {
             UrlValidUtils.validateLinkuUrl(dto.getLinku());
-            linku.setLinku(dto.getLinku());
+            linku.setLinkuUrl(dto.getLinku());
             linkuModified = true;
         }
 

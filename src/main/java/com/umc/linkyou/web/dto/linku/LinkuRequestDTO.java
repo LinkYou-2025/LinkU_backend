@@ -16,8 +16,14 @@ public class LinkuRequestDTO {
         @Schema(example = "test용 메모입니다.")
         private String memo;
 
-        @Schema(example = "2")
+        @Schema(example = "2", description = "감정 ID (필수)")
         private Long emotionId;
+
+        @Schema(example = "1", description = "상황 ID (필수)")
+        private Long situationId;
+
+        @Schema(example = "나만의 제목", description = "링크 제목 (미입력 시 AI 분석값 사용)")
+        private String title;
     }
 
     @Setter
