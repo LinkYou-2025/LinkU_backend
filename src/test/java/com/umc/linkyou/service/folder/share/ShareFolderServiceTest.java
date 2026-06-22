@@ -3,25 +3,24 @@ package com.umc.linkyou.service.folder.share;
 import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.AlarmSetting;
-import com.umc.linkyou.domain.enums.AlarmType;
 import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.AlarmSettingRepository;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
-import com.umc.linkyou.service.alarm.AlarmService;
-import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
+import com.umc.linkyou.service.alarm.event.FolderPermissionChangedAlarmEvent;
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.Optional;
 
 import static com.umc.linkyou.support.fixture.FolderFixture.*;
@@ -38,8 +37,8 @@ class ShareFolderServiceTest {
 
     @Mock private FolderRepository folderRepository;
     @Mock private UsersFolderRepository usersFolderRepository;
-    @Mock private AlarmService alarmService;
     @Mock private AlarmSettingRepository alarmSettingRepository;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     private static final Long MEMBER_ID = 5L;
     private static final Long USERS_FOLDER_ID = 10L;
@@ -70,8 +69,14 @@ class ShareFolderServiceTest {
 
                 shareFolderService.updateViewerPermission(OWNER_ID, FOLDER_ID, USERS_FOLDER_ID, request);
 
-                verify(alarmService).sendAlarm(eq(MEMBER_ID), eq(new AlarmRequestDTO.AlarmSendRequestDTO(
-                    AlarmType.FOLDER_PERMISSION_CHANGED, FOLDER_ID, Map.of("folderName", "어학"))));
+                ArgumentCaptor<FolderPermissionChangedAlarmEvent> captor =
+                        ArgumentCaptor.forClass(FolderPermissionChangedAlarmEvent.class);
+                verify(eventPublisher).publishEvent(captor.capture());
+
+                FolderPermissionChangedAlarmEvent event = captor.getValue();
+                assertThat(event.memberId()).isEqualTo(MEMBER_ID);
+                assertThat(event.folderId()).isEqualTo(FOLDER_ID);
+                assertThat(event.folderName()).isEqualTo("어학");
             }
 
             @Test
@@ -91,7 +96,7 @@ class ShareFolderServiceTest {
 
                 shareFolderService.updateViewerPermission(OWNER_ID, FOLDER_ID, USERS_FOLDER_ID, request);
 
-                verify(alarmService, never()).sendAlarm(any(), any());
+                verify(eventPublisher, never()).publishEvent(any());
             }
         }
 
@@ -112,7 +117,7 @@ class ShareFolderServiceTest {
                     .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                         .isEqualTo(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED));
 
-                verify(alarmService, never()).sendAlarm(any(), any());
+                verify(eventPublisher, never()).publishEvent(any());
             }
         }
     }
