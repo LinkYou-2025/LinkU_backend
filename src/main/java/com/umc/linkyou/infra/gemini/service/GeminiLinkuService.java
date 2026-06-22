@@ -1,6 +1,8 @@
 package com.umc.linkyou.infra.gemini.service;
 
 import com.umc.linkyou.domain.classification.Category;
+import com.umc.linkyou.domain.classification.Emotion;
+import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.infra.ai.AiLinkuAnalyzer;
 import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
 import com.umc.linkyou.infra.gemini.prompt.common.PromptComposer;
@@ -26,7 +28,7 @@ public class GeminiLinkuService implements AiLinkuAnalyzer {
     private final PromptComposer promptComposer;
 
     @Override
-    public Optional<LinkuResultDTO> analyzeByUrl(String url, List<Category> categories) {
+    public Optional<LinkuResultDTO> analyzeByUrl(String url, List<Category> categories, List<Situation> situations, List<Emotion> emotions) {
         TitleDomainParser.ParsedPageInfo pageInfo = titleDomainParser.parseUrl(url);
         String domain = pageInfo.domain();
         String title = pageInfo.title();
@@ -50,7 +52,15 @@ public class GeminiLinkuService implements AiLinkuAnalyzer {
                 .map(c -> "- id: " + c.getCategoryId() + ", name: \"" + c.getCategoryName() + "\"")
                 .collect(Collectors.joining("\n"));
 
-        CategoryClassifyPrompt prompt = new CategoryClassifyPrompt(domain, title, pageContent, categoryList);
+        String situationList = situations.stream()
+                .map(s -> "- id: " + s.getId() + ", name: \"" + s.getName() + "\"")
+                .collect(Collectors.joining("\n"));
+
+        String emotionList = emotions.stream()
+                .map(e -> "- id: " + e.getEmotionId() + ", name: \"" + e.getName() + "\"")
+                .collect(Collectors.joining("\n"));
+
+        CategoryClassifyPrompt prompt = new CategoryClassifyPrompt(domain, title, pageContent, categoryList, situationList, emotionList);
 
         return Optional.of(
                 geminiService.callAndParse(

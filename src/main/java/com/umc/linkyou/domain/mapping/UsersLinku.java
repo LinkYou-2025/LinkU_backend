@@ -1,6 +1,7 @@
 package com.umc.linkyou.domain.mapping;
 
 import com.umc.linkyou.domain.classification.Emotion;
+import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.common.BaseEntity;
@@ -26,6 +27,13 @@ public class UsersLinku extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "emotion_id", nullable = false)
     private Emotion emotion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "situation_id")
+    private Situation situation;
+
+    @Column(name = "title", length = 255)
+    private String title;
 
     private String memo;
 

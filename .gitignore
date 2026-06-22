@@ -43,3 +43,6 @@ out/
 
 **/linku-firebase-adminsdk.json
 **/gcp-credentials.json
+
+## claude
+claude-output.md

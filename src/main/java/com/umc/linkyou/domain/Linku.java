@@ -3,6 +3,7 @@ package com.umc.linkyou.domain;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.common.BaseEntity;
+import com.umc.linkyou.domain.mapping.LinkuKeyword;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import jakarta.persistence.*;
 import lombok.*;
@@ -42,6 +43,9 @@ public class Linku extends BaseEntity {
 
     @OneToMany(mappedBy = "linku", cascade = CascadeType.ALL)
     private List<UsersLinku> usersLinku = new ArrayList<>();
+
+    @OneToMany(mappedBy = "linku", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<LinkuKeyword> linkuKeywords = new ArrayList<>();
 
     @Builder.Default
     @Column(name = "total_view_count", nullable = false)
