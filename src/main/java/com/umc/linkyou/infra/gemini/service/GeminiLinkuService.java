@@ -29,6 +29,7 @@ public class GeminiLinkuService implements AiLinkuAnalyzer {
 
     @Override
     public Optional<LinkuResultDTO> analyzeByUrl(String url, List<Category> categories, List<Situation> situations, List<Emotion> emotions) {
+        // situations, emotions를 Gemini 프롬프트에 주입 → AI가 DB에 존재하는 ID로 situationId/emotionId 반환
         TitleDomainParser.ParsedPageInfo pageInfo = titleDomainParser.parseUrl(url);
         String domain = pageInfo.domain();
         String title = pageInfo.title();
