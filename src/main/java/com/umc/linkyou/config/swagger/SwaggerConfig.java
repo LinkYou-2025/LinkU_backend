@@ -208,7 +208,16 @@ public class SwaggerConfig {
             for (AuthErrorStatus status : annotation.authErrorStatus()) {
                 addErrorCodeExample(responses, status);
             }
+            for (AlarmErrorStatus status : annotation.alarmErrorStatus()) {
+                addErrorCodeExample(responses, status);
+            }
+            for (AiArticleErrorStatus status : annotation.aiArticleErrorStatus()) {
+                addErrorCodeExample(responses, status);
+            }
             for (CurationErrorStatus status : annotation.curationErrorStatus()) {
+                addErrorCodeExample(responses, status);
+            }
+            for (LinkuErrorStatus status : annotation.linkuErrorStatus()) {
                 addErrorCodeExample(responses, status);
             }
             for (FolderErrorStatus status : annotation.folderErrorStatus()) {
@@ -221,6 +230,9 @@ public class SwaggerConfig {
                 addErrorCodeExample(responses, status);
             }
             for (CategoryErrorStatus status : annotation.categoryErrorStatus()) {
+                addErrorCodeExample(responses, status);
+            }
+            for (CommonErrorStatus status : annotation.commonErrorStatus()) {
                 addErrorCodeExample(responses, status);
             }
         }
