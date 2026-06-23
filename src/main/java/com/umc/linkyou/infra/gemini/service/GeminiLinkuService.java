@@ -28,7 +28,7 @@ public class GeminiLinkuService implements AiLinkuAnalyzer {
     private final PromptComposer promptComposer;
 
     @Override
-    public Optional<LinkuResultDTO> analyzeByUrl(String url, List<Category> categories, List<Situation> situations, List<Emotion> emotions) {
+    public Optional<LinkuResultDTO> analyzeByUrl(String url,Long jobId,  List<Category> categories, List<Situation> situations, List<Emotion> emotions) {
         // situations, emotions를 Gemini 프롬프트에 주입 → AI가 DB에 존재하는 ID로 situationId/emotionId 반환
         TitleDomainParser.ParsedPageInfo pageInfo = titleDomainParser.parseUrl(url);
         String domain = pageInfo.domain();
@@ -61,7 +61,7 @@ public class GeminiLinkuService implements AiLinkuAnalyzer {
                 .map(e -> "- id: " + e.getEmotionId() + ", name: \"" + e.getName() + "\"")
                 .collect(Collectors.joining("\n"));
 
-        CategoryClassifyPrompt prompt = new CategoryClassifyPrompt(domain, title, pageContent, categoryList, situationList, emotionList);
+        CategoryClassifyPrompt prompt = new CategoryClassifyPrompt(jobId,domain, title, pageContent, categoryList, situationList, emotionList);
 
         return Optional.of(
                 geminiService.callAndParse(

@@ -8,5 +8,5 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AiLinkuAnalyzer {
-    Optional<LinkuResultDTO> analyzeByUrl(String url, List<Category> categories, List<Situation> situations, List<Emotion> emotions);
+    Optional<LinkuResultDTO> analyzeByUrl(String url,Long jobId,  List<Category> categories, List<Situation> situations, List<Emotion> emotions);
 }

@@ -217,7 +217,7 @@ public class LinkuService {
 
         // 9. 제목(title) 변경
         if (dto.getTitle() != null) {
-            linku.setTitle(dto.getTitle());
+            usersLinku.setTitle(dto.getTitle());
             linkuModified = true;
         }
 

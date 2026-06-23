@@ -69,6 +69,8 @@ public class LinkuCreateService {
 
     @Transactional
     public LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
+        Users user          = findUser(userId);
+        Long jobId = user.getJob().getId();
         // 1) URL 정규화 & 검증
         String normalizedLink = validateAndNormalizeUrl(dto.getLinku());
         String domainTail = UrlValidUtils.extractDomainTail(normalizedLink);
@@ -86,10 +88,10 @@ public class LinkuCreateService {
             category = linku.getCategory();
             // 기존 링크라도 emotion/situation 중 하나라도 미입력이면 AI 호출
             if (dto.getEmotionId() == null || dto.getSituationId() == null) {
-                aiResult = geminiLinkuService.analyzeByUrl(normalizedLink, categoryRepository.findAll(), situationRepository.findAll(), emotionRepository.findAll());
+                aiResult = geminiLinkuService.analyzeByUrl(normalizedLink, jobId, categoryRepository.findAll(), situationRepository.findAll(), emotionRepository.findAll());
             }
         } else {
-            aiResult = geminiLinkuService.analyzeByUrl(normalizedLink, categoryRepository.findAll(), situationRepository.findAll(), emotionRepository.findAll());
+            aiResult = geminiLinkuService.analyzeByUrl(normalizedLink, jobId, categoryRepository.findAll(), situationRepository.findAll(), emotionRepository.findAll());
             category = resolveCategory(aiResult.map(LinkuResultDTO::categoryId).orElse(null));
             String rawKeywords = aiResult.map(LinkuResultDTO::keywords).orElse(null);
             aiTitle = aiResult.map(LinkuResultDTO::title).orElse(null);
@@ -117,7 +119,7 @@ public class LinkuCreateService {
 
         Emotion emotion     = resolveEmotion(dto.getEmotionId(), aiEmotionId);
         Situation situation = resolveSituation(dto.getSituationId(), aiSituationId);
-        Users user          = findUser(userId);
+
         String userImageUrl = uploadUserImage(image);
 
         UsersLinku usersLinku = createUsersLinku(
