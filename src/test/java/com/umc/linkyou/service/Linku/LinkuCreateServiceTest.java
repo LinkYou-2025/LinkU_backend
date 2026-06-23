@@ -212,7 +212,7 @@ class LinkuCreateServiceTest {
 
     private void setupNewLinkMocks(String crawledImageUrl) {
         lenient().when(linkuRepository.findByLinku(TEST_URL)).thenReturn(Optional.empty());
-        lenient().when(geminiLinkuService.analyzeByUrl(any(), any(), any(), any())).thenReturn(Optional.empty());
+        lenient().when(geminiLinkuService.analyzeByUrl(any(),any(), any(), any(), any())).thenReturn(Optional.empty());
         lenient().when(categoryRepository.findById(Long.valueOf(16L))).thenReturn(Optional.of(LinkuFixture.category()));
         lenient().when(domainRepository.findByDomainTail("example.com")).thenReturn(Optional.of(LinkuFixture.domain()));
         lenient().when(linkToImageService.extractTitle(TEST_URL)).thenReturn("테스트 제목");
