@@ -55,7 +55,7 @@ class GeminiLinkuServiceTest {
                 given(geminiService.callAndParse(anyString(), anyString(), eq(LinkuResultDTO.class)))
                         .willReturn(mockResult);
 
-                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of(), List.of(), List.of());
+                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url,null, List.of(), List.of(), List.of());
 
                 assertThat(result).isPresent();
                 assertThat(result.get().categoryId()).isEqualTo(1L);
@@ -74,7 +74,7 @@ class GeminiLinkuServiceTest {
                 given(geminiService.callAndParse(anyString(), anyString(), eq(LinkuResultDTO.class)))
                         .willReturn(mockResult);
 
-                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of(), List.of(), List.of());
+                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url,null, List.of(), List.of(), List.of());
 
                 assertThat(result).isPresent();
             }
@@ -93,7 +93,7 @@ class GeminiLinkuServiceTest {
                         .willReturn(new TitleDomainParser.ParsedPageInfo("empty.com", null));
                 given(webContentExtractor.extractTextFromUrl(url)).willReturn(null);
 
-                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of(), List.of(), List.of());
+                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url,null, List.of(), List.of(), List.of());
 
                 assertThat(result).isEmpty();
             }
