@@ -45,6 +45,9 @@ public class LinkuConverter {
                 .linku(linku.getLinkuUrl())
                 .memo(usersLinku.getMemo())
                 .emotionId(usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
+                .situationId(usersLinku.getSituation() != null ? usersLinku.getSituation().getId() : null)
+                .isEmotionAi(usersLinku.getEmotionAi())
+                .isSituationAi(usersLinku.getSituationAi())
                 .domain(domain != null ? domain.getName() : null)
                 .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
                 .domainImageUrl(domain != null ? domain.getImageUrl() : null)
@@ -69,14 +72,17 @@ public class LinkuConverter {
         return LinkuResponseDTO.LinkuResultDTO.builder()
                 .userId(userId)
                 .linkuId(linku.getLinkuId())
-                .linkuFolderId(linkuFolder.getLinkuFolderId())
-                .categoryId(category.getCategoryId())
+                .linkuFolderId(linkuFolder != null ? linkuFolder.getLinkuFolderId() : null)
+                .categoryId(category != null ? category.getCategoryId() : null)
                 .linku(linku.getLinkuUrl())
                 .memo(usersLinku.getMemo())
-                .emotionId(usersLinku.getEmotion().getEmotionId())
-                .domain(domain.getName())
+                .emotionId(usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
+                .situationId(usersLinku.getSituation() != null ? usersLinku.getSituation().getId() : null)
+                .isEmotionAi(usersLinku.getEmotionAi())
+                .isSituationAi(usersLinku.getSituationAi())
+                .domain(domain != null ? domain.getName() : null)
                 .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
-                .domainImageUrl(domain.getImageUrl())
+                .domainImageUrl(domain != null ? domain.getImageUrl() : null)
                 .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
                 .aiArticleExists(aiArticleExists != null ? aiArticleExists : false)
                 .createdAt(linku.getCreatedAt())
@@ -105,13 +111,15 @@ public class LinkuConverter {
                 .linkuId(usersLinku.getLinku().getLinkuId())
                 .title(usersLinku.getLinku().getTitle())
                 .memo(usersLinku.getMemo())
-                .emotionId(usersLinku.getEmotion().getEmotionId())
+                .emotionId(usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
                 .createdAt(usersLinku.getLinku().getCreatedAt())
                 .updatedAt(usersLinku.getLinku().getUpdatedAt())
                 .build();
     }
     // UsersLinku 생성
-    public static UsersLinku toUsersLinku(Users user, Linku linku, Emotion emotion, Situation situation, String memo, String imageUrl, String title) {
+    public static UsersLinku toUsersLinku(Users user, Linku linku, Emotion emotion, Situation situation,
+                                          String memo, String imageUrl, String title,
+                                          boolean emotionAi, boolean situationAi) {
         return UsersLinku.builder()
                 .user(user)
                 .linku(linku)
@@ -120,6 +128,8 @@ public class LinkuConverter {
                 .memo(memo)
                 .imageUrl(imageUrl)
                 .title(title)
+                .emotionAi(emotionAi)
+                .situationAi(situationAi)
                 .build();
     }
 

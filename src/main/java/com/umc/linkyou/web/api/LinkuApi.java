@@ -26,8 +26,8 @@ public interface LinkuApi {
             description = """
                     새로운 링크를 생성합니다.
 
-                    - **emotionId** (필수): 감정 ID
-                    - **situationId** (필수): 상황 ID. 사용자의 직업(job)에 해당하는 상황만 선택 가능합니다.
+                    - **emotionId** (선택): 감정 ID. 미입력 시 AI 분류값이 사용됩니다.
+                    - **situationId** (선택): 상황 ID. 미입력 시 AI 분류값이 사용됩니다. 입력 시 사용자의 직업(job)에 해당하는 상황만 선택 가능합니다.
                       - job_id 1 → situation 1~8
                       - job_id 2 → situation 9~16
                       - job_id 3 → situation 17~24
@@ -44,8 +44,8 @@ public interface LinkuApi {
             @CurrentUser CustomUserDetails userDetails,
             @RequestParam String linku,
             @RequestParam(required = false) String memo,
-            @RequestParam Long emotionId,
-            @RequestParam Long situationId,
+            @RequestParam(required = false) Long emotionId,
+            @RequestParam(required = false) Long situationId,
             @RequestParam(required = false) String title,
             @RequestParam(required = false) MultipartFile image
     );

@@ -12,6 +12,7 @@ import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
+import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.CurationLinku;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
@@ -22,6 +23,7 @@ import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.curationRepository.CurationLinkuRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
+import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
@@ -45,6 +47,7 @@ public class LinkuService {
     private final LinkuRepository linkuRepository;
     private final CategoryRepository categoryRepository;
     private final EmotionRepository emotionRepository;
+    private final SituationRepository situationRepository;
     private final DomainRepository domainRepository;
     private final LinkuFolderRepository linkuFolderRepository;
     private final UsersLinkuRepository usersLinkuRepository;
@@ -191,6 +194,16 @@ public class LinkuService {
             Emotion emotion = emotionRepository.findById(dto.getEmotionId())
                     .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
             usersLinku.setEmotion(emotion);
+            usersLinku.setEmotionAi(false);
+            usersLinkuModified = true;
+        }
+
+        // 7-1. 상황 변경
+        if (dto.getSituationId() != null) {
+            Situation situation = situationRepository.findById(dto.getSituationId())
+                    .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
+            usersLinku.setSituation(situation);
+            usersLinku.setSituationAi(false);
             usersLinkuModified = true;
         }
 

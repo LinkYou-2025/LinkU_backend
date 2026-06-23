@@ -30,7 +30,7 @@ public class LinkuController implements LinkuApi {
     private final LinkuRecommendService linkuRecommendService;
 
     @Override
-    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> createLinku(@CurrentUser CustomUserDetails userDetails, @RequestParam String linku, @RequestParam(required = false) String memo, @RequestParam Long emotionId, @RequestParam Long situationId, @RequestParam(required = false) String title, @RequestParam(required = false) MultipartFile image) {
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> createLinku(@CurrentUser CustomUserDetails userDetails, @RequestParam String linku, @RequestParam(required = false) String memo, @RequestParam(required = false) Long emotionId, @RequestParam(required = false) Long situationId, @RequestParam(required = false) String title, @RequestParam(required = false) MultipartFile image) {
         LinkuRequestDTO.LinkuCreateDTO linkuCreateDTO = LinkuConverter.toLinkuCreateDTO(linku, memo, emotionId, situationId, title);
         LinkuResponseDTO.LinkuCreateResult serviceResult = linkuCreateService.createLinku(userDetails.getUserId(), linkuCreateDTO, image);
         if (serviceResult.isValidUrl()) {

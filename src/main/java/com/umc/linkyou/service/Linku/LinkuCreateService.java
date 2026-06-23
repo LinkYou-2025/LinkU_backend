@@ -78,14 +78,18 @@ public class LinkuCreateService {
 
         Linku linku;
         Category category;
-
         String aiTitle = null;
+        Optional<LinkuResultDTO> aiResult = Optional.empty();
 
         if (existingLinku.isPresent()) {
             linku = existingLinku.get();
             category = linku.getCategory();
+            // 기존 링크라도 emotion/situation 중 하나라도 미입력이면 AI 호출
+            if (dto.getEmotionId() == null || dto.getSituationId() == null) {
+                aiResult = geminiLinkuService.analyzeByUrl(normalizedLink, categoryRepository.findAll(), situationRepository.findAll(), emotionRepository.findAll());
+            }
         } else {
-            Optional<LinkuResultDTO> aiResult = geminiLinkuService.analyzeByUrl(normalizedLink, categoryRepository.findAll(), situationRepository.findAll(), emotionRepository.findAll());
+            aiResult = geminiLinkuService.analyzeByUrl(normalizedLink, categoryRepository.findAll(), situationRepository.findAll(), emotionRepository.findAll());
             category = resolveCategory(aiResult.map(LinkuResultDTO::categoryId).orElse(null));
             String rawKeywords = aiResult.map(LinkuResultDTO::keywords).orElse(null);
             aiTitle = aiResult.map(LinkuResultDTO::title).orElse(null);
@@ -102,15 +106,24 @@ public class LinkuCreateService {
             }
         }
 
-        // 3) emotion/situation은 사용자 필수 입력, title만 AI 폴백 적용
+        // 3) emotion/situation: 사용자 입력 우선, 없으면 AI 반환값 사용
+        Long aiEmotionId   = aiResult.map(LinkuResultDTO::emotionId).orElse(null);
+        Long aiSituationId = aiResult.map(LinkuResultDTO::situationId).orElse(null);
+
+        boolean userProvidedEmotion   = dto.getEmotionId() != null;
+        boolean userProvidedSituation = dto.getSituationId() != null;
+
         String userTitle = dto.getTitle() != null ? dto.getTitle() : aiTitle;
 
-        Emotion emotion = resolveEmotion(dto.getEmotionId());
-        Situation situation = resolveSituation(dto.getSituationId());
-        Users user = findUser(userId);
+        Emotion emotion     = resolveEmotion(dto.getEmotionId(), aiEmotionId);
+        Situation situation = resolveSituation(dto.getSituationId(), aiSituationId);
+        Users user          = findUser(userId);
         String userImageUrl = uploadUserImage(image);
 
-        UsersLinku usersLinku = createUsersLinku(user, linku, emotion, situation, dto.getMemo(), userImageUrl, userTitle);
+        UsersLinku usersLinku = createUsersLinku(
+                user, linku, emotion, situation, dto.getMemo(), userImageUrl, userTitle,
+                !userProvidedEmotion, !userProvidedSituation
+        );
         Folder folder = folderService.findFolder(userId, category);
 
         LinkuFolder linkuFolder = LinkuConverter.toLinkuFolder(folder, usersLinku);
@@ -156,10 +169,12 @@ public class LinkuCreateService {
     }
 
 
-    public Emotion resolveEmotion(Long emotionId) {
-        return (emotionId == null || emotionId <= 0)
-                ? emotionRepository.findById(DEFAULT_EMOTION_ID).orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND))
-                : emotionRepository.findById(emotionId).orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
+    public Emotion resolveEmotion(Long userEmotionId, Long aiEmotionId) {
+        Long resolvedId = (userEmotionId != null && userEmotionId > 0) ? userEmotionId
+                        : (aiEmotionId != null)                        ? aiEmotionId
+                        : DEFAULT_EMOTION_ID;
+        return emotionRepository.findById(resolvedId)
+                .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
     }
 
     public Domain resolveDomain(String domainTail) {
@@ -195,16 +210,19 @@ public class LinkuCreateService {
         return null;
     }
 
-    public Situation resolveSituation(Long situationId) {
-        if (situationId == null) {
-            throw new GeneralException(ErrorStatus._SITUATION_NOT_FOUND);
-        }
-        return situationRepository.findById(situationId)
+    public Situation resolveSituation(Long userSituationId, Long aiSituationId) {
+        Long resolvedId = (userSituationId != null) ? userSituationId
+                        : (aiSituationId != null)   ? aiSituationId
+                        : null;
+        if (resolvedId == null) return null;
+        return situationRepository.findById(resolvedId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
     }
 
-    public UsersLinku createUsersLinku(Users user, Linku linku, Emotion emotion, Situation situation, String memo, String imageUrl, String title) {
-        UsersLinku usersLinku = LinkuConverter.toUsersLinku(user, linku, emotion, situation, memo, imageUrl, title);
+    public UsersLinku createUsersLinku(Users user, Linku linku, Emotion emotion, Situation situation,
+                                       String memo, String imageUrl, String title,
+                                       boolean emotionAi, boolean situationAi) {
+        UsersLinku usersLinku = LinkuConverter.toUsersLinku(user, linku, emotion, situation, memo, imageUrl, title, emotionAi, situationAi);
         return usersLinkuRepository.save(usersLinku);
     }
 

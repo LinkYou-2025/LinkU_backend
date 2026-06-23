@@ -18,6 +18,9 @@ public class LinkuResponseDTO {
         private String linku; //링크
         private String memo;
         private Long emotionId;
+        private Long situationId;
+        private Boolean isEmotionAi;
+        private Boolean isSituationAi;
         private String domain;
         private String title;
         private String domainImageUrl;

@@ -16,10 +16,10 @@ public class LinkuRequestDTO {
         @Schema(example = "test용 메모입니다.")
         private String memo;
 
-        @Schema(example = "2", description = "감정 ID (필수)")
+        @Schema(example = "2", description = "감정 ID (선택, 미입력 시 AI 분류값 사용)")
         private Long emotionId;
 
-        @Schema(example = "1", description = "상황 ID (필수)")
+        @Schema(example = "1", description = "상황 ID (선택, 미입력 시 AI 분류값 사용)")
         private Long situationId;
 
         @Schema(example = "나만의 제목", description = "링크 제목 (미입력 시 AI 분석값 사용)")
@@ -29,6 +29,8 @@ public class LinkuRequestDTO {
     @Setter
     @Getter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class LinkuUpdateDTO {
         @Schema(example = "16", description = "폴더 ID")
         private Long folderId;
@@ -44,6 +46,9 @@ public class LinkuRequestDTO {
 
         @Schema(example = "2", description = "감정/emotion ID")
         private Long emotionId;
+
+        @Schema(example = "3", description = "상황/situation ID")
+        private Long situationId;
 
         @Schema(example = "1", description = "도메인(domain) ID")
         private Long domainId;
