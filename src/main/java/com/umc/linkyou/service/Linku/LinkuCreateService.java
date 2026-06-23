@@ -108,9 +108,9 @@ public class LinkuCreateService {
         Emotion emotion = resolveEmotion(dto.getEmotionId());
         Situation situation = resolveSituation(dto.getSituationId());
         Users user = findUser(userId);
-        String imageUrl = processImage(image, linku);
+        String userImageUrl = uploadUserImage(image);
 
-        UsersLinku usersLinku = createUsersLinku(user, linku, emotion, situation, dto.getMemo(), imageUrl, userTitle);
+        UsersLinku usersLinku = createUsersLinku(user, linku, emotion, situation, dto.getMemo(), userImageUrl, userTitle);
         Folder folder = folderService.findFolder(userId, category);
 
         LinkuFolder linkuFolder = LinkuConverter.toLinkuFolder(folder, usersLinku);
@@ -135,7 +135,8 @@ public class LinkuCreateService {
         if (crawledTitle == null || crawledTitle.isBlank()) {
             crawledTitle = (domainTail != null && !domainTail.isBlank()) ? domainTail : "제목 없음";
         }
-        return linkuRepository.save(LinkuConverter.toLinku(normalizedLink, category, domain, crawledTitle));
+        String crawledImgUrl = linkToImageService.getRelatedImageFromUrl(normalizedLink, crawledTitle);
+        return linkuRepository.save(LinkuConverter.toLinku(normalizedLink, category, domain, crawledTitle, crawledImgUrl));
     }
 
     // Utility methods - 모두 public으로 선언
@@ -187,11 +188,11 @@ public class LinkuCreateService {
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
     }
 
-    public String processImage(MultipartFile image, Linku linku) {
+    public String uploadUserImage(MultipartFile image) {
         if (image != null && !image.isEmpty()) {
             return awsS3Service.uploadFile(image, "linkucreate");
         }
-        return linkToImageService.getRelatedImageFromUrl(linku.getLinkuUrl(), linku.getTitle());
+        return null;
     }
 
     public Situation resolveSituation(Long situationId) {

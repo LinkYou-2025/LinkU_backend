@@ -27,7 +27,4 @@ public class AiArticle extends BaseEntity {
 
     @Column(name = "summary", nullable = false, length = 255)
     private String summary;
-
-    @Column(name = "img_url", columnDefinition = "TEXT")
-    private String imgUrl;
 }

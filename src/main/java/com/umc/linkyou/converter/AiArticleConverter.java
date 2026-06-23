@@ -9,11 +9,10 @@ import com.umc.linkyou.web.dto.AiArticleResponseDTO;
 
 public class AiArticleConverter {
 
-    public static AiArticle toEntity(AiArticleResultDTO result, Linku linku, String imageUrl) {
+    public static AiArticle toEntity(AiArticleResultDTO result, Linku linku) {
         return AiArticle.builder()
                 .linku(linku)
                 .summary(result.summary())
-                .imgUrl(imageUrl)
                 .build();
     }
 
@@ -30,7 +29,7 @@ public class AiArticleConverter {
                 emotion != null ? emotion.getName() : null,
                 linku.getCategory() != null ? linku.getCategory().getCategoryName() : null,
                 entity.getSummary(),
-                entity.getImgUrl(),
+                linku.getImgUrl(),
                 usersLinku != null ? usersLinku.getMemo() : null
         );
     }

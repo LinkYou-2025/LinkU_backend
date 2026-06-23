@@ -12,7 +12,7 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.infra.ai.AiArticleAnalyzer;
 import com.umc.linkyou.infra.ai.dto.AiArticleResultDTO;
-import com.umc.linkyou.infra.parser.LinkToImageService;
+
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
@@ -36,7 +36,6 @@ public class AiArticleService {
     private final LinkuRepository linkuRepository;
     private final AiArticleRepository aiArticleRepository;
     private final UsersLinkuRepository usersLinkuRepository;
-    private final LinkToImageService linkToImageService;
     private final AiArticleAnalyzer aiArticleAnalyzer;
 
     @Transactional
@@ -49,16 +48,14 @@ public class AiArticleService {
                 .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
 
         AiArticleResultDTO result = aiArticleAnalyzer.analyzeByUrl(linku.getLinkuUrl());
-        String imageUrl = linkToImageService.getRelatedImageFromUrl(linku.getLinkuUrl(), linku.getTitle());
 
         AiArticle article = aiArticleRepository.findByLinku(linku)
                 .map(existing -> {
                     existing.setSummary(result.summary());
-                    existing.setImgUrl(imageUrl);
                     return existing;
                 })
                 .orElseGet(() -> aiArticleRepository.save(
-                        AiArticleConverter.toEntity(result, linku, imageUrl)
+                        AiArticleConverter.toEntity(result, linku)
                 ));
 
         if (linku.getAiArticle() == null || !linku.getAiArticle().equals(article)) {
@@ -125,7 +122,7 @@ public class AiArticleService {
                             .title(ul.getTitle() != null ? ul.getTitle() : l.getTitle())
                             .summary(a != null ? a.getSummary() : "요약 정보가 없습니다.")
                             .keyword(keyword)
-                            .linkuImageUrl(ul.getImageUrl())
+                            .linkuImageUrl(ul.getImageUrl() != null ? ul.getImageUrl() : l.getImgUrl())
                             .aiArticleExists(ul.getAiExist())
                             .createdAt(ul.getCreatedAt())
                             .updatedAt(ul.getUpdatedAt())

@@ -48,6 +48,9 @@ public class Linku extends BaseEntity {
     @OneToMany(mappedBy = "linku", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LinkuKeyword> linkuKeywords = new ArrayList<>();
 
+    @Column(name = "img_url", columnDefinition = "TEXT")
+    private String imgUrl;
+
     @Builder.Default
     @Column(name = "total_view_count", nullable = false)
     private long totalViewCount = 0L;

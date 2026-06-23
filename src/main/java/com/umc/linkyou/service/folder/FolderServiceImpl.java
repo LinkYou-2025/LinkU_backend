@@ -345,7 +345,7 @@ public class FolderServiceImpl implements FolderService {
                     .map(lk -> lk.getKeyword().getName())
                     .collect(Collectors.joining(", "));
             dto.setKeyword(kw.isEmpty() ? null : kw);
-            dto.setLinkuImageUrl(usersLinku.getImageUrl());
+            dto.setLinkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : link.getImgUrl());
             dto.setCreatedAt(link.getCreatedAt().toString());
             return dto;
         }).toList();

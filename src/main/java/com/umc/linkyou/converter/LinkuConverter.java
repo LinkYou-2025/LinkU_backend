@@ -48,7 +48,7 @@ public class LinkuConverter {
                 .domain(domain != null ? domain.getName() : null)
                 .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
                 .domainImageUrl(domain != null ? domain.getImageUrl() : null)
-                .linkuImageUrl(usersLinku.getImageUrl())
+                .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
                 .aiArticleExists(aiArticleExists != null ? aiArticleExists : false)
                 .createdAt(linku.getCreatedAt())
                 .updatedAt(linku.getUpdatedAt())
@@ -77,7 +77,7 @@ public class LinkuConverter {
                 .domain(domain.getName())
                 .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
                 .domainImageUrl(domain.getImageUrl())
-                .linkuImageUrl(usersLinku.getImageUrl())
+                .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
                 .aiArticleExists(aiArticleExists != null ? aiArticleExists : false)
                 .createdAt(linku.getCreatedAt())
                 .updatedAt(linku.getUpdatedAt())
@@ -132,12 +132,13 @@ public class LinkuConverter {
     }
 
     // Linku 생성
-    public static Linku toLinku(String linkuUrl, Category category, Domain domain, String title) {
+    public static Linku toLinku(String linkuUrl, Category category, Domain domain, String title, String imgUrl) {
         return Linku.builder()
                 .linkuUrl(linkuUrl)
                 .category(category)
                 .domain(domain)
                 .title(title != null ? title : "")
+                .imgUrl(imgUrl)
                 .build();
     }
     public static LinkuResponseDTO.LinkuSimpleDTO toLinkuSimpleDTO(Linku linku, UsersLinku usersLinku, Domain domain, boolean aiArticleExists) {
@@ -150,7 +151,7 @@ public class LinkuConverter {
                 .title(usersLinku != null && usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
                 .domain(domain != null ? domain.getName() : null)
                 .domainImageUrl(domain != null ? domain.getImageUrl() : null)
-                .linkuImageUrl(usersLinku != null ? usersLinku.getImageUrl() : null)
+                .linkuImageUrl(usersLinku != null ? (usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl()) : linku.getImgUrl())
                 .aiArticleExists(aiArticleExists)
                 .lastViewedAt(usersLinku != null ? usersLinku.getLastViewedAt() : null)
                 .build();
@@ -169,7 +170,7 @@ public class LinkuConverter {
                 .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
                 .domain(domain != null ? domain.getName() : null)
                 .domainImageUrl(domain != null ? domain.getImageUrl() : null)
-                .linkuImageUrl(usersLinku.getImageUrl())
+                .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
                 .build();
     }
 
