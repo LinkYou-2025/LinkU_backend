@@ -17,11 +17,13 @@ import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
+import com.umc.linkyou.service.alarm.event.FolderDeletedAlarmEvent;
 import com.umc.linkyou.web.dto.folder.*;
 import com.umc.linkyou.web.dto.folder.linku.FolderLinkusResponseDTO;
 import com.umc.linkyou.web.dto.folder.linku.FolderSummaryDTO;
 import com.umc.linkyou.web.dto.folder.linku.LinkuSummaryDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -40,6 +42,7 @@ public class FolderServiceImpl implements FolderService {
     private final UsersFolderRepository usersFolderRepository;
     private final LinkuFolderRepository linkuFolderRepository;
     private final FolderConverter folderConverter;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 하위 폴더 생성
     @Transactional
@@ -147,7 +150,22 @@ public class FolderServiceImpl implements FolderService {
             throw new GeneralException(FolderErrorStatus._FOLDER_DELETE_FORBIDDEN);
         }
 
+        // 폴더 삭제 알람에 필요
+        List<Long> memberIds = usersFolderRepository.findAllParticipantsByFolderId(folderId).stream()
+                .filter(uf -> uf.getPermissionType() != PermissionType.OWNER)
+                .map(uf -> uf.getUser().getId())
+                .toList();
+
+        String folderName = folder.getFolderName();
+        String deleterNickname = userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND))
+                .getNickName();
+
         folderRepository.delete(folder);
+
+        if (!memberIds.isEmpty()) {
+            eventPublisher.publishEvent(new FolderDeletedAlarmEvent(folderId, memberIds, deleterNickname, folderName));
+        }
     }
 
     // 내 폴더 목록(트리) 조회

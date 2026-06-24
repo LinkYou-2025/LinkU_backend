@@ -9,16 +9,20 @@ import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.folder.FolderShareLink;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
+import com.umc.linkyou.repository.AlarmSettingRepository;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.FolderShareLinkRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
+import com.umc.linkyou.service.alarm.event.FolderPermissionChangedAlarmEvent;
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.umc.linkyou.domain.AlarmSetting;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +37,8 @@ public class ShareFolderServiceImpl implements ShareFolderService {
     private final UserRepository userRepository;
     private final UsersFolderRepository usersFolderRepository;
     private final FolderShareLinkRepository folderShareLinkRepository;
+    private final AlarmSettingRepository alarmSettingRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 초대 링크 생성
     public String createInviteLink(Long userId, Long folderId) {
@@ -157,6 +163,15 @@ public class ShareFolderServiceImpl implements ShareFolderService {
 
         usersFolder.setPermissionType(permission);
         usersFolderRepository.save(usersFolder);
+
+        // 권한 변경 알람 발행
+        Long memberId = usersFolder.getUser().getId();
+        String folderName = usersFolder.getFolder().getFolderName();
+
+        alarmSettingRepository.findByUserId(memberId)
+            .filter(AlarmSetting::isFolderActive)
+            .ifPresent(setting -> eventPublisher.publishEvent(
+                    new FolderPermissionChangedAlarmEvent(memberId, folderId, folderName)));
 
         return ShareFolderResponseDTO.builder()
                 .folderId(folderId)
