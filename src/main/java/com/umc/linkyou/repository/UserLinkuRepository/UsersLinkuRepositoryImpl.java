@@ -20,7 +20,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
     public List<UsersLinku> fetchAiArticlesByCategoryId(Long userId, Long categoryId) {
         QUsersLinku usersLinku = QUsersLinku.usersLinku;
         QAiArticle aiArticle = QAiArticle.aiArticle;
-        QLinku linku = QLinku.linku1;
+        QLinku linku = QLinku.linku;
 
         return queryFactory
                 .selectFrom(usersLinku)
@@ -55,7 +55,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
     @Override
     public List<UsersLinku> fetchAiArticlesByCategoryIdWithCursor(Long userId, Long categoryId, Long cursorId, int limit) {
         QUsersLinku usersLinku = QUsersLinku.usersLinku;
-        QLinku linku = QLinku.linku1;
+        QLinku linku = QLinku.linku;
         QAiArticle aiArticle = QAiArticle.aiArticle;
 
         return queryFactory

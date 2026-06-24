@@ -6,7 +6,7 @@ import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.service.AiArticleService;
 import com.umc.linkyou.validation.annotation.ApiV1;
-import com.umc.linkyou.web.dto.AiArticleResponsetDTO;
+import com.umc.linkyou.web.dto.AiArticleResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,13 +29,13 @@ public class AiArticleController {
             description = "링크 ID에 해당하는 AI 기사 정보를 저장하거나 조회합니다. 이미 존재하면 조회하고, 없으면 생성합니다."
     )
     @PostMapping("/{linkuid}")
-    public ApiResponse<AiArticleResponsetDTO.AiArticleResultDTO> saveOrGetAiArticle(
+    public ApiResponse<AiArticleResponseDTO.AiArticleResultDTO> saveOrGetAiArticle(
             @PathVariable("linkuid") Long linkuId,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long userId = userDetails.getUserId();
 
-        AiArticleResponsetDTO.AiArticleResultDTO result =
+        AiArticleResponseDTO.AiArticleResultDTO result =
                 aiArticleService.saveOrGetAiArticle(linkuId, userId);
         return ApiResponse.onSuccess(AiArticleSuccessStatus.AI_ARTICLE_OK, result);
     }

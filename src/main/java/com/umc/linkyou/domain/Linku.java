@@ -3,6 +3,7 @@ package com.umc.linkyou.domain;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.common.BaseEntity;
+import com.umc.linkyou.domain.mapping.LinkuKeyword;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,8 +31,8 @@ public class Linku extends BaseEntity {
     @JoinColumn(name = "domain_id", nullable = false)
     private Domain domain;
 
-    @Column(columnDefinition = "text", nullable = false)
-    private String linku;
+    @Column(name = "linku", columnDefinition = "text", nullable = false)
+    private String linkuUrl;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "aiArticle_id")
@@ -42,6 +43,13 @@ public class Linku extends BaseEntity {
 
     @OneToMany(mappedBy = "linku", cascade = CascadeType.ALL)
     private List<UsersLinku> usersLinku = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "linku", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<LinkuKeyword> linkuKeywords = new ArrayList<>();
+
+    @Column(name = "img_url", columnDefinition = "TEXT")
+    private String imgUrl;
 
     @Builder.Default
     @Column(name = "total_view_count", nullable = false)

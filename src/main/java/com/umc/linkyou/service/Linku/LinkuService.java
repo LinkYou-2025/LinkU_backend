@@ -12,6 +12,7 @@ import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
+import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.CurationLinku;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
@@ -22,6 +23,7 @@ import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.curationRepository.CurationLinkuRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
+import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
@@ -45,6 +47,7 @@ public class LinkuService {
     private final LinkuRepository linkuRepository;
     private final CategoryRepository categoryRepository;
     private final EmotionRepository emotionRepository;
+    private final SituationRepository situationRepository;
     private final DomainRepository domainRepository;
     private final LinkuFolderRepository linkuFolderRepository;
     private final UsersLinkuRepository usersLinkuRepository;
@@ -62,7 +65,7 @@ public class LinkuService {
 
         // 3. 기존에 링크 저장 여부 확인
         Optional<UsersLinku> usersLinkuOpt =
-                usersLinkuRepository.findByUserIdAndLinku_Linku(userId, url);
+                usersLinkuRepository.findByUserIdAndLinku_LinkuUrl(userId, url);
 
         LinkuResponseDTO.LinkuIsExistDTO dto =
                 LinkuConverter.toLinkuIsExistDTO(userId, usersLinkuOpt.orElse(null));
@@ -102,7 +105,9 @@ public class LinkuService {
         String summary = null;
 
         if (aiArticleExists && aiArticle != null) {
-            keyword = aiArticle.getKeyword();
+            keyword = linku.getLinkuKeywords().stream()
+                    .map(lk -> lk.getKeyword().getName())
+                    .collect(java.util.stream.Collectors.joining(", "));
             summary = aiArticle.getSummary();
         }
 
@@ -174,7 +179,7 @@ public class LinkuService {
         // 5. 링크 주소(URL) 변경
         if (dto.getLinku() != null) {
             UrlValidUtils.validateLinkuUrl(dto.getLinku());
-            linku.setLinku(dto.getLinku());
+            linku.setLinkuUrl(dto.getLinku());
             linkuModified = true;
         }
 
@@ -189,6 +194,16 @@ public class LinkuService {
             Emotion emotion = emotionRepository.findById(dto.getEmotionId())
                     .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
             usersLinku.setEmotion(emotion);
+            usersLinku.setEmotionAi(false);
+            usersLinkuModified = true;
+        }
+
+        // 7-1. 상황 변경
+        if (dto.getSituationId() != null) {
+            Situation situation = situationRepository.findById(dto.getSituationId())
+                    .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
+            usersLinku.setSituation(situation);
+            usersLinku.setSituationAi(false);
             usersLinkuModified = true;
         }
 

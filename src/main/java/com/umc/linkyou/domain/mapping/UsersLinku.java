@@ -1,6 +1,7 @@
 package com.umc.linkyou.domain.mapping;
 
 import com.umc.linkyou.domain.classification.Emotion;
+import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.common.BaseEntity;
@@ -27,6 +28,13 @@ public class UsersLinku extends BaseEntity {
     @JoinColumn(name = "emotion_id", nullable = false)
     private Emotion emotion;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "situation_id")
+    private Situation situation;
+
+    @Column(name = "title", length = 255)
+    private String title;
+
     private String memo;
 
     @Column(columnDefinition = "text")
@@ -48,6 +56,14 @@ public class UsersLinku extends BaseEntity {
     @Builder.Default
     @Column(name = "is_ai_exist", nullable = false)
     private Boolean aiExist = false;
+
+    @Builder.Default
+    @Column(name = "is_emotion_ai", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
+    private Boolean emotionAi = true;
+
+    @Builder.Default
+    @Column(name = "is_situation_ai", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
+    private Boolean situationAi = true;
 
     public Boolean getAiExist() {
         return this.aiExist;

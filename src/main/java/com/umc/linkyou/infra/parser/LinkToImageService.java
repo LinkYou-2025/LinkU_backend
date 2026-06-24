@@ -19,7 +19,6 @@ import java.util.List;
 public class LinkToImageService {
 
     private final DomainRepository domainRepository;
-    private final TitleDomainParser titleDomainParser;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -32,9 +31,18 @@ public class LinkToImageService {
     private String searchEngineId;
 
     public String extractTitle(String url) {
-        String title = titleDomainParser.parseUrl(url).title();
-        if (title == null || title.isBlank()) return null;
-        return title.replaceAll("[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\s]", "");
+        try {
+            Document doc = Jsoup.connect(url)
+                    .userAgent("Mozilla/5.0")
+                    .get();
+            String ogTitle = doc.select("meta[property=og:title]").attr("content");
+            if (ogTitle != null && !ogTitle.isEmpty()) {
+                return ogTitle.replaceAll("[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\s]", "");
+            }
+            return doc.title().replaceAll("[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\s]", "");
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // URL에서 도메인 추출

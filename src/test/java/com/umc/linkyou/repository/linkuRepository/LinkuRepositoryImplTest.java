@@ -189,7 +189,7 @@ class LinkuRepositoryImplTest {
     private Linku createLinku(String title, String linku, Category category, Domain domain) {
         return Linku.builder()
                 .title(title)
-                .linku(linku)
+                .linkuUrl(linku)
                 .category(category)
                 .domain(domain)
                 .build();

@@ -21,14 +21,32 @@ import java.util.List;
 @RequestMapping("/linku")
 public interface LinkuApi {
 
-    @Operation(summary = "링크 생성", description = "새로운 링크를 생성합니다. URL, 메모, 감정 ID, 이미지를 포함할 수 있습니다.")
-    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_INVALID_URL,LinkuErrorStatus._LINKU_VIDEO_NOT_ALLOWED})
+    @Operation(
+            summary = "링크 생성",
+            description = """
+                    새로운 링크를 생성합니다.
+
+                    - **emotionId** (선택): 감정 ID. 미입력 시 AI 분류값이 사용됩니다.
+                    - **situationId** (선택): 상황 ID. 미입력 시 AI 분류값이 사용됩니다. 입력 시 사용자의 직업(job)에 해당하는 상황만 선택 가능합니다.
+                      - job_id 1 → situation 1~8
+                      - job_id 2 → situation 9~16
+                      - job_id 3 → situation 17~24
+                      - job_id 4 → situation 25~32
+                      - job_id 5 → situation 33~40
+                      - job_id 6 → situation 41~48
+                    - **title** (선택): 미입력 시 AI 분석값이 사용됩니다.
+                    - **image** (선택): 대표 이미지. 미첨부 시 URL에서 자동 추출합니다.
+                    """
+    )
+    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_INVALID_URL, LinkuErrorStatus._LINKU_VIDEO_NOT_ALLOWED, LinkuErrorStatus._KEYWORD_NOT_FOUND, LinkuErrorStatus._SITUATION_NOT_MATCH_JOB})
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> createLinku(
             @CurrentUser CustomUserDetails userDetails,
             @RequestParam String linku,
             @RequestParam(required = false) String memo,
             @RequestParam(required = false) Long emotionId,
+            @RequestParam(required = false) Long situationId,
+            @RequestParam(required = false) String title,
             @RequestParam(required = false) MultipartFile image
     );
 

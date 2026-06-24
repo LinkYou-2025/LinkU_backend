@@ -340,13 +340,12 @@ public class FolderServiceImpl implements FolderService {
             dto.setUserLinkuId(usersLinku.getUserLinkuId());
             dto.setLinkuId(link.getLinkuId());
             dto.setTitle(link.getTitle());
-            dto.setUrl(link.getLinku());
-            dto.setKeyword(
-                    link.getAiArticle() != null
-                            ? link.getAiArticle().getKeyword()
-                            : null
-            );
-            dto.setLinkuImageUrl(usersLinku.getImageUrl());
+            dto.setUrl(link.getLinkuUrl());
+            String kw = link.getLinkuKeywords().stream()
+                    .map(lk -> lk.getKeyword().getName())
+                    .collect(Collectors.joining(", "));
+            dto.setKeyword(kw.isEmpty() ? null : kw);
+            dto.setLinkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : link.getImgUrl());
             dto.setCreatedAt(link.getCreatedAt().toString());
             return dto;
         }).toList();
