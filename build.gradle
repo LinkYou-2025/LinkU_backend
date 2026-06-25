@@ -29,17 +29,16 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	compileOnly 'org.projectlombok:lombok'
-	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client:3.3.3'
-	//implementation 'com.mysql:mysql-connector-j'
+	runtimeOnly 'org.postgresql:postgresql'
+	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testRuntimeOnly 'com.h2database:h2'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:postgresql'
+	testImplementation 'org.testcontainers:jdbc'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	// validation
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
-
-	// hibernate
-	implementation 'org.hibernate.orm:hibernate-core:6.0.2.Final'
 
 	// swagger
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
@@ -103,6 +102,8 @@ dependencies {
 	implementation 'net.coobird:thumbnailator:0.4.20'
 	asciidoctorExt 'org.springframework.restdocs:spring-restdocs-asciidoctor'
 	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+
+	implementation 'io.hypersistence:hypersistence-utils-hibernate-60:3.5.1'
 }
 
 clean {
