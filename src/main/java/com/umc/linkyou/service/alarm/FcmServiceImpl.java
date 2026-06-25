@@ -23,8 +23,6 @@ import static java.util.Collections.singletonList;
 @RequiredArgsConstructor
 public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
 
-    private static final String APP_ICON = "notice_icon";
-    private static final String COLOR_CODE = "#FF0000";
     private static final String CLICK_ACTION = "notice_icon_click";
 
     private final FirebaseMessaging firebaseMessaging;
@@ -57,6 +55,7 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
         try {
             firebaseMessaging.send(buildMessage(token, requestDTO));
         } catch (FirebaseMessagingException e) {
+            log.error("FCM 단일 토큰 전송 실패 - errorCode: {}, message: {}", e.getMessagingErrorCode(), e.getMessage(), e);
             throw new GeneralException(AlarmErrorStatus.ALARM_SEND_FAILED);
         }
     }
@@ -113,14 +112,13 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
     private MulticastMessage buildMulticastMessage(List<String> tokens, FcmSendRequestDTO requestDTO) {
         return MulticastMessage.builder()
                 .addAllTokens(tokens)
+                .setNotification(buildNotification(requestDTO))
                 .putData("title", requestDTO.getTitle())
                 .putData("body", requestDTO.getMessage())
                 .putData("type", requestDTO.getType().name())
                 .putData("targetId", requestDTO.getTargetId().toString())
                 .setAndroidConfig(AndroidConfig.builder()
                         .setNotification(AndroidNotification.builder()
-                                .setIcon(APP_ICON)
-                                .setColor(COLOR_CODE)
                                 .setClickAction(CLICK_ACTION)
                                 .build())
                         .build())
@@ -129,6 +127,7 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
 
     private Message buildMessage(String token, FcmSendRequestDTO requestDTO) {
         return Message.builder()
+                .setNotification(buildNotification(requestDTO))
                 .putData("title", requestDTO.getTitle())
                 .putData("body", requestDTO.getMessage())
                 .putData("type", requestDTO.getType().name())
@@ -136,8 +135,6 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
                 .setToken(token)
                 .setAndroidConfig(AndroidConfig.builder()
                         .setNotification(AndroidNotification.builder()
-                                .setIcon(APP_ICON)
-                                .setColor(COLOR_CODE)
                                 .setClickAction(CLICK_ACTION)
                                 .build())
                         .build())
@@ -146,6 +143,7 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
 
     private Message buildTopicMessage(String topic, FcmSendRequestDTO requestDTO) {
         return Message.builder()
+                .setNotification(buildNotification(requestDTO))
                 .putData("title", requestDTO.getTitle())
                 .putData("body", requestDTO.getMessage())
                 .putData("type", requestDTO.getType().name())
@@ -153,11 +151,16 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
                 .setTopic(topic)
                 .setAndroidConfig(AndroidConfig.builder()
                         .setNotification(AndroidNotification.builder()
-                                .setIcon(APP_ICON)
-                                .setColor(COLOR_CODE)
                                 .setClickAction(CLICK_ACTION)
                                 .build())
                         .build())
+                .build();
+    }
+
+    private Notification buildNotification(FcmSendRequestDTO requestDTO) {
+        return Notification.builder()
+                .setTitle(requestDTO.getTitle())
+                .setBody(requestDTO.getMessage())
                 .build();
     }
 

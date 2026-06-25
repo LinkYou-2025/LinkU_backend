@@ -90,6 +90,10 @@ public class AlarmSetting {
         this.folderEnabled = enabled;
     }
 
+    public void updateAlarmAllEnabled(boolean enabled) {
+        this.alarmAllEnabled = enabled;
+    }
+
     public boolean isNoticeActive() {
         return alarmAllEnabled && noticeEnabled;
     }

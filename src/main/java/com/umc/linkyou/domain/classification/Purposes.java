@@ -3,28 +3,23 @@ package com.umc.linkyou.domain.classification;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Purpose;
 import jakarta.persistence.*;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "purposes")
 public class Purposes {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "purpose_id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "purpose", nullable = false)
+    @Column(nullable = false)
     private String purpose;
 
-    @Column(name = "selected_at", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime selectedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "user_id", nullable = false) // 외래키 설정
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private Users user;
 
     public Purposes() {

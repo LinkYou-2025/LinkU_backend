@@ -68,43 +68,6 @@ jobs:
           script: |
             mkdir -p /home/ubuntu/linkyou
             echo "${{ secrets.GCP_KEY_BASE64 }}" | base64 -d > /home/ubuntu/linku-key.json
-            cat > /home/ubuntu/linkyou/docker-compose.remote.yml <<'EOF'
-            version: "3.8"
-      
-            services:
-              app:
-                image: ${{ secrets.DOCKER_REPO_NAME }}:latest
-                container_name: linku-app
-                restart: unless-stopped
-                ports:
-                  - "8080:8080"
-                volumes:
-                  - /home/ubuntu/linku-key.json:/app/linku-key.json:ro
-                environment:
-                  GOOGLE_APPLICATION_CREDENTIALS: /app/linku-key.json
-                  TZ: Asia/Seoul
-                  REDIS_HOST: redis
-                  REDIS_PORT: 6379
-                  REDIS_URL: redis://redis:6379
-                  REDIS_TIMEOUT: 3000ms
-                  JWT_REDIS_HOST: redis
-                  JWT_REDIS_PORT: 6379
-                depends_on:
-                  - redis
-      
-              redis:
-                image: redis:7
-                container_name: linku-redis
-                restart: unless-stopped
-                command: ["redis-server", "--appendonly", "yes", "--timeout", "300"]
-                ports:
-                  - "6379:6379"
-                volumes:
-                  - redis_data:/data
-      
-            volumes:
-              redis_data:
-            EOF
 
             sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
             sudo docker pull ${{ secrets.DOCKER_REPO_NAME }}:latest

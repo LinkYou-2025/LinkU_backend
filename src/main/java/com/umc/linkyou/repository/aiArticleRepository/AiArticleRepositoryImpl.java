@@ -19,7 +19,7 @@ public class AiArticleRepositoryImpl implements AiArticleRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     private final QAiArticle aiArticle = QAiArticle.aiArticle;
-    private final QLinku linku = QLinku.linku1;
+    private final QLinku linku = QLinku.linku;
 
     @Override
     public boolean existsAiArticleByLinkuId(Long linkuId) {
@@ -27,8 +27,8 @@ public class AiArticleRepositoryImpl implements AiArticleRepositoryCustom {
                 .selectOne()
                 .from(aiArticle)
                 .where(aiArticle.linku.linkuId.eq(linkuId)
-                        .and(aiArticle.title.isNotNull())
-                        .and(aiArticle.title.isNotEmpty()))
+                        .and(aiArticle.summary.isNotNull())
+                        .and(aiArticle.summary.isNotEmpty()))
                 .fetchFirst();
         return count != null;
     }
@@ -36,7 +36,7 @@ public class AiArticleRepositoryImpl implements AiArticleRepositoryCustom {
     @Override
     public Map<Long, Boolean> existsAiArticleByLinkuIds(Collection<Long> linkuIds) {
         List<Tuple> results = queryFactory
-                .select(aiArticle.linku.linkuId, aiArticle.title)
+                .select(aiArticle.linku.linkuId, aiArticle.summary)
                 .from(aiArticle)
                 .where(aiArticle.linku.linkuId.in(linkuIds))
                 .fetch();
@@ -45,8 +45,8 @@ public class AiArticleRepositoryImpl implements AiArticleRepositoryCustom {
                 .collect(Collectors.toMap(
                         tuple -> tuple.get(aiArticle.linku.linkuId),
                         tuple -> {
-                            String title = tuple.get(aiArticle.title);
-                            return title != null && !title.isBlank();
+                            String summary = tuple.get(aiArticle.summary);
+                            return summary != null && !summary.isBlank();
                         },
                         (a, b) -> a
                 ));

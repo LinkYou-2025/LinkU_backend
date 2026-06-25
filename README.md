@@ -154,3 +154,10 @@ backend-server/
 
 # erd
 <img width="5340" height="2092" alt="linkU-BE" src="https://github.com/user-attachments/assets/920add42-371d-4b07-b7af-52fda4b913c2" />
+
+## Copyright
+
+© 2025 LinkU Team. All rights reserved.
+
+This project and its source code are proprietary and confidential.
+Unauthorized copying, modification, distribution, or use of this software is strictly prohibited.

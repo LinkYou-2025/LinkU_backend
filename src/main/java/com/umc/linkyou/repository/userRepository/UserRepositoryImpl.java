@@ -28,7 +28,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
     private final QUsersLinku usersLinku = QUsersLinku.usersLinku;
     private final QUsersFolder usersFolder = QUsersFolder.usersFolder;
     private final QAuthAccount authAccount = QAuthAccount.authAccount;
-//    private final QLinku linku = QLinku.linku1;
+//    private final QLinku linku = QLinku.linku;
 //    private final QAiArticle aiArticle = QAiArticle.aiArticle;
 //    private final QFolder folder = QFolder.folder;
 //    private final QJob job = QJob.job;

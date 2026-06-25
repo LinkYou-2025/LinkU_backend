@@ -3,6 +3,7 @@ package com.umc.linkyou.utils;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 
 import javax.net.ssl.SSLHandshakeException;
@@ -14,6 +15,19 @@ import java.net.URL;
 import java.util.List;
 
 public class UrlValidUtils {
+    /*
+    * 링크 생성/ 수정 시 정상 url확인
+    * */
+    public static void validateLinkuUrl(String url) {
+        if (isVideoLink(url)) {
+            throw new GeneralException(LinkuErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
+        }
+
+        if (!isValidUrl(url)) {
+            throw new GeneralException(LinkuErrorStatus._LINKU_INVALID_URL);
+        }
+    }
+
     /**
      * 영상 플랫폼 링크 여부 판별
      */

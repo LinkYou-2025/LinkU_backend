@@ -1,18 +1,18 @@
 spring:
   datasource:
-    url: jdbc:tc:postgresql:16:///linku_test
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
-    username: test
-    password: test
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
 
   jpa:
     hibernate:
       ddl-auto: create-drop
     show-sql: false
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: org.hibernate.dialect.H2Dialect
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: org.hibernate.dialect.H2Dialect
         default_batch_fetch_size: 100
 
   sql:
@@ -23,3 +23,10 @@ spring:
     redis:
       host: localhost
       port: 6379
+      url: redis://localhost:6379
+      timeout: 3000ms
+
+jwt:
+  redis:
+    host: localhost
+    port: 6379

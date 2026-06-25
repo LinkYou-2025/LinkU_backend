@@ -62,7 +62,7 @@ public class CurationLinku {
                 .curation(curation)
                 .usersLinku(usersLinku)
                 .type(CurationLinkuType.RECOMMENDED)
-                .url(usersLinku.getLinku().getLinku())
+                .url(usersLinku.getLinku().getLinkuUrl())
                 .title(usersLinku.getLinku().getTitle())
                 .imageUrl(imageUrl)
                 .build();

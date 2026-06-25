@@ -2,6 +2,7 @@ package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
@@ -20,14 +21,32 @@ import java.util.List;
 @RequestMapping("/linku")
 public interface LinkuApi {
 
-    @Operation(summary = "링크 생성", description = "새로운 링크를 생성합니다. URL, 메모, 감정 ID, 이미지를 포함할 수 있습니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._LINKU_INVALID_URL, ErrorStatus._LINKU_VIDEO_NOT_ALLOWED})
+    @Operation(
+            summary = "링크 생성",
+            description = """
+                    새로운 링크를 생성합니다.
+
+                    - **emotionId** (선택): 감정 ID. 미입력 시 AI 분류값이 사용됩니다.
+                    - **situationId** (선택): 상황 ID. 미입력 시 AI 분류값이 사용됩니다. 입력 시 사용자의 직업(job)에 해당하는 상황만 선택 가능합니다.
+                      - job_id 1 → situation 1~8
+                      - job_id 2 → situation 9~16
+                      - job_id 3 → situation 17~24
+                      - job_id 4 → situation 25~32
+                      - job_id 5 → situation 33~40
+                      - job_id 6 → situation 41~48
+                    - **title** (선택): 미입력 시 AI 분석값이 사용됩니다.
+                    - **image** (선택): 대표 이미지. 미첨부 시 URL에서 자동 추출합니다.
+                    """
+    )
+    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_INVALID_URL, LinkuErrorStatus._LINKU_VIDEO_NOT_ALLOWED, LinkuErrorStatus._KEYWORD_NOT_FOUND, LinkuErrorStatus._SITUATION_NOT_MATCH_JOB})
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> createLinku(
             @CurrentUser CustomUserDetails userDetails,
             @RequestParam String linku,
             @RequestParam(required = false) String memo,
             @RequestParam(required = false) Long emotionId,
+            @RequestParam(required = false) Long situationId,
+            @RequestParam(required = false) String title,
             @RequestParam(required = false) MultipartFile image
     );
 
@@ -39,7 +58,7 @@ public interface LinkuApi {
     );
 
     @Operation(summary = "링크 상세 조회 (인증된 사용자)", description = "인증된 사용자의 링크 상세 정보를 조회합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._LINKU_NOT_FOUND, ErrorStatus._USER_LINKU_NOT_FOUND})
+    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
     @GetMapping("/{linkuid}")
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
             @CurrentUser CustomUserDetails userDetails,
@@ -47,7 +66,7 @@ public interface LinkuApi {
     );
 
     @Operation(summary = "링크 상세 조회 (사용자 ID 지정)", description = "특정 사용자 ID와 링크 ID로 링크 상세 정보를 조회합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._LINKU_NOT_FOUND, ErrorStatus._USER_LINKU_NOT_FOUND})
+    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
     @GetMapping("/{userId}/{linkuId}")
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
             @PathVariable Long userId,
@@ -62,7 +81,7 @@ public interface LinkuApi {
     );
 
     @Operation(summary = "링크 수정", description = "기존 링크의 정보(URL, 메모, 감정, 도메인, 제목 등)를 수정합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._LINKU_NOT_FOUND, ErrorStatus._USER_LINKU_NOT_FOUND})
+    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
     @PatchMapping(value = "/{linkuId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(
             @CurrentUser CustomUserDetails userDetails,
@@ -89,7 +108,7 @@ public interface LinkuApi {
     );
 
     @Operation(summary = "링크 삭제", description = "사용자가 저장한 링크를 삭제합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._USER_LINKU_NOT_FOUND})
+    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._USER_LINKU_NOT_FOUND})
     @DeleteMapping("/{userLinkuId}")
     ApiResponse<Object> deleteUsersLinku(
             @CurrentUser CustomUserDetails userDetails,

@@ -1,7 +1,7 @@
 package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
@@ -25,7 +25,7 @@ public interface CategoryApi {
     );
 
     @Operation(summary = "유저 카테고리(중분류 폴더) 색상 수정", description = "사용자의 카테고리(중분류 폴더) 색상을 수정합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._CATEGORY_NOT_FOUND})
+    @ApiErrorCode(categoryErrorStatus = {CategoryErrorStatus._CATEGORY_NOT_FOUND})
     @PutMapping("/{categoryId}/color")
     ApiResponse<UserCategoryColorResponseDTO> updateUserCategoryColor(
             @CurrentUser CustomUserDetails userDetails,

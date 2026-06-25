@@ -12,10 +12,12 @@ import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.classification.JobRepository;
 import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.web.dto.UserRequestDTO;
+import com.umc.linkyou.support.config.TestExternalConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.sql.init.mode=never"
 })
+@Import(TestExternalConfig.class)
 @Transactional
 public class UserRegistrationIntegrationTest {
     @MockitoBean

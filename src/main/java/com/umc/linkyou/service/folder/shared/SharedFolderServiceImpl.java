@@ -1,6 +1,6 @@
 package com.umc.linkyou.service.folder.shared;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.domain.Users;
@@ -64,7 +64,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
                 .collect(Collectors.groupingBy(folder -> {
                     Users owner = folderOwnerMap.get(folder.getFolderId());
                     if (owner == null) {
-                        throw new GeneralException(ErrorStatus._FOLDER_OWNER_NOT_FOUND);
+                        throw new GeneralException(FolderErrorStatus._FOLDER_OWNER_NOT_FOUND);
                     }
                     return owner.getId();
                 }));
@@ -98,11 +98,11 @@ public class SharedFolderServiceImpl implements SharedFolderService {
         // 폴더 조회
         UsersFolder usersFolder = usersFolderRepository
                 .findByUserIdAndFolderId(userId, folderId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
 
         // 소유자는 이 API로 삭제 불가 (소유자는 FolderController.deleteFolder 사용)
         if (usersFolder.getPermissionType() == PermissionType.OWNER) {
-            throw new GeneralException(ErrorStatus._FOLDER_DELETE_FORBIDDEN);
+            throw new GeneralException(FolderErrorStatus._FOLDER_DELETE_FORBIDDEN);
         }
 
         // 유저 폴더 테이블에서 삭제

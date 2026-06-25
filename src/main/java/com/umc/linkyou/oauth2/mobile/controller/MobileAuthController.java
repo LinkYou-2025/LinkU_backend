@@ -4,8 +4,8 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.oauth2.mobile.dto.MobileLoginRequest;
 import com.umc.linkyou.oauth2.mobile.dto.MobileLoginResponse;
 import com.umc.linkyou.oauth2.mobile.service.GoogleMobileAuthService;
-import com.umc.linkyou.oauth2.mobile.service.KakaoMobileAuthService;  // ✅ 추가
-import com.umc.linkyou.oauth2.mobile.service.NaverMobileAuthService;  // ✅ 추가
+import com.umc.linkyou.oauth2.mobile.service.KakaoMobileAuthService;
+import com.umc.linkyou.oauth2.mobile.service.NaverMobileAuthService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
