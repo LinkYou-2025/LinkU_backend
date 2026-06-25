@@ -12,13 +12,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Setter
+
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "users_linku")
+@Table(name = "users_linkus")
 public class UsersLinku extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -67,6 +67,10 @@ public class UsersLinku extends BaseEntity {
 
     public Boolean getAiExist() {
         return this.aiExist;
+    }
+
+    public void markAiExist(boolean aiExist) {
+        this.aiExist = aiExist;
     }
 
     @Builder.Default

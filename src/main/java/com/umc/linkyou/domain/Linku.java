@@ -11,13 +11,12 @@ import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@Setter
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "linku")
+@Table(name = "linkus")
 public class Linku extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -54,4 +53,8 @@ public class Linku extends BaseEntity {
     @Builder.Default
     @Column(name = "total_view_count", nullable = false)
     private long totalViewCount = 0L;
+
+    public void assignAiArticle(AiArticle aiArticle) {
+        this.aiArticle = aiArticle;
+    }
 }

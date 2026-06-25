@@ -5,9 +5,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "ai_article")
+@Table(name = "ai_articles")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -27,4 +26,8 @@ public class AiArticle extends BaseEntity {
 
     @Column(name = "summary", nullable = false, length = 255)
     private String summary;
+
+    public void updateSummary(String summary) {
+        this.summary = summary;
+    }
 }
