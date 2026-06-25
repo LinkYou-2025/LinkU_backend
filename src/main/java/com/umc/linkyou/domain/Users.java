@@ -1,113 +1,96 @@
 package com.umc.linkyou.domain;
 
-import com.umc.linkyou.domain.classification.Interests;
 import com.umc.linkyou.domain.classification.Job;
-import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.domain.common.BaseEntity;
 import com.umc.linkyou.domain.enums.*;
-import com.umc.linkyou.domain.folder.FolderShareLink;
-import com.umc.linkyou.domain.mapping.CurationLike;
-import com.umc.linkyou.domain.mapping.LinkuFolder;
-import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
-import com.umc.linkyou.domain.mapping.folder.UsersFolder;
+import io.hypersistence.utils.hibernate.id.Tsid;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
-@Setter
+@Table(name = "users")
 public class Users extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Tsid
     @Column(name = "user_id")
     private Long id;
 
 
     @NotNull
+    @Column(name = "password")
     private String password;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "nick_name", nullable = false, unique = true)
     private String nickName;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "gender")
     private Gender gender;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_id", nullable = true)
     private Job job;
 
-
-
     @Enumerated(EnumType.STRING)
     @Builder.Default
+    @Column(name = "role")
     private Role role = Role.USER;
     // enum 값은 USER로 저장하고, authority 문자열은 "ROLE_USER"로 꺼내 씀
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
+    @Column(name = "status")
     private UserStatus status = UserStatus.ACTIVE;
 
+    @Column(name = "inactive_date")
     private LocalDateTime inactiveDate;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "deleted_reason", columnDefinition = "TEXT")
     private String deleted_reason;
-
-    //CASCADE
-    @Builder.Default
-    @OneToMany(mappedBy ="user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Purposes> purposes = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy ="user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Interests> interests = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UsersFolder> usersFoldersList = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UsersCategoryColor> usersCategoryColorList = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<AuthAccount> authAccounts = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UsersLinku> usersLinkus = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UserAlarm> userAlarms = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UsersFcmToken> userFcmTokens = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Curation> curations = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CurationLike> curationLikes = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "creator", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<FolderShareLink> folderShareLinks = new ArrayList<>();
 
     public void encodePassword(String password) {
         this.password = password;
+    }
+
+    public void activate() {
+        this.status = UserStatus.ACTIVE;
+    }
+
+    public void updateNickname(String nickName) {
+        this.nickName = nickName;
+    }
+
+    public void completeSocialProfile(String nickName, Gender gender, Job job) {
+        this.nickName = nickName;
+        this.gender = gender;
+        this.job = job;
+        this.status = UserStatus.ACTIVE;
+    }
+
+    public void updateProfile(Job job, String nickName) {
+        this.job = job;
+        if (nickName != null) {
+            this.nickName = nickName;
+        }
+    }
+
+    public void withdraw(String reason, LocalDateTime inactiveDate) {
+        this.status = UserStatus.INACTIVE;
+        this.inactiveDate = inactiveDate;
+        this.deleted_reason = reason;
+    }
+
+    public void recover() {
+        this.status = UserStatus.ACTIVE;
+        this.inactiveDate = null;
+        this.deleted_reason = null;
     }
 }

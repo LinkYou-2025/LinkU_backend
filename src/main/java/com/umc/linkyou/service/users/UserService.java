@@ -5,15 +5,16 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
-import com.umc.linkyou.domain.classification.Interests;
-import com.umc.linkyou.domain.classification.Purposes;
-import com.umc.linkyou.domain.enums.*;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.RefreshTokenManager;
 import com.umc.linkyou.jwt.TokenIssueService;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.*;
+import com.umc.linkyou.domain.enums.DeviceType;
+import com.umc.linkyou.domain.enums.PermissionType;
+import com.umc.linkyou.domain.enums.Provider;
+import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.classification.Category;
@@ -106,11 +107,9 @@ public class UserService {
                     // 일반 로그인용 비밀번호 인코딩
                     newUser.encodePassword(passwordEncoder.encode(request.password()));
 
-                    // Purposes / Interests 설정
-                    replacePurposes(newUser, request.purposeList());
-                    replaceInterests(newUser, request.interestList());
-
                     Users savedUser = userRepository.save(newUser);
+                    purposeRepository.saveAll(UserConverter.toPurposes(savedUser, request.purposeList()));
+                    interestRepository.saveAll(UserConverter.toInterests(savedUser, request.interestList()));
                     termsAgreementService.upsertTerms(savedUser, request.termsMap());
                     setupUserAlarmSetting(savedUser);
                     return savedUser;
@@ -131,9 +130,9 @@ public class UserService {
 
         // 6. 상태 업데이트 및 초기 폴더 설정
         // 기존 유저가 있더라도 폴더가 없는 경우(TEMP 상태 등)를 대비해 체크 후 초기화
-        if (user.getStatus() == UserStatus.TEMP || user.getUsersFoldersList().isEmpty()) {
+        if (user.getStatus() == UserStatus.TEMP || !usersFolderRepository.existsByUser_Id(user.getId())) {
             initUserFolders(user);
-            user.setStatus(UserStatus.ACTIVE);
+            user.activate();
         }
 
         return user;
@@ -195,24 +194,25 @@ public class UserService {
         // 3. 필수 정보 업데이트
         Job job = jobRepository.findById(request.getJobId())
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
-        user.setNickName(request.getNickName());
-        user.setGender(UserConverter.toGender(request.getGender())); // 깔끔해짐
-        user.setJob(job);
+        user.completeSocialProfile(
+                request.getNickName(),
+                UserConverter.toGender(request.getGender()),
+                job
+        );
 
 
         // Purposes / Interests 설정
-        replacePurposes(user, request.getPurposeList());
-        replaceInterests(user, request.getInterestList());
+        purposeRepository.deleteAllByUser(user);
+        interestRepository.deleteAllByUser(user);
+        purposeRepository.saveAll(UserConverter.toPurposes(user, request.getPurposeList()));
+        interestRepository.saveAll(UserConverter.toInterests(user, request.getInterestList()));
 
         termsAgreementService.upsertTerms(user, request.getTermsMap());
 
         // 알림 설정
         setupUserAlarmSetting(user);
 
-        // 5. 상태 변경 → ACTIVE
-        user.setStatus(UserStatus.ACTIVE);
-
-        // 6. 저장 + 초기 폴더 생성
+        // 5. 저장 + 초기 폴더 생성
         Users savedUser = userRepository.save(user);
         initUserFolders(savedUser);
 
@@ -265,14 +265,6 @@ public class UserService {
         validateNickNameNotDuplicate(nickname);
     }
 
-    // 닉네임 조회
-    @Transactional(readOnly = true)
-    public UserResponseDTO.NicknameDTO getNickname(Long userId) {
-        Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
-        return new UserResponseDTO.NicknameDTO(user.getNickName());
-    }
-
     // 마이페이지 조회
     @Transactional
     public UserResponseDTO.UserProfileSummaryDto userInfo(Long userId, String loginProvider) {
@@ -295,15 +287,18 @@ public class UserService {
 
         Job job = jobRepository.findById(request.getJobId())
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
-        user.setJob(job);
 
+        String nickName = null;
         if (request.getNickname() != null && !request.getNickname().equals(user.getNickName())) {
             validateNickNameNotDuplicate(request.getNickname());
-            user.setNickName(request.getNickname());
+            nickName = request.getNickname();
         }
+        user.updateProfile(job, nickName);
 
-        replacePurposes(user, request.getPurposes());
-        replaceInterests(user, request.getInterests());
+        purposeRepository.deleteAllByUser(user);
+        interestRepository.deleteAllByUser(user);
+        purposeRepository.saveAll(UserConverter.toPurposes(user, request.getPurposes()));
+        interestRepository.saveAll(UserConverter.toInterests(user, request.getInterests()));
 
         userRepository.save(user);
     }
@@ -367,36 +362,6 @@ public class UserService {
         long ttlMs = jwtTokenProvider.getRemainingExpiryMs(accessToken);
         if (ttlMs > 0) {
             accessTokenBlackListManager.addToBlacklist(accessToken, ttlMs);
-        }
-    }
-
-
-    // purpose, interest 지우고 새 입력값으로 다시 세팅함
-    private void replacePurposes(Users user, List<String> purposeNames) {
-        if (purposeNames == null) return;
-
-        user.getPurposes().clear();
-
-        for (String name : purposeNames.stream().distinct().toList()) {
-            try {
-                user.getPurposes().add(UserConverter.toPurposeEntity(name, user));
-            } catch (IllegalArgumentException | NullPointerException e) {
-                throw new GeneralException(UserErrorStatus._INVALID_PURPOSE);
-            }
-        }
-    }
-
-    private void replaceInterests(Users user, List<String> interestNames) {
-        if (interestNames == null) return;
-
-        user.getInterests().clear();
-
-        for (String name : interestNames.stream().distinct().toList()) {
-            try {
-                user.getInterests().add(UserConverter.toInterestEntity(name, user));
-            } catch (IllegalArgumentException | NullPointerException e) {
-                throw new GeneralException(UserErrorStatus._INVALID_INTEREST);
-            }
         }
     }
 }

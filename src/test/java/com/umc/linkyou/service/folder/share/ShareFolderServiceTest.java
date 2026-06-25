@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -45,7 +46,7 @@ class ShareFolderServiceTest {
 
     private UsersFolder targetUsersFolder(PermissionType type) {
         UsersFolder uf = participant(MEMBER_ID, type);
-        uf.setUpdatedAt(LocalDateTime.now());
+        ReflectionTestUtils.setField(uf, "updatedAt", LocalDateTime.now());
         return uf;
     }
 

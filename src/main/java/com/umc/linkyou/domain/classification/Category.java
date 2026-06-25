@@ -12,18 +12,18 @@ import java.util.List;
 
 // 폴더 카테고리 (중분류)
 @Entity
-@Table(name = "category")
+@Table(name = "categories")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "category_id")
     private Long categoryId;
 
-    @Column(length = 100, nullable = false)
+    @Column(name = "category_name", length = 100, nullable = false)
     private String categoryName;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -31,11 +31,14 @@ public class Category {
     private Fcolor fcolor;
 
     @OneToMany(mappedBy = "category")
+    @Builder.Default
     private List<Linku> linkuList = new ArrayList<>();
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<Folder> folderList = new ArrayList<>();
 
     @OneToMany(mappedBy = "category")
+    @Builder.Default
     private List<UsersCategoryColor> usersCategoryColorList = new ArrayList<>();
 }

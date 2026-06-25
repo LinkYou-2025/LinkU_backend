@@ -52,7 +52,7 @@ public class UserSocialLoginHelper {
                 if (!normalizedInput.isEmpty() && !normalizedInput.equals(user.getNickName())) {
                     // generateUniqueNickname에 현재 user 객체를 넘겨서 자기 자신은 중복에서 제외하게 함
                     String uniqueNickname = generateUniqueNickname(normalizedInput, email, user);
-                    user.setNickName(uniqueNickname);
+                    user.updateNickname(uniqueNickname);
                     log.debug("기존 사용자 닉네임 동기화: userId={}, nickname={}", user.getId(), uniqueNickname);
                 }
             }
@@ -175,4 +175,3 @@ public class UserSocialLoginHelper {
         return finalCandidate;
     }
 }
-

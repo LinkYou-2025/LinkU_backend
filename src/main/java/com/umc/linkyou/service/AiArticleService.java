@@ -51,7 +51,7 @@ public class AiArticleService {
 
         AiArticle article = aiArticleRepository.findByLinku(linku)
                 .map(existing -> {
-                    existing.setSummary(result.summary());
+                    existing.updateSummary(result.summary());
                     return existing;
                 })
                 .orElseGet(() -> aiArticleRepository.save(
@@ -59,9 +59,9 @@ public class AiArticleService {
                 ));
 
         if (linku.getAiArticle() == null || !linku.getAiArticle().equals(article)) {
-            linku.setAiArticle(article);
+            linku.assignAiArticle(article);
         }
-        usersLinku.setAiExist(true);
+        usersLinku.markAiExist(true);
 
         return AiArticleConverter.toDto(article, linku, usersLinku);
     }

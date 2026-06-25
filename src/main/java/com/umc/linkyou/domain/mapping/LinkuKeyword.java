@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "linku_keyword",
+@Table(name = "linku_keywords",
         uniqueConstraints = @UniqueConstraint(name = "uq_linku_keyword", columnNames = {"linku_id", "keyword_id"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
