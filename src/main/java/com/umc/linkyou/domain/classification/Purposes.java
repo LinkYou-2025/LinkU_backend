@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "purposes")
 public class Purposes {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

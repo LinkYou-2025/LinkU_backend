@@ -36,9 +36,11 @@ public class Folder extends BaseEntity {
     private Folder parentFolder;
 
     @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<LinkuFolder> linkuFolderList = new ArrayList<>();
 
     @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<UsersFolder> usersFolderList = new ArrayList<>();
 
     public void updateFolderName(String folderName) {

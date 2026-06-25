@@ -51,6 +51,7 @@ public class UsersLinku extends BaseEntity {
     private Linku linku;
 
     @OneToMany(mappedBy = "usersLinku", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<LinkuFolder> linkuFolders = new ArrayList<>();
 
     @Builder.Default
@@ -58,11 +59,11 @@ public class UsersLinku extends BaseEntity {
     private Boolean aiExist = false;
 
     @Builder.Default
-    @Column(name = "is_emotion_ai", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
+    @Column(name = "is_emotion_ai", nullable = false)
     private Boolean emotionAi = true;
 
     @Builder.Default
-    @Column(name = "is_situation_ai", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
+    @Column(name = "is_situation_ai", nullable = false)
     private Boolean situationAi = true;
 
     public Boolean getAiExist() {
@@ -71,6 +72,26 @@ public class UsersLinku extends BaseEntity {
 
     public void markAiExist(boolean aiExist) {
         this.aiExist = aiExist;
+    }
+
+    public void updateMemo(String memo) {
+        this.memo = memo;
+    }
+
+    public void updateEmotion(Emotion emotion) {
+        this.emotion = emotion;
+    }
+
+    public void updateEmotionAi(boolean emotionAi) {
+        this.emotionAi = emotionAi;
+    }
+
+    public void updateSituation(Situation situation) {
+        this.situation = situation;
+    }
+
+    public void updateSituationAi(boolean situationAi) {
+        this.situationAi = situationAi;
     }
 
     @Builder.Default

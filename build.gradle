@@ -125,6 +125,10 @@ tasks.withType(JavaCompile) {
 
 test {
 	useJUnitPlatform()
+	// Testcontainers(docker-java)가 기본 1.32로 요청해 최신 Docker 데몬(min 1.44)에 거부당하는 문제 회피.
+	// docker-java 는 시스템 프로퍼티 api.version / 환경변수 DOCKER_API_VERSION 둘 다 읽음.
+	systemProperty 'api.version', System.getProperty('api.version') ?: '1.44'
+	environment 'DOCKER_API_VERSION', System.getenv('DOCKER_API_VERSION') ?: '1.44'
 	finalizedBy jacocoTestReport
 }
 

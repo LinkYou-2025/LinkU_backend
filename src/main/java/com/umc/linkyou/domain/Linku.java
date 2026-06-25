@@ -41,6 +41,7 @@ public class Linku extends BaseEntity {
     private String title;
 
     @OneToMany(mappedBy = "linku", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<UsersLinku> usersLinku = new ArrayList<>();
 
     @Builder.Default
@@ -56,5 +57,21 @@ public class Linku extends BaseEntity {
 
     public void assignAiArticle(AiArticle aiArticle) {
         this.aiArticle = aiArticle;
+    }
+
+    public void updateCategory(Category category) {
+        this.category = category;
+    }
+
+    public void updateUrl(String linkuUrl) {
+        this.linkuUrl = linkuUrl;
+    }
+
+    public void updateDomain(Domain domain) {
+        this.domain = domain;
+    }
+
+    public void updateTitle(String title) {
+        this.title = title;
     }
 }

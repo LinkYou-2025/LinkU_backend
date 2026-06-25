@@ -36,6 +36,7 @@ public class UsersFcmToken extends BaseEntity {
     private LocalDateTime expiresAt;
 
     @Column(name = "is_active")
+    @Builder.Default
     private Boolean isActive = true;
 
     private static final int TOKEN_EXPIRE_DAYS = 60;

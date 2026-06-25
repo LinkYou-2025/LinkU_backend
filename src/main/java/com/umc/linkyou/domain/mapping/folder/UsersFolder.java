@@ -26,6 +26,7 @@ public class UsersFolder extends BaseEntity {
     private PermissionType permissionType;
 
     @Column(name = "is_bookmarked")
+    @Builder.Default
     private Boolean isBookmarked = false;
 
     @ManyToOne(fetch = FetchType.LAZY)

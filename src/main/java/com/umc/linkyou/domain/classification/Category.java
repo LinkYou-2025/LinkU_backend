@@ -31,11 +31,14 @@ public class Category {
     private Fcolor fcolor;
 
     @OneToMany(mappedBy = "category")
+    @Builder.Default
     private List<Linku> linkuList = new ArrayList<>();
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<Folder> folderList = new ArrayList<>();
 
     @OneToMany(mappedBy = "category")
+    @Builder.Default
     private List<UsersCategoryColor> usersCategoryColorList = new ArrayList<>();
 }
