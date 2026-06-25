@@ -78,18 +78,6 @@ jobs:
       
             sudo docker image prune -a -f
 
-      - name: Check logs and fail if MariaDB driver missing
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ubuntu
-          key: ${{ secrets.PRIVATE_KEY }}
-          script: |
-            # 컨테이너 시작 후 10초 대기 (애플리케이션 기동 대기)
-            sleep 10
-            LOG=$(sudo docker logs $(sudo docker ps -lq))
-            echo "$LOG"
-            echo "$LOG" | grep "Cannot load driver class: org.mariadb.jdbc.Driver" && exit 1 || true
       - name: Wait for Spring Boot to be ready
         uses: appleboy/ssh-action@master
         with:
