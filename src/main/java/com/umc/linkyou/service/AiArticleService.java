@@ -81,11 +81,13 @@ public class AiArticleService {
         // 5. AiArticle 저장 또는 업데이트 (Dirty Checking 활용)
         AiArticle article = aiArticleRepository.findByLinku(linku)
                 .map(existing -> {
-                    existing.setTitle(result.title());
-                    existing.setSummary(result.summary());
-                    existing.setAiCategoryId(selectedCategory.getCategoryId());
-                    existing.setAiFeelingId(userSelectedEmotion.getEmotionId()); // 생성 시점 감정 반영
-                    existing.setImgUrl(imageUrl);
+                    existing.updateContent(
+                            result.title(),
+                            result.summary(),
+                            selectedCategory.getCategoryId(),
+                            userSelectedEmotion.getEmotionId(),
+                            imageUrl
+                    );
                     return existing;
                 })
                 .orElseGet(() -> aiArticleRepository.save(
@@ -94,9 +96,9 @@ public class AiArticleService {
 
         // 6. 연관관계 및 상태 업데이트
         if (linku.getAiArticle() == null || !linku.getAiArticle().equals(article)) {
-            linku.setAiArticle(article);
+            linku.updateAiArticle(article);
         }
-        usersLinku.setAiExist(true);
+        usersLinku.markAiExist();
 
         // 7. DTO 반환
         return AiArticleConverter.toDto(article, linku, usersLinku, defaultSituation, userSelectedEmotion, selectedCategory);

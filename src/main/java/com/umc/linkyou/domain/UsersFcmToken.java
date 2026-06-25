@@ -3,11 +3,13 @@ package com.umc.linkyou.domain;
 import com.umc.linkyou.domain.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_fcm_token")
+@Table(name = "user_fcm_tokens")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED, force = true)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
@@ -21,9 +23,10 @@ public class UsersFcmToken extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Users user;
 
-    @Column(columnDefinition = "text", nullable = false)
+    @Column(name = "fcm_token", columnDefinition = "text", nullable = false)
     private String fcmToken;
 
     @Column(name = "last_used_at")

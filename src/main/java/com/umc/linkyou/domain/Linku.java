@@ -10,16 +10,16 @@ import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@Setter
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "linku")
+@Table(name = "linkus")
 public class Linku extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "linku_id")
     private Long linkuId;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -30,14 +30,13 @@ public class Linku extends BaseEntity {
     @JoinColumn(name = "domain_id", nullable = false)
     private Domain domain;
 
-    @Column(columnDefinition = "text", nullable = false)
+    @Column(name = "linku", columnDefinition = "text", nullable = false)
     private String linku;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "aiArticle_id")
+    @OneToOne(mappedBy = "linku", fetch = FetchType.LAZY)
     private AiArticle aiArticle;
 
-    @Column(columnDefinition = "text", nullable = false)
+    @Column(name = "title", columnDefinition = "text", nullable = false)
     private String title;
 
     @OneToMany(mappedBy = "linku", cascade = CascadeType.ALL)
@@ -46,4 +45,24 @@ public class Linku extends BaseEntity {
     @Builder.Default
     @Column(name = "total_view_count", nullable = false)
     private long totalViewCount = 0L;
+
+    public void updateCategory(Category category) {
+        this.category = category;
+    }
+
+    public void updateDomain(Domain domain) {
+        this.domain = domain;
+    }
+
+    public void updateUrl(String linku) {
+        this.linku = linku;
+    }
+
+    public void updateTitle(String title) {
+        this.title = title;
+    }
+
+    public void updateAiArticle(AiArticle aiArticle) {
+        this.aiArticle = aiArticle;
+    }
 }

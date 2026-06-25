@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "folder")
+@Table(name = "folders")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,10 +19,10 @@ import java.util.List;
 public class Folder extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "folder_id")
     private Long folderId;
 
-    @Setter
-    @Column(length = 255, nullable = false)
+    @Column(name = "folder_name", length = 255, nullable = false)
     private String folderName;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -40,4 +40,8 @@ public class Folder extends BaseEntity {
 
     @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL)
     private List<UsersFolder> usersFolderList = new ArrayList<>();
+
+    public void updateFolderName(String folderName) {
+        this.folderName = folderName;
+    }
 }

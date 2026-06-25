@@ -107,11 +107,9 @@ public class UserService {
                     // 일반 로그인용 비밀번호 인코딩
                     newUser.encodePassword(passwordEncoder.encode(request.password()));
 
-                    // Purposes / Interests 설정
-                    UserConverter.setupUserPurposes(newUser, request.purposeList());
-                    UserConverter.setupUserInterests(newUser, request.interestList());
-
                     Users savedUser = userRepository.save(newUser);
+                    purposeRepository.saveAll(UserConverter.toPurposes(savedUser, request.purposeList()));
+                    interestRepository.saveAll(UserConverter.toInterests(savedUser, request.interestList()));
                     termsAgreementService.upsertTerms(savedUser, request.termsMap());
                     setupUserAlarmSetting(savedUser);
                     return savedUser;
@@ -132,9 +130,9 @@ public class UserService {
 
         // 6. 상태 업데이트 및 초기 폴더 설정
         // 기존 유저가 있더라도 폴더가 없는 경우(TEMP 상태 등)를 대비해 체크 후 초기화
-        if (user.getStatus() == UserStatus.TEMP || user.getUsersFoldersList().isEmpty()) {
+        if (user.getStatus() == UserStatus.TEMP || !usersFolderRepository.existsByUser_Id(user.getId())) {
             initUserFolders(user);
-            user.setStatus(UserStatus.ACTIVE);
+            user.activate();
         }
 
         return user;
@@ -196,24 +194,25 @@ public class UserService {
         // 3. 필수 정보 업데이트
         Job job = jobRepository.findById(request.getJobId())
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
-        user.setNickName(request.getNickName());
-        user.setGender(UserConverter.toGender(request.getGender())); // 깔끔해짐
-        user.setJob(job);
+        user.completeSocialProfile(
+                request.getNickName(),
+                UserConverter.toGender(request.getGender()),
+                job
+        );
 
 
         // Purposes / Interests 설정
-        UserConverter.setupUserPurposes(user, request.getPurposeList());
-        UserConverter.setupUserInterests(user, request.getInterestList());
+        purposeRepository.deleteAllByUser(user);
+        interestRepository.deleteAllByUser(user);
+        purposeRepository.saveAll(UserConverter.toPurposes(user, request.getPurposeList()));
+        interestRepository.saveAll(UserConverter.toInterests(user, request.getInterestList()));
 
         termsAgreementService.upsertTerms(user, request.getTermsMap());
 
         // 알림 설정
         setupUserAlarmSetting(user);
 
-        // 5. 상태 변경 → ACTIVE
-        user.setStatus(UserStatus.ACTIVE);
-
-        // 6. 저장 + 초기 폴더 생성
+        // 5. 저장 + 초기 폴더 생성
         Users savedUser = userRepository.save(user);
         initUserFolders(savedUser);
 
@@ -288,15 +287,18 @@ public class UserService {
 
         Job job = jobRepository.findById(request.getJobId())
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
-        user.setJob(job);
 
+        String nickName = null;
         if (request.getNickname() != null && !request.getNickname().equals(user.getNickName())) {
             validateNickNameNotDuplicate(request.getNickname());
-            user.setNickName(request.getNickname());
+            nickName = request.getNickname();
         }
+        user.updateProfile(job, nickName);
 
-        UserConverter.setupUserPurposes(user, request.getPurposes());
-        UserConverter.setupUserInterests(user, request.getInterests());
+        purposeRepository.deleteAllByUser(user);
+        interestRepository.deleteAllByUser(user);
+        purposeRepository.saveAll(UserConverter.toPurposes(user, request.getPurposes()));
+        interestRepository.saveAll(UserConverter.toInterests(user, request.getInterests()));
 
         userRepository.save(user);
     }

@@ -91,28 +91,18 @@ public class UserConverter {
 
 
 
-    public static void setupUserPurposes(Users user, List<String> purposeNames) {
-        if (purposeNames == null) return;
-        if (user.getPurposes() != null) {
-            user.getPurposes().clear();
-        }
-        if (!purposeNames.isEmpty()) {
-            purposeNames.stream()
-                    .map(name -> new Purposes(name, user))
-                    .forEach(purpose -> user.getPurposes().add(purpose));
-        }
+    public static List<Purposes> toPurposes(Users user, List<String> purposeNames) {
+        if (purposeNames == null || purposeNames.isEmpty()) return List.of();
+        return purposeNames.stream()
+                .map(name -> new Purposes(name, user))
+                .toList();
     }
 
     // 엔티티의 초기 Interests 설정
-    public static void setupUserInterests(Users user, List<String> interestNames) {
-        if (interestNames == null) return;
-        if (user.getInterests() != null) {
-            user.getInterests().clear();
-        }
-        if (!interestNames.isEmpty()) {
-            interestNames.stream()
-                    .map(name -> new Interests(name, user))
-                    .forEach(interest -> user.getInterests().add(interest));
-        }
+    public static List<Interests> toInterests(Users user, List<String> interestNames) {
+        if (interestNames == null || interestNames.isEmpty()) return List.of();
+        return interestNames.stream()
+                .map(name -> new Interests(name, user))
+                .toList();
     }
 }

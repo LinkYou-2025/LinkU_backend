@@ -172,7 +172,7 @@ public class LinkuCreateService {
             Situation defaultSituation = situationRepository.findById(1L)
                     .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
             AiArticle aiArticle = AiArticleConverter.toEntityKeywordOnly(aiKeywords, linku, defaultSituation, category, emotion);
-            linku.setAiArticle(aiArticle);
+            linku.updateAiArticle(aiArticle);
             aiArticleRepository.save(aiArticle);
         }
     }

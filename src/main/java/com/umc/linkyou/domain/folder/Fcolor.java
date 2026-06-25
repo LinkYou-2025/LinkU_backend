@@ -9,30 +9,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "fcolor")
+@Table(name = "fcolors")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Fcolor {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "fcolor_id")
     private Long fcolorId;
 
-    @Column(length = 50, nullable = false)
+    @Column(name = "color_name", length = 50, nullable = false)
     private String colorName;
 
-    @Column(length = 20, nullable = false)
+    @Column(name = "color_code_1", length = 20, nullable = false)
     private String colorCode1;
 
-    @Column(length = 20, nullable = false)
+    @Column(name = "color_code_2", length = 20, nullable = false)
     private String colorCode2;
 
-    @Column(length = 20, nullable = false)
+    @Column(name = "color_code_3", length = 20, nullable = false)
     private String colorCode3;
 
-    @Column(length = 20, nullable = false)
+    @Column(name = "color_code_4", length = 20, nullable = false)
     private String colorCode4;
 
     @OneToMany(mappedBy = "fcolor")

@@ -103,7 +103,7 @@ dependencies {
 	asciidoctorExt 'org.springframework.restdocs:spring-restdocs-asciidoctor'
 	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
 
-	implementation 'io.hypersistence:hypersistence-utils-hibernate-60:3.5.1'
+	implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.15.3'
 }
 
 clean {

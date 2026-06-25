@@ -133,7 +133,6 @@ class UserServiceImplTest {
                 Users tempUser = Users.builder()
                         .id(1L)
                         .status(UserStatus.TEMP)
-                        .usersFoldersList(new ArrayList<>())
                         .build();
 
                 UserRequestDTO.SocialCompleteDTO request = new UserRequestDTO.SocialCompleteDTO(
@@ -143,6 +142,7 @@ class UserServiceImplTest {
                 when(userRepository.findById(eq(tempUser.getId()))).thenReturn(Optional.of(tempUser));
                 when(userRepository.findByNickName(eq("완성닉네임"))).thenReturn(Optional.empty());
                 when(jobRepository.findById(anyLong())).thenReturn(Optional.of(Job.builder().id(1L).build()));
+                when(usersFolderRepository.existsByUser_Id(eq(tempUser.getId()))).thenReturn(false);
                 when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
                 when(categoryRepository.findAll()).thenReturn(new ArrayList<>());
                 when(usersCategoryColorRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));

@@ -172,7 +172,7 @@ public class LinkuServiceImpl implements LinkuService {
                     .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId())
                     .orElse(null);
             if (linkuFolder != null) {
-                linkuFolder.setFolder(folder);
+                linkuFolder.updateFolder(folder);
                 linkuFolderRepository.save(linkuFolder);
             }
         }
@@ -181,19 +181,19 @@ public class LinkuServiceImpl implements LinkuService {
         if (dto.getCategoryId() != null) {
             Category category = categoryRepository.findById(dto.getCategoryId())
                     .orElseThrow(() -> new GeneralException(ErrorStatus._CATEGORY_NOT_FOUND));
-            linku.setCategory(category);
+            linku.updateCategory(category);
             linkuModified = true;
         }
 
         // 5. 링크 주소(URL) 변경
         if (dto.getLinku() != null) {
-            linku.setLinku(dto.getLinku());
+            linku.updateUrl(dto.getLinku());
             linkuModified = true;
         }
 
         // 6. 메모 변경 (내가 작성한 메모)
         if (dto.getMemo() != null) {
-            usersLinku.setMemo(dto.getMemo());
+            usersLinku.updateMemo(dto.getMemo());
             usersLinkuModified = true;
         }
 
@@ -201,7 +201,7 @@ public class LinkuServiceImpl implements LinkuService {
         if (dto.getEmotionId() != null) {
             Emotion emotion = emotionRepository.findById(dto.getEmotionId())
                     .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
-            usersLinku.setEmotion(emotion);
+            usersLinku.updateEmotion(emotion);
             usersLinkuModified = true;
         }
 
@@ -209,13 +209,13 @@ public class LinkuServiceImpl implements LinkuService {
         if (dto.getDomainId() != null) {
             Domain domain = domainRepository.findById(dto.getDomainId())
                     .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND));
-            linku.setDomain(domain);
+            linku.updateDomain(domain);
             linkuModified = true;
         }
 
         // 9. 제목(title) 변경
         if (dto.getTitle() != null) {
-            linku.setTitle(dto.getTitle());
+            linku.updateTitle(dto.getTitle());
             linkuModified = true;
         }
 
@@ -262,4 +262,3 @@ public class LinkuServiceImpl implements LinkuService {
 
 
 }
-

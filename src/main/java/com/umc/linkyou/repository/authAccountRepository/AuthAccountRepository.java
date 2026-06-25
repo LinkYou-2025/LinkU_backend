@@ -13,4 +13,6 @@ public interface AuthAccountRepository extends JpaRepository<AuthAccount, Long>,
     boolean existsByProviderAndExternalId(Provider provider, String externalId);
     Optional<AuthAccount> findByUserIdAndProvider(Long userId, Provider provider);
     boolean existsByEmail(String email);
+
+    void deleteAllByUser_Id(Long userId);
 }

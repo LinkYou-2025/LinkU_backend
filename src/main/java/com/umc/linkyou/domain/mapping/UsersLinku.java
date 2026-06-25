@@ -6,35 +6,39 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Setter
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "users_linku")
+@Table(name = "users_linkus")
 public class UsersLinku extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_linku_id")
     private Long userLinkuId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "emotion_id", nullable = false)
     private Emotion emotion;
 
+    @Column(name = "memo")
     private String memo;
 
-    @Column(columnDefinition = "text")
+    @Column(name = "image_url", columnDefinition = "text")
     private String imageUrl;
 
     // 연관관계: Users
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Users user;
 
     // 연관관계: Linku
@@ -59,4 +63,16 @@ public class UsersLinku extends BaseEntity {
 
     @Column(name = "last_viewed_at")
     private LocalDateTime lastViewedAt;
+
+    public void updateMemo(String memo) {
+        this.memo = memo;
+    }
+
+    public void updateEmotion(Emotion emotion) {
+        this.emotion = emotion;
+    }
+
+    public void markAiExist() {
+        this.aiExist = true;
+    }
 }

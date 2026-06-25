@@ -128,7 +128,7 @@ public class FolderServiceImpl implements FolderService {
                 throw new GeneralException(ErrorStatus._FOLDER_CREATE_DUPLICATE);
             }
 
-            folder.setFolderName(req.getFolderName());
+            folder.updateFolderName(req.getFolderName());
         }
 
         return folderConverter.toFolderResponseDTO(folder, usersFolder.getIsBookmarked());
@@ -252,7 +252,7 @@ public class FolderServiceImpl implements FolderService {
     public BookmarkUpdateResponseDTO updateBookmark(Long userId, Long folderId, Boolean isBookmarked) {
         UsersFolder usersFolder = usersFolderRepository.findByUserIdAndFolderId(userId, folderId).orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND));
 
-        usersFolder.setIsBookmarked(isBookmarked);
+        usersFolder.updateBookmark(isBookmarked);
 
         return BookmarkUpdateResponseDTO.builder()
                 .folderId(usersFolder.getFolder().getFolderId())

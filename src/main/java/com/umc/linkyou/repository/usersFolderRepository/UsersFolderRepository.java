@@ -12,6 +12,8 @@ import java.util.Optional;
 import java.util.Set;
 
 public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>, UsersFolderRepositoryCustom {
+    boolean existsByUser_Id(Long userId);
+
     // 유저id랑 폴더id로 관계 엔티티 조회
     @Query("""
         select uf

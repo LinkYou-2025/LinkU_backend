@@ -22,7 +22,7 @@ PR #298에서 추가된 테스트 인프라(`@WithCustomUser`, `TestSecurityConf
 | `@WithCustomUser` | `support/security/` | 테스트용 인증 유저 주입 어노테이션 |
 | `WithCustomUserSecurityContextFactory` | `support/security/` | `@WithCustomUser` 구현체 |
 | `TestSecurityConfig` | `support/security/` | JWT 필터 없이 인증 처리 |
-| `application-test.yml` | `src/test/resources/` | H2 DB 공통 설정 |
+| `application-test.yml` | `src/test/resources/` | PostgreSQL Testcontainers DB 공통 설정 |
 
 ### `@WithCustomUser` 파라미터
 
@@ -66,7 +66,7 @@ void someTest() { ... }
 
 ## 3. 통합 테스트 — `@SpringBootTest`
 
-실제 Spring 컨텍스트를 띄우고 H2 인메모리 DB로 전체 레이어를 테스트합니다.  
+실제 Spring 컨텍스트를 띄우고 PostgreSQL Testcontainers DB로 전체 레이어를 테스트합니다.  
 `@Import(TestSecurityConfig.class)`로 JWT 필터를 제거하고, `authentication()` PostProcessor로 인증을 주입합니다.
 
 ### 예시: 폴더 CRUD 통합 테스트
@@ -458,8 +458,8 @@ class FolderServiceTest {
 ```java
 // ❌ 기존 — 클래스마다 중복
 @TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:h2:mem:testdb;MODE=MySQL",
-    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.url=jdbc:tc:postgresql:16:///testdb",
+    "spring.datasource.driver-class-name=org.testcontainers.jdbc.ContainerDatabaseDriver",
     ...
 })
 
@@ -467,4 +467,3 @@ class FolderServiceTest {
 // application-test.yml이 src/test/resources/에 있으면 별도 설정 불필요
 @SpringBootTest  // 이것만 있으면 됨
 ```
-

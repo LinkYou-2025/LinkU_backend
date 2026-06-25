@@ -141,7 +141,7 @@ public class ShareFolderServiceImpl implements ShareFolderService {
             throw new GeneralException(ErrorStatus._INVALID_PERMISSION_TYPE);
         }
 
-        usersFolder.setPermissionType(permission);
+        usersFolder.updatePermission(permission);
         usersFolderRepository.save(usersFolder);
 
         return ShareFolderResponseDTO.builder()
@@ -170,7 +170,7 @@ public class ShareFolderServiceImpl implements ShareFolderService {
                 usersFolderRepository.findAllParticipantsByFolderId(folderId);
 
         // 권한 박탈
-        mappings.forEach(uf -> uf.setPermissionType(PermissionType.NONE));
+        mappings.forEach(uf -> uf.updatePermission(PermissionType.NONE));
 
         usersFolderRepository.saveAll(mappings);
 
@@ -182,4 +182,3 @@ public class ShareFolderServiceImpl implements ShareFolderService {
                 .build();
     }
 }
-

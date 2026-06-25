@@ -8,25 +8,24 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "ai_article")
+@Table(name = "ai_articles")
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class AiArticle extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ai_article_id")
+    @Column(name = "linku_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "situation_id", nullable = false)
     private Situation situation;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "linku_id", nullable = false, unique = true)
+    @MapsId
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "linku_id", nullable = false)
     private Linku linku;
 
     @Column(name = "title", nullable = false, length = 255)
@@ -46,4 +45,12 @@ public class AiArticle extends BaseEntity {
 
     @Column(name = "keyword", columnDefinition = "TEXT")
     private String keyword;
+
+    public void updateContent(String title, String summary, Long aiCategoryId, Long aiFeelingId, String imgUrl) {
+        this.title = title;
+        this.summary = summary;
+        this.aiCategoryId = aiCategoryId;
+        this.aiFeelingId = aiFeelingId;
+        this.imgUrl = imgUrl;
+    }
 }
