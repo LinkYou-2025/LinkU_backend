@@ -30,7 +30,7 @@ public class Linku extends BaseEntity {
     @JoinColumn(name = "domain_id", nullable = false)
     private Domain domain;
 
-    @Column(name = "linku", columnDefinition = "text", nullable = false)
+    @Column(name = "linku_url", columnDefinition = "text", nullable = false)
     private String linkuUrl;
 
     @OneToOne(fetch = FetchType.LAZY)
