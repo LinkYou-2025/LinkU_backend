@@ -18,8 +18,8 @@ public class PersonalAlarmEventListener {
     @Async("fcmTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(PersonalAlarmEvent event) {
-        FcmSendRequestDTO requestDTO = event.nickname() != null
-                ? FcmSendRequestDTO.ofWithNickname(event.alarmType(), event.targetId(), event.nickname())
+        FcmSendRequestDTO requestDTO = (event.values() != null && !event.values().isEmpty())
+                ? FcmSendRequestDTO.withValues(event.alarmType(), event.targetId(), event.values())
                 : FcmSendRequestDTO.of(event.alarmType(), event.targetId());
 
         fcmPushSender.sendToUser(event.userId(), requestDTO);

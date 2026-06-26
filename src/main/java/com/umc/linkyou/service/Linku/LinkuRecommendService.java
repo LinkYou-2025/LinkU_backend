@@ -117,12 +117,11 @@ public class LinkuRecommendService{
                             selectedEmotion.getEmotionId(),
                             linku.getEmotion().getEmotionId());
 
-                    Long aiCategoryId = null;
-                    if (linku.getLinku() != null && linku.getLinku().getAiArticle() != null) {
-                        aiCategoryId = linku.getLinku().getAiArticle().getAiCategoryId();
-                    }
+                    Long categoryId = (linku.getLinku() != null && linku.getLinku().getCategory() != null)
+                            ? linku.getLinku().getCategory().getCategoryId()
+                            : null;
 
-                    int situationScore = (aiCategoryId != null && mappedCategories.contains(aiCategoryId)) ? 40 : 0;
+                    int situationScore = (categoryId != null && mappedCategories.contains(categoryId)) ? 40 : 0;
 
                     int totalScore = emotionScore + situationScore;
 

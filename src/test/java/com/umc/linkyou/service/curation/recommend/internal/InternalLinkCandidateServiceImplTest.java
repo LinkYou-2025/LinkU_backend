@@ -1,8 +1,8 @@
 package com.umc.linkyou.service.curation.recommend.internal;
 
-import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.Linku;
+import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.enums.KeywordType;
@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -60,16 +61,16 @@ class InternalLinkCandidateServiceImplTest {
                 .build();
     }
 
-    private UsersLinku makeLink(Long userLinkuId, Long emotionId, Long aiCategoryId, LocalDateTime createdAt) {
+    private UsersLinku makeLink(Long userLinkuId, Long emotionId, Long categoryId, LocalDateTime createdAt) {
         Domain domain = Domain.builder().name("example.com").imageUrl("https://img.example.com").build();
-        AiArticle aiArticle = aiCategoryId != null
-                ? AiArticle.builder().aiCategoryId(aiCategoryId).build()
+        Category category = categoryId != null
+                ? Category.builder().categoryId(categoryId).build()
                 : null;
         Linku linku = Linku.builder()
-                .linku("https://example.com/" + userLinkuId)
+                .linkuUrl("https://example.com/" + userLinkuId)
                 .title("Title " + userLinkuId)
                 .domain(domain)
-                .aiArticle(aiArticle)
+                .category(category)
                 .build();
         Emotion emotion = Emotion.builder().emotionId(emotionId).build();
         UsersLinku ul = UsersLinku.builder()
@@ -77,7 +78,7 @@ class InternalLinkCandidateServiceImplTest {
                 .emotion(emotion)
                 .linku(linku)
                 .build();
-        ul.setCreatedAt(createdAt);
+        ReflectionTestUtils.setField(ul, "createdAt", createdAt);
         return ul;
     }
 

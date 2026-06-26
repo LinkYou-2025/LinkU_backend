@@ -37,8 +37,6 @@ public enum ErrorStatus implements BaseErrorCode {
     _SOCIAL_EXTERNAL_ID_REQUIRED(HttpStatus.BAD_REQUEST, "OAUTH4009", "소셜 계정 ID가 필요합니다."),
     _INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "OAUTH4010", "올바른 이메일 형식이 아닙니다."),
 
-    //카테고리(폴더종류) 관련 에러
-    _CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CATEGORY4041", "해당하는 카테고리를 찾을 수 없습니다."),
     //감정 관련 에러
     _EMOTION_NOT_FOUND(HttpStatus.NOT_FOUND, "EMOTION4041", "해당하는 감정을 찾을 수 없습니다."),
     //도메인 관련 에러
@@ -50,33 +48,6 @@ public enum ErrorStatus implements BaseErrorCode {
     _RECOMMEND_LINKU_NOT_ENOUGH_LINKS(HttpStatus.BAD_REQUEST, "LINKU4003", "추천을 위해 저장된 링크가 3개 이상이어야 합니다."),
     _RECOMMEND_LINKU_NO_RECOMMENDATION(HttpStatus.BAD_REQUEST, "LINKU4004", "추천할 만한 링크가 없습니다."),
     _RECOMMEND_LINKU_NEW_USER(HttpStatus.BAD_REQUEST, "LINKU4005", "신규 사용자는 추천 기능을 이용할 수 없습니다."),
-
-    // 폴더 관련 오류
-    _FOLDER_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER404", "해당하는 폴더를 찾을 수 없습니다."),
-    _FOLDER_PARENT_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_PARENT404", "폴더의 부모 폴더가 없습니다."),
-    _FOLDER_CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_CATEGORY404", "폴더의 카테고리가 없습니다."),
-    _FOLDER_CREATE_DUPLICATE(HttpStatus.CONFLICT, "FOLDER_CATEGORY404", "중복된 폴더명입니다."),
-
-    _FOLDER_CREATE_FORBIDDEN(HttpStatus.FORBIDDEN, "FOLDER_CREATE403", "해당하는 폴더를 생성할 권한이 없습니다."),
-    _FOLDER_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "FOLDER_UPDATE403", "해당하는 폴더의 수정 권한이 없습니다."),
-    _FOLDER_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "FOLDER_DELETE403", "해당하는 폴더의 삭제 권한이 없습니다."),
-    _FOLDER_ACCESS_FORBIDDEN(HttpStatus.FORBIDDEN, "FOLDER_ACCESS403", "해당 폴더에 접근 권한이 없습니다."),
-
-    _FOLDER_NAME_CONFLICT(HttpStatus.CONFLICT, "FOLDER_NAME409", "카테고리명과 동일한 폴더명은 사용할 수 없습니다."),
-    _FOLDER_INVALID_CURSOR(HttpStatus.BAD_REQUEST, "FOLDER_CURSOR400", "유효하지 않은 커서 값입니다."),
-    _FOLDER_OWNER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "FOLDER_OWNER500", "폴더의 소유자 정보를 찾을 수 없습니다."),
-
-    // 공유 폴더 관련 응답
-    _FOLDER_PERMISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_PERMISSION404", "해당 유저의 폴더 권한 정보를 찾을 수 없습니다."),
-    INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_TOKEN404", "공유 폴더 토큰을 찾을 수 없습니다."),
-    INVITATION_EXPIRED(HttpStatus.NOT_FOUND, "FOLDER_TOKEN_INVALID404", "공유 폴더 토큰이 유효하지 않습니다."),
-    INVITATION_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_LINK_INVALID404", "공유 폴더 링크가 유효하지 않습니다."),
-
-    _FOLDER_PERMISSION_NOT_ALLOWED(HttpStatus.FORBIDDEN, "FOLDER_OWNER_403", "폴더 수정 권한을 가지고 있지 않습니다."),
-    _FOLDER_OWNER_UPDATE_NOT_ALLOWED(HttpStatus.FORBIDDEN, "FOLDER_OWNER_403", "폴더 주인의 권한은 수정할 수 없습니다."),
-    INVITATION_CREATOR_CANNOT_ACCEPT(HttpStatus.FORBIDDEN, "FOLDER_CREATOR403", "초대 생성자는 자신의 링크로 참여할 수 없습니다."),
-
-    _INVALID_PERMISSION_TYPE(HttpStatus.BAD_REQUEST, "PERMISSION400", "유효하지 않은 권한 타입입니다."),
 
     // 북마크 관련 오류
     _FOLDER_BOOKMARK_NOT_FOUND(HttpStatus.NOT_FOUND, "FOLDER_BOOKMARK404", "해당 유저의 북마크 정보가 존재하지 않습니다."),;

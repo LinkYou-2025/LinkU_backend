@@ -44,4 +44,5 @@ public interface UserAlarmRepository extends JpaRepository<UserAlarm, Long> {
     );
 
     UserAlarm findByUserAndAlarm(Users user, Alarm alarm);
+
 }

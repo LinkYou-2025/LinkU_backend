@@ -25,6 +25,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -95,7 +96,7 @@ class AuthControllerTest {
             Users mockUser = Users.builder()
                     .id(1L)
                     .build();
-            mockUser.setCreatedAt(LocalDateTime.now());
+            ReflectionTestUtils.setField(mockUser, "createdAt", LocalDateTime.now());
 
             given(userService.joinUser(any())).willReturn(mockUser);
 

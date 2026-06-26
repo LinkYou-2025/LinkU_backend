@@ -7,6 +7,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.List;
+import java.util.Map;
+
 public final class AlarmRequestDTO {
 
     private AlarmRequestDTO() {
@@ -36,7 +39,8 @@ public final class AlarmRequestDTO {
             @NotNull(message = "type은 필수입니다.")
             AlarmType type,
             @NotNull(message = "targetId는 필수입니다.")
-            Long targetId
+            Long targetId,
+            Map<String, String> values
     ){}
 
     @Schema(description = "관리자 브로드캐스트 알림 요청 DTO")

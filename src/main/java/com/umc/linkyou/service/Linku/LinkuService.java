@@ -2,6 +2,8 @@ package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.LinkuConverter;
@@ -10,6 +12,7 @@ import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
+import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.CurationLinku;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
@@ -20,6 +23,7 @@ import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.curationRepository.CurationLinkuRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
+import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
@@ -43,6 +47,7 @@ public class LinkuService {
     private final LinkuRepository linkuRepository;
     private final CategoryRepository categoryRepository;
     private final EmotionRepository emotionRepository;
+    private final SituationRepository situationRepository;
     private final DomainRepository domainRepository;
     private final LinkuFolderRepository linkuFolderRepository;
     private final UsersLinkuRepository usersLinkuRepository;
@@ -60,7 +65,7 @@ public class LinkuService {
 
         // 3. 기존에 링크 저장 여부 확인
         Optional<UsersLinku> usersLinkuOpt =
-                usersLinkuRepository.findByUserIdAndLinku_Linku(userId, url);
+                usersLinkuRepository.findByUserIdAndLinku_LinkuUrl(userId, url);
 
         LinkuResponseDTO.LinkuIsExistDTO dto =
                 LinkuConverter.toLinkuIsExistDTO(userId, usersLinkuOpt.orElse(null));
@@ -100,7 +105,9 @@ public class LinkuService {
         String summary = null;
 
         if (aiArticleExists && aiArticle != null) {
-            keyword = aiArticle.getKeyword();
+            keyword = linku.getLinkuKeywords().stream()
+                    .map(lk -> lk.getKeyword().getName())
+                    .collect(java.util.stream.Collectors.joining(", "));
             summary = aiArticle.getSummary();
         }
 
@@ -150,13 +157,13 @@ public class LinkuService {
         // 3. 폴더 변경(해당 링크를 다른 폴더로 이동)
         if (dto.getFolderId() != null) {
             Folder folder = folderRepository.findById(dto.getFolderId())
-                    .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
+                    .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
             // 현재 링크-폴더 매핑 중 최신 1개 가져와서 폴더만 새로 세팅 (폴더 이동)
             LinkuFolder linkuFolder = linkuFolderRepository
                     .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId())
                     .orElse(null);
             if (linkuFolder != null) {
-                linkuFolder.setFolder(folder);
+                linkuFolder.updateFolder(folder);
                 linkuFolderRepository.save(linkuFolder);
             }
         }
@@ -164,21 +171,21 @@ public class LinkuService {
         // 4. 카테고리 변경 (DTO에 categoryId가 있으면 Linku category 교체)
         if (dto.getCategoryId() != null) {
             Category category = categoryRepository.findById(dto.getCategoryId())
-                    .orElseThrow(() -> new GeneralException(ErrorStatus._CATEGORY_NOT_FOUND));
-            linku.setCategory(category);
+                    .orElseThrow(() -> new GeneralException(CategoryErrorStatus._CATEGORY_NOT_FOUND));
+            linku.updateCategory(category);
             linkuModified = true;
         }
 
         // 5. 링크 주소(URL) 변경
         if (dto.getLinku() != null) {
             UrlValidUtils.validateLinkuUrl(dto.getLinku());
-            linku.setLinku(dto.getLinku());
+            linku.updateUrl(dto.getLinku());
             linkuModified = true;
         }
 
         // 6. 메모 변경 (내가 작성한 메모)
         if (dto.getMemo() != null) {
-            usersLinku.setMemo(dto.getMemo());
+            usersLinku.updateMemo(dto.getMemo());
             usersLinkuModified = true;
         }
 
@@ -186,7 +193,17 @@ public class LinkuService {
         if (dto.getEmotionId() != null) {
             Emotion emotion = emotionRepository.findById(dto.getEmotionId())
                     .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
-            usersLinku.setEmotion(emotion);
+            usersLinku.updateEmotion(emotion);
+            usersLinku.updateEmotionAi(false);
+            usersLinkuModified = true;
+        }
+
+        // 7-1. 상황 변경
+        if (dto.getSituationId() != null) {
+            Situation situation = situationRepository.findById(dto.getSituationId())
+                    .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
+            usersLinku.updateSituation(situation);
+            usersLinku.updateSituationAi(false);
             usersLinkuModified = true;
         }
 
@@ -194,13 +211,13 @@ public class LinkuService {
         if (dto.getDomainId() != null) {
             Domain domain = domainRepository.findById(dto.getDomainId())
                     .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND));
-            linku.setDomain(domain);
+            linku.updateDomain(domain);
             linkuModified = true;
         }
 
         // 9. 제목(title) 변경
         if (dto.getTitle() != null) {
-            linku.setTitle(dto.getTitle());
+            linku.updateTitle(dto.getTitle());
             linkuModified = true;
         }
 

@@ -8,8 +8,6 @@ import com.umc.linkyou.domain.classification.Interests;
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.domain.enums.Gender;
-import com.umc.linkyou.domain.enums.Interest;
-import com.umc.linkyou.domain.enums.Purpose;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
@@ -92,12 +90,19 @@ public class UserConverter {
     }
 
 
-    public static Purposes toPurposeEntity(String purposeName, Users user) {
-        return new Purposes(Purpose.valueOf(purposeName).name(), user);
+
+    public static List<Purposes> toPurposes(Users user, List<String> purposeNames) {
+        if (purposeNames == null || purposeNames.isEmpty()) return List.of();
+        return purposeNames.stream()
+                .map(name -> new Purposes(name, user))
+                .toList();
     }
 
-    public static Interests toInterestEntity(String interestName, Users user) {
-        return new Interests(Interest.valueOf(interestName).name(), user);
+    // 엔티티의 초기 Interests 설정
+    public static List<Interests> toInterests(Users user, List<String> interestNames) {
+        if (interestNames == null || interestNames.isEmpty()) return List.of();
+        return interestNames.stream()
+                .map(name -> new Interests(name, user))
+                .toList();
     }
-
 }

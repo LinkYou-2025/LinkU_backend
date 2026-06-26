@@ -24,7 +24,7 @@ public class TitleDomainParser {
         try {
             Document doc = Jsoup.connect(url)
                     .userAgent("Mozilla/5.0")
-                    .timeout(15000)
+                    .timeout(10000)
                     .get();
 
             Element ogTitle = doc.selectFirst("meta[property=og:title]");
@@ -35,11 +35,11 @@ public class TitleDomainParser {
                 title = doc.title();
             }
         } catch (Exception e) {
-            log.warn("[제목 추출 실패] {}", e.getMessage());
+            log.warn("[도메인/제목 추출 실패] {}", e.getMessage());
         }
 
         return new ParsedPageInfo(domain, title);
     }
 
-    public record ParsedPageInfo(String domain, String title) {}
+    public static record ParsedPageInfo(String domain, String title) {}
 }

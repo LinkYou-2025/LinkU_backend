@@ -28,4 +28,5 @@ public interface CurationRepository extends JpaRepository<Curation, Long> {
     List<Curation> findAllByUserIdAndYear(
             @Param("userId") Long userId,
             @Param("year") String year);
+
 }

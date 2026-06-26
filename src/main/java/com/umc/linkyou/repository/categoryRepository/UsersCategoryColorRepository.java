@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface UsersCategoryColorRepository extends JpaRepository<UsersCategoryColor, Long>, UsersCategoryColorRepositoryCustom {
     List<UsersCategoryColor> findByUserId(Long userId);
+
 }

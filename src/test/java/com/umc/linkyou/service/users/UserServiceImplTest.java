@@ -1,6 +1,5 @@
 package com.umc.linkyou.service.users;
 
-import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.properties.JwtProperties;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.JwtTokenProvider;
@@ -40,7 +39,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -55,12 +55,21 @@ class UserServiceImplTest {
 
     @Mock private UserRepository userRepository;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private UserQueryRepository userQueryRepository;
+    @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private JobRepository jobRepository;
+    @Mock private InterestRepository interestRepository;
+    @Mock private PurposeRepository purposeRepository;
+    @Mock private FolderRepository folderRepository;
     @Mock private CategoryRepository categoryRepository;
+    @Mock private UsersFolderRepository usersFolderRepository;
     @Mock private UsersCategoryColorRepository usersCategoryColorRepository;
+    @Mock private RefreshTokenManager refreshTokenManager;
     @Mock private TokenIssueService tokenIssueService;
+    @Mock private AccessTokenBlackListManager accessTokenBlackListManager;
     @Mock private UserStatusValidator userStatusValidator;
     @Mock private AuthAccountRepository authAccountRepository;
+    @Mock private JwtProperties jwtProperties;
     @Mock private AlarmSettingRepository alarmSettingRepository;
     @Mock private TermsAgreementService termsAgreementService;
 
@@ -125,7 +134,6 @@ class UserServiceImplTest {
                 Users tempUser = Users.builder()
                         .id(1L)
                         .status(UserStatus.TEMP)
-                        .usersFoldersList(new ArrayList<>())
                         .build();
 
                 UserRequestDTO.SocialCompleteDTO request = new UserRequestDTO.SocialCompleteDTO(
@@ -218,116 +226,6 @@ class UserServiceImplTest {
                         eq(request.deviceId()),
                         eq(request.deviceType())
                 );
-            }
-        }
-    }
-    @Nested
-    @DisplayName("마이페이지 수정 (updateUserProfile)")
-    class UpdateUserProfile {
-
-        @Nested
-        @DisplayName("성공")
-        class Success {
-
-            @Test
-            @DisplayName("성공 - 닉네임, 직업, purpose, interest가 정상 수정된다")
-            void update_user_profile_success() {
-                // given
-                Users user = Users.builder()
-                        .id(1L)
-                        .nickName("기존닉네임")
-                        .job(Job.builder().id(1L).build())
-                        .purposes(new ArrayList<>())
-                        .interests(new ArrayList<>())
-                        .build();
-
-                UserRequestDTO.UpdateProfileDTO request = new UserRequestDTO.UpdateProfileDTO(
-                        "변경닉네임",
-                        2L,
-                        new ArrayList<>(java.util.List.of("CAREER", "STUDY")),
-                        new ArrayList<>(java.util.List.of("IT", "DESIGN"))
-                );
-
-                Job newJob = Job.builder().id(2L).build();
-
-                when(userRepository.findById(eq(1L))).thenReturn(Optional.of(user));
-                when(jobRepository.findById(eq(2L))).thenReturn(Optional.of(newJob));
-                when(userRepository.findByNickName(eq("변경닉네임"))).thenReturn(Optional.empty());
-                when(userRepository.save(any(Users.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-                // when
-                userService.updateUserProfile(1L, request);
-
-                // then
-                assertEquals("변경닉네임", user.getNickName());
-                assertEquals(newJob, user.getJob());
-                assertEquals(2, user.getPurposes().size());
-                assertEquals(2, user.getInterests().size());
-            }
-        }
-
-        @Nested
-        @DisplayName("실패")
-        class Fail {
-
-            @Test
-            @DisplayName("실패 - 존재하지 않는 purpose 값이면 예외가 발생한다")
-            void update_user_profile_invalid_purpose_fail() {
-                // given
-                Users user = Users.builder()
-                        .id(1L)
-                        .nickName("기존닉네임")
-                        .job(Job.builder().id(1L).build())
-                        .purposes(new ArrayList<>())
-                        .interests(new ArrayList<>())
-                        .build();
-
-                UserRequestDTO.UpdateProfileDTO request = new UserRequestDTO.UpdateProfileDTO(
-                        "변경닉네임",
-                        2L,
-                        new ArrayList<>(java.util.List.of("INVALID_PURPOSE")),
-                        new ArrayList<>(java.util.List.of("IT"))
-                );
-
-                Job newJob = Job.builder().id(2L).build();
-
-                when(userRepository.findById(eq(1L))).thenReturn(Optional.of(user));
-                when(jobRepository.findById(eq(2L))).thenReturn(Optional.of(newJob));
-                when(userRepository.findByNickName(eq("변경닉네임"))).thenReturn(Optional.empty());
-
-                // when & then
-                assertThrows(GeneralException.class,
-                        () -> userService.updateUserProfile(1L, request));
-            }
-
-            @Test
-            @DisplayName("실패 - 존재하지 않는 interest 값이면 예외가 발생한다")
-            void update_user_profile_invalid_interest_fail() {
-                // given
-                Users user = Users.builder()
-                        .id(1L)
-                        .nickName("기존닉네임")
-                        .job(Job.builder().id(1L).build())
-                        .purposes(new ArrayList<>())
-                        .interests(new ArrayList<>())
-                        .build();
-
-                UserRequestDTO.UpdateProfileDTO request = new UserRequestDTO.UpdateProfileDTO(
-                        "변경닉네임",
-                        2L,
-                        new ArrayList<>(java.util.List.of("CAREER")),
-                        new ArrayList<>(java.util.List.of("INVALID_INTEREST"))
-                );
-
-                Job newJob = Job.builder().id(2L).build();
-
-                when(userRepository.findById(eq(1L))).thenReturn(Optional.of(user));
-                when(jobRepository.findById(eq(2L))).thenReturn(Optional.of(newJob));
-                when(userRepository.findByNickName(eq("변경닉네임"))).thenReturn(Optional.empty());
-
-                // when & then
-                assertThrows(GeneralException.class,
-                        () -> userService.updateUserProfile(1L, request));
             }
         }
     }

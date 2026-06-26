@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.folder;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.FolderConverter;
@@ -16,11 +17,13 @@ import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
+import com.umc.linkyou.service.alarm.event.FolderDeletedAlarmEvent;
 import com.umc.linkyou.web.dto.folder.*;
 import com.umc.linkyou.web.dto.folder.linku.FolderLinkusResponseDTO;
 import com.umc.linkyou.web.dto.folder.linku.FolderSummaryDTO;
 import com.umc.linkyou.web.dto.folder.linku.LinkuSummaryDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -39,6 +42,7 @@ public class FolderServiceImpl implements FolderService {
     private final UsersFolderRepository usersFolderRepository;
     private final LinkuFolderRepository linkuFolderRepository;
     private final FolderConverter folderConverter;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 하위 폴더 생성
     @Transactional
@@ -47,24 +51,24 @@ public class FolderServiceImpl implements FolderService {
 
         // 부모 폴더 존재 확인
         if (parent == null) {
-            throw new GeneralException(ErrorStatus._FOLDER_PARENT_NOT_FOUND);
+            throw new GeneralException(FolderErrorStatus._FOLDER_PARENT_NOT_FOUND);
         }
 
         // 부모 폴더에 대한 생성 권한 확인 (소유자 또는 편집자만 가능)
         if (!usersFolderRepository.existsFolderOwnerOrWriter(userId, parentFolderId)) {
-            throw new GeneralException(ErrorStatus._FOLDER_CREATE_FORBIDDEN);
+            throw new GeneralException(FolderErrorStatus._FOLDER_CREATE_FORBIDDEN);
         }
 
         // 카테고리명과 동일한 이름 사용 방지
         if (categoryRepository.existsByCategoryName(req.getFolderName())) {
-            throw new GeneralException(ErrorStatus._FOLDER_NAME_CONFLICT);
+            throw new GeneralException(FolderErrorStatus._FOLDER_NAME_CONFLICT);
         }
 
         // 해당 부모 아래 중복 이름 체크
         boolean isDuplicate = folderRepository.existsByParentIdAndName(parentFolderId, req.getFolderName());
 
         if (isDuplicate) {
-            throw new GeneralException(ErrorStatus._FOLDER_CREATE_DUPLICATE);
+            throw new GeneralException(FolderErrorStatus._FOLDER_CREATE_DUPLICATE);
         }
 
         // 폴더 테이블에 저장
@@ -100,35 +104,35 @@ public class FolderServiceImpl implements FolderService {
     @Transactional
     public FolderResponseDTO updateFolder(Long userId, Long folderId, FolderUpdateRequestDTO req) {
         // 폴더 조회
-        Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
+        Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
 
         // 주인 여부 확인
         UsersFolder usersFolder = usersFolderRepository.findByUserIdAndFolderId(userId, folderId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_UPDATE_FORBIDDEN));
+                .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_UPDATE_FORBIDDEN));
         if (usersFolder.getPermissionType() != PermissionType.OWNER) {
-            throw new GeneralException(ErrorStatus._FOLDER_UPDATE_FORBIDDEN);
+            throw new GeneralException(FolderErrorStatus._FOLDER_UPDATE_FORBIDDEN);
         }
 
         if (req.getFolderName() != null)
         {
             // 부모 폴더 존재 확인
             if (folder.getParentFolder() == null) {
-                throw new GeneralException(ErrorStatus._FOLDER_PARENT_NOT_FOUND);
+                throw new GeneralException(FolderErrorStatus._FOLDER_PARENT_NOT_FOUND);
             }
 
             // 카테고리명과 동일한 이름 사용 방지
             if (categoryRepository.existsByCategoryName(req.getFolderName())) {
-                throw new GeneralException(ErrorStatus._FOLDER_NAME_CONFLICT);
+                throw new GeneralException(FolderErrorStatus._FOLDER_NAME_CONFLICT);
             }
 
             // 해당 부모 아래 중복 이름 체크
             boolean isDuplicate = folderRepository.existsByParentIdAndName(folder.getParentFolder().getFolderId(), req.getFolderName());
 
             if (isDuplicate) {
-                throw new GeneralException(ErrorStatus._FOLDER_CREATE_DUPLICATE);
+                throw new GeneralException(FolderErrorStatus._FOLDER_CREATE_DUPLICATE);
             }
 
-            folder.setFolderName(req.getFolderName());
+            folder.updateFolderName(req.getFolderName());
         }
 
         return folderConverter.toFolderResponseDTO(folder, usersFolder.getIsBookmarked());
@@ -138,15 +142,30 @@ public class FolderServiceImpl implements FolderService {
     @Transactional
     public void deleteFolder(Long userId, Long folderId) {
         // 폴더 조회
-        Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
+        Folder folder = folderRepository.findById(folderId).orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
 
         // 주인 여부 확인
         boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
         if (!isOwner) {
-            throw new GeneralException(ErrorStatus._FOLDER_DELETE_FORBIDDEN);
+            throw new GeneralException(FolderErrorStatus._FOLDER_DELETE_FORBIDDEN);
         }
 
+        // 폴더 삭제 알람에 필요
+        List<Long> memberIds = usersFolderRepository.findAllParticipantsByFolderId(folderId).stream()
+                .filter(uf -> uf.getPermissionType() != PermissionType.OWNER)
+                .map(uf -> uf.getUser().getId())
+                .toList();
+
+        String folderName = folder.getFolderName();
+        String deleterNickname = userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND))
+                .getNickName();
+
         folderRepository.delete(folder);
+
+        if (!memberIds.isEmpty()) {
+            eventPublisher.publishEvent(new FolderDeletedAlarmEvent(folderId, memberIds, deleterNickname, folderName));
+        }
     }
 
     // 내 폴더 목록(트리) 조회
@@ -252,7 +271,7 @@ public class FolderServiceImpl implements FolderService {
     public BookmarkUpdateResponseDTO updateBookmark(Long userId, Long folderId, Boolean isBookmarked) {
         UsersFolder usersFolder = usersFolderRepository.findByUserIdAndFolderId(userId, folderId).orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND));
 
-        usersFolder.setIsBookmarked(isBookmarked);
+        usersFolder.updateBookmark(isBookmarked);
 
         return BookmarkUpdateResponseDTO.builder()
                 .folderId(usersFolder.getFolder().getFolderId())
@@ -265,13 +284,13 @@ public class FolderServiceImpl implements FolderService {
     public FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort) {
         // check folder exist
         Folder folder = folderRepository.findById(folderId)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
 
         // 접근 권한 확인 (소유자 또는 활성 공유 멤버)
         boolean hasAccess = usersFolderRepository.existsFolderOwner(userId, folderId)
                 || usersFolderRepository.existsActiveMember(userId, folderId);
         if (!hasAccess) {
-            throw new GeneralException(ErrorStatus._FOLDER_ACCESS_FORBIDDEN);
+            throw new GeneralException(FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN);
         }
 
         // 정렬 기준: "updatedAt" → 최근 수정순, 그 외 → 가나다순
@@ -315,7 +334,7 @@ public class FolderServiceImpl implements FolderService {
             try {
                 cursorId = Long.parseLong(cursor);
             } catch (NumberFormatException e) {
-                throw new GeneralException(ErrorStatus._FOLDER_INVALID_CURSOR);
+                throw new GeneralException(FolderErrorStatus._FOLDER_INVALID_CURSOR);
             }
         }
 
@@ -339,13 +358,12 @@ public class FolderServiceImpl implements FolderService {
             dto.setUserLinkuId(usersLinku.getUserLinkuId());
             dto.setLinkuId(link.getLinkuId());
             dto.setTitle(link.getTitle());
-            dto.setUrl(link.getLinku());
-            dto.setKeyword(
-                    link.getAiArticle() != null
-                            ? link.getAiArticle().getKeyword()
-                            : null
-            );
-            dto.setLinkuImageUrl(usersLinku.getImageUrl());
+            dto.setUrl(link.getLinkuUrl());
+            String kw = link.getLinkuKeywords().stream()
+                    .map(lk -> lk.getKeyword().getName())
+                    .collect(Collectors.joining(", "));
+            dto.setKeyword(kw.isEmpty() ? null : kw);
+            dto.setLinkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : link.getImgUrl());
             dto.setCreatedAt(link.getCreatedAt().toString());
             return dto;
         }).toList();
@@ -361,7 +379,7 @@ public class FolderServiceImpl implements FolderService {
     // 유저의 카테고리에 해당하는 중분류 폴더 조회
     public Folder findFolder(Long userId, Category category) {
         return usersFolderRepository.findFolderByUserIdAndCategory(userId, category)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
     }
 
 }

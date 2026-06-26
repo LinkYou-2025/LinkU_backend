@@ -51,8 +51,7 @@ public class UserWithdrawServiceTest {
                     .id(userId)
                     .status(UserStatus.INACTIVE)
                     .build();
-            user.setInactiveDate(LocalDateTime.now().minusDays(7)); // 7일 전 탈퇴
-            user.setDeleted_reason("테스트 탈퇴");
+            user.withdraw("테스트 탈퇴", LocalDateTime.now().minusDays(7)); // 7일 전 탈퇴
 
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userRepository.save(user)).willReturn(user);
@@ -75,7 +74,7 @@ public class UserWithdrawServiceTest {
                     .id(userId)
                     .status(UserStatus.INACTIVE)
                     .build();
-            user.setInactiveDate(LocalDateTime.now().minusMinutes(1));
+            user.withdraw("테스트 탈퇴", LocalDateTime.now().minusMinutes(1));
 
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userRepository.save(user)).willReturn(user);
@@ -96,7 +95,7 @@ public class UserWithdrawServiceTest {
                     .id(userId)
                     .status(UserStatus.INACTIVE)
                     .build();
-            user.setInactiveDate(LocalDateTime.now().minusDays(13).minusHours(23));
+            user.withdraw("테스트 탈퇴", LocalDateTime.now().minusDays(13).minusHours(23));
 
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userRepository.save(user)).willReturn(user);

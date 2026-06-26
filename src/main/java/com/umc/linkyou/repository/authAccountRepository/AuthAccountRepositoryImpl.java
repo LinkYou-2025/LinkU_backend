@@ -44,7 +44,7 @@ public class AuthAccountRepositoryImpl implements AuthAccountRepositoryCustom {
     public Optional<Users> findUserByEmailAndProvider(String email, Provider provider) {
         Users result = queryFactory
                 .selectFrom(users)
-                .leftJoin(users.authAccounts, authAccount)
+                .join(authAccount).on(authAccount.user.eq(users))
                 .where(authAccount.email.eq(email),
                         authAccount.provider.eq(provider))
                 .fetchOne();
@@ -94,5 +94,4 @@ public class AuthAccountRepositoryImpl implements AuthAccountRepositoryCustom {
 
 
 }
-
 

@@ -29,17 +29,15 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	compileOnly 'org.projectlombok:lombok'
-	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client:3.3.3'
-	//implementation 'com.mysql:mysql-connector-j'
+	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testRuntimeOnly 'com.h2database:h2'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:postgresql'
+	testImplementation 'org.testcontainers:jdbc'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	// validation
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
-
-	// hibernate
-	implementation 'org.hibernate.orm:hibernate-core:6.0.2.Final'
 
 	// swagger
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
@@ -71,10 +69,6 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
-	// AWS S3 연동
-	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
-
-
 	// JavaMail API 라이브러리
 	implementation 'com.sun.mail:jakarta.mail:2.0.1'
 	//jsoup 크롤링
@@ -92,13 +86,18 @@ dependencies {
 	implementation 'com.google.api-client:google-api-client:2.8.0'
 	implementation 'com.google.oauth-client:google-oauth-client:1.39.0'
 	implementation 'com.google.auth:google-auth-library-oauth2-http:1.43.0'
-	// AWS SES v2
-	implementation 'software.amazon.awssdk:sesv2:2.26.31'
+
+	// AWS SES v2, s3
+	implementation platform('software.amazon.awssdk:bom:2.26.31')
+	implementation 'software.amazon.awssdk:s3'
+	implementation 'software.amazon.awssdk:sesv2'
 
 	// Firebase Admin SDK
 	implementation 'com.google.firebase:firebase-admin:9.4.3'
 
 	implementation 'net.coobird:thumbnailator:0.4.20'
+
+	implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.15.3'
 }
 
 clean {
@@ -125,6 +124,10 @@ tasks.withType(JavaCompile) {
 
 test {
 	useJUnitPlatform()
+	// Testcontainers(docker-java)가 기본 1.32로 요청해 최신 Docker 데몬(min 1.44)에 거부당하는 문제 회피.
+	// docker-java 는 시스템 프로퍼티 api.version / 환경변수 DOCKER_API_VERSION 둘 다 읽음.
+	systemProperty 'api.version', System.getProperty('api.version') ?: '1.44'
+	environment 'DOCKER_API_VERSION', System.getenv('DOCKER_API_VERSION') ?: '1.44'
 	finalizedBy jacocoTestReport
 }
 

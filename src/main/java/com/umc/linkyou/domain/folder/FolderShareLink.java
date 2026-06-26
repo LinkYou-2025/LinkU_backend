@@ -5,31 +5,35 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.PermissionType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @Builder
+@Table(name = "folder_share_links")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class FolderShareLink extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "folder_share_link_id")
     private Long folderShareLinkId;
 
-    @Column(nullable = false, unique = true, length = 64)
+    @Column(name = "token", nullable = false, unique = true, length = 64)
     private String token;
 
-    @Column(nullable = false)
+    @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
-    @Column(nullable = false)
+    @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "permission_type", nullable = false)
     private PermissionType permissionType;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -38,6 +42,7 @@ public class FolderShareLink extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Users creator;
 
     // 만료 여부 확인 로직

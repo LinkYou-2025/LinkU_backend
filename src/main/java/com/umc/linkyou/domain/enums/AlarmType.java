@@ -16,21 +16,21 @@ public enum AlarmType {
 
     FOLDER_DELETED(
             "폴더 삭제",
-            "공유받은 폴더에 더 이상 접근할 수 없어요",
+            "{nickname}님이 '{folderName}' 폴더를 삭제해 더 이상 접근할 수 없어요",
             AlarmSettingType.FOLDER,
             AlarmResponseType.FOLDER
     ),
 
     FOLDER_PERMISSION_CHANGED(
-            "공유폴더 권한 변경",
-            "공유 폴더의 편집 권한이 변경됐어요",
+            "공유 폴더 권한 변경",
+            "'{folderName}' 폴더의 편집 권한이 변경됐어요",
             AlarmSettingType.FOLDER,
             AlarmResponseType.FOLDER
     ),
 
     CURATION_UPDATED(
             "이번 달 큐레이션",
-            "%s님을 위한 이 달의 큐레이션이 도착했어요!",
+            "{nickname}님을 위한 이 달의 큐레이션이 도착했어요!",
             AlarmSettingType.CURATION,
             AlarmResponseType.CURATION
     ),
