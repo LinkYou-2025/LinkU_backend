@@ -46,8 +46,7 @@ public interface UserApi {
                     """
     )
     @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(errorStatus = {ErrorStatus._BAD_REQUEST}) // 잘못된 Job ID 등
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus._DUPLICATE_NICKNAME})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus._DUPLICATE_NICKNAME, UserErrorStatus._JOB_NOT_SET}) // _JOB_NOT_SET: 잘못된 Job ID 등
     @PatchMapping("/profile")
     ApiResponse<Object> updateUserProfile(
             @CurrentUser CustomUserDetails userDetails,
@@ -78,8 +77,7 @@ public interface UserApi {
                     """
     )
     @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(errorStatus = {ErrorStatus._ALREADY_ACTIVE_USER, ErrorStatus._BAD_REQUEST})
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._DUPLICATE_NICKNAME})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._DUPLICATE_JOIN_REQUEST, UserErrorStatus._JOB_NOT_SET, UserErrorStatus._DUPLICATE_NICKNAME})
     @PatchMapping("/social/complete")
     ApiResponse<UserResponseDTO.JoinResultDTO> completeSocialProfile(
             @RequestBody @Valid UserRequestDTO.SocialCompleteDTO request,

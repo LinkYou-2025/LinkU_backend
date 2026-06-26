@@ -22,6 +22,7 @@ public enum UserErrorStatus implements BaseErrorCode {
     // 401 Unauthorized
     _VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "USERS4011", "인증 코드 검증 실패"),
     _LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "USERS4012", "이메일 주소 또는 비밀번호를 다시 확인하세요."),
+    _SOCIAL_ACCOUNT_ONLY(HttpStatus.UNAUTHORIZED, "USERS4014", "소셜 전용 계정입니다. 소셜 로그인을 이용하세요."),
     //404 Not Found
     _USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USERS4041", "사용자를 찾을 수 없습니다."),
     _USER_INACTIVE(HttpStatus.NOT_FOUND, "USERS4042", "사용자가 INACTIVE 임시 회원탈퇴 상태입니다."),

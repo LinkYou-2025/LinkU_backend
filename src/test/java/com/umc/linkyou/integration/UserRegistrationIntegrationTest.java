@@ -1,6 +1,6 @@
 package com.umc.linkyou.integration;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.domain.Users;
@@ -117,6 +117,6 @@ public class UserRegistrationIntegrationTest {
         );
 
         // getCode() 메서드를 통해 에러 코드 검증
-        assertEquals(ErrorStatus._ALREADY_ACTIVE_USER, exception.getCode());
+        assertEquals(UserErrorStatus._DUPLICATE_JOIN_REQUEST, exception.getCode());
     }
 }
