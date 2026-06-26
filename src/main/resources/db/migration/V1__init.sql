@@ -231,7 +231,7 @@ create table alarm_settings
     curation_enabled  boolean not null,
     folder_enabled    boolean not null,
     constraint fk_alarm_settings_user
-        foreign key (user_id) references users (user_id)
+        foreign key (user_id) references users (user_id) on delete cascade
 );
 
 create table auth_accounts
@@ -247,7 +247,7 @@ create table auth_accounts
     user_id           bigint       not null,
     constraint uq_auth_accounts_provider_external unique (provider, external_id),
     constraint fk_auth_accounts_user
-        foreign key (user_id) references users (user_id)
+        foreign key (user_id) references users (user_id) on delete cascade
 );
 
 create table curations
@@ -260,7 +260,7 @@ create table curations
     header_ment text,
     footer_ment text,
     constraint fk_curations_user
-        foreign key (user_id) references users (user_id)
+        foreign key (user_id) references users (user_id) on delete cascade
 );
 
 create table interests
@@ -296,7 +296,7 @@ create table terms_agreements
     is_agreed          boolean      not null,
     constraint uk_terms_agreements_user_type unique (user_id, terms_type),
     constraint fk_terms_agreements_user
-        foreign key (user_id) references users (user_id)
+        foreign key (user_id) references users (user_id) on delete cascade
 );
 
 create table user_alarms
@@ -311,7 +311,7 @@ create table user_alarms
     delivered_at  timestamp(6) not null,
     constraint uq_user_alarm_user_alarm unique (user_id, alarm_id),
     constraint fk_user_alarms_user
-        foreign key (user_id) references users (user_id),
+        foreign key (user_id) references users (user_id) on delete cascade,
     constraint fk_user_alarms_alarm
         foreign key (alarm_id) references alarms (alarm_id)
 );
@@ -327,7 +327,7 @@ create table user_fcm_tokens
     expires_at        timestamp(6),
     is_active         boolean,
     constraint fk_user_fcm_tokens_user
-        foreign key (user_id) references users (user_id)
+        foreign key (user_id) references users (user_id) on delete cascade
 );
 
 create table users_category_colors
@@ -337,7 +337,7 @@ create table users_category_colors
     category_id             bigint    not null,
     fcolor_id               bigint    not null,
     constraint fk_users_category_colors_user
-        foreign key (user_id) references users (user_id),
+        foreign key (user_id) references users (user_id) on delete cascade,
     constraint fk_users_category_colors_category
         foreign key (category_id) references categories (category_id),
     constraint fk_users_category_colors_fcolor
@@ -358,7 +358,7 @@ create table folder_share_links
     constraint fk_folder_share_links_folder
         foreign key (folder_id) references folders (folder_id),
     constraint fk_folder_share_links_creator
-        foreign key (creator_id) references users (user_id)
+        foreign key (creator_id) references users (user_id) on delete cascade
 );
 
 create table keyword_monthly_counts
@@ -371,7 +371,7 @@ create table keyword_monthly_counts
     count                    int         not null,
     constraint uq_keyword_monthly unique (user_id, type, ref_id, base_month),
     constraint fk_keyword_monthly_counts_user
-        foreign key (user_id) references users (user_id)
+        foreign key (user_id) references users (user_id) on delete cascade
 );
 
 -- ── users_linkus (users, linkus, emotions, situations 의존) ──
@@ -413,7 +413,7 @@ create table linku_folders
     constraint fk_linku_folders_folder
         foreign key (folder_id) references folders (folder_id),
     constraint fk_linku_folders_users_linku
-        foreign key (user_linku_id) references users_linkus (user_linku_id)
+        foreign key (user_linku_id) references users_linkus (user_linku_id) on delete cascade
 );
 
 create table users_folders
@@ -426,7 +426,7 @@ create table users_folders
     user_id         bigint       not null,
     folder_id       bigint       not null,
     constraint fk_users_folders_user
-        foreign key (user_id) references users (user_id),
+        foreign key (user_id) references users (user_id) on delete cascade,
     constraint fk_users_folders_folder
         foreign key (folder_id) references folders (folder_id)
 );
@@ -442,7 +442,7 @@ create table curation_linkus
     image_url         varchar(1024),
     url_normalized    varchar(2048),
     constraint fk_curation_linkus_curation
-        foreign key (curation_id) references curations (curation_id),
+        foreign key (curation_id) references curations (curation_id) on delete cascade,
     constraint fk_curation_linkus_users_linku
-        foreign key (user_linku_id) references users_linkus (user_linku_id)
+        foreign key (user_linku_id) references users_linkus (user_linku_id) on delete cascade
 );
