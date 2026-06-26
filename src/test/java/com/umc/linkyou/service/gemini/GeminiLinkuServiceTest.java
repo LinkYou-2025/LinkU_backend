@@ -46,7 +46,7 @@ class GeminiLinkuServiceTest {
             @DisplayName("제목과 본문이 있으면 분석 결과를 반환한다")
             void URL분석_성공() {
                 String url = "https://tech-blog.com/post/1";
-                LinkuResultDTO mockResult = new LinkuResultDTO(1L, "Spring,Java");
+                LinkuResultDTO mockResult = new LinkuResultDTO(1L, "Spring,Java", null, null, null);
 
                 given(titleDomainParser.parseUrl(url))
                         .willReturn(new TitleDomainParser.ParsedPageInfo("tech-blog.com", "Tech Article"));
@@ -55,7 +55,7 @@ class GeminiLinkuServiceTest {
                 given(geminiService.callAndParse(anyString(), anyString(), eq(LinkuResultDTO.class)))
                         .willReturn(mockResult);
 
-                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of());
+                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of(), List.of(), List.of());
 
                 assertThat(result).isPresent();
                 assertThat(result.get().categoryId()).isEqualTo(1L);
@@ -65,7 +65,7 @@ class GeminiLinkuServiceTest {
             @DisplayName("본문 추출에 실패해도 제목이 있으면 분석 결과를 반환한다")
             void 본문추출_실패시_제목으로_분석() {
                 String url = "https://tech-blog.com/post/2";
-                LinkuResultDTO mockResult = new LinkuResultDTO(2L, "Java");
+                LinkuResultDTO mockResult = new LinkuResultDTO(2L, "Java", null, null, null);
 
                 given(titleDomainParser.parseUrl(url))
                         .willReturn(new TitleDomainParser.ParsedPageInfo("tech-blog.com", "Tech Article"));
@@ -74,7 +74,7 @@ class GeminiLinkuServiceTest {
                 given(geminiService.callAndParse(anyString(), anyString(), eq(LinkuResultDTO.class)))
                         .willReturn(mockResult);
 
-                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of());
+                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of(), List.of(), List.of());
 
                 assertThat(result).isPresent();
             }
@@ -93,7 +93,7 @@ class GeminiLinkuServiceTest {
                         .willReturn(new TitleDomainParser.ParsedPageInfo("empty.com", null));
                 given(webContentExtractor.extractTextFromUrl(url)).willReturn(null);
 
-                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of());
+                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of(), List.of(), List.of());
 
                 assertThat(result).isEmpty();
             }

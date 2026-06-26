@@ -9,11 +9,13 @@ import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import com.umc.linkyou.support.config.TestExternalConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ import java.util.Optional;
 
 @ActiveProfiles("test")
 @SpringBootTest
+@Import(TestExternalConfig.class)
 @Transactional
 class UserWithdrawServiceTest {
 
@@ -125,7 +128,6 @@ class UserWithdrawServiceTest {
 
         // 2. 복합 연관 데이터 추가 (예: 알람, 카테고리 컬러 등 - 빌더나 필드에 따라 조정)
         // 리스트가 초기화되어 있다고 가정하고 데이터를 넣습니다.
-        // user.getUserAlarms().add(UserAlarm.builder().user(user).content("테스트알람").build());
 
         // 영속성 컨텍스트 반영
         userRepository.save(user);
@@ -153,20 +155,13 @@ class UserWithdrawServiceTest {
         em.flush();
         em.clear();
 
-        // 1. 유저와 연관된 기존 계정들을 모두 가져옴
-        Users user = userRepository.findById(testUserId).get();
-
-        // 2. [수정 포인트] 레포지토리에 메서드가 없으므로, 리스트를 순회하며 삭제하거나 deleteAll 사용
-        if (user.getAuthAccounts() != null && !user.getAuthAccounts().isEmpty()) {
-            authAccountRepository.deleteAll(user.getAuthAccounts());
-            user.getAuthAccounts().clear(); // 리스트도 비워줌
-        }
+        authAccountRepository.deleteAllByUser_Id(testUserId);
 
         em.flush();
         em.clear();
 
         // 3. 다시 유저 로드 (완전히 비워진 상태)
-        user = userRepository.findById(testUserId).get();
+        Users user = userRepository.findById(testUserId).get();
 
         // 4. 이제 테스트 타겟인 '카카오 계정'만 딱 하나 생성
         AuthAccount kakaoAuth = AuthAccount.builder()
@@ -176,8 +171,6 @@ class UserWithdrawServiceTest {
                 .email("kakao@test.com")
                 .build();
 
-        if (user.getAuthAccounts() == null) user.setAuthAccounts(new java.util.ArrayList<>());
-        user.getAuthAccounts().add(kakaoAuth);
         authAccountRepository.save(kakaoAuth);
 
         em.flush();

@@ -65,8 +65,7 @@ public class TermsConverter {
      * 기존 약관 동의 객체 업데이트 (Update용)
      */
     public static void updateAgreement(TermsAgreement agreement, boolean isAgreed) {
-        agreement.setIsAgreed(isAgreed);
-        agreement.setAgreedAt(LocalDateTime.now());
+        agreement.updateAgreement(isAgreed, LocalDateTime.now());
     }
 
     /**

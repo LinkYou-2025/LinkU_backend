@@ -73,7 +73,7 @@ public class EmailService {
     // 이메일 전송 메서드
     private void send(String toEmail, String subject, String htmlContent) {
         SendEmailRequest request = SendEmailRequest.builder()
-                .fromEmailAddress(sesProperties.getFrom())
+                .fromEmailAddress(sesProperties.from())
                 .destination(Destination.builder().toAddresses(toEmail).build())
                 .content(EmailContent.builder()
                         .simple(Message.builder()

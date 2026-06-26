@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "purposes")
 public class Purposes {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,7 +31,6 @@ public class Purposes {
         this.purpose = enumPurpose;
         this.user = newUser;
         this.selectedAt = LocalDateTime.now();
-        user.getPurposes().add(this);
     }
 
     @PrePersist

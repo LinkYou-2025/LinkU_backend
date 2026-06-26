@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "interests")
 public class Interests {
 
     @Id
@@ -31,7 +32,6 @@ public class Interests {
         this.interest = enumInterest;
         this.user = newUser;
         this.selectedAt = LocalDateTime.now();
-        user.getInterests().add(this);
     }
 
     @PrePersist

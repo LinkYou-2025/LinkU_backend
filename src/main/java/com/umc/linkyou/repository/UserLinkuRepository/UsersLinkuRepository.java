@@ -15,7 +15,7 @@ import java.util.Optional;
 
 @Repository
 public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, UsersLinkuRepositoryCustom {
-    Optional<UsersLinku> findByUserIdAndLinku_Linku(Long userId, String url);
+    Optional<UsersLinku> findByUserIdAndLinku_LinkuUrl(Long userId, String url);
 
     Optional<UsersLinku> findByUserAndLinku(Users user, Linku linku);
 

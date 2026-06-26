@@ -26,6 +26,7 @@ public class UserFcmTokenCache {
     private Set<String> activeTokens = new HashSet<>();
 
     @TimeToLive(unit = TimeUnit.DAYS)
+    @Builder.Default
     private long ttl = 60L;
 
     public void addToken(String token) {

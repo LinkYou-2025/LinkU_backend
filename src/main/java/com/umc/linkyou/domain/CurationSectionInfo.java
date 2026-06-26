@@ -6,7 +6,7 @@ import lombok.*;
 
 @Entity
 @Table(
-        name = "curation_section_info",
+        name = "curation_section_infos",
         uniqueConstraints = @UniqueConstraint(
                 name = "uq_curation_section",
                 columnNames = {"base_month", "section_number"}
@@ -20,6 +20,7 @@ public class CurationSectionInfo extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "curation_section_info_id")
     private Long id;
 
     @Column(name = "base_month", length = 7, nullable = false)
@@ -28,10 +29,10 @@ public class CurationSectionInfo extends BaseEntity {
     @Column(name = "section_number", nullable = false)
     private int sectionNumber; // 1, 2, 3
 
-    @Column(nullable = false)
+    @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "image_url", columnDefinition = "TEXT")

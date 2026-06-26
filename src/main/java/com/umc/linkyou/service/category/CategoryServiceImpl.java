@@ -60,7 +60,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         Fcolor fcolor = fcolorRepository.searchColorCode(request.getFcolorId());
         
-        ucc.setFcolor(fcolor);
+        ucc.updateFcolor(fcolor);
 
         return categoryConverter.toUserCategoryColorResponseDTO(ucc);
     }

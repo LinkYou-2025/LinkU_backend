@@ -11,6 +11,7 @@ import com.umc.linkyou.repository.AlarmSettingRepository;
 import com.umc.linkyou.repository.UserAlarmRepository;
 import com.umc.linkyou.repository.UserFcmTokenRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.service.alarm.event.AlarmSettingChangedEvent;
 import com.umc.linkyou.support.fixture.AlarmFixture;
 import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmResponseDTO;
@@ -27,6 +28,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.umc.linkyou.support.fixture.AlarmFixture.*;
@@ -60,27 +62,36 @@ class AlarmServiceTest {
             @Test
             @DisplayName("신규 토큰이면 UsersFcmToken을 저장한다")
             void 신규토큰_저장() {
-                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
+                Users user = user();
+                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
                 given(userFcmTokenRepository.findByUser_IdAndFcmToken(USER_ID, FCM_TOKEN)).willReturn(null);
+                given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user)));
 
                 alarmService.registerFcmToken(USER_ID, new AlarmRequestDTO.AlarmFcmTokenDTO(FCM_TOKEN));
 
                 verify(userFcmTokenRepository).save(any(UsersFcmToken.class));
+                ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+                verify(eventPublisher).publishEvent(eventCaptor.capture());
+                AlarmSettingChangedEvent event = (AlarmSettingChangedEvent) eventCaptor.getValue();
+                assertThat(event.shouldSubscribe()).isTrue();
+                assertThat(event.topics()).containsExactly("alarm-notice");
             }
 
             @Test
-            @DisplayName("이미 등록된 토큰이면 activate만 호출한다")
+            @DisplayName("이미 등록된 토큰이면 activate 후 토픽 구독 이벤트를 발행한다")
             void 기존토큰_활성화() {
                 Users user = user();
                 UsersFcmToken token = AlarmFixture.inactiveToken(user);
 
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
                 given(userFcmTokenRepository.findByUser_IdAndFcmToken(USER_ID, FCM_TOKEN)).willReturn(token);
+                given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user)));
 
                 alarmService.registerFcmToken(USER_ID, new AlarmRequestDTO.AlarmFcmTokenDTO(FCM_TOKEN));
 
                 assertThat(token.getIsActive()).isTrue();
                 verify(userFcmTokenRepository, never()).save(any());
+                verify(eventPublisher).publishEvent((Object) any());
             }
         }
 
@@ -291,7 +302,6 @@ class AlarmServiceTest {
     @Nested
     @DisplayName("개인 알림 발송 (sendAlarm)")
     class SendAlarm {
-
         @Test
         @DisplayName("알림이 저장되고 PersonalAlarmEvent가 발행된다")
         void 알림발송_성공() {
@@ -299,11 +309,26 @@ class AlarmServiceTest {
             given(alarmRepository.save(any())).willReturn(alarm(AlarmType.LINK_SUMMARY_COMPLETE));
 
             alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                    AlarmType.LINK_SUMMARY_COMPLETE, 100L));
+                    AlarmType.LINK_SUMMARY_COMPLETE, 100L, null));
 
             verify(alarmRepository).save(any());
             verify(userAlarmRepository).save(any());
             verify(eventPublisher).publishEvent((Object) any());
+        }
+
+        @Test
+        @DisplayName("FOLDER_DELETED 타입이면 body에 닉네임과 폴더명이 정확히 치환된다")
+        void 폴더삭제알림_본문전체일치() {
+            ArgumentCaptor<Alarm> alarmCaptor = ArgumentCaptor.forClass(Alarm.class);
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
+            given(alarmRepository.save(alarmCaptor.capture())).willAnswer(inv -> inv.getArgument(0));
+
+            alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
+                    AlarmType.FOLDER_DELETED, 300L,
+                    Map.of("nickname", "주인", "folderName", "어학")));
+
+            assertThat(alarmCaptor.getValue().getBody())
+                    .isEqualTo("주인님이 '어학' 폴더를 삭제해 더 이상 접근할 수 없어요");
         }
 
         @Test
@@ -314,9 +339,10 @@ class AlarmServiceTest {
             given(alarmRepository.save(alarmCaptor.capture())).willAnswer(inv -> inv.getArgument(0));
 
             alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                    AlarmType.CURATION_UPDATED, 200L));
+                    AlarmType.CURATION_UPDATED, 200L, null));
 
-            assertThat(alarmCaptor.getValue().getBody()).contains("테스트유저");
+            assertThat(alarmCaptor.getValue().getBody())
+                    .isEqualTo("테스트유저님을 위한 이 달의 큐레이션이 도착했어요!");
         }
 
         @Test
@@ -326,7 +352,7 @@ class AlarmServiceTest {
 
             assertThatThrownBy(() ->
                     alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                            AlarmType.LINK_SUMMARY_COMPLETE, 1L)))
+                            AlarmType.LINK_SUMMARY_COMPLETE, 1L, null)))
                     .isInstanceOf(GeneralException.class)
                     .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                             .isEqualTo(UserErrorStatus._USER_NOT_FOUND));

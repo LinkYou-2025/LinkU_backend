@@ -28,11 +28,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AlarmService {
+    private static final String NOTICE_TOPIC = "alarm-notice";
+
     private final UserFcmTokenRepository userFcmTokenRepository;
     private final UserRepository userRepository;
     private final AlarmSettingRepository alarmSettingRepository;
@@ -61,6 +64,11 @@ public class AlarmService {
             existingToken.activate();
         }
 
+        alarmSettingRepository.findByUserId(userId)
+                .filter(alarmSetting -> alarmSetting.isEnabled(AlarmSettingType.NOTICE))
+                .ifPresent(alarmSetting -> eventPublisher.publishEvent(
+                        new AlarmSettingChangedEvent(userId, AlarmSettingType.NOTICE, true, List.of(NOTICE_TOPIC))
+                ));
     }
 
     // FCM 토큰 비활성화
@@ -115,11 +123,11 @@ public class AlarmService {
 
         alarmSettingRepository.save(alarmSetting);
 
-        // 토픽 구독은 NOTICE 계열만 해당 (LINK/FOLDER/CURATION은 개인 토큰 push)
+        // 토픽 브로드캐스트는 NOTICE 계열만 사용한다. LINK/FOLDER/CURATION은 개인 토큰 push 대상이다.
         if (alarmSettingType == AlarmSettingType.NOTICE || alarmSettingType == AlarmSettingType.ALL) {
             boolean shouldSubscribe = alarmSetting.isEnabled(AlarmSettingType.NOTICE);
             eventPublisher.publishEvent(
-                    new AlarmSettingChangedEvent(userId, alarmSettingType, shouldSubscribe, List.of("alarm-notice"))
+                    new AlarmSettingChangedEvent(userId, alarmSettingType, shouldSubscribe, List.of(NOTICE_TOPIC))
             );
         }
 
@@ -132,7 +140,6 @@ public class AlarmService {
         );
     }
 
-
     // 개인 알림 전송 (알림 설정이 활성화된 경우에만 호출)
     // userId, 알림타입, targetId를 설정하면 메세지 내용을 자동으로 설정합니다.
     @Transactional
@@ -141,17 +148,18 @@ public class AlarmService {
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         AlarmType alarmType = requestDTO.type();
 
-        String renderedBody = alarmType == AlarmType.CURATION_UPDATED
-                ? String.format(alarmType.getBody(), user.getNickName())
-                : alarmType.getBody();
+        Map<String, String> values = alarmType == AlarmType.CURATION_UPDATED
+                ? Map.of("nickname", user.getNickName())
+                : requestDTO.values();
+
+        String renderedBody = AlarmMessageRenderer.render(alarmType.getBody(), values);
 
         Alarm alarm = alarmRepository.save(Alarm.create(alarmType, requestDTO.targetId(), renderedBody));
         userAlarmRepository.save(UserAlarm.create(user, alarm));
 
-        // CURATION 알림은 닉네임을 포함한 이벤트 발행
-        PersonalAlarmEvent event = alarmType == AlarmType.CURATION_UPDATED
-                ? PersonalAlarmEvent.ofWithNickname(userId, alarmType, requestDTO.targetId(), user.getNickName())
-                : PersonalAlarmEvent.of(userId, alarmType, requestDTO.targetId());
+        PersonalAlarmEvent event = (values == null || values.isEmpty())
+                ? PersonalAlarmEvent.of(userId, alarmType, requestDTO.targetId())
+                : PersonalAlarmEvent.withValues(userId, alarmType, requestDTO.targetId(), values);
 
         eventPublisher.publishEvent(event);
     }

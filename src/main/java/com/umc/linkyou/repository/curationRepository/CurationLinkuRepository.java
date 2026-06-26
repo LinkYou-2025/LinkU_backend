@@ -44,4 +44,5 @@ public interface CurationLinkuRepository extends JpaRepository<CurationLinku, Lo
             WHERE cl.usersLinku.userLinkuId = :userLinkuId
             """)
     List<CurationLinku> findByUsersLinkuId(@Param("userLinkuId") Long userLinkuId);
+
 }

@@ -1,10 +1,12 @@
 package com.umc.linkyou.config.security;
 
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
+@ConfigurationPropertiesScan("com.umc.linkyou.config.properties")
 @Configuration
 public class AppConfig {
 

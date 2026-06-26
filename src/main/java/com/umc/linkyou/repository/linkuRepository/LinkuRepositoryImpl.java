@@ -25,7 +25,7 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
     @Override
     public List<LinkuSearchSuggestionResponse> findUserSavedSuggestions(Long userId, String keyword) {
         QUsersLinku ul = QUsersLinku.usersLinku;
-        QLinku l = QLinku.linku1;
+        QLinku l = QLinku.linku;
         QDomain d = QDomain.domain;
 
         return queryFactory
@@ -34,7 +34,7 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
                         l.linkuId,
                         l.title,
                         d.imageUrl,
-                        l.linku
+                        l.linkuUrl
                 ))
                 .from(ul)
                 .join(ul.linku, l)
@@ -49,13 +49,13 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
     }
     @Override
     public Optional<Linku> findByLinku(String normalizedLink) {
-        QLinku l = QLinku.linku1;
+        QLinku l = QLinku.linku;
 
         // AiArticle만 fetch join (이후 바로 null 체크 및 세팅하기 때문)
         Linku result = queryFactory
                 .selectFrom(l)
                 .leftJoin(l.aiArticle).fetchJoin()
-                .where(l.linku.eq(normalizedLink))
+                .where(l.linkuUrl.eq(normalizedLink))
                 .fetchFirst();
 
         return Optional.ofNullable(result);

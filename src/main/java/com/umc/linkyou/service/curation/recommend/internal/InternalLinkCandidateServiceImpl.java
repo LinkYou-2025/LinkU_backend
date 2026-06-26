@@ -82,10 +82,10 @@ public class InternalLinkCandidateServiceImpl implements InternalLinkCandidateSe
                 link.getEmotion().getEmotionId()
         );
 
-        Long aiCategoryId = (link.getLinku().getAiArticle() != null)
-                ? link.getLinku().getAiArticle().getAiCategoryId()
+        Long categoryId = (link.getLinku().getCategory() != null)
+                ? link.getLinku().getCategory().getCategoryId()
                 : null;
-        int situationScore = (aiCategoryId != null && mappedCategoryIds.contains(aiCategoryId)) ? 40 : 0;
+        int situationScore = (categoryId != null && mappedCategoryIds.contains(categoryId)) ? 40 : 0;
 
         return emotionScore + situationScore;
     }

@@ -32,7 +32,7 @@ public class TokenIssueService {
         String accessToken = issueAccessToken(userId, email, provider, role);
         String refreshToken = jwtTokenProvider.createRefreshToken(email, provider);
         String tokenId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
-        long expiresAt = System.currentTimeMillis() + jwtProperties.getExpiration().getRefresh();
+        long expiresAt = System.currentTimeMillis() + jwtProperties.expiration().refresh();
 
         refreshTokenManager.saveToken(
                 userId,

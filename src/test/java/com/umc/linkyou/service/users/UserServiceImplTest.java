@@ -133,7 +133,6 @@ class UserServiceImplTest {
                 Users tempUser = Users.builder()
                         .id(1L)
                         .status(UserStatus.TEMP)
-                        .usersFoldersList(new ArrayList<>())
                         .build();
 
                 UserRequestDTO.SocialCompleteDTO request = new UserRequestDTO.SocialCompleteDTO(

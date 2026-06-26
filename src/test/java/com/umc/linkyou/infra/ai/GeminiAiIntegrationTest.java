@@ -2,8 +2,6 @@ package com.umc.linkyou.infra.ai;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.umc.linkyou.domain.classification.Category;
-import com.umc.linkyou.domain.classification.Emotion;
-import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.infra.ai.dto.MentResultDTO;
 import com.umc.linkyou.infra.ai.dto.AiArticleResultDTO;
 import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
@@ -48,20 +46,12 @@ class GeminiAiIntegrationTest {
         @Mock private PromptComposer promptComposer;
         @InjectMocks private GeminiArticleService geminiArticleService;
 
-        private final List<Situation> situations = List.of(
-                Situation.builder().id(1L).name("업무·학습").build()
-        );
-        private final List<Emotion> emotions = List.of(
-                Emotion.builder().emotionId(1L).name("기쁨").build()
-        );
         @Test
         @DisplayName("성공 - 페이지 본문 추출 성공 시 AI 분석 결과를 반환한다")
         void analyzeByUrl_success() {
             // given
             String url = "https://tech-blog.com/spring-tips";
-            AiArticleResultDTO mockResult = new AiArticleResultDTO(
-                    "Spring 팁 모음", "요약 내용입니다.", 1L, 1L, "#Spring #Java"
-            );
+            AiArticleResultDTO mockResult = new AiArticleResultDTO("요약 내용입니다.");
 
             given(webContentExtractor.extractTextFromUrl(url)).willReturn("Spring 관련 본문 내용...");
             given(promptComposer.general()).willReturn("system prompt");
@@ -69,12 +59,10 @@ class GeminiAiIntegrationTest {
                     .willReturn(mockResult);
 
             // when
-            AiArticleResultDTO result = geminiArticleService.analyzeByUrl(url, situations, emotions);
+            AiArticleResultDTO result = geminiArticleService.analyzeByUrl(url);
 
             // then
-            assertThat(result.title()).isEqualTo("Spring 팁 모음");
             assertThat(result.summary()).isEqualTo("요약 내용입니다.");
-            assertThat(result.keywords()).contains("#");
         }
 
         @Test
@@ -84,8 +72,7 @@ class GeminiAiIntegrationTest {
             given(webContentExtractor.extractTextFromUrl(any())).willReturn(null);
 
             // when & then
-            assertThatThrownBy(() ->
-                    geminiArticleService.analyzeByUrl("https://empty.com", situations, emotions))
+            assertThatThrownBy(() -> geminiArticleService.analyzeByUrl("https://empty.com"))
                     .isInstanceOf(GeneralException.class);
         }
 
@@ -96,8 +83,7 @@ class GeminiAiIntegrationTest {
             given(webContentExtractor.extractTextFromUrl(any())).willReturn("   ");
 
             // when & then
-            assertThatThrownBy(() ->
-                    geminiArticleService.analyzeByUrl("https://blank.com", situations, emotions))
+            assertThatThrownBy(() -> geminiArticleService.analyzeByUrl("https://blank.com"))
                     .isInstanceOf(GeneralException.class);
         }
     }
@@ -122,7 +108,7 @@ class GeminiAiIntegrationTest {
         void classifyCategory_success() {
             // given
             String url = "https://tech.com/post/1";
-            LinkuResultDTO mockResult = new LinkuResultDTO(1L, "#Spring #Java");
+            LinkuResultDTO mockResult = new LinkuResultDTO(1L, "#Spring #Java", null, null, null);
 
             given(titleDomainParser.parseUrl(url))
                     .willReturn(new TitleDomainParser.ParsedPageInfo("tech.com", "Spring Boot 활용 가이드"));
@@ -132,7 +118,7 @@ class GeminiAiIntegrationTest {
                     .willReturn(mockResult);
 
             // when
-            Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, categories);
+            Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, categories, List.of(), List.of());
 
             // then
             assertThat(result).isPresent();
@@ -145,7 +131,7 @@ class GeminiAiIntegrationTest {
         void classifyCategory_blankTitle_withContent_callsAi() {
             // given
             String url = "https://example.com";
-            LinkuResultDTO mockResult = new LinkuResultDTO(3L, "#디자인");
+            LinkuResultDTO mockResult = new LinkuResultDTO(3L, "#디자인", null, null, null);
 
             given(titleDomainParser.parseUrl(url))
                     .willReturn(new TitleDomainParser.ParsedPageInfo("example.com", ""));
@@ -155,7 +141,7 @@ class GeminiAiIntegrationTest {
                     .willReturn(mockResult);
 
             // when
-            Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, categories);
+            Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, categories, List.of(), List.of());
 
             // then
             assertThat(result).isPresent();
@@ -170,7 +156,7 @@ class GeminiAiIntegrationTest {
                     .willReturn(new TitleDomainParser.ParsedPageInfo("example.com", null));
 
             // when
-            Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl("https://unknown.com", List.of());
+            Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl("https://unknown.com", List.of(), List.of(), List.of());
 
             // then
             assertThat(result).isEmpty();
