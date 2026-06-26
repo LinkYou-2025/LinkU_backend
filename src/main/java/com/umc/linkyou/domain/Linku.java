@@ -34,7 +34,7 @@ public class Linku extends BaseEntity {
     private String linkuUrl;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "aiArticle_id")
+    @JoinColumn(name = "ai_article_id")
     private AiArticle aiArticle;
 
     @Column(columnDefinition = "text", nullable = false)
