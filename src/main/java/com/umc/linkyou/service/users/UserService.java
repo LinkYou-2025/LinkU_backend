@@ -100,7 +100,7 @@ public class UserService {
                 .orElseGet(() -> {
                     // 3-1. 기존 유저가 아예 없으면 새로 생성
                     Job job = jobRepository.findById(request.jobId())
-                            .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
+                            .orElseThrow(() -> new GeneralException(UserErrorStatus._JOB_NOT_SET));
 
                     Users newUser = UserConverter.toUser(request, job);
                     // 일반 로그인용 비밀번호 인코딩

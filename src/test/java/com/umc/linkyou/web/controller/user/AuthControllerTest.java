@@ -3,6 +3,7 @@ package com.umc.linkyou.web.controller.user;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
@@ -81,7 +82,7 @@ class AuthControllerTest {
                     "링큐유저",
                     "test@example.com",
                     "password123",
-                    1,
+                    Gender.MALE,
                     1L,
                     List.of("CAREER"),
                     List.of("IT"),

@@ -25,7 +25,7 @@ public class UserConverter {
     public static Users toUser(UserRequestDTO.JoinDTO request, Job job){
         return Users.builder()
                 .nickName(request.nickName())
-                .gender(toGender(request.gender()))
+                .gender(request.gender())
                 .job(job)
                 .status(UserStatus.ACTIVE)
                 .build();

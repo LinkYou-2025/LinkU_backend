@@ -5,6 +5,7 @@ import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Job;
+import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.oauth2.utils.UserSocialLoginHelper;
@@ -60,7 +61,7 @@ public class UserRegistrationIntegrationTest {
                 .email("integration@test.com")
                 .nickName("통합유저")
                 .password("pass123")
-                .gender(1)
+                .gender(Gender.MALE)
                 .jobId(testJob.getId())
                 .purposeList(List.of("STUDY"))
                 .interestList(List.of("IT"))
@@ -92,7 +93,7 @@ public class UserRegistrationIntegrationTest {
                 .email("already@active.com")
                 .nickName("기존유저")
                 .password("pass123")
-                .gender(1)
+                .gender(Gender.MALE)
                 .jobId(testJob.getId())
                 .purposeList(List.of("STUDY"))
                 .interestList(List.of("IT"))
