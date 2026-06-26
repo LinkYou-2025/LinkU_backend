@@ -192,8 +192,3 @@ jacocoTestReport {
 		)
 	}
 }
-
-// 2. build 태스크 실행 시 copyDocument가 자동으로 실행되도록 설정
-build {
-	dependsOn copyDocument
-}
