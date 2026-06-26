@@ -23,8 +23,8 @@ spring:
           time_zone: Asia/Seoul
   flyway:
     enabled: true
-    baseline-on-migrate: true
-    baseline-version: 0
+    baseline-on-migrate: false
+    baseline-version: 1
     locations:
       - classpath:db/migration
       - classpath:db/seed
