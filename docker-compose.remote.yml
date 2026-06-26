@@ -36,7 +36,7 @@ services:
     environment:
       POSTGRES_DB: linkUDB
       POSTGRES_USER: linkU
-      POSTGRES_PASSWORD: linku1234
+      POSTGRES_PASSWORD: linkU1234
       TZ: Asia/Seoul
     volumes:
       - postgres_data:/var/lib/postgresql/data
