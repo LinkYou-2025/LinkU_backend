@@ -22,8 +22,7 @@ public class Alarm extends BaseEntity {
     @Column(name = "title", length = 100, nullable = false)
     private String title;
 
-    @Lob
-    @Column(name = "body", nullable = false)
+    @Column(name = "body", columnDefinition = "TEXT", nullable = false)
     private String body;
 
     @Column(name = "alarm_type", length = 100, nullable = false)
