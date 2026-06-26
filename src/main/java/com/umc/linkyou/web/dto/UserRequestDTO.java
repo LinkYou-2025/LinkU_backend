@@ -90,9 +90,9 @@ public class UserRequestDTO {
         @NotBlank(message = "닉네임은 필수입니다")
         private String nickName;
 
-        @Schema(description = "성별 (1=남성, 2=여성)", example = "1")
+        @Schema(description = "성별", example = "MALE", allowableValues = {"MALE", "FEMALE"})
         @NotNull(message = "성별은 필수입니다")
-        private Integer gender;
+        private Gender gender;
 
         @Schema(description = "직업 ID", example = "1")
         @NotNull(message = "직업은 필수입니다")

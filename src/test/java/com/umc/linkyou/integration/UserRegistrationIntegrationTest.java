@@ -107,7 +107,7 @@ public class UserRegistrationIntegrationTest {
 
         // 2. 소셜 프로필 완성 DTO (일반 클래스이므로 기존 생성자 유지)
         UserRequestDTO.SocialCompleteDTO completeReq = new UserRequestDTO.SocialCompleteDTO(
-                "새닉네임", 2, testJob.getId(), List.of("WORK"), List.of("ART"), Collections.emptyMap()
+                "새닉네임", Gender.FEMALE, testJob.getId(), List.of("WORK"), List.of("ART"), Collections.emptyMap()
         );
 
         // 3. 예외 발생 검증

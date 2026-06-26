@@ -77,7 +77,7 @@ public interface UserApi {
                     """
     )
     @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._DUPLICATE_JOIN_REQUEST, UserErrorStatus._JOB_NOT_SET, UserErrorStatus._DUPLICATE_NICKNAME})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._DUPLICATE_JOIN_REQUEST, UserErrorStatus._JOB_NOT_SET, UserErrorStatus._DUPLICATE_NICKNAME, UserErrorStatus._USER_NOT_FOUND})
     @PatchMapping("/social/complete")
     ApiResponse<UserResponseDTO.JoinResultDTO> completeSocialProfile(
             @RequestBody @Valid UserRequestDTO.SocialCompleteDTO request,

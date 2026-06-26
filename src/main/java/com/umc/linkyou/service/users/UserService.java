@@ -190,11 +190,14 @@ public class UserService {
         validateNickNameNotDuplicate(request.getNickName());
 
         // 3. 필수 정보 업데이트
+        if (request.getGender() == null) {
+            throw new UserHandler(UserErrorStatus._INVALID_GENDER);
+        }
         Job job = jobRepository.findById(request.getJobId())
                 .orElseThrow(() -> new UserHandler(UserErrorStatus._JOB_NOT_SET));
         user.completeSocialProfile(
                 request.getNickName(),
-                UserConverter.toGender(request.getGender()),
+                request.getGender(),
                 job
         );
 

@@ -137,7 +137,7 @@ class UserServiceImplTest {
                         .build();
 
                 UserRequestDTO.SocialCompleteDTO request = new UserRequestDTO.SocialCompleteDTO(
-                        "완성닉네임", 1, 1L, new ArrayList<>(), new ArrayList<>(), Collections.emptyMap()
+                        "완성닉네임", Gender.MALE, 1L, new ArrayList<>(), new ArrayList<>(), Collections.emptyMap()
                 );
 
                 when(userRepository.findById(eq(tempUser.getId()))).thenReturn(Optional.of(tempUser));
