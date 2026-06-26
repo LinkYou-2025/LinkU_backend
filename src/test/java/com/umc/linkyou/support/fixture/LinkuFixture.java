@@ -1,5 +1,6 @@
 package com.umc.linkyou.support.fixture;
 
+import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Category;
@@ -80,5 +81,14 @@ public final class LinkuFixture {
 
     public static Linku linkuWithoutImage() {
         return linku(null);
+    }
+
+    public static AiArticle aiArticle(Linku linku, String summary) {
+        return AiArticle.builder()
+                .id(1L)
+                .linku(linku)
+                .title("테스트 AI 제목")
+                .summary(summary)
+                .build();
     }
 }
