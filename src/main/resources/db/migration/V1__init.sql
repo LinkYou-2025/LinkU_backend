@@ -154,8 +154,7 @@ create table ai_articles
 );
 
 -- ── linkus (categories, domains, ai_articles 의존) ───────────
--- Linku.java: @JoinColumn(name = "aiArticle_id")
--- PostgreSQL unquoted identifier → 소문자 처리: aiArticle_id → aiarticle_id
+-- Linku.java: @JoinColumn(name = "ai_article_id")
 
 create table linkus
 (
@@ -168,13 +167,13 @@ create table linkus
     total_view_count bigint not null,
     category_id      bigint not null,
     domain_id        bigint not null,
-    aiarticle_id     bigint,
+    ai_article_id    bigint,
     constraint fk_linkus_category
         foreign key (category_id) references categories (category_id),
     constraint fk_linkus_domain
         foreign key (domain_id) references domains (domain_id),
     constraint fk_linkus_ai_article
-        foreign key (aiarticle_id) references ai_articles (ai_article_id)
+        foreign key (ai_article_id) references ai_articles (ai_article_id)
 );
 
 -- ai_articles.linku_id → linkus FK (circular dep 해소)
