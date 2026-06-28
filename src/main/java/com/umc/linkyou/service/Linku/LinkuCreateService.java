@@ -6,7 +6,6 @@ import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
 import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
@@ -27,6 +26,8 @@ import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.service.folder.FolderService;
+import com.umc.linkyou.service.Linku.LinkuUpsertService;
+import com.umc.linkyou.infra.parser.TitleDomainParser;
 import com.umc.linkyou.service.keyword.KeywordService;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
@@ -62,6 +63,7 @@ public class LinkuCreateService {
     private final GeminiLinkuService geminiLinkuService;
     private final FolderService folderService;
     private final KeywordService keywordService;
+    private final LinkuUpsertService linkuUpsertService;
 
     private static final Long DEFAULT_CATEGORY_ID = 16L;
     private static final Long DEFAULT_EMOTION_ID = 2L;
@@ -95,15 +97,16 @@ public class LinkuCreateService {
             aiTitle = aiResult.map(LinkuResultDTO::title).orElse(null);
             Domain domain = resolveDomain(domainTail);
 
-            try {
-                linku = createNewLinku(normalizedLink, category, domain, domainTail);
-                createAiArticleIfNeeded(linku);
-                keywordService.saveKeywords(linku, rawKeywords);
-            } catch (DataIntegrityViolationException e) {
-                linku = linkuRepository.findByLinku(normalizedLink)
-                        .orElseThrow(() -> new GeneralException(LinkuErrorStatus._LINKU_NOT_FOUND));
-                category = linku.getCategory();
+            String crawledTitle = linkToImageService.extractTitle(normalizedLink);
+            if (crawledTitle == null || crawledTitle.isBlank()) {
+                crawledTitle = (domainTail != null && !domainTail.isBlank()) ? domainTail : "제목 없음";
             }
+            String crawledImgUrl = linkToImageService.getRelatedImageFromUrl(normalizedLink, crawledTitle);
+
+            linku = linkuUpsertService.upsert(normalizedLink, category, domain, crawledTitle, crawledImgUrl);
+            category = linku.getCategory();
+            createAiArticleIfNeeded(linku);
+            keywordService.saveKeywords(linku, rawKeywords);
         }
 
         // 3) emotion/situation: 사용자 입력 우선, 없으면 AI 반환값 사용
@@ -140,16 +143,6 @@ public class LinkuCreateService {
                 .data(resultDto)
                 .validUrl(UrlValidUtils.isURLConnectionOk(normalizedLink))
                 .build();
-    }
-
-    // 신규 생성을 분리한 헬퍼 메서드 (기존 findOrCreateLinku 대체)
-    private Linku createNewLinku(String normalizedLink, Category category, Domain domain, String domainTail) {
-        String crawledTitle = linkToImageService.extractTitle(normalizedLink);
-        if (crawledTitle == null || crawledTitle.isBlank()) {
-            crawledTitle = (domainTail != null && !domainTail.isBlank()) ? domainTail : "제목 없음";
-        }
-        String crawledImgUrl = linkToImageService.getRelatedImageFromUrl(normalizedLink, crawledTitle);
-        return linkuRepository.save(LinkuConverter.toLinku(normalizedLink, category, domain, crawledTitle, crawledImgUrl));
     }
 
     // Utility methods - 모두 public으로 선언

@@ -12,9 +12,9 @@ import com.umc.linkyou.repository.keywordRepository.KeywordRepository;
 import com.umc.linkyou.repository.mapping.LinkuKeywordRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.service.common.KeywordNameResolver;
+import com.umc.linkyou.service.keyword.KeywordUpsertService;
 import com.umc.linkyou.web.dto.keyword.KeywordRankResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +30,7 @@ public class KeywordServiceImpl implements KeywordService {
     private final KeywordNameResolver keywordNameResolver;
     private final KeywordRepository keywordRepository;
     private final LinkuKeywordRepository linkuKeywordRepository;
+    private final KeywordUpsertService keywordUpsertService;
 
     @Override
     @Transactional(readOnly = true)
@@ -73,16 +74,7 @@ public class KeywordServiceImpl implements KeywordService {
             String name = part.strip().replaceAll("^#", "");
             if (name.isBlank()) continue;
 
-            Keyword keyword;
-            try {
-                keyword = keywordRepository.findByName(name)
-                        .orElseGet(() -> keywordRepository.save(
-                                Keyword.builder().name(name).build()
-                        ));
-            } catch (DataIntegrityViolationException e) {
-                keyword = keywordRepository.findByName(name)
-                        .orElseThrow(() -> new GeneralException(LinkuErrorStatus._KEYWORD_NOT_FOUND));
-            }
+            Keyword keyword = keywordUpsertService.upsert(name);
 
             if (!linkuKeywordRepository.existsByLinkuAndKeyword(linku, keyword)) {
                 linkuKeywordRepository.save(
