@@ -35,4 +35,6 @@ public class CurationSectionInfo extends BaseEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @C
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
+}

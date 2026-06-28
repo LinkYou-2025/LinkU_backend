@@ -37,4 +37,9 @@ public class Fcolor {
 
     @OneToMany(mappedBy = "fcolor")
     @Builder.Default
-    private List<Category> categoryList = new ArrayLi
+    private List<Category> categoryList = new ArrayList<>();
+
+    @OneToMany(mappedBy = "fcolor", cascade = CascadeType.ALL)
+    @Builder.Default
+    private List<UsersCategoryColor> usersCategoryColorList = new ArrayList<>();
+}

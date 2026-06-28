@@ -38,4 +38,7 @@ public class Category {
     @Builder.Default
     private List<Folder> folderList = new ArrayList<>();
 
-    @OneToMany(mappedBy = "c
+    @OneToMany(mappedBy = "category")
+    @Builder.Default
+    private List<UsersCategoryColor> usersCategoryColorList = new ArrayList<>();
+}

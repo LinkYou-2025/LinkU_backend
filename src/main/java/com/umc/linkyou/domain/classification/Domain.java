@@ -30,4 +30,15 @@ public class Domain {
     @Column(name = "crawl_strategy", length = 50)
     private CrawlStrategy crawlStrategy;
 
-    publi
+    public void updateName(String name) {
+        this.name = name;
+    }
+
+    public void updateDomainTail(String domainTail) {
+        this.domainTail = domainTail;
+    }
+
+    public void updateImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+}

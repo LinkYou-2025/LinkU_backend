@@ -58,4 +58,46 @@ public class UsersLinku extends BaseEntity {
     @Column(name = "is_ai_exist", nullable = false)
     private Boolean aiExist = false;
 
-   
+    @Builder.Default
+    @Column(name = "is_emotion_ai", nullable = false)
+    private Boolean emotionAi = true;
+
+    @Builder.Default
+    @Column(name = "is_situation_ai", nullable = false)
+    private Boolean situationAi = true;
+
+    public Boolean getAiExist() {
+        return this.aiExist;
+    }
+
+    public void markAiExist(boolean aiExist) {
+        this.aiExist = aiExist;
+    }
+
+    public void updateMemo(String memo) {
+        this.memo = memo;
+    }
+
+    public void updateEmotion(Emotion emotion) {
+        this.emotion = emotion;
+    }
+
+    public void updateEmotionAi(boolean emotionAi) {
+        this.emotionAi = emotionAi;
+    }
+
+    public void updateSituation(Situation situation) {
+        this.situation = situation;
+    }
+
+    public void updateSituationAi(boolean situationAi) {
+        this.situationAi = situationAi;
+    }
+
+    @Builder.Default
+    @Column(name = "view_count", nullable = false)
+    private int viewCount = 0;
+
+    @Column(name = "last_viewed_at")
+    private LocalDateTime lastViewedAt;
+}

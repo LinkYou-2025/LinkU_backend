@@ -40,4 +40,10 @@ public class Folder extends BaseEntity {
     private List<LinkuFolder> linkuFolderList = new ArrayList<>();
 
     @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL)
-    @B
+    @Builder.Default
+    private List<UsersFolder> usersFolderList = new ArrayList<>();
+
+    public void updateFolderName(String folderName) {
+        this.folderName = folderName;
+    }
+}

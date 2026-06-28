@@ -31,4 +31,11 @@ public class Curation extends BaseEntity {
     @Column(name = "header_ment", columnDefinition = "TEXT")
     private String headerMent;
 
-    @Column(name = "footer_m
+    @Column(name = "footer_ment", columnDefinition = "TEXT")
+    private String footerMent;
+
+    public void updateMent(String headerMent, String footerMent) {
+        this.headerMent = headerMent;
+        this.footerMent = footerMent;
+    }
+}

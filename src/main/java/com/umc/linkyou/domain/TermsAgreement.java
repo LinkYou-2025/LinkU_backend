@@ -46,4 +46,15 @@ public class TermsAgreement extends BaseEntity {
     private String termsVersion; // "v1.0"
 
     @Column(name = "agreed_at", nullable = false)
-    private LocalDateTime agreedA
+    private LocalDateTime agreedAt;
+
+    @Column(name = "is_agreed", nullable = false)
+    @NotNull
+    @Builder.Default
+    private Boolean isAgreed = true;
+
+    public void updateAgreement(boolean isAgreed, LocalDateTime agreedAt) {
+        this.isAgreed = isAgreed;
+        this.agreedAt = agreedAt;
+    }
+}

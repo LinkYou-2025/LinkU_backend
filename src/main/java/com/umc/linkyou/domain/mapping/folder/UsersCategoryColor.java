@@ -27,4 +27,13 @@ public class UsersCategoryColor {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
-    private Category categ
+    private Category category;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fcolor_id", nullable = false)
+    private Fcolor fcolor;
+
+    public void updateFcolor(Fcolor fcolor) {
+        this.fcolor = fcolor;
+    }
+}

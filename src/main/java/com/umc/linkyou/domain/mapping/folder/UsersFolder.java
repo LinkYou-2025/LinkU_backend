@@ -31,4 +31,18 @@ public class UsersFolder extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @OnDelete(action = On
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Users user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "folder_id", nullable = false)
+    private Folder folder;
+
+    public void updatePermission(PermissionType permissionType) {
+        this.permissionType = permissionType;
+    }
+
+    public void updateBookmark(Boolean isBookmarked) {
+        this.isBookmarked = isBookmarked;
+    }
+}

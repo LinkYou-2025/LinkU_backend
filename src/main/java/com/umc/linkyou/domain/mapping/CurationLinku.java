@@ -60,4 +60,12 @@ public class CurationLinku {
     public static CurationLinku ofInternal(Curation curation, UsersLinku usersLinku, String imageUrl) {
         return CurationLinku.builder()
                 .curation(curation)
-      
+                .usersLinku(usersLinku)
+                .type(CurationLinkuType.RECOMMENDED)
+                .url(usersLinku.getLinku().getLinkuUrl())
+                .title(usersLinku.getLinku().getTitle())
+                .imageUrl(imageUrl)
+                .build();
+    }
+
+}

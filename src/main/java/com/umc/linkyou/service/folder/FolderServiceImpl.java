@@ -360,4 +360,28 @@ public class FolderServiceImpl implements FolderService {
             dto.setUserLinkuId(usersLinku.getUserLinkuId());
             dto.setLinkuId(link.getLinkuId());
             dto.setTitle(link.getTitle());
-            dto.setUrl(link.getLinkuUrl())
+            dto.setUrl(link.getLinkuUrl());
+            String kw = link.getLinkuKeywords().stream()
+                    .map(lk -> lk.getKeyword().getName())
+                    .collect(Collectors.joining(", "));
+            dto.setKeyword(kw.isEmpty() ? null : kw);
+            dto.setLinkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : link.getImgUrl());
+            dto.setCreatedAt(link.getCreatedAt().toString());
+            return dto;
+        }).toList();
+
+        FolderLinkusResponseDTO resp = new FolderLinkusResponseDTO();
+        resp.setFolders(subfolderDtos);
+        resp.setLinks(linkDtos);
+        resp.setNextCursor(nextCursor);
+
+        return resp;
+    }
+
+    // 유저의 카테고리에 해당하는 중분류 폴더 조회
+    public Folder findFolder(Long userId, Category category) {
+        return usersFolderRepository.findFolderByUserIdAndCategory(userId, category)
+                .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
+    }
+
+}

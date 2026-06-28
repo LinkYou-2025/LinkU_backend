@@ -7,7 +7,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 
-@Getter @NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor(access = AccessLevel.PRIVATE) @Builder
+@Getter @NoArgsConstructor @AllArgsConstructor @Builder
 @Entity
 @Table(name = "linku_folders")
 public class LinkuFolder {
@@ -20,4 +20,12 @@ public class LinkuFolder {
     @JoinColumn(name = "folder_id", nullable = false)
     private Folder folder;
 
-    @ManyToOne(fet
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_linku_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private UsersLinku usersLinku;
+
+    public void updateFolder(Folder folder) {
+        this.folder = folder;
+    }
+}

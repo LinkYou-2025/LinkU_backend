@@ -25,4 +25,6 @@ public class CurationMent {
     @Column(name = "header_text", columnDefinition = "TEXT", nullable = false)
     private String headerText;
 
-    @Column(name = "footer_tex
+    @Column(name = "footer_text", columnDefinition = "TEXT", nullable = false)
+    private String footerText;
+}

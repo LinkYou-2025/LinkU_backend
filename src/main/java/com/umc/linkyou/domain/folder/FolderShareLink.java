@@ -47,4 +47,17 @@ public class FolderShareLink extends BaseEntity {
 
     // 만료 여부 확인 로직
     public boolean isValid() {
-        return this.isActive && this.expiresAt.isAfter(Lo
+        return this.isActive && this.expiresAt.isAfter(LocalDateTime.now());
+    }
+
+    // 링크 비활성화
+    public void deactivate() {
+        this.isActive = false;
+    }
+
+    public void updateToken(String token, LocalDateTime expiresAt) {
+        this.token = token;
+        this.expiresAt = expiresAt;
+        this.isActive = true;
+    }
+}
