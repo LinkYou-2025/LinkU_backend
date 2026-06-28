@@ -11,7 +11,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Table(name = "curation_linkus")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class CurationLinku {
     @Id
@@ -60,12 +60,4 @@ public class CurationLinku {
     public static CurationLinku ofInternal(Curation curation, UsersLinku usersLinku, String imageUrl) {
         return CurationLinku.builder()
                 .curation(curation)
-                .usersLinku(usersLinku)
-                .type(CurationLinkuType.RECOMMENDED)
-                .url(usersLinku.getLinku().getLinkuUrl())
-                .title(usersLinku.getLinku().getTitle())
-                .imageUrl(imageUrl)
-                .build();
-    }
-
-}
+      

@@ -20,8 +20,8 @@ import java.time.LocalDateTime;
         }
 )
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Getter
 public class TermsAgreement extends BaseEntity {
 
@@ -46,15 +46,4 @@ public class TermsAgreement extends BaseEntity {
     private String termsVersion; // "v1.0"
 
     @Column(name = "agreed_at", nullable = false)
-    private LocalDateTime agreedAt;
-
-    @Column(name = "is_agreed", nullable = false)
-    @NotNull
-    @Builder.Default
-    private Boolean isAgreed = true;
-
-    public void updateAgreement(boolean isAgreed, LocalDateTime agreedAt) {
-        this.isAgreed = isAgreed;
-        this.agreedAt = agreedAt;
-    }
-}
+    private LocalDateTime agreedA

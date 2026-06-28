@@ -14,7 +14,7 @@ import lombok.*;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class CurationSectionInfo extends BaseEntity {
 
@@ -35,6 +35,4 @@ public class CurationSectionInfo extends BaseEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "image_url", columnDefinition = "TEXT")
-    private String imageUrl;
-}
+    @C

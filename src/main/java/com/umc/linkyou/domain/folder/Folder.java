@@ -13,8 +13,8 @@ import java.util.List;
 @Entity
 @Table(name = "folders")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Folder extends BaseEntity {
     @Id
@@ -40,10 +40,4 @@ public class Folder extends BaseEntity {
     private List<LinkuFolder> linkuFolderList = new ArrayList<>();
 
     @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL)
-    @Builder.Default
-    private List<UsersFolder> usersFolderList = new ArrayList<>();
-
-    public void updateFolderName(String folderName) {
-        this.folderName = folderName;
-    }
-}
+    @B

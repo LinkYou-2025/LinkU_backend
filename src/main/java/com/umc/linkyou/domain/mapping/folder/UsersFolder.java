@@ -12,8 +12,8 @@ import org.hibernate.annotations.OnDeleteAction;
 @Entity
 @Table(name = "users_folders")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class UsersFolder extends BaseEntity {
     @Id
@@ -31,18 +31,4 @@ public class UsersFolder extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private Users user;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "folder_id", nullable = false)
-    private Folder folder;
-
-    public void updatePermission(PermissionType permissionType) {
-        this.permissionType = permissionType;
-    }
-
-    public void updateBookmark(Boolean isBookmarked) {
-        this.isBookmarked = isBookmarked;
-    }
-}
+    @OnDelete(action = On

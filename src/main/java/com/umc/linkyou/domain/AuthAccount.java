@@ -13,7 +13,7 @@ import org.hibernate.annotations.OnDeleteAction;
         })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class AuthAccount extends BaseEntity {
 
@@ -43,10 +43,4 @@ public class AuthAccount extends BaseEntity {
     @Column(name = "profile_image", columnDefinition = "TEXT")
     private String profileImage;
 
-    public void updateToken(String token) {
-        this.socialToken = token;
-    }
-    public void updateProfileImage(String profileImage) {
-        this.profileImage = profileImage;
-    }
-}
+    public void updateToken(String token

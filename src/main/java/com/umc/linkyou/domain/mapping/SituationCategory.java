@@ -9,7 +9,7 @@ import lombok.*;
 @Table(name = "situation_categories")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class SituationCategory {
 
@@ -23,6 +23,4 @@ public class SituationCategory {
     private Situation situation;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
-    private Category category;
-}
+    @JoinColumn(name = "category_id", nullabl

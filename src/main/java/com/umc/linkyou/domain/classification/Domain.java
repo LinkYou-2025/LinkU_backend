@@ -7,8 +7,8 @@ import lombok.*;
 @Entity
 @Table(name = "domains")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Domain {
 
@@ -30,15 +30,4 @@ public class Domain {
     @Column(name = "crawl_strategy", length = 50)
     private CrawlStrategy crawlStrategy;
 
-    public void updateName(String name) {
-        this.name = name;
-    }
-
-    public void updateDomainTail(String domainTail) {
-        this.domainTail = domainTail;
-    }
-
-    public void updateImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-}
+    publi

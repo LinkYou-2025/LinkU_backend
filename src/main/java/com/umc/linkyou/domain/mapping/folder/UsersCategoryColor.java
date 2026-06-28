@@ -11,8 +11,8 @@ import org.hibernate.annotations.OnDeleteAction;
 @Entity
 @Table(name = "users_category_colors")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class UsersCategoryColor {
     @Id
@@ -27,13 +27,4 @@ public class UsersCategoryColor {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
-    private Category category;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fcolor_id", nullable = false)
-    private Fcolor fcolor;
-
-    public void updateFcolor(Fcolor fcolor) {
-        this.fcolor = fcolor;
-    }
-}
+    private Category categ

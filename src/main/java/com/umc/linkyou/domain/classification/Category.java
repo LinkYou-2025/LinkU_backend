@@ -14,8 +14,8 @@ import java.util.List;
 @Entity
 @Table(name = "categories")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Category {
     @Id
@@ -38,7 +38,4 @@ public class Category {
     @Builder.Default
     private List<Folder> folderList = new ArrayList<>();
 
-    @OneToMany(mappedBy = "category")
-    @Builder.Default
-    private List<UsersCategoryColor> usersCategoryColorList = new ArrayList<>();
-}
+    @OneToMany(mappedBy = "c

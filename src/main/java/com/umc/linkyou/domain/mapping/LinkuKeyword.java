@@ -10,7 +10,7 @@ import lombok.*;
         uniqueConstraints = @UniqueConstraint(name = "uq_linku_keyword", columnNames = {"linku_id", "keyword_id"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class LinkuKeyword {
 

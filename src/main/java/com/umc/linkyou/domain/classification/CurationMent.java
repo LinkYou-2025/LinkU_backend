@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Table(name = "curation_ments")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class CurationMent {
     @Id
@@ -25,6 +25,4 @@ public class CurationMent {
     @Column(name = "header_text", columnDefinition = "TEXT", nullable = false)
     private String headerText;
 
-    @Column(name = "footer_text", columnDefinition = "TEXT", nullable = false)
-    private String footerText;
-}
+    @Column(name = "footer_tex

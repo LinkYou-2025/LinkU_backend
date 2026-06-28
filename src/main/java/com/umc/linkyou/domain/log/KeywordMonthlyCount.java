@@ -17,7 +17,7 @@ import org.hibernate.annotations.OnDeleteAction;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class KeywordMonthlyCount {
 
@@ -38,9 +38,4 @@ public class KeywordMonthlyCount {
     @Column(name = "ref_id", nullable = false)
     private Long refId;
 
-    @Column(name = "base_month", length = 7, nullable = false)
-    private String baseMonth;
-
-    @Column(name = "count", nullable = false)
-    private int count;
-}
+    @Column(

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Table(name = "curations")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Curation extends BaseEntity {
     @Id
@@ -31,11 +31,4 @@ public class Curation extends BaseEntity {
     @Column(name = "header_ment", columnDefinition = "TEXT")
     private String headerMent;
 
-    @Column(name = "footer_ment", columnDefinition = "TEXT")
-    private String footerMent;
-
-    public void updateMent(String headerMent, String footerMent) {
-        this.headerMent = headerMent;
-        this.footerMent = footerMent;
-    }
-}
+    @Column(name = "footer_m

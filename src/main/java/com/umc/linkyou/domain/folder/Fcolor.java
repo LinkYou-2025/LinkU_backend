@@ -11,8 +11,8 @@ import java.util.List;
 @Entity
 @Table(name = "fcolors")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Fcolor {
     @Id
@@ -37,9 +37,4 @@ public class Fcolor {
 
     @OneToMany(mappedBy = "fcolor")
     @Builder.Default
-    private List<Category> categoryList = new ArrayList<>();
-
-    @OneToMany(mappedBy = "fcolor", cascade = CascadeType.ALL)
-    @Builder.Default
-    private List<UsersCategoryColor> usersCategoryColorList = new ArrayList<>();
-}
+    private List<Category> categoryList = new ArrayLi
