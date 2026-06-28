@@ -58,9 +58,6 @@ public class AiArticleService {
                         AiArticleConverter.toEntity(result, linku)
                 ));
 
-        if (linku.getAiArticle() == null || !linku.getAiArticle().equals(article)) {
-            linku.assignAiArticle(article);
-        }
         usersLinku.markAiExist(true);
 
         return AiArticleConverter.toDto(article, linku, usersLinku);

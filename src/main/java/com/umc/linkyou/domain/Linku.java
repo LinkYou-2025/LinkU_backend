@@ -33,8 +33,7 @@ public class Linku extends BaseEntity {
     @Column(name = "linku_url", columnDefinition = "text", nullable = false)
     private String linkuUrl;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ai_article_id")
+    @OneToOne(mappedBy = "linku", fetch = FetchType.LAZY)
     private AiArticle aiArticle;
 
     @Column(columnDefinition = "text", nullable = false)
@@ -54,10 +53,6 @@ public class Linku extends BaseEntity {
     @Builder.Default
     @Column(name = "total_view_count", nullable = false)
     private long totalViewCount = 0L;
-
-    public void assignAiArticle(AiArticle aiArticle) {
-        this.aiArticle = aiArticle;
-    }
 
     public void updateCategory(Category category) {
         this.category = category;

@@ -193,7 +193,6 @@ public class LinkuCreateService {
                     .title(linku.getTitle())
                     .summary("")
                     .build();
-            linku.assignAiArticle(aiArticle);
             aiArticleRepository.save(aiArticle);
         }
     }
