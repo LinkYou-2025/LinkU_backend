@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
@@ -91,7 +92,7 @@ class UserControllerTest {
             void social_complete_success() throws Exception {
                 UserRequestDTO.SocialCompleteDTO request = new UserRequestDTO.SocialCompleteDTO(
                         "social_nick",
-                        1,
+                        Gender.MALE,
                         1L,
                         List.of("STUDY"),
                         List.of("DESIGN"),
@@ -124,7 +125,7 @@ class UserControllerTest {
             void social_complete_unauthorized() throws Exception {
                 UserRequestDTO.SocialCompleteDTO request = new UserRequestDTO.SocialCompleteDTO(
                         "social_nick",
-                        1,
+                        Gender.MALE,
                         1L,
                         List.of("STUDY"),
                         List.of("DESIGN"),

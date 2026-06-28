@@ -1,13 +1,11 @@
 package com.umc.linkyou.converter;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Interests;
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.classification.Purposes;
-import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
@@ -21,9 +19,13 @@ public class UserConverter {
 
     // 기존 toUser는 joinUser에서 사용
     public static Users toUser(UserRequestDTO.JoinDTO request, Job job){
+        // joinUser는 컨트롤러 밖에서도 직접 호출될 수 있어 서비스 경계에서 gender null 방어
+        if (request.gender() == null) {
+            throw new UserHandler(UserErrorStatus._INVALID_GENDER);
+        }
         return Users.builder()
                 .nickName(request.nickName())
-                .gender(toGender(request.gender()))
+                .gender(request.gender())
                 .job(job)
                 .status(UserStatus.ACTIVE)
                 .build();
@@ -77,16 +79,6 @@ public class UserConverter {
                 .status(user.getStatus())
                 .inactiveDate(user.getInactiveDate())
                 .build();
-    }
-
-
-    /* 공통 메서드 */
-    // 성별 변환 로직 공통 메서드
-    public static Gender toGender(Integer genderCode) {
-        if (genderCode == null || (genderCode != 1 && genderCode != 2)) {
-            throw new GeneralException(UserErrorStatus._INVALID_GENDER);
-        }
-        return (genderCode == 1) ? Gender.MALE : Gender.FEMALE;
     }
 
 

@@ -1,9 +1,7 @@
 package com.umc.linkyou.service.users;
 
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.JwtTokenProvider;
@@ -101,7 +99,7 @@ public class UserService {
                 .orElseGet(() -> {
                     // 3-1. 기존 유저가 아예 없으면 새로 생성
                     Job job = jobRepository.findById(request.jobId())
-                            .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
+                            .orElseThrow(() -> new UserHandler(UserErrorStatus._JOB_NOT_SET));
 
                     Users newUser = UserConverter.toUser(request, job);
                     // 일반 로그인용 비밀번호 인코딩
@@ -140,7 +138,7 @@ public class UserService {
 
 
     //일반 회원 로그인
-    @Transactional
+    @Transactional(readOnly = true)
     public UserResponseDTO.LoginResultDTO loginUser(UserRequestDTO.LoginRequestDTO request) {
         Users user = authAccountRepository.findUserByEmailAndProvider(request.email(), Provider.GENERAL)
                 .orElseThrow(() -> new UserHandler(UserErrorStatus._LOGIN_FAILED));
@@ -151,7 +149,7 @@ public class UserService {
         boolean hasGeneralAccount = authAccountRepository.existsByUserIdAndProvider(
                 user.getId(), Provider.GENERAL);
         if (!hasGeneralAccount) {
-            throw new UserHandler(ErrorStatus._SOCIAL_ACCOUNT_ONLY);
+            throw new UserHandler(UserErrorStatus._SOCIAL_ACCOUNT_ONLY);
         }
 
         // social login은 password null, jwt login은 password null이면 error(NPE 방지 코드)
@@ -186,17 +184,20 @@ public class UserService {
                 .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
         if (user.getStatus() != UserStatus.TEMP) {
-            throw new UserHandler(ErrorStatus._ALREADY_ACTIVE_USER);
+            throw new UserHandler(UserErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
         // 2. 닉네임 중복 체크
         validateNickNameNotDuplicate(request.getNickName());
 
         // 3. 필수 정보 업데이트
+        if (request.getGender() == null) {
+            throw new UserHandler(UserErrorStatus._INVALID_GENDER);
+        }
         Job job = jobRepository.findById(request.getJobId())
-                .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
+                .orElseThrow(() -> new UserHandler(UserErrorStatus._JOB_NOT_SET));
         user.completeSocialProfile(
                 request.getNickName(),
-                UserConverter.toGender(request.getGender()),
+                request.getGender(),
                 job
         );
 
@@ -222,7 +223,7 @@ public class UserService {
 
     public UserResponseDTO.TokenPair reissueRefreshToken(UserRequestDTO.TokenReissueRequestDTO request) {
         if (request.refreshToken() == null || request.refreshToken().isBlank()) {
-            throw new GeneralException(ErrorStatus._BAD_REQUEST);
+            throw new UserHandler(UserErrorStatus._INVALID_REFRESH_TOKEN);
         }
 
 
@@ -286,7 +287,7 @@ public class UserService {
                 .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
         Job job = jobRepository.findById(request.getJobId())
-                .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
+                .orElseThrow(() -> new UserHandler(UserErrorStatus._JOB_NOT_SET));
 
         String nickName = null;
         if (request.getNickname() != null && !request.getNickname().equals(user.getNickName())) {
