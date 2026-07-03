@@ -378,10 +378,4 @@ public class FolderServiceImpl implements FolderService {
         return resp;
     }
 
-    // 유저의 카테고리에 해당하는 중분류 폴더 조회
-    public Folder findFolder(Long userId, Category category) {
-        return usersFolderRepository.findFolderByUserIdAndCategory(userId, category)
-                .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
-    }
-
 }

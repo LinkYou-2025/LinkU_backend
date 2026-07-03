@@ -6,6 +6,8 @@ import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
+import com.umc.linkyou.domain.classification.Emotion;
+import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -26,10 +28,10 @@ public class LinkuUpsertService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Linku upsert(String normalizedLink, Category category, Domain domain,
-                        String crawledTitle, String crawledImgUrl) {
+                        String crawledTitle, String crawledImgUrl, Emotion aiEmotion, Situation aiSituation) {
         try {
             return linkuRepository.save(
-                    LinkuConverter.toLinku(normalizedLink, category, domain, crawledTitle, crawledImgUrl)
+                    LinkuConverter.toLinku(normalizedLink, category, domain, crawledTitle, crawledImgUrl, aiEmotion, aiSituation)
             );
         } catch (DataIntegrityViolationException e) {
             return linkuRepository.findByLinku(normalizedLink)

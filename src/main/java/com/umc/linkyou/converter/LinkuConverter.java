@@ -142,11 +142,13 @@ public class LinkuConverter {
     }
 
     // Linku 생성
-    public static Linku toLinku(String linkuUrl, Category category, Domain domain, String title, String imgUrl) {
+    public static Linku toLinku(String linkuUrl, Category category, Domain domain, String title, String imgUrl, Emotion emotion, Situation situation) {
         return Linku.builder()
                 .linkuUrl(linkuUrl)
                 .category(category)
                 .domain(domain)
+                .emotion(emotion)
+                .situation(situation)
                 .title(title != null ? title : "")
                 .imgUrl(imgUrl)
                 .build();

@@ -2,6 +2,8 @@ package com.umc.linkyou.domain;
 
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
+import com.umc.linkyou.domain.classification.Emotion;
+import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.common.BaseEntity;
 import com.umc.linkyou.domain.mapping.LinkuKeyword;
 import com.umc.linkyou.domain.mapping.UsersLinku;
@@ -54,6 +56,16 @@ public class Linku extends BaseEntity {
     @Column(name = "total_view_count", nullable = false)
     private long totalViewCount = 0L;
 
+    // ai 캐시용 감정
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "emotion_id", nullable = false)
+    private Emotion emotion;
+
+    //AI 캐시용 상황
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "situation_id")
+    private Situation situation;
+
     public void updateCategory(Category category) {
         this.category = category;
     }
@@ -69,4 +81,7 @@ public class Linku extends BaseEntity {
     public void updateTitle(String title) {
         this.title = title;
     }
+
+    public void updateEmotion(Emotion emotion) {this.emotion = emotion;}
+    public void updateSituation(Situation situation) {this.situation = situation;}
 }
