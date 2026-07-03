@@ -140,8 +140,21 @@ create table users
         foreign key (job_id) references jobs (job_id)
 );
 
--- ── linkus (categories, domains 의존) ────────────────────────
--- ai_article_id 컬럼 제거 — ai_articles.linku_id 단방향으로 truth source 통일
+-- ── ai_articles (circular dep: linku_id FK는 linkus 생성 후 추가) ──
+
+create table ai_articles
+(
+    ai_article_id bigserial    primary key,
+    created_at    timestamp(6),
+    updated_at    timestamp(6),
+    linku_id      bigint       not null,
+    title         text         not null,
+    summary       varchar(255) not null,
+    constraint uq_ai_articles_linku unique (linku_id)
+);
+
+-- ── linkus (categories, domains, ai_articles 의존) ───────────
+-- Linku.java: @JoinColumn(name = "ai_article_id")
 
 create table linkus
 (
@@ -154,26 +167,19 @@ create table linkus
     total_view_count bigint not null,
     category_id      bigint not null,
     domain_id        bigint not null,
+    ai_article_id    bigint,
     constraint fk_linkus_category
         foreign key (category_id) references categories (category_id),
     constraint fk_linkus_domain
-        foreign key (domain_id) references domains (domain_id)
+        foreign key (domain_id) references domains (domain_id),
+    constraint fk_linkus_ai_article
+        foreign key (ai_article_id) references ai_articles (ai_article_id)
 );
 
--- ── ai_articles (linkus 의존) ────────────────────────────────
-
-create table ai_articles
-(
-    ai_article_id bigserial    primary key,
-    created_at    timestamp(6),
-    updated_at    timestamp(6),
-    linku_id      bigint       not null,
-    title         text         not null,
-    summary       varchar(255) not null,
-    constraint uq_ai_articles_linku unique (linku_id),
-    constraint fk_ai_articles_linku
-        foreign key (linku_id) references linkus (linku_id)
-);
+-- ai_articles.linku_id → linkus FK (circular dep 해소)
+alter table ai_articles
+    add constraint fk_ai_articles_linku
+        foreign key (linku_id) references linkus (linku_id);
 
 -- ── linku_keywords (linkus, keywords 의존) ───────────────────
 
@@ -264,7 +270,7 @@ create table interests
     user_id     bigint       not null,
     selected_at timestamp(6) not null,
     constraint fk_interests_user
-        foreign key (user_id) references users (user_id) on delete cascade
+        foreign key (user_id) references users (user_id)
 );
 
 create table purposes
@@ -274,7 +280,7 @@ create table purposes
     user_id     bigint       not null,
     selected_at timestamp(6) not null,
     constraint fk_purposes_user
-        foreign key (user_id) references users (user_id) on delete cascade
+        foreign key (user_id) references users (user_id)
 );
 
 create table terms_agreements
@@ -388,7 +394,7 @@ create table users_linkus
     view_count      int          not null,
     last_viewed_at  timestamp(6),
     constraint fk_users_linkus_user
-        foreign key (user_id) references users (user_id) on delete cascade,
+        foreign key (user_id) references users (user_id),
     constraint fk_users_linkus_linku
         foreign key (linku_id) references linkus (linku_id),
     constraint fk_users_linkus_emotion
