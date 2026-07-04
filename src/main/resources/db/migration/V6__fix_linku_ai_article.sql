@@ -10,5 +10,16 @@ ALTER TABLE linkus DROP CONSTRAINT IF EXISTS fk_linkus_ai_article;
 ALTER TABLE linkus DROP COLUMN IF EXISTS ai_article_id;
 
 ------------------------------------------------------------
--- 2. linkus에 situation추가
+-- 2. linkus에 emotion, situation추가
 ------------------------------------------------------------
+ALTER TABLE linkus ADD COLUMN IF NOT EXISTS emotion_id bigint;
+ALTER TABLE linkus ADD COLUMN IF NOT EXISTS situation_id bigint;
+
+-- 외래키 제약조건 설정 (V1에 생성된 emotions, situations 테이블 참조)
+ALTER TABLE linkus
+    ADD CONSTRAINT fk_linkus_emotion
+        FOREIGN KEY (emotion_id) REFERENCES emotions (emotion_id);
+
+ALTER TABLE linkus
+    ADD CONSTRAINT fk_linkus_situation
+        FOREIGN KEY (situation_id) REFERENCES situations (situation_id);
