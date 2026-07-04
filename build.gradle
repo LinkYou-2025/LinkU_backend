@@ -98,6 +98,10 @@ dependencies {
 	implementation 'net.coobird:thumbnailator:0.4.20'
 
 	implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.15.3'
+
+	//flyway
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-database-postgresql'
 }
 
 clean {
