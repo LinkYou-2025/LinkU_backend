@@ -84,9 +84,9 @@ class LinkuRepositoryImplTest {
 
                 Emotion emotion = emotionRepository.save(createEmotion());
 
-                Linku java1 = linkuRepository.save(createLinku("Java Guide", "link1", category, domain));
-                Linku java2 = linkuRepository.save(createLinku("Java Spring", "link2", category, domain));
-                Linku python = linkuRepository.save(createLinku("Python Basics", "link3", category, domain));
+                Linku java1 = linkuRepository.save(createLinku("Java Guide", "link1", category, domain, emotion));
+                Linku java2 = linkuRepository.save(createLinku("Java Spring", "link2", category, domain, emotion));
+                Linku python = linkuRepository.save(createLinku("Python Basics", "link3", category, domain, emotion));
 
                 usersLinkuRepository.save(createUsersLinku(user, java1, emotion));
                 usersLinkuRepository.save(createUsersLinku(user, java2, emotion));
@@ -124,8 +124,8 @@ class LinkuRepositoryImplTest {
                         createCategory("개발", fcolor)
                 );
 
-                linkuRepository.save(createLinku("Java Guide", "abc123", category, domain));
-
+                Emotion emotion = emotionRepository.save(createEmotion());
+                linkuRepository.save(createLinku("Java Guide", "abc123", category, domain, emotion));
                 Optional<Linku> result = linkuRepository.findByLinku("abc123");
 
                 assertThat(result).isPresent();
@@ -186,12 +186,13 @@ class LinkuRepositoryImplTest {
                 .build();
     }
 
-    private Linku createLinku(String title, String linku, Category category, Domain domain) {
+    private Linku createLinku(String title, String linku, Category category, Domain domain, Emotion emotion) {
         return Linku.builder()
                 .title(title)
                 .linkuUrl(linku)
                 .category(category)
                 .domain(domain)
+                .emotion(emotion)
                 .build();
     }
 
