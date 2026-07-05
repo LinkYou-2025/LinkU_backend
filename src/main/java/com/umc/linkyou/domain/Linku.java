@@ -63,7 +63,7 @@ public class Linku extends BaseEntity {
 
     //AI 캐시용 상황
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "situation_id")
+    @JoinColumn(name = "situation_id", nullable = false)
     private Situation situation;
 
     public void updateCategory(Category category) {

@@ -70,6 +70,7 @@ public class LinkuCreateService {
     private static final Long DEFAULT_CATEGORY_ID = 16L;
     private static final Long DEFAULT_EMOTION_ID = 2L;
     private static final Long DEFAULT_DOMAIN_ID = 1L;
+    private static final Long DEFAULT_SITUATION_ID = 1L;
 
     @Transactional
     public LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
@@ -107,10 +108,8 @@ public class LinkuCreateService {
             aiSituationId = aiResult.map(LinkuResultDTO::situationId).orElse(null);
             aiTitle = aiResult.map(LinkuResultDTO::title).orElse(null);
             String crawledImgUrl = linkToImageService.getRelatedImageFromUrl(normalizedLink, aiTitle);
-            Emotion aiEmotion =  emotionRepository.findById(aiEmotionId)
-                    .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
-            Situation aiSituation = situationRepository.findById(aiSituationId)
-                    .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
+            Emotion aiEmotion = resolveEmotion(null, aiEmotionId); //null이면 기본값으로 대체됨
+            Situation aiSituation = resolveSituation(null, aiSituationId);
             // 신규 Linku 저장로직
             linku = linkuUpsertService.upsert(normalizedLink, category, domain, aiTitle, crawledImgUrl,aiEmotion,aiSituation);;
             keywordService.saveKeywords(linku, keywords);
@@ -201,10 +200,9 @@ public class LinkuCreateService {
     }
 
     public Situation resolveSituation(Long userSituationId, Long aiSituationId) {
-        Long resolvedId = (userSituationId != null) ? userSituationId
-                        : (aiSituationId != null)   ? aiSituationId
-                        : null;
-        if (resolvedId == null) return null;
+        Long resolvedId = (userSituationId != null && userSituationId > 0) ? userSituationId
+                : (aiSituationId != null)                          ? aiSituationId
+                : DEFAULT_SITUATION_ID;
         return situationRepository.findById(resolvedId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
     }
