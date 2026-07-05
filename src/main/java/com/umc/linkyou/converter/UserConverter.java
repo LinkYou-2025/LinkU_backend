@@ -86,7 +86,7 @@ public class UserConverter {
     public static List<Purposes> toPurposes(Users user, List<String> purposeNames) {
         if (purposeNames == null || purposeNames.isEmpty()) return List.of();
         return purposeNames.stream()
-                .map(name -> new Purposes(name, user))
+                .map(name -> Purposes.of(name, user))
                 .toList();
     }
 
@@ -94,7 +94,7 @@ public class UserConverter {
     public static List<Interests> toInterests(Users user, List<String> interestNames) {
         if (interestNames == null || interestNames.isEmpty()) return List.of();
         return interestNames.stream()
-                .map(name -> new Interests(name, user))
+                .map(name -> Interests.of(name, user))
                 .toList();
     }
 }

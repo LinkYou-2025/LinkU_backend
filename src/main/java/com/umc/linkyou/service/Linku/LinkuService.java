@@ -104,6 +104,9 @@ public class LinkuService {
         String keyword = null;
         String summary = null;
 
+        String domainName = domain != null ? domain.getName() : null;
+        String domainImageUrl = domain != null ? domain.getImageUrl() : null;
+
         if (aiArticleExists && aiArticle != null) {
             keyword = linku.getLinkuKeywords().stream()
                     .map(lk -> lk.getKeyword().getName())
@@ -112,7 +115,7 @@ public class LinkuService {
         }
 
         LinkuResponseDTO.LinkuResultDTO dto = LinkuConverter.toLinkuResultDTO(
-                userId, linku, usersLinku, linkuFolder, category, domain, aiArticleExists, keyword, summary
+                userId, linku, usersLinku, linkuFolder, category, domainName, domainImageUrl,  aiArticleExists, keyword, summary
         );
 
         //조회수 증가

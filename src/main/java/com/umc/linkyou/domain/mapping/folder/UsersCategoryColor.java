@@ -11,8 +11,8 @@ import org.hibernate.annotations.OnDeleteAction;
 @Entity
 @Table(name = "users_category_colors")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class UsersCategoryColor {
     @Id

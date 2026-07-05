@@ -20,8 +20,8 @@ import java.time.LocalDateTime;
         }
 )
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Getter
 public class TermsAgreement extends BaseEntity {
 

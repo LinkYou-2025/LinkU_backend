@@ -31,7 +31,8 @@ public class LinkuConverter {
             UsersLinku usersLinku,
             LinkuFolder linkuFolder,
             Category category,
-            Domain domain,
+            String domainName,
+            String domainImageUrl,
             Boolean aiArticleExists,
             String keyword,
             String summary
@@ -48,9 +49,9 @@ public class LinkuConverter {
                 .situationId(usersLinku.getSituation() != null ? usersLinku.getSituation().getId() : null)
                 .isEmotionAi(usersLinku.getEmotionAi())
                 .isSituationAi(usersLinku.getSituationAi())
-                .domain(domain != null ? domain.getName() : null)
+                .domain(domainName)
                 .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
-                .domainImageUrl(domain != null ? domain.getImageUrl() : null)
+                .domainImageUrl(domainImageUrl)
                 .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
                 .aiArticleExists(aiArticleExists != null ? aiArticleExists : false)
                 .createdAt(linku.getCreatedAt())
@@ -59,6 +60,7 @@ public class LinkuConverter {
                 .summary(summary)
                 .build();
     }
+
 
     public static LinkuResponseDTO.LinkuResultDTO toLinkuResultDTO(
             Long userId,
@@ -142,11 +144,13 @@ public class LinkuConverter {
     }
 
     // Linku 생성
-    public static Linku toLinku(String linkuUrl, Category category, Domain domain, String title, String imgUrl) {
+    public static Linku toLinku(String linkuUrl, Category category, Domain domain, String title, String imgUrl, Emotion emotion, Situation situation) {
         return Linku.builder()
                 .linkuUrl(linkuUrl)
                 .category(category)
                 .domain(domain)
+                .emotion(emotion)
+                .situation(situation)
                 .title(title != null ? title : "")
                 .imgUrl(imgUrl)
                 .build();

@@ -14,8 +14,8 @@ import java.util.List;
 @Entity
 @Table(name = "categories")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Category {
     @Id
