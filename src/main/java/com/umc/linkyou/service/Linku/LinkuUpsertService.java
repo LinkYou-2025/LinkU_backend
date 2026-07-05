@@ -33,6 +33,6 @@ public class LinkuUpsertService {
         );
 
         return linkuRepository.findByLinku(normalizedLink)
-                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._LINKU_NOT_FOUND));
+                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._LINKU_CONFLICT));
     }
 }

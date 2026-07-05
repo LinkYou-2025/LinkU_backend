@@ -38,7 +38,7 @@ public interface LinkuApi {
                     - **image** (선택): 대표 이미지. 미첨부 시 URL에서 자동 추출합니다.
                     """
     )
-    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_INVALID_URL, LinkuErrorStatus._LINKU_VIDEO_NOT_ALLOWED, LinkuErrorStatus._KEYWORD_NOT_FOUND, LinkuErrorStatus._SITUATION_NOT_MATCH_JOB})
+    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_INVALID_URL, LinkuErrorStatus._LINKU_VIDEO_NOT_ALLOWED, LinkuErrorStatus._KEYWORD_NOT_FOUND, LinkuErrorStatus._SITUATION_NOT_MATCH_JOB,LinkuErrorStatus._LINKU_CONFLICT})
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> createLinku(
             @CurrentUser CustomUserDetails userDetails,
