@@ -4,7 +4,7 @@ DROP CONSTRAINT IF EXISTS domains_crawl_strategy_check;
 
 ALTER TABLE domains
     ADD CONSTRAINT domains_crawl_strategy_check
-        CHECK (crawl_strategy IN ('DEFAULT', 'IFRAME', 'VIDEO'));
+        CHECK (crawl_strategy IN ('DEFAULT','BODY',  'IFRAME', 'VIDEO'));
 
 -- 알 수 없는 도메인의 표시 이름을 '웹사이트'로 변경
 UPDATE domains SET name = '웹사이트' WHERE domain_id = 1;
