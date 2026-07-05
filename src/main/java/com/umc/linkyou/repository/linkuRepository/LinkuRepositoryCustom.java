@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface LinkuRepositoryCustom {
     List<LinkuSearchSuggestionResponse> findUserSavedSuggestions(Long userId, String keyword);
     Optional<Linku> findByLinku(String normalizedLink);
+
+
 }

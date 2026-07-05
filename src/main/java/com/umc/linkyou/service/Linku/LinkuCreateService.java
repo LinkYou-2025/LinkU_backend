@@ -90,6 +90,8 @@ public class LinkuCreateService {
         String keywords = null;
         Domain domain = resolveDomain(domainTail);
 
+
+
         if (existingLinku.isPresent()) { //linkus 테이블에서 가져옴
             linku = existingLinku.get();
             category = linku.getCategory();
@@ -141,9 +143,13 @@ public class LinkuCreateService {
         LinkuFolder linkuFolder = LinkuConverter.toLinkuFolder(folder, usersLinku);
         linkuFolderRepository.save(linkuFolder);
 
+
+        String domainName = domain != null ? domain.getName() : null;
+        String domainImageUrl = domain != null ? domain.getImageUrl() : null;
+
         // 응답 반환
         LinkuResponseDTO.LinkuResultDTO resultDto =
-                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, linku.getDomain(), false, keywords, "");
+                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domainName, domainImageUrl, false, keywords, "");
 
         return LinkuResponseDTO.LinkuCreateResult.builder()
                 .data(resultDto)

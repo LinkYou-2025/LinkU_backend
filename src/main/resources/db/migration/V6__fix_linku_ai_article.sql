@@ -30,3 +30,6 @@ ALTER TABLE linkus
 -- NOT NULL 제약 추가
 ALTER TABLE linkus ALTER COLUMN emotion_id SET NOT NULL;
 ALTER TABLE linkus ALTER COLUMN situation_id SET NOT NULL;
+
+ALTER TABLE linkus
+    ADD CONSTRAINT uq_linkus_linku_url UNIQUE (linku_url);
