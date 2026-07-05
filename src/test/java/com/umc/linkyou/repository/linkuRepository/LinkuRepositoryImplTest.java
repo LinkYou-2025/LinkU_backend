@@ -5,6 +5,7 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
+import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.mapping.UsersLinku;
@@ -12,6 +13,7 @@ import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.categoryRepository.FcolorRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
+import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.config.TestExternalConfig;
@@ -58,6 +60,9 @@ class LinkuRepositoryImplTest {
     @Autowired
     private EmotionRepository emotionRepository;
 
+    @Autowired
+    private SituationRepository situationRepository;
+
     @Nested
     @DisplayName("검색어 찾기")
     class FindUserSavedSuggestions {
@@ -83,10 +88,17 @@ class LinkuRepositoryImplTest {
                 );
 
                 Emotion emotion = emotionRepository.save(createEmotion());
+                Situation situation = situationRepository.save(createSituation());
 
-                Linku java1 = linkuRepository.save(createLinku("Java Guide", "link1", category, domain, emotion));
-                Linku java2 = linkuRepository.save(createLinku("Java Spring", "link2", category, domain, emotion));
-                Linku python = linkuRepository.save(createLinku("Python Basics", "link3", category, domain, emotion));
+                Linku java1 = linkuRepository.save(
+                        createLinku("Java Guide", "link1", category, domain, emotion, situation)
+                );
+                Linku java2 = linkuRepository.save(
+                        createLinku("Java Spring", "link2", category, domain, emotion, situation)
+                );
+                Linku python = linkuRepository.save(
+                        createLinku("Python Basics", "link3", category, domain, emotion, situation)
+                );
 
                 usersLinkuRepository.save(createUsersLinku(user, java1, emotion));
                 usersLinkuRepository.save(createUsersLinku(user, java2, emotion));
@@ -125,7 +137,12 @@ class LinkuRepositoryImplTest {
                 );
 
                 Emotion emotion = emotionRepository.save(createEmotion());
-                linkuRepository.save(createLinku("Java Guide", "abc123", category, domain, emotion));
+                Situation situation = situationRepository.save(createSituation());
+
+                linkuRepository.save(
+                        createLinku("Java Guide", "abc123", category, domain, emotion, situation)
+                );
+
                 Optional<Linku> result = linkuRepository.findByLinku("abc123");
 
                 assertThat(result).isPresent();
@@ -145,6 +162,35 @@ class LinkuRepositoryImplTest {
                 assertThat(result).isEmpty();
             }
         }
+    }
+
+    @Test
+    @DisplayName("findByLinku 조회 후 domain 정보 접근이 가능하다")
+    void findByLinku_fetchesDomainSafely() {
+        Domain domain = domainRepository.save(
+                createDomain("google.com", "구글", "https://image.com/a.png")
+        );
+
+        Fcolor fcolor = fcolorRepository.save(createFcolor());
+
+        Category category = categoryRepository.save(
+                createCategory("개발", fcolor)
+        );
+
+        Emotion emotion = emotionRepository.save(createEmotion());
+        Situation situation = situationRepository.save(createSituation());
+
+        linkuRepository.save(
+                createLinku("Java Guide", "abc123", category, domain, emotion, situation)
+        );
+
+        Optional<Linku> result = linkuRepository.findByLinku("abc123");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getTitle()).isEqualTo("Java Guide");
+        assertThat(result.get().getDomain()).isNotNull();
+        assertThat(result.get().getDomain().getName()).isEqualTo("구글");
+        assertThat(result.get().getDomain().getImageUrl()).isEqualTo("https://image.com/a.png");
     }
 
     private Users createUser(String nickName) {
@@ -186,13 +232,27 @@ class LinkuRepositoryImplTest {
                 .build();
     }
 
-    private Linku createLinku(String title, String linku, Category category, Domain domain, Emotion emotion) {
+    private Situation createSituation() {
+        return Situation.builder()
+                .name("일상")
+                .build();
+    }
+
+    private Linku createLinku(
+            String title,
+            String linku,
+            Category category,
+            Domain domain,
+            Emotion emotion,
+            Situation situation
+    ) {
         return Linku.builder()
                 .title(title)
                 .linkuUrl(linku)
                 .category(category)
                 .domain(domain)
                 .emotion(emotion)
+                .situation(situation)
                 .build();
     }
 
