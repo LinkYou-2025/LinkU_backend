@@ -28,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -140,28 +139,66 @@ public class AlarmService {
         );
     }
 
-    // 개인 알림 전송 (알림 설정이 활성화된 경우에만 호출)
+    // 개인 알림 전송
     // userId, 알림타입, targetId를 설정하면 메세지 내용을 자동으로 설정합니다.
+    // 알림 설정 검사는 여기서 중앙 처리한다: alarmType.getSettingType() 설정이
+    // 꺼졌거나 초기화되지 않은 유저면 발송을 스킵한다. (호출자는 별도 검사 불필요)
     @Transactional
     public void sendAlarm(Long userId, AlarmRequestDTO.AlarmSendRequestDTO requestDTO) {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         AlarmType alarmType = requestDTO.type();
 
-        Map<String, String> values = alarmType == AlarmType.CURATION_UPDATED
-                ? Map.of("nickname", user.getNickName())
-                : requestDTO.values();
+        // 해당 알림 종류의 설정이 켜진 유저에게만 발송한다.
+        boolean enabled = alarmSettingRepository.findByUserId(userId)
+                .map(setting -> setting.isEnabled(alarmType.getSettingType()))
+                .orElse(false);
+        if (!enabled) {
+            return;
+        }
 
-        String renderedBody = AlarmMessageRenderer.render(alarmType.getBody(), values);
+        // CURATION 은 서버가 nickname 을 채우고, 그 외에는 요청 payload 를 사용한다.
+        AlarmPayload payload = alarmType == AlarmType.CURATION_UPDATED
+                ? new AlarmPayload.Nickname(user.getNickName())
+                : (requestDTO.payload() != null ? requestDTO.payload() : new AlarmPayload.Empty());
+
+        String renderedBody = AlarmMessageRenderer.render(alarmType.getBody(), payload.toValues());
 
         Alarm alarm = alarmRepository.save(Alarm.create(alarmType, requestDTO.targetId(), renderedBody));
         userAlarmRepository.save(UserAlarm.create(user, alarm));
 
-        PersonalAlarmEvent event = (values == null || values.isEmpty())
-                ? PersonalAlarmEvent.of(userId, alarmType, requestDTO.targetId())
-                : PersonalAlarmEvent.withValues(userId, alarmType, requestDTO.targetId(), values);
+        eventPublisher.publishEvent(
+                PersonalAlarmEvent.withPayload(userId, alarmType, requestDTO.targetId(), payload));
+    }
 
-        eventPublisher.publishEvent(event);
+    // 다수 유저에게 동일 본문으로 일괄 발송
+    // 설정 검사는 여기서 중앙 처리하고, Alarm 1건 + UserAlarm N건을 배치 저장
+    // payload 는 모든 수신자에게 동일해야 함
+    @Transactional
+    public void sendAlarmBulk(List<Long> userIds, AlarmType alarmType, Long targetId, AlarmPayload payload) {
+        if (userIds == null || userIds.isEmpty()) {
+            return;
+        }
+
+        // 설정이 켜진 유저만 추림
+        List<Long> enabledUserIds = alarmSettingRepository.findAllByUserIdIn(userIds).stream()
+                .filter(setting -> setting.isEnabled(alarmType.getSettingType()))
+                .map(setting -> setting.getUser().getId())
+                .toList();
+        if (enabledUserIds.isEmpty()) {
+            return;
+        }
+
+        String renderedBody = AlarmMessageRenderer.render(alarmType.getBody(), payload.toValues());
+        Alarm alarm = alarmRepository.save(Alarm.create(alarmType, targetId, renderedBody));
+
+        List<UserAlarm> userAlarms = enabledUserIds.stream()
+                .map(uid -> UserAlarm.create(userRepository.getReferenceById(uid), alarm))
+                .toList();
+        userAlarmRepository.saveAll(userAlarms);
+
+        enabledUserIds.forEach(uid ->
+                eventPublisher.publishEvent(PersonalAlarmEvent.withPayload(uid, alarmType, targetId, payload)));
     }
 
     // 관리자 브로드캐스트 알림 등록, content 직접 입력
@@ -169,7 +206,7 @@ public class AlarmService {
     public void registerAdminAlarm(AlarmRequestDTO.AdminAlarmSendRequestDTO requestDTO) {
         AlarmType alarmType = requestDTO.type();
 
-        // targetId는 임시로 설정 - 알림이 생성되고 나서 id를 targetId로 업데이트하여 보내야 하므로 entity에서는 의미없음
+        // targetId는 임시로 설정
         Alarm alarm = alarmRepository.save(Alarm.create(alarmType, 0L, requestDTO.content()));
         // 알림 생성 후에 업데이트
         alarm.updateTargetId(alarm.getId());
@@ -245,6 +282,15 @@ public class AlarmService {
                 alarm.getBody(),
                 alarm.getCreatedAt()
         );
+    }
+
+    // 읽지 않은 알림 존재 여부 조회 (최근 한 달 이내 생성된 알림만 대상)
+    public AlarmResponseDTO.UnreadAlarmExistsDTO hasUnreadAlarm(Long userId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+        LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
+        boolean hasUnread = userAlarmRepository.existsByUser_IdAndIsReadFalseAndCreatedAtAfter(userId, oneMonthAgo);
+        return new AlarmResponseDTO.UnreadAlarmExistsDTO(hasUnread);
     }
 
     // 알림 읽음 처리
