@@ -2,8 +2,10 @@ package com.umc.linkyou.service;
 
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.AiArticle;
+import com.umc.linkyou.domain.AlarmPayload;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.AlarmType;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.infra.ai.AiArticleAnalyzer;
 import com.umc.linkyou.infra.ai.dto.AiArticleResultDTO;
@@ -11,7 +13,9 @@ import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.service.alarm.AlarmService;
 import com.umc.linkyou.support.fixture.LinkuFixture;
+import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,6 +44,7 @@ class AiArticleServiceTest {
     @Mock private AiArticleRepository aiArticleRepository;
     @Mock private UsersLinkuRepository usersLinkuRepository;
     @Mock private AiArticleAnalyzer aiArticleAnalyzer;
+    @Mock private AlarmService alarmService;
 
     private static final Long LINKU_ID = 100L;
     private static final Long USER_ID = 1L;
@@ -118,6 +123,58 @@ class AiArticleServiceTest {
                 ArgumentCaptor<AiArticle> captor = ArgumentCaptor.forClass(AiArticle.class);
                 verify(aiArticleRepository).save(captor.capture());
                 assertEquals(SUMMARY, captor.getValue().getSummary());
+            }
+
+            @Test
+            @DisplayName("요약 완료 시 링크 요약 알림을 발송한다")
+            void 요약완료시_링크알림_발송() {
+                Linku linku = LinkuFixture.linku(null);
+                Users user = LinkuFixture.user();
+                UsersLinku usersLinku = UsersLinku.builder()
+                        .userLinkuId(10L)
+                        .linku(linku)
+                        .user(user)
+                        .emotion(LinkuFixture.emotion())
+                        .emotionAi(true)
+                        .situationAi(true)
+                        .title("내가 지은 링크 제목")
+                        .build();
+                AiArticleResultDTO result = new AiArticleResultDTO(SUMMARY);
+
+                given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
+                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+                given(usersLinkuRepository.findByUserAndLinku(user, linku)).willReturn(Optional.of(usersLinku));
+                given(aiArticleAnalyzer.analyzeByUrl(any())).willReturn(result);
+                given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.empty());
+                given(aiArticleRepository.save(any(AiArticle.class))).willAnswer(inv -> inv.getArgument(0));
+
+                aiArticleService.saveAiArticle(LINKU_ID, USER_ID);
+
+                verify(alarmService).sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
+                        AlarmType.LINK_SUMMARY_COMPLETE, LINKU_ID,
+                        new AlarmPayload.LinkTitle("내가 지은 링크 제목")));
+            }
+
+            @Test
+            @DisplayName("사용자 지정 제목이 없으면 링크 원제목으로 알림을 발송한다")
+            void 제목없으면_링크원제목으로_알림발송() {
+                Linku linku = LinkuFixture.linku(null);
+                Users user = LinkuFixture.user();
+                UsersLinku usersLinku = buildUsersLinku(linku, user); // title 미설정
+                AiArticleResultDTO result = new AiArticleResultDTO(SUMMARY);
+
+                given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
+                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+                given(usersLinkuRepository.findByUserAndLinku(user, linku)).willReturn(Optional.of(usersLinku));
+                given(aiArticleAnalyzer.analyzeByUrl(any())).willReturn(result);
+                given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.empty());
+                given(aiArticleRepository.save(any(AiArticle.class))).willAnswer(inv -> inv.getArgument(0));
+
+                aiArticleService.saveAiArticle(LINKU_ID, USER_ID);
+
+                verify(alarmService).sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
+                        AlarmType.LINK_SUMMARY_COMPLETE, LINKU_ID,
+                        new AlarmPayload.LinkTitle(linku.getTitle())));
             }
         }
 
