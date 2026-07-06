@@ -539,7 +539,6 @@ class AlarmServiceTest {
         @Test
         @DisplayName("읽지 않은 알림이 있으면 hasUnread=true를 반환한다")
         void 읽지않은알림_있음() {
-            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
             given(userAlarmRepository.existsByUser_IdAndIsReadFalseAndCreatedAtAfter(eq(USER_ID), any()))
                     .willReturn(true);
 
@@ -551,24 +550,12 @@ class AlarmServiceTest {
         @Test
         @DisplayName("읽지 않은 알림이 없으면 hasUnread=false를 반환한다")
         void 읽지않은알림_없음() {
-            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
             given(userAlarmRepository.existsByUser_IdAndIsReadFalseAndCreatedAtAfter(eq(USER_ID), any()))
                     .willReturn(false);
 
             AlarmResponseDTO.UnreadAlarmExistsDTO result = alarmService.hasUnreadAlarm(USER_ID);
 
             assertThat(result.hasUnread()).isFalse();
-        }
-
-        @Test
-        @DisplayName("유저가 없으면 _USER_NOT_FOUND를 던진다")
-        void 유저없음_예외() {
-            given(userRepository.findById(USER_ID)).willReturn(Optional.empty());
-
-            assertThatThrownBy(() -> alarmService.hasUnreadAlarm(USER_ID))
-                    .isInstanceOf(GeneralException.class)
-                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                            .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
         }
     }
 

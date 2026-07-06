@@ -284,12 +284,12 @@ public class AlarmService {
         );
     }
 
-    // 읽지 않은 알림 존재 여부 조회 (최근 한 달 이내 생성된 알림만 대상)
+    // 읽지 않은 알림 존재 여부 조회 (최근 30일 이내 생성된 알림만 대상)
     public AlarmResponseDTO.UnreadAlarmExistsDTO hasUnreadAlarm(Long userId) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
-        LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
-        boolean hasUnread = userAlarmRepository.existsByUser_IdAndIsReadFalseAndCreatedAtAfter(userId, oneMonthAgo);
+        // userId 는 인증된 @CurrentUser 에서 오므로 별도 존재 검증 없이 바로 조회한다.
+        // (유저가 없어도 exists 가 false 를 반환해 무해하게 끝난다)
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        boolean hasUnread = userAlarmRepository.existsByUser_IdAndIsReadFalseAndCreatedAtAfter(userId, thirtyDaysAgo);
         return new AlarmResponseDTO.UnreadAlarmExistsDTO(hasUnread);
     }
 
