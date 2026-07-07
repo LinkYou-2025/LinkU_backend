@@ -3,6 +3,7 @@ package com.umc.linkyou.web.api;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
@@ -78,6 +79,13 @@ public interface LinkuApi {
     ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getRecentViewedLinkus(
             @CurrentUser CustomUserDetails userDetails,
             @RequestParam(defaultValue = "10") int limit
+    );
+
+    @Operation(summary = "저번 달 미열람 링크 조회", description = "저번 달에 저장만 하고 한 번도 열어보지 않은 링크 목록을 조회합니다.")
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @GetMapping("/last-month/unread")
+    ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getLastMonthUnreadLinkus(
+            @CurrentUser CustomUserDetails userDetails
     );
 
     @Operation(summary = "링크 수정", description = "기존 링크의 정보(URL, 메모, 감정, 도메인, 제목 등)를 수정합니다.")

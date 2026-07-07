@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.AiArticle;
@@ -27,6 +28,7 @@ import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
@@ -35,6 +37,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -55,6 +58,7 @@ public class LinkuService {
     private final AiArticleRepository aiArticleRepository;
     private final CurationLinkuRepository curationLinkuRepository;
     private final LinkuViewService linkuViewService;
+    private final UserRepository userRepository;
 
 
     @Transactional
@@ -142,6 +146,23 @@ public class LinkuService {
                 .collect(Collectors.toList());
     }
     //최근 열람한 링크 가져오기  /linku/recent
+
+    //저번 달 저장만 하고 열어보지 않은 링크 가져오기  /linku/last-month/unread
+    @Transactional(readOnly = true)
+    public List<LinkuResponseDTO.LinkuSimpleDTO> getLastMonthUnreadLinkus(Long userId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+
+        YearMonth lastMonth = YearMonth.now().minusMonths(1);
+        LocalDateTime start = lastMonth.atDay(1).atStartOfDay();
+        LocalDateTime end = lastMonth.plusMonths(1).atDay(1).atStartOfDay();
+
+        return usersLinkuRepository
+                .findUnviewedByUserIdAndCreatedAtBetween(userId, start, end)
+                .stream()
+                .map(LinkuConverter::toLinkuSimpleDTO)
+                .collect(Collectors.toList());
+    }
 
     @Transactional
     public LinkuResponseDTO.LinkuResultDTO updateLinku(Long userId, Long linkuId, LinkuRequestDTO.LinkuUpdateDTO dto) {

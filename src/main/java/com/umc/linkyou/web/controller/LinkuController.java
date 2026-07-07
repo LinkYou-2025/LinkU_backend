@@ -61,6 +61,11 @@ public class LinkuController implements LinkuApi {
     }
 
     @Override
+    public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getLastMonthUnreadLinkus(@CurrentUser CustomUserDetails userDetails) {
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_LAST_MONTH_UNREAD_OK, linkuService.getLastMonthUnreadLinkus(userDetails.getUserId()));
+    }
+
+    @Override
     public ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(@CurrentUser CustomUserDetails userDetails, @PathVariable Long linkuId, @RequestBody LinkuRequestDTO.LinkuUpdateDTO updateDTO) {
         return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_UPDATED, linkuService.updateLinku(userDetails.getUserId(), linkuId, updateDTO));
     }
