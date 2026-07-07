@@ -18,7 +18,8 @@ public enum AlarmSuccessStatus implements BaseSuccessCode {
     ALARM_LIST_OK(HttpStatus.OK, "ALARM2006", "알림 목록 조회에 성공했습니다."),
     ALARM_DETAIL_OK(HttpStatus.OK, "ALARM2007", "알림 상세 조회에 성공했습니다."),
     ALARM_BROADCAST_REGISTERED(HttpStatus.OK, "ALARM2008", "관리자 브로드캐스트 알림이 정상적으로 등록되었습니다."),
-    ALARM_READ(HttpStatus.OK, "ALARM2009", "알림이 읽음 처리되었습니다.");
+    ALARM_READ(HttpStatus.OK, "ALARM2009", "알림이 읽음 처리되었습니다."),
+    ALARM_UNREAD_EXISTS_OK(HttpStatus.OK, "ALARM2010", "읽지 않은 알림 존재 여부 조회에 성공했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

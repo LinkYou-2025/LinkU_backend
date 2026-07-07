@@ -111,6 +111,17 @@ public interface AlarmApi {
             @RequestParam(defaultValue = "20") @Min(1) @Max(20) int size
     );
 
+    @Operation(summary = "읽지 않은 알림 존재 여부 조회", description = """
+            사용자에게 최근 한 달 이내 생성된 알림 중 읽지 않은 알림이 있는지 여부를 조회합니다.
+            - `hasUnread`가 true이면 읽지 않은 알림이 존재합니다.
+            """)
+    @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @GetMapping("/unread")
+    ApiResponse<AlarmResponseDTO.UnreadAlarmExistsDTO> hasUnreadAlarm(
+            @CurrentUser CustomUserDetails userDetails
+    );
+
     @Operation(summary = "알림 상세 조회", description = """
             특정 알림의 상세 정보를 조회합니다.
             """)
@@ -151,4 +162,7 @@ public interface AlarmApi {
             @Parameter(description = "읽음 처리할 알림 ID")
             @PathVariable Long alarmId
     );
+
+
+
 }
