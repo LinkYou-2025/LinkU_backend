@@ -5,7 +5,7 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
-import com.umc.linkyou.service.common.KeywordNameResolver;
+import com.umc.linkyou.service.common.TagNameResolver;
 import com.umc.linkyou.service.curation.ment.CurationMentMaterializer;
 import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.service.curation.recommend.external.ExternalRecommendMaterializer;
@@ -46,7 +46,7 @@ public class CurationServiceImpl implements CurationService {
     private final InternalRecommendMaterializer internalRecommendMaterializer;
     private final CurationMentMaterializer curationMentMaterializer;
     private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
-    private final KeywordNameResolver keywordNameResolver;
+    private final TagNameResolver tagNameResolver;
 
     // 단일 유저의 특정 월 큐레이션 생성
     @Override
@@ -158,7 +158,7 @@ public class CurationServiceImpl implements CurationService {
         List<String> tagNames = keywordMonthlyCountRepository
                 .findTopByUserIdAndBaseMonth(userId, baseMonth, PageRequest.of(0, 3))
                 .stream()
-                .map(kmc -> keywordNameResolver.resolve(kmc.getType(), kmc.getRefId()))
+                .map(kmc -> tagNameResolver.resolve(kmc.getType(), kmc.getRefId()))
                 .toList();
 
         return CurationDetailResponse.builder()
