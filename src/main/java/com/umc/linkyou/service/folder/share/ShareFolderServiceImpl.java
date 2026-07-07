@@ -15,6 +15,7 @@ import com.umc.linkyou.repository.FolderShareLinkRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.service.alarm.event.FolderPermissionChangedAlarmEvent;
+import com.umc.linkyou.web.dto.folder.share.FolderLeaveRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
@@ -178,6 +179,47 @@ public class ShareFolderServiceImpl implements ShareFolderService {
                 .userId(usersFolder.getUser().getId())
                 .permission(permission.name())
                 .sharedAt(usersFolder.getUpdatedAt().toString())
+                .build();
+    }
+
+    // 소유권 위임 후 폴더 나가기
+    @Override
+    public ShareFolderResponseDTO leaveFolder(Long ownerId, Long folderId, FolderLeaveRequestDTO request) {
+        if (!folderRepository.existsById(folderId)) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND);
+        }
+
+        if (!usersFolderRepository.existsFolderOwner(ownerId, folderId)) {
+            throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+        }
+
+        UsersFolder newOwnerUF = usersFolderRepository.findById(request.getNewOwnerUserFolderId())
+                .orElseThrow(() -> new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND));
+
+        if (!newOwnerUF.getFolder().getFolderId().equals(folderId)) {
+            throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+        }
+
+        if (newOwnerUF.getUser().getId().equals(ownerId)) {
+            throw new GeneralException(ShareFolderErrorStatus._FOLDER_LEAVE_TARGET_INVALID);
+        }
+
+        if (newOwnerUF.getPermissionType() == PermissionType.NONE) {
+            throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND);
+        }
+
+        UsersFolder ownerUF = usersFolderRepository.findByUserIdAndFolderId(ownerId, folderId)
+                .orElseThrow(() -> new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND));
+
+        newOwnerUF.updatePermission(PermissionType.OWNER);
+        ownerUF.updatePermission(PermissionType.NONE);
+        usersFolderRepository.saveAll(List.of(newOwnerUF, ownerUF));
+
+        return ShareFolderResponseDTO.builder()
+                .folderId(folderId)
+                .userId(newOwnerUF.getUser().getId())
+                .permission(PermissionType.OWNER.name())
+                .sharedAt(LocalDateTime.now().toString())
                 .build();
     }
 

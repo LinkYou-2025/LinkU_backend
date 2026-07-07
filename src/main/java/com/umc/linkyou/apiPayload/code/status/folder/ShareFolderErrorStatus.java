@@ -12,6 +12,7 @@ public enum ShareFolderErrorStatus implements BaseErrorCode {
 
     // 400 Bad Request
     _INVALID_PERMISSION_TYPE(HttpStatus.BAD_REQUEST, "SHAREFOLDER4001", "유효하지 않은 권한 타입입니다."),
+    _FOLDER_LEAVE_TARGET_INVALID(HttpStatus.BAD_REQUEST, "SHAREFOLDER4002", "새로운 소유자로 본인을 지정할 수 없습니다."),
 
     // 403 Forbidden
     _FOLDER_PERMISSION_NOT_ALLOWED(HttpStatus.FORBIDDEN, "SHAREFOLDER4031", "폴더 수정 권한을 가지고 있지 않습니다."),

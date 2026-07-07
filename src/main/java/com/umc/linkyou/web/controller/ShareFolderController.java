@@ -7,6 +7,7 @@ import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.service.folder.share.ShareFolderService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.api.ShareFolderApi;
+import com.umc.linkyou.web.dto.folder.share.FolderLeaveRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
@@ -51,5 +52,10 @@ public class ShareFolderController implements ShareFolderApi {
     @Override
     public ApiResponse<ShareFolderResponseDTO> unshareFolder(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
         return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_UNSHARE_OK, shareFolderService.unshare(userDetails.getUserId(), folderId));
+    }
+
+    @Override
+    public ApiResponse<ShareFolderResponseDTO> leaveFolder(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId, @Valid @RequestBody FolderLeaveRequestDTO request) {
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_OWNERSHIP_TRANSFERRED_OK, shareFolderService.leaveFolder(userDetails.getUserId(), folderId, request));
     }
 }

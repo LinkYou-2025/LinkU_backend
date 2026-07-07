@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.folder.share;
 
 import com.umc.linkyou.web.dto.folder.FolderUpdateRequestDTO;
+import com.umc.linkyou.web.dto.folder.share.FolderLeaveRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
@@ -23,4 +24,7 @@ public interface ShareFolderService {
 
     // 폴더 비공개 전환
     ShareFolderResponseDTO unshare(Long ownerId, Long folderId);
+
+    // 소유권 위임 후 폴더 나가기
+    ShareFolderResponseDTO leaveFolder(Long ownerId, Long folderId, FolderLeaveRequestDTO request);
 }
