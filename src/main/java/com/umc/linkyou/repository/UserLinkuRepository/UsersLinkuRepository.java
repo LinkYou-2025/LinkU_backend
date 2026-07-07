@@ -45,3 +45,31 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
     List<UsersLinku> findByUser_IdAndLastViewedAtIsNull(Long userId);
 
 }
+    // 해당 기간 유저가 저장한 링크의 감정별 저장 횟수
+    @Query("""
+            SELECT ul.emotion.emotionId, COUNT(ul)
+            FROM UsersLinku ul
+            WHERE ul.user.id = :userId
+            AND ul.createdAt >= :start AND ul.createdAt < :end
+            GROUP BY ul.emotion.emotionId
+            """)
+    List<Object[]> countByEmotionForUserAndPeriod(
+            @Param("userId") Long userId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    // 해당 기간 유저가 저장한 링크의 상황별 저장 횟수
+    @Query("""
+            SELECT ul.situation.id, COUNT(ul)
+            FROM UsersLinku ul
+            WHERE ul.user.id = :userId
+            AND ul.situation IS NOT NULL
+            AND ul.createdAt >= :start AND ul.createdAt < :end
+            GROUP BY ul.situation.id
+            """)
+    List<Object[]> countBySituationForUserAndPeriod(
+            @Param("userId") Long userId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+}
