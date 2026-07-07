@@ -44,4 +44,18 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
 
     List<UsersLinku> findByUser_IdAndLastViewedAtIsNull(Long userId);
 
+    @Query("""
+            SELECT ul FROM UsersLinku ul
+            JOIN FETCH ul.emotion
+            JOIN FETCH ul.linku l
+            LEFT JOIN FETCH l.aiArticle
+            WHERE ul.user.id = :userId
+            AND ul.lastViewedAt IS NULL
+            AND ul.createdAt >= :start AND ul.createdAt < :end
+            """)
+    List<UsersLinku> findUnviewedByUserIdAndCreatedAtBetween(
+            @Param("userId") Long userId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
 }
