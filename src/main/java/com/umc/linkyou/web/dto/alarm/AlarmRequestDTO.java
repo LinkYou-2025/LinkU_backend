@@ -1,14 +1,12 @@
 package com.umc.linkyou.web.dto.alarm;
 
+import com.umc.linkyou.domain.AlarmPayload;
 import com.umc.linkyou.domain.enums.AlarmSettingType;
 import com.umc.linkyou.domain.enums.AlarmType;
 import com.umc.linkyou.validation.annotation.ValidEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-
-import java.util.List;
-import java.util.Map;
 
 public final class AlarmRequestDTO {
 
@@ -40,7 +38,7 @@ public final class AlarmRequestDTO {
             AlarmType type,
             @NotNull(message = "targetId는 필수입니다.")
             Long targetId,
-            Map<String, String> values
+            AlarmPayload payload   // placeholder 치환값. 값 없으면 AlarmPayload.Empty
     ){}
 
     @Schema(description = "관리자 브로드캐스트 알림 요청 DTO")

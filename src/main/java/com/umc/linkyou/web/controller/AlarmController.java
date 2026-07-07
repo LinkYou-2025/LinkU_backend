@@ -91,6 +91,13 @@ public class AlarmController implements AlarmApi {
     }
 
     @Override
+    public ApiResponse<AlarmResponseDTO.UnreadAlarmExistsDTO> hasUnreadAlarm(
+            @CurrentUser CustomUserDetails userDetails
+    ) {
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_UNREAD_EXISTS_OK, alarmService.hasUnreadAlarm(userDetails.getUserId()));
+    }
+
+    @Override
     public ApiResponse<AlarmResponseDTO.AlarmDetailDTO> viewAlarmDetail(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long alarmId

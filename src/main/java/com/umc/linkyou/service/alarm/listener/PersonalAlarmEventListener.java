@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import java.util.Map;
+
 @Component
 @RequiredArgsConstructor
 public class PersonalAlarmEventListener {
@@ -18,9 +20,10 @@ public class PersonalAlarmEventListener {
     @Async("fcmTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(PersonalAlarmEvent event) {
-        FcmSendRequestDTO requestDTO = (event.values() != null && !event.values().isEmpty())
-                ? FcmSendRequestDTO.withValues(event.alarmType(), event.targetId(), event.values())
-                : FcmSendRequestDTO.of(event.alarmType(), event.targetId());
+        Map<String, String> values = event.payload().toValues();
+        FcmSendRequestDTO requestDTO = values.isEmpty()
+                ? FcmSendRequestDTO.of(event.alarmType(), event.targetId()) // data 없을 때
+                : FcmSendRequestDTO.withValues(event.alarmType(), event.targetId(), values); // data 있을 때
 
         fcmPushSender.sendToUser(event.userId(), requestDTO);
     }
