@@ -158,11 +158,11 @@ public class LinkuService {
         boolean linkuModified = false;         // Linku 엔티티가 수정됐는지
         boolean usersLinkuModified = false;    // UsersLinku 엔티티가 수정됐는지
 
-        // 3. 링크 주소(URL) 변경
+        // 3. 링크 주소(URL) 변경 (개인화: 공용 Linku가 아닌 이 유저의 UsersLinku.url만 변경)
         if (dto.getLinku() != null) {
             UrlValidUtils.validateLinkuUrl(dto.getLinku());
-            linku.updateUrl(dto.getLinku());
-            linkuModified = true;
+            usersLinku.updateUrl(dto.getLinku());
+            usersLinkuModified = true;
         }
 
         // 4. 메모 변경 (내가 작성한 메모)
@@ -197,10 +197,10 @@ public class LinkuService {
             linkuModified = true;
         }
 
-        // 7. 제목(title) 변경
+        // 7. 제목(title) 변경 (개인화: 공용 Linku가 아닌 이 유저의 UsersLinku.title만 변경)
         if (dto.getTitle() != null) {
-            linku.updateTitle(dto.getTitle());
-            linkuModified = true;
+            usersLinku.updateTitle(dto.getTitle());
+            usersLinkuModified = true;
         }
 
 

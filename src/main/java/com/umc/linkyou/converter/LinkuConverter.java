@@ -43,7 +43,7 @@ public class LinkuConverter {
                 .linkuId(linku.getLinkuId())
                 .linkuFolderId(linkuFolder != null ? linkuFolder.getLinkuFolderId() : null)
                 .categoryId(category != null ? category.getCategoryId() : null)
-                .linku(linku.getLinkuUrl())
+                .linku(usersLinku.getUrl() != null ? usersLinku.getUrl() : linku.getLinkuUrl())
                 .memo(usersLinku.getMemo())
                 .emotionId(usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
                 .situationId(usersLinku.getSituation() != null ? usersLinku.getSituation().getId() : null)
@@ -76,7 +76,7 @@ public class LinkuConverter {
                 .linkuId(linku.getLinkuId())
                 .linkuFolderId(linkuFolder != null ? linkuFolder.getLinkuFolderId() : null)
                 .categoryId(category != null ? category.getCategoryId() : null)
-                .linku(linku.getLinkuUrl())
+                .linku(usersLinku.getUrl() != null ? usersLinku.getUrl() : linku.getLinkuUrl())
                 .memo(usersLinku.getMemo())
                 .emotionId(usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
                 .situationId(usersLinku.getSituation() != null ? usersLinku.getSituation().getId() : null)
@@ -135,7 +135,7 @@ public class LinkuConverter {
     }
     // UsersLinku 생성
     public static UsersLinku toUsersLinku(Users user, Linku linku, Emotion emotion, Situation situation,
-                                          String memo, String imageUrl, String title,
+                                          String memo, String imageUrl, String title, String url,
                                           boolean emotionAi, boolean situationAi) {
         return UsersLinku.builder()
                 .user(user)
@@ -145,6 +145,7 @@ public class LinkuConverter {
                 .memo(memo)
                 .imageUrl(imageUrl)
                 .title(title)
+                .url(url)
                 .emotionAi(emotionAi)
                 .situationAi(situationAi)
                 .build();
@@ -174,7 +175,7 @@ public class LinkuConverter {
         return LinkuResponseDTO.LinkuSimpleDTO.builder()
                 .linkuId(linku.getLinkuId())
                 .categoryId(linku.getCategory() != null ? linku.getCategory().getCategoryId() : null)
-                .linku(linku.getLinkuUrl())
+                .linku(usersLinku != null && usersLinku.getUrl() != null ? usersLinku.getUrl() : linku.getLinkuUrl())
                 .memo(usersLinku != null ? usersLinku.getMemo() : null)
                 .emotionId(usersLinku != null && usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
                 .title(usersLinku != null && usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())

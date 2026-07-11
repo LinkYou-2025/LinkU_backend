@@ -35,6 +35,10 @@ public class UsersLinku extends BaseEntity {
     @Column(name = "title", length = 255)
     private String title;
 
+    // 사용자 개인 url. linku(공용 엔티티)의 url과 별개로, 이 값이 있으면 이 값을 우선 사용한다.
+    @Column(name = "url", columnDefinition = "text")
+    private String url;
+
     private String memo;
 
     @Column(columnDefinition = "text")
@@ -76,6 +80,14 @@ public class UsersLinku extends BaseEntity {
 
     public void updateMemo(String memo) {
         this.memo = memo;
+    }
+
+    public void updateUrl(String url) {
+        this.url = url;
+    }
+
+    public void updateTitle(String title) {
+        this.title = title;
     }
 
     public void updateEmotion(Emotion emotion) {

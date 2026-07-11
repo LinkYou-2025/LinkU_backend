@@ -237,6 +237,70 @@ class LinkuServiceTest {
     }
 
     @Nested
+    @DisplayName("updateLinku() - url/title 개인화 (공용 Linku 미변경)")
+    class UpdateLinkuUrlAndTitle {
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("linku(url) 변경 시 UsersLinku.url만 바뀌고 공용 Linku.linkuUrl은 그대로다")
+            void linku_변경_시_UsersLinku_url만_바뀌고_공용_Linku는_그대로다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                Linku linku = usersLinku.getLinku();
+                String originalUrl = linku.getLinkuUrl();
+                String newUrl = "https://example.com/new-article";
+
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
+                        .willReturn(Optional.empty());
+
+                // when
+                LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(USER_ID, 100L,
+                        LinkuRequestDTO.LinkuUpdateDTO.builder().linku(newUrl).build());
+
+                // then: UsersLinku.url만 변경, 공용 Linku는 그대로, linkuRepository는 저장 호출 안 됨
+                assertEquals(newUrl, usersLinku.getUrl());
+                assertEquals(originalUrl, linku.getLinkuUrl());
+                assertEquals(newUrl, result.getLinku());
+                verify(usersLinkuRepository).save(usersLinku);
+                verify(linkuRepository, never()).save(any());
+            }
+
+            @Test
+            @DisplayName("title 변경 시 UsersLinku.title만 바뀌고 공용 Linku.title은 그대로다")
+            void title_변경_시_UsersLinku_title만_바뀌고_공용_Linku는_그대로다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                Linku linku = usersLinku.getLinku();
+                String originalTitle = linku.getTitle();
+                String newTitle = "내가 정한 제목";
+
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
+                        .willReturn(Optional.empty());
+
+                // when
+                LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(USER_ID, 100L,
+                        LinkuRequestDTO.LinkuUpdateDTO.builder().title(newTitle).build());
+
+                // then: UsersLinku.title만 변경, 공용 Linku는 그대로
+                assertEquals(newTitle, usersLinku.getTitle());
+                assertEquals(originalTitle, linku.getTitle());
+                assertEquals(newTitle, result.getTitle());
+                verify(usersLinkuRepository).save(usersLinku);
+                verify(linkuRepository, never()).save(any());
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("updateLinkuFolder() - 링크 폴더 이동")
     class UpdateLinkuFolder {
 
@@ -288,6 +352,49 @@ class LinkuServiceTest {
                 assertEquals(linku.getLinkuId(), result.getLinkuId());
                 verify(linkuFolderRepository).save(linkuFolder);
                 verify(linkuRepository, never()).save(any());
+            }
+
+            @Test
+            @DisplayName("이동할 폴더가 소분류(하위) 폴더여도 정상적으로 이동된다")
+            void 이동할_폴더가_소분류_폴더여도_정상적으로_이동된다() {
+                // given: 중분류(루트) 폴더 아래에 소분류(하위) 폴더를 둔다
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                Category category = category();
+                Folder rootFolder = Folder.builder()
+                        .folderId(30L)
+                        .folderName("영어")
+                        .category(category)
+                        .build();
+                Folder subFolder = Folder.builder()
+                        .folderId(31L)
+                        .folderName("영어 회화")
+                        .category(category)
+                        .parentFolder(rootFolder)
+                        .build();
+                LinkuFolder linkuFolder = LinkuFolder.builder()
+                        .linkuFolderId(1001L)
+                        .folder(LinkuFixture.folder())
+                        .usersLinku(usersLinku)
+                        .build();
+
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(folderRepository.findById(31L)).willReturn(Optional.of(subFolder));
+                given(usersFolderRepository.existsFolderOwnerOrWriter(USER_ID, 31L)).willReturn(true);
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()))
+                        .willReturn(Optional.of(linkuFolder));
+
+                // when
+                LinkuResponseDTO.LinkuFolderChangeResultDTO result = linkuService.updateLinkuFolder(
+                        USER_ID, 100L,
+                        LinkuRequestDTO.LinkuFolderUpdateDTO.builder().folderId(31L).build());
+
+                // then: 중분류/소분류 구분 없이 동일하게 폴더가 교체된다
+                assertEquals(subFolder, linkuFolder.getFolder());
+                assertEquals(31L, result.getFolderId());
+                assertEquals("영어 회화", result.getFolderName());
+                verify(linkuFolderRepository).save(linkuFolder);
             }
         }
 

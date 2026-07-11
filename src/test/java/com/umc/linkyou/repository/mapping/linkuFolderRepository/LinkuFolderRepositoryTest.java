@@ -120,6 +120,40 @@ class LinkuFolderRepositoryTest {
                 assertThat(reloaded.getFolder().getFolderId()).isEqualTo(newFolder.getFolderId());
                 assertThat(reloaded.getFolder().getFolderName()).isEqualTo("새 폴더");
             }
+
+            @Test
+            @DisplayName("소분류(하위) 폴더로 이동해도 정상적으로 반영된다")
+            void 소분류_폴더로_이동해도_정상적으로_반영된다() {
+                // given: 중분류(루트) 폴더 아래에 소분류(하위) 폴더를 만든다
+                Category category = saveCategory("기술");
+                Users user = userRepository.save(createUser("user3"));
+                UsersLinku usersLinku = usersLinkuRepository.save(createUsersLinku(user, category));
+
+                Folder rootFolder = folderRepository.save(createFolder("중분류", category));
+                Folder subFolder = folderRepository.save(Folder.builder()
+                        .folderName("소분류")
+                        .category(category)
+                        .parentFolder(rootFolder)
+                        .build());
+
+                LinkuFolder linkuFolder = linkuFolderRepository.save(createLinkuFolder(rootFolder, usersLinku));
+                em.flush();
+                em.clear();
+
+                // when
+                LinkuFolder managed = linkuFolderRepository.findById(linkuFolder.getLinkuFolderId()).orElseThrow();
+                managed.updateFolder(subFolder);
+                linkuFolderRepository.save(managed);
+                em.flush();
+                em.clear();
+
+                // then
+                LinkuFolder reloaded = linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId())
+                        .orElseThrow();
+                assertThat(reloaded.getFolder().getFolderId()).isEqualTo(subFolder.getFolderId());
+                assertThat(reloaded.getFolder().getParentFolder().getFolderId()).isEqualTo(rootFolder.getFolderId());
+            }
         }
 
         @Nested

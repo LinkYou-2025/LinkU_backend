@@ -132,7 +132,7 @@ public class LinkuCreateService {
         // useslinku 처리
         Users user          = findUser(userId);
         UsersLinku usersLinku = createUsersLinku(
-                user, linku, emotion, situation, dto.getMemo(), userImageUrl, userTitle,
+                user, linku, emotion, situation, dto.getMemo(), userImageUrl, userTitle, normalizedLink,
                 !userProvidedEmotion, !userProvidedSituation
         );
 
@@ -214,9 +214,9 @@ public class LinkuCreateService {
     }
 
     public UsersLinku createUsersLinku(Users user, Linku linku, Emotion emotion, Situation situation,
-                                       String memo, String imageUrl, String title,
+                                       String memo, String imageUrl, String title, String url,
                                        boolean emotionAi, boolean situationAi) {
-        UsersLinku usersLinku = LinkuConverter.toUsersLinku(user, linku, emotion, situation, memo, imageUrl, title, emotionAi, situationAi);
+        UsersLinku usersLinku = LinkuConverter.toUsersLinku(user, linku, emotion, situation, memo, imageUrl, title, url, emotionAi, situationAi);
         return usersLinkuRepository.save(usersLinku);
     }
 

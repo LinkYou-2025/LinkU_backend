@@ -77,6 +77,23 @@ class UsersFolderRepositoryTest {
                 // then
                 assertThat(result).isTrue();
             }
+
+            @Test
+            @DisplayName("대상이 소분류(하위) 폴더여도 그 폴더 자체의 소유자면 true를 반환한다")
+            void 소분류_폴더의_소유자면_true를_반환한다() {
+                // given: 중분류(루트) 폴더 아래에 소분류(하위) 폴더를 만들고, 하위 폴더에 대해서만 소유권을 등록
+                Category category = saveCategory("기술");
+                Users user = userRepository.save(createUser("subOwner"));
+                Folder rootFolder = folderRepository.save(createFolder("중분류", category));
+                Folder subFolder = folderRepository.save(createSubFolder("소분류", category, rootFolder));
+                usersFolderRepository.save(createUsersFolder(user, subFolder, PermissionType.OWNER));
+
+                // when
+                boolean result = usersFolderRepository.existsFolderOwnerOrWriter(user.getId(), subFolder.getFolderId());
+
+                // then
+                assertThat(result).isTrue();
+            }
         }
 
         @Nested
@@ -146,6 +163,14 @@ class UsersFolderRepositoryTest {
         return Folder.builder()
                 .folderName(name)
                 .category(category)
+                .build();
+    }
+
+    private Folder createSubFolder(String name, Category category, Folder parentFolder) {
+        return Folder.builder()
+                .folderName(name)
+                .category(category)
+                .parentFolder(parentFolder)
                 .build();
     }
 
