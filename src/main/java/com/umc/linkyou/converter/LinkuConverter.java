@@ -93,6 +93,21 @@ public class LinkuConverter {
     }
 
 
+    // 링크 폴더 이동 → LinkuFolderChangeResultDTO 변환 (folderId는 실제 Folder PK, category는 직접 변경하지 않으므로 미포함)
+    public static LinkuResponseDTO.LinkuFolderChangeResultDTO toLinkuFolderChangeResultDTO(
+            Linku linku,
+            LinkuFolder linkuFolder
+    ) {
+        Folder folder = linkuFolder != null ? linkuFolder.getFolder() : null;
+        return LinkuResponseDTO.LinkuFolderChangeResultDTO.builder()
+                .linkuId(linku.getLinkuId())
+                .folderId(folder != null ? folder.getFolderId() : null)
+                .folderName(folder != null ? folder.getFolderName() : null)
+                .createdAt(linku.getCreatedAt())
+                .updatedAt(linku.getUpdatedAt())
+                .build();
+    }
+
     // Linku -> LinkuIsExistDTO 변환
     public static LinkuResponseDTO.LinkuIsExistDTO toLinkuIsExistDTO(Long userId, UsersLinku usersLinku) {
         if (usersLinku == null) {

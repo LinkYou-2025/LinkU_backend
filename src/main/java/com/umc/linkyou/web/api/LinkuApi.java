@@ -2,6 +2,7 @@ package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
@@ -80,13 +81,22 @@ public interface LinkuApi {
             @RequestParam(defaultValue = "10") int limit
     );
 
-    @Operation(summary = "링크 수정", description = "기존 링크의 정보(URL, 메모, 감정, 도메인, 제목 등)를 수정합니다.")
+    @Operation(summary = "링크 수정", description = "기존 링크의 정보(URL, 메모, 감정, 상황, 도메인, 제목 등)를 수정합니다. 폴더 이동은 이 API로 처리하지 않으며, 별도의 링크 폴더 이동 API를 사용해야 합니다.")
     @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
     @PatchMapping(value = "/{linkuId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long linkuId,
             @RequestBody LinkuRequestDTO.LinkuUpdateDTO updateDTO
+    );
+
+    @Operation(summary = "링크 폴더 이동", description = "링크가 속한 폴더를 변경합니다. 링크(Linku)는 동일 URL을 저장한 모든 유저가 공유하는 데이터이므로, 이 API는 해당 유저 소유의 폴더 매핑만 변경하며 링크 자체의 카테고리는 변경하지 않습니다.")
+    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._USER_LINKU_NOT_FOUND}, folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN})
+    @PatchMapping(value = "/{linkuId}/folder", consumes = MediaType.APPLICATION_JSON_VALUE)
+    ApiResponse<LinkuResponseDTO.LinkuFolderChangeResultDTO> updateLinkuFolder(
+            @CurrentUser CustomUserDetails userDetails,
+            @PathVariable Long linkuId,
+            @RequestBody LinkuRequestDTO.LinkuFolderUpdateDTO updateDTO
     );
 
     @Operation(summary = "링크 추천", description = "상황(situation)과 감정(emotion)을 기반으로 링크를 추천합니다. 페이지네이션을 지원합니다.")

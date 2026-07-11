@@ -66,6 +66,11 @@ public class LinkuController implements LinkuApi {
     }
 
     @Override
+    public ApiResponse<LinkuResponseDTO.LinkuFolderChangeResultDTO> updateLinkuFolder(@CurrentUser CustomUserDetails userDetails, @PathVariable Long linkuId, @RequestBody LinkuRequestDTO.LinkuFolderUpdateDTO updateDTO) {
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_FOLDER_UPDATED, linkuService.updateLinkuFolder(userDetails.getUserId(), linkuId, updateDTO));
+    }
+
+    @Override
     public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(@CurrentUser CustomUserDetails userDetails, @RequestParam Long situationId, @RequestParam Long emotionId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int size) {
         return linkuRecommendService.recommendLinku(userDetails.getUserId(), situationId, emotionId, page, size);
     }

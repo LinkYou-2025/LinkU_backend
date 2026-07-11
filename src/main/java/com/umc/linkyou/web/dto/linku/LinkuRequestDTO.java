@@ -32,12 +32,6 @@ public class LinkuRequestDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class LinkuUpdateDTO {
-        @Schema(example = "16", description = "폴더 ID")
-        private Long folderId;
-
-        @Schema(example = "16", description = "카테고리 ID")
-        private Long categoryId;
-
         @Schema(example = "수정된 링크", description = "수정할 URL 또는 링크 본문")
         private String linku;
 
@@ -55,6 +49,16 @@ public class LinkuRequestDTO {
 
         @Schema(example = "수정된 제목", description = "링크의 제목(TITLE)")
         private String title;
+    }
+
+    @Setter
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LinkuFolderUpdateDTO {
+        @Schema(example = "16", description = "이동할 폴더 ID", requiredMode = Schema.RequiredMode.REQUIRED)
+        private Long folderId;
     }
 
 }

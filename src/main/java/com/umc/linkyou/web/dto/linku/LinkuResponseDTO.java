@@ -32,6 +32,17 @@ public class LinkuResponseDTO {
         private String keyword;
         private String summary;
     }
+    @Setter
+    @Getter
+    @Builder
+    public static class LinkuFolderChangeResultDTO {
+        private Long linkuId;
+        private Long folderId; //실제 폴더 PK. 사용자 화면에 보이는 개인 폴더(=카테고리) id
+        private String folderName;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
+    }
+
     @Getter
     @Setter
     @Builder
