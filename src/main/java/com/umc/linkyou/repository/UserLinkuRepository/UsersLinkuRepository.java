@@ -44,7 +44,6 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
 
     List<UsersLinku> findByUser_IdAndLastViewedAtIsNull(Long userId);
 
-}
     // 해당 기간 유저가 저장한 링크의 감정별 저장 횟수
     @Query("""
             SELECT ul.emotion.emotionId, COUNT(ul)
@@ -71,5 +70,4 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
             @Param("userId") Long userId,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
-
 }
