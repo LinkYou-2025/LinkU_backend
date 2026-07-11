@@ -1,9 +1,12 @@
 package com.umc.linkyou.service.Linku;
 
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Linku;
+import com.umc.linkyou.domain.classification.Category;
+import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.folder.Folder;
@@ -94,6 +97,10 @@ class LinkuServiceTest {
                 assertEquals(newEmotion, usersLinku.getEmotion());
                 assertFalse(usersLinku.getEmotionAi());
                 verify(usersLinkuRepository).save(usersLinku);
+
+                // then: 공용 Linku의 emotion(AI 캐시용 필드)는 절대 안 건드림
+                assertNull(usersLinku.getLinku().getEmotion());
+                verify(linkuRepository, never()).save(any());
             }
 
             @Test
@@ -137,6 +144,10 @@ class LinkuServiceTest {
                 assertEquals(newSituation, usersLinku.getSituation());
                 assertFalse(usersLinku.getSituationAi());
                 verify(usersLinkuRepository).save(usersLinku);
+
+                // then: 공용 Linku의 situation(AI 캐시용 필드)는 절대 안 건드림
+                assertNull(usersLinku.getLinku().getSituation());
+                verify(linkuRepository, never()).save(any());
             }
 
             @Test
@@ -233,26 +244,56 @@ class LinkuServiceTest {
                         () -> linkuService.updateLinku(USER_ID, 100L,
                                 LinkuRequestDTO.LinkuUpdateDTO.builder().build()));
             }
+
+            @Test
+            @DisplayName("존재하지 않는 emotionId면 예외가 발생한다")
+            void 존재하지_않는_emotionId면_예외가_발생한다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(emotionRepository.findById(999L)).willReturn(Optional.empty());
+
+                // when & then
+                GeneralException ex = assertThrows(GeneralException.class,
+                        () -> linkuService.updateLinku(USER_ID, 100L,
+                                LinkuRequestDTO.LinkuUpdateDTO.builder().emotionId(999L).build()));
+                assertEquals(ErrorStatus._EMOTION_NOT_FOUND, ex.getCode());
+                verify(usersLinkuRepository, never()).save(any());
+            }
+
+            @Test
+            @DisplayName("존재하지 않는 situationId면 예외가 발생한다")
+            void 존재하지_않는_situationId면_예외가_발생한다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(situationRepository.findById(999L)).willReturn(Optional.empty());
+
+                // when & then
+                GeneralException ex = assertThrows(GeneralException.class,
+                        () -> linkuService.updateLinku(USER_ID, 100L,
+                                LinkuRequestDTO.LinkuUpdateDTO.builder().situationId(999L).build()));
+                assertEquals(ErrorStatus._SITUATION_NOT_FOUND, ex.getCode());
+                verify(usersLinkuRepository, never()).save(any());
+            }
         }
     }
 
     @Nested
-    @DisplayName("updateLinku() - url/title 개인화 (공용 Linku 미변경)")
-    class UpdateLinkuUrlAndTitle {
+    @DisplayName("updateLinku() - 메모 수정")
+    class UpdateLinkuMemo {
 
         @Nested
         @DisplayName("성공")
         class Success {
 
             @Test
-            @DisplayName("linku(url) 변경 시 UsersLinku.url만 바뀌고 공용 Linku.linkuUrl은 그대로다")
-            void linku_변경_시_UsersLinku_url만_바뀌고_공용_Linku는_그대로다() {
+            @DisplayName("memo 제공 시 UsersLinku.memo가 변경된다")
+            void memo_제공_시_UsersLinku_memo가_변경된다() {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku();
-                Linku linku = usersLinku.getLinku();
-                String originalUrl = linku.getLinkuUrl();
-                String newUrl = "https://example.com/new-article";
-
                 given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
                         .willReturn(List.of(usersLinku));
                 given(linkuFolderRepository
@@ -260,16 +301,81 @@ class LinkuServiceTest {
                         .willReturn(Optional.empty());
 
                 // when
-                LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(USER_ID, 100L,
-                        LinkuRequestDTO.LinkuUpdateDTO.builder().linku(newUrl).build());
+                linkuService.updateLinku(USER_ID, 100L,
+                        LinkuRequestDTO.LinkuUpdateDTO.builder().memo("새로운 메모").build());
 
-                // then: UsersLinku.url만 변경, 공용 Linku는 그대로, linkuRepository는 저장 호출 안 됨
-                assertEquals(newUrl, usersLinku.getUrl());
-                assertEquals(originalUrl, linku.getLinkuUrl());
-                assertEquals(newUrl, result.getLinku());
+                // then
+                assertEquals("새로운 메모", usersLinku.getMemo());
                 verify(usersLinkuRepository).save(usersLinku);
                 verify(linkuRepository, never()).save(any());
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("updateLinku() - 도메인 수정 (공용 Linku 변경, 아직 개인화 안 됨)")
+    class UpdateLinkuDomain {
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("domainId 제공 시 공용 Linku.domain이 변경되고 linkuRepository에 저장된다")
+            void domainId_제공_시_공용_Linku_domain이_변경되고_저장된다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                Linku linku = usersLinku.getLinku();
+                Domain newDomain = Domain.builder().domainId(2L).name("네이버").build();
+
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(domainRepository.findById(2L)).willReturn(Optional.of(newDomain));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
+                        .willReturn(Optional.empty());
+
+                // when
+                LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(USER_ID, 100L,
+                        LinkuRequestDTO.LinkuUpdateDTO.builder().domainId(2L).build());
+
+                // then: 공용 Linku가 실제로 변경됨 (아직 개인화되지 않은 필드라는 걸 명시적으로 확인)
+                assertEquals(newDomain, linku.getDomain());
+                assertEquals("네이버", result.getDomain());
+                verify(linkuRepository).save(linku);
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+
+            @Test
+            @DisplayName("존재하지 않는 domainId면 예외가 발생한다")
+            void 존재하지_않는_domainId면_예외가_발생한다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(domainRepository.findById(999L)).willReturn(Optional.empty());
+
+                // when & then
+                GeneralException ex = assertThrows(GeneralException.class,
+                        () -> linkuService.updateLinku(USER_ID, 100L,
+                                LinkuRequestDTO.LinkuUpdateDTO.builder().domainId(999L).build()));
+                assertEquals(ErrorStatus._DOMAIN_NOT_FOUND, ex.getCode());
+                verify(linkuRepository, never()).save(any());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("updateLinku() - title 개인화 (공용 Linku 미변경)")
+    class UpdateLinkuTitle {
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
 
             @Test
             @DisplayName("title 변경 시 UsersLinku.title만 바뀌고 공용 Linku.title은 그대로다")

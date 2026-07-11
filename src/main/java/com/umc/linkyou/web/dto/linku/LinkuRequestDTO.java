@@ -32,9 +32,6 @@ public class LinkuRequestDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class LinkuUpdateDTO {
-        @Schema(example = "수정된 링크", description = "수정할 URL 또는 링크 본문")
-        private String linku;
-
         @Schema(example = "수정된 메모", description = "수정할 나만의 메모")
         private String memo;
 

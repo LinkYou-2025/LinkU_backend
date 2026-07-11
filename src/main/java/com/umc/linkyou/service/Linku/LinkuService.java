@@ -158,20 +158,13 @@ public class LinkuService {
         boolean linkuModified = false;         // Linku 엔티티가 수정됐는지
         boolean usersLinkuModified = false;    // UsersLinku 엔티티가 수정됐는지
 
-        // 3. 링크 주소(URL) 변경 (개인화: 공용 Linku가 아닌 이 유저의 UsersLinku.url만 변경)
-        if (dto.getLinku() != null) {
-            UrlValidUtils.validateLinkuUrl(dto.getLinku());
-            usersLinku.updateUrl(dto.getLinku());
-            usersLinkuModified = true;
-        }
-
-        // 4. 메모 변경 (내가 작성한 메모)
+        // 3. 메모 변경 (내가 작성한 메모)
         if (dto.getMemo() != null) {
             usersLinku.updateMemo(dto.getMemo());
             usersLinkuModified = true;
         }
 
-        // 5. 감정 아이콘/상태 변경
+        // 4. 감정 아이콘/상태 변경
         if (dto.getEmotionId() != null) {
             Emotion emotion = emotionRepository.findById(dto.getEmotionId())
                     .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
@@ -180,7 +173,7 @@ public class LinkuService {
             usersLinkuModified = true;
         }
 
-        // 5-1. 상황 변경
+        // 4-1. 상황 변경
         if (dto.getSituationId() != null) {
             Situation situation = situationRepository.findById(dto.getSituationId())
                     .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
@@ -189,7 +182,7 @@ public class LinkuService {
             usersLinkuModified = true;
         }
 
-        // 6. 도메인 변경 (링크의 소속 사이트 교체)
+        // 5. 도메인 변경 (링크의 소속 사이트 교체)
         if (dto.getDomainId() != null) {
             Domain domain = domainRepository.findById(dto.getDomainId())
                     .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND));
@@ -197,25 +190,25 @@ public class LinkuService {
             linkuModified = true;
         }
 
-        // 7. 제목(title) 변경 (개인화: 공용 Linku가 아닌 이 유저의 UsersLinku.title만 변경)
+        // 6. 제목(title) 변경 (개인화: 공용 Linku가 아닌 이 유저의 UsersLinku.title만 변경)
         if (dto.getTitle() != null) {
             usersLinku.updateTitle(dto.getTitle());
             usersLinkuModified = true;
         }
 
 
-        // 8. 실제 변경이 발생한 엔티티만 저장(DB update)
+        // 7. 실제 변경이 발생한 엔티티만 저장(DB update)
         if (linkuModified) linkuRepository.save(linku);
         if (usersLinkuModified) usersLinkuRepository.save(usersLinku);
 
-        // 9. 최신 폴더 매핑 정보, 카테고리, 도메인 등 다시 조회해 응답 준비
+        // 8. 최신 폴더 매핑 정보, 카테고리, 도메인 등 다시 조회해 응답 준비
         LinkuFolder linkuFolder = linkuFolderRepository
                 .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId())
                 .orElse(null);
         Category category = linku.getCategory();
         Domain domain = linku.getDomain();
 
-        // 10. DTO 변환해 반환 (모든 정보 최신상태로 응답)
+        // 9. DTO 변환해 반환 (모든 정보 최신상태로 응답)
         return LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain, null);
     } //링크 수정 (폴더/카테고리 변경은 updateLinkuFolder로 분리됨)
 

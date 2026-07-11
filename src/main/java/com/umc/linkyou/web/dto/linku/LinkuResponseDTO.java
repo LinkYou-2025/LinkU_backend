@@ -87,8 +87,22 @@ public class LinkuResponseDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class LinkuSliceResultDTO {
-        private List<LinkuResultDTO> linkuList;
+        private List<AiArticleSummaryDTO> linkuList;
         private String nextCursor;
         private Boolean hasNext;
+    }
+
+    // 마이페이지 AI 요약 링크 목록 전용 (필요한 필드만 최소로 구성)
+    @Getter
+    @Setter
+    @Builder
+    public static class AiArticleSummaryDTO {
+        private Long linkuId;
+        private String linku;
+        private Long emotionId;
+        private String domain;
+        private String domainImageUrl;
+        private String title;
+        private String linkuImageUrl;
     }
 }

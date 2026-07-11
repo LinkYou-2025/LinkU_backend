@@ -81,7 +81,7 @@ public interface LinkuApi {
             @RequestParam(defaultValue = "10") int limit
     );
 
-    @Operation(summary = "링크 수정", description = "기존 링크의 정보(URL, 메모, 감정, 상황, 도메인, 제목 등)를 수정합니다. 폴더 이동은 이 API로 처리하지 않으며, 별도의 링크 폴더 이동 API를 사용해야 합니다.")
+    @Operation(summary = "링크 수정", description = "기존 링크의 정보(메모, 감정, 상황, 도메인, 제목 등)를 수정합니다. URL 자체는 이 API로 변경할 수 없으며, 폴더 이동도 이 API로 처리하지 않고 별도의 링크 폴더 이동 API를 사용해야 합니다.")
     @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
     @PatchMapping(value = "/{linkuId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(
