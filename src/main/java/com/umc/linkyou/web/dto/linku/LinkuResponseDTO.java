@@ -13,7 +13,7 @@ public class LinkuResponseDTO {
         private Long userId;
         private Long userLinkuId;
         private Long linkuId;
-        private Long linkuFolderId;
+        private String folderName;
         private Long categoryId;
         private String linku; //링크
         private String memo;
@@ -50,7 +50,6 @@ public class LinkuResponseDTO {
         private Long userLinkuId;
         private Long linkuId;
         private Long categoryId;
-        private Long folderId; //실제 폴더 PK (중분류/소분류 구분 없이 이 링크가 실제로 들어있는 폴더)
         private String folderName;
         private String linku;
         private String memo;
