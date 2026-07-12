@@ -47,8 +47,11 @@ public class LinkuResponseDTO {
     @Setter
     @Builder
     public static class LinkuSimpleDTO {
+        private Long userLinkuId;
         private Long linkuId;
         private Long categoryId;
+        private Long folderId; //실제 폴더 PK (중분류/소분류 구분 없이 이 링크가 실제로 들어있는 폴더)
+        private String folderName;
         private String linku;
         private String memo;
         private Long emotionId;

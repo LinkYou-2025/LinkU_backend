@@ -11,6 +11,7 @@ import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.enums.KeywordType;
+import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.SituationJob;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
@@ -18,6 +19,7 @@ import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepositor
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
+import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.utils.EmotionSimilarityUtil;
@@ -46,6 +48,7 @@ public class LinkuRecommendService{
     private final AiArticleRepository aiArticleRepository;
     private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
     private final LinkuViewService linkuViewService;
+    private final LinkuFolderRepository linkuFolderRepository;
 
 
     private final SituationCategoryService situationCategoryService;
@@ -157,6 +160,12 @@ public class LinkuRecommendService{
         // 한 번에 AiArticle 조회 및 title 유효성 체크 후 존재 여부 Map 생성
         Map<Long, Boolean> aiArticleExistsMap = aiArticleRepository.existsAiArticleByLinkuIds(linkuIds);
 
+        // 한 번에 LinkuFolder(실제 폴더) 조회 (리스트 응답에서 N+1 방지)
+        List<Long> userLinkuIds = pagedList.stream()
+                .map(scored -> scored.getUserLinku().getUserLinkuId())
+                .collect(Collectors.toList());
+        Map<Long, LinkuFolder> latestFolderByUserLinkuId = fetchLatestLinkuFolders(userLinkuIds);
+
         return pagedList.stream()
                 .map(scored -> {
                     UsersLinku userLinku = scored.getUserLinku();
@@ -164,14 +173,28 @@ public class LinkuRecommendService{
                     Domain domain = linku.getDomain();
 
                     boolean aiArticleExists = Boolean.TRUE.equals(userLinku.getAiExist());
+                    LinkuFolder linkuFolder = latestFolderByUserLinkuId.get(userLinku.getUserLinkuId());
 
                     return LinkuConverter.toLinkuSimpleDTO(
                             linku,
                             userLinku,
                             domain,
-                            aiArticleExists
+                            aiArticleExists,
+                            linkuFolder
                     );
                 })
                 .collect(Collectors.toList());
+    }
+
+    // 여러 UsersLinku의 최신 LinkuFolder를 한 번에 조회한다.
+    // linkuFolderId desc로 조회되므로, 같은 userLinkuId가 여러 번 나와도 먼저 만난(가장 큰 id = 최신) 것을 유지한다.
+    private Map<Long, LinkuFolder> fetchLatestLinkuFolders(List<Long> userLinkuIds) {
+        if (userLinkuIds.isEmpty()) return Map.of();
+        return linkuFolderRepository.findByUsersLinku_UserLinkuIdIn(userLinkuIds).stream()
+                .collect(Collectors.toMap(
+                        lf -> lf.getUsersLinku().getUserLinkuId(),
+                        lf -> lf,
+                        (existing, replacement) -> existing
+                ));
     }
 }

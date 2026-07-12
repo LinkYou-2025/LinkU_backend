@@ -132,19 +132,37 @@ public class LinkuService {
     @Transactional(readOnly = true)
     public List<LinkuResponseDTO.LinkuSimpleDTO> getRecentViewedLinkus(Long userId, int limit) {
         List<UsersLinku> recentList = usersLinkuRepository
-                .findTop10ByUser_IdAndLastViewedAtIsNotNullOrderByLastViewedAtDesc(userId);
+                .findTop10ByUser_IdAndLastViewedAtIsNotNullOrderByLastViewedAtDesc(userId)
+                .stream()
+                .limit(limit)
+                .collect(Collectors.toList());
+
+        Map<Long, LinkuFolder> latestFolderByUserLinkuId = fetchLatestLinkuFolders(recentList);
 
         return recentList.stream()
-                .limit(limit)
                 .map(ul -> {
                     Linku linku = ul.getLinku();
                     boolean aiArticleExists = Boolean.TRUE.equals(ul.getAiExist());
                     Domain domain = linku.getDomain();
-                    return toLinkuSimpleDTO(linku, ul, domain, aiArticleExists);
+                    LinkuFolder linkuFolder = latestFolderByUserLinkuId.get(ul.getUserLinkuId());
+                    return toLinkuSimpleDTO(linku, ul, domain, aiArticleExists, linkuFolder);
                 })
                 .collect(Collectors.toList());
     }
     //최근 열람한 링크 가져오기  /linku/recent
+
+    // 여러 UsersLinku의 최신 LinkuFolder를 한 번에 조회한다. (리스트 응답에서 N+1 방지)
+    // linkuFolderId desc로 조회되므로, 같은 userLinkuId가 여러 번 나와도 먼저 만난(가장 큰 id = 최신) 것을 유지한다.
+    private Map<Long, LinkuFolder> fetchLatestLinkuFolders(List<UsersLinku> usersLinkus) {
+        if (usersLinkus.isEmpty()) return Map.of();
+        List<Long> userLinkuIds = usersLinkus.stream().map(UsersLinku::getUserLinkuId).toList();
+        return linkuFolderRepository.findByUsersLinku_UserLinkuIdIn(userLinkuIds).stream()
+                .collect(Collectors.toMap(
+                        lf -> lf.getUsersLinku().getUserLinkuId(),
+                        lf -> lf,
+                        (existing, replacement) -> existing
+                ));
+    }
 
     @Transactional
     public LinkuResponseDTO.LinkuResultDTO updateLinku(Long userId, Long linkuId, LinkuRequestDTO.LinkuUpdateDTO dto) {

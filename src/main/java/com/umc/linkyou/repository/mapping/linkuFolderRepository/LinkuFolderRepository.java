@@ -17,6 +17,15 @@ public interface LinkuFolderRepository  extends JpaRepository<LinkuFolder, Long>
 
     List<LinkuFolder> findByUsersLinku(UsersLinku usersLinku);
 
+    // 여러 UsersLinku의 폴더 매핑을 한 번에 조회 (리스트 응답에서 N+1 방지용). folder도 함께 fetch join.
+    @Query("""
+        select lf from LinkuFolder lf
+        join fetch lf.folder f
+        where lf.usersLinku.userLinkuId in :userLinkuIds
+        order by lf.linkuFolderId desc
+    """)
+    List<LinkuFolder> findByUsersLinku_UserLinkuIdIn(@Param("userLinkuIds") List<Long> userLinkuIds);
+
     @Query("""
         select lf from LinkuFolder lf
         join fetch lf.usersLinku ul
