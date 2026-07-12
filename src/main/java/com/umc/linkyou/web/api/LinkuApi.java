@@ -92,7 +92,7 @@ public interface LinkuApi {
                     - 폴더 이동은 이 API로 처리하지 않고 별도의 링크 폴더 이동 API(`PATCH /linku/{linkuId}/folder`)를 사용해야 합니다.
                     """
     )
-    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
+    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND}, errorStatus = {ErrorStatus._DOMAIN_NOT_FOUND})
     @PatchMapping(value = "/{linkuId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(
             @CurrentUser CustomUserDetails userDetails,

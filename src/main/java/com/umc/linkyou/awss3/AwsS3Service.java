@@ -102,14 +102,21 @@ public class AwsS3Service {
     }
 
     /**
-     * 기존 이미지를 새 이미지로 교체한다. (기존 이미지가 있으면 S3에서 먼저 삭제한 뒤 새 이미지를 업로드)
+     * 기존 이미지를 새 이미지로 교체한다.
+     * 새 이미지를 먼저 업로드해 성공을 확인한 뒤 기존 이미지를 삭제한다. (업로드 실패 시 기존 이미지를 보존하기 위함)
+     * 기존 이미지 삭제가 실패해도 새 이미지는 이미 정상 반영된 상태이므로 예외를 전파하지 않고 로그만 남긴다.
      * "이미지 수정" 성격의 도메인(예: Domain, UsersLinku)에서 공통으로 사용한다.
      */
     public String replaceFile(String oldFileUrl, MultipartFile newFile, String folder) {
+        String newFileUrl = uploadFile(newFile, folder);
         if (oldFileUrl != null) {
-            deleteFileByUrl(oldFileUrl);
+            try {
+                deleteFileByUrl(oldFileUrl);
+            } catch (GeneralException e) {
+                log.error("기존 이미지 삭제 실패 (새 이미지는 정상 반영됨): {}", oldFileUrl, e);
+            }
         }
-        return uploadFile(newFile, folder);
+        return newFileUrl;
     }
 
     public void deleteFile(String fileName) {
