@@ -101,6 +101,17 @@ public class AwsS3Service {
         return getFileUrl(fileName);
     }
 
+    /**
+     * 기존 이미지를 새 이미지로 교체한다. (기존 이미지가 있으면 S3에서 먼저 삭제한 뒤 새 이미지를 업로드)
+     * "이미지 수정" 성격의 도메인(예: Domain, UsersLinku)에서 공통으로 사용한다.
+     */
+    public String replaceFile(String oldFileUrl, MultipartFile newFile, String folder) {
+        if (oldFileUrl != null) {
+            deleteFileByUrl(oldFileUrl);
+        }
+        return uploadFile(newFile, folder);
+    }
+
     public void deleteFile(String fileName) {
         try {
             DeleteObjectRequest request = DeleteObjectRequest.builder()

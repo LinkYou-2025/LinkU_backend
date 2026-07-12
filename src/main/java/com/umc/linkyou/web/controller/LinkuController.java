@@ -14,6 +14,7 @@ import com.umc.linkyou.web.api.LinkuApi;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -61,12 +62,26 @@ public class LinkuController implements LinkuApi {
     }
 
     @Override
-    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(@CurrentUser CustomUserDetails userDetails, @PathVariable Long linkuId, @RequestBody LinkuRequestDTO.LinkuUpdateDTO updateDTO) {
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(@CurrentUser CustomUserDetails userDetails, @PathVariable Long linkuId,
+            @RequestParam(required = false) String memo,
+            @RequestParam(required = false) Long emotionId,
+            @RequestParam(required = false) Long situationId,
+            @RequestParam(required = false) Long domainId,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) MultipartFile image) {
+        LinkuRequestDTO.LinkuUpdateDTO updateDTO = LinkuRequestDTO.LinkuUpdateDTO.builder()
+                .memo(memo)
+                .emotionId(emotionId)
+                .situationId(situationId)
+                .domainId(domainId)
+                .title(title)
+                .image(image)
+                .build();
         return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_UPDATED, linkuService.updateLinku(userDetails.getUserId(), linkuId, updateDTO));
     }
 
     @Override
-    public ApiResponse<LinkuResponseDTO.LinkuFolderChangeResultDTO> updateLinkuFolder(@CurrentUser CustomUserDetails userDetails, @PathVariable Long linkuId, @RequestBody LinkuRequestDTO.LinkuFolderUpdateDTO updateDTO) {
+    public ApiResponse<LinkuResponseDTO.LinkuFolderChangeResultDTO> updateLinkuFolder(@CurrentUser CustomUserDetails userDetails, @PathVariable Long linkuId, @Valid @RequestBody LinkuRequestDTO.LinkuFolderUpdateDTO updateDTO) {
         return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_FOLDER_UPDATED, linkuService.updateLinkuFolder(userDetails.getUserId(), linkuId, updateDTO));
     }
 

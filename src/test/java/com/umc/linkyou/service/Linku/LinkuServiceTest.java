@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +43,7 @@ import static com.umc.linkyou.support.fixture.LinkuFixture.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -63,6 +66,7 @@ class LinkuServiceTest {
     @Mock private AiArticleRepository aiArticleRepository;
     @Mock private CurationLinkuRepository curationLinkuRepository;
     @Mock private LinkuViewService linkuViewService;
+    @Mock private AwsS3Service awsS3Service;
 
     private static final Long NEW_EMOTION_ID = 3L;
     private static final Long NEW_SITUATION_ID = 3L;
@@ -402,6 +406,90 @@ class LinkuServiceTest {
                 assertEquals(newTitle, result.getTitle());
                 verify(usersLinkuRepository).save(usersLinku);
                 verify(linkuRepository, never()).save(any());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("updateLinku() - 대표 이미지 수정 (개인화, S3 교체)")
+    class UpdateLinkuImage {
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("기존 이미지가 있으면 S3에서 삭제한 뒤 새 이미지를 업로드하고 imageUrl을 교체한다")
+            void 기존_이미지가_있으면_삭제_후_새_이미지로_교체한다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                usersLinku.updateImageUrl("https://cdn.example.com/old.jpg");
+
+                MultipartFile image = mock(MultipartFile.class);
+                given(image.isEmpty()).willReturn(false);
+                given(awsS3Service.replaceFile("https://cdn.example.com/old.jpg", image, "linkucreate"))
+                        .willReturn("https://cdn.example.com/new.jpg");
+
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
+                        .willReturn(Optional.empty());
+
+                // when
+                linkuService.updateLinku(USER_ID, 100L,
+                        LinkuRequestDTO.LinkuUpdateDTO.builder().image(image).build());
+
+                // then: 기존 imageUrl을 넘겨서 replaceFile 호출(삭제+업로드는 AwsS3Service 내부 책임), 새 URL로 교체
+                verify(awsS3Service).replaceFile("https://cdn.example.com/old.jpg", image, "linkucreate");
+                assertEquals("https://cdn.example.com/new.jpg", usersLinku.getImageUrl());
+                verify(usersLinkuRepository).save(usersLinku);
+            }
+
+            @Test
+            @DisplayName("기존 이미지가 없으면 oldFileUrl=null로 replaceFile을 호출한다")
+            void 기존_이미지가_없으면_null을_넘겨_replaceFile을_호출한다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku(); // imageUrl == null
+
+                MultipartFile image = mock(MultipartFile.class);
+                given(image.isEmpty()).willReturn(false);
+                given(awsS3Service.replaceFile(null, image, "linkucreate"))
+                        .willReturn("https://cdn.example.com/new.jpg");
+
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
+                        .willReturn(Optional.empty());
+
+                // when
+                linkuService.updateLinku(USER_ID, 100L,
+                        LinkuRequestDTO.LinkuUpdateDTO.builder().image(image).build());
+
+                // then
+                assertEquals("https://cdn.example.com/new.jpg", usersLinku.getImageUrl());
+            }
+
+            @Test
+            @DisplayName("이미지를 첨부하지 않으면 imageUrl은 그대로고 S3도 호출되지 않는다")
+            void 이미지_미첨부_시_imageUrl_변경없고_S3_호출없다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                usersLinku.updateImageUrl("https://cdn.example.com/old.jpg");
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
+                        .willReturn(Optional.empty());
+
+                // when: image 없는 DTO (memo만 변경)
+                linkuService.updateLinku(USER_ID, 100L,
+                        LinkuRequestDTO.LinkuUpdateDTO.builder().memo("메모만 변경").build());
+
+                // then
+                assertEquals("https://cdn.example.com/old.jpg", usersLinku.getImageUrl());
+                verify(awsS3Service, never()).replaceFile(any(), any(), any());
             }
         }
     }

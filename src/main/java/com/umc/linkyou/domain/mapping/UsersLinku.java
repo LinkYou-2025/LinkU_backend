@@ -82,6 +82,10 @@ public class UsersLinku extends BaseEntity {
         this.title = title;
     }
 
+    public void updateImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
     public void updateEmotion(Emotion emotion) {
         this.emotion = emotion;
     }

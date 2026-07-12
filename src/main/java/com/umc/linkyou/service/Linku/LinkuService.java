@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.Linku;
@@ -56,6 +57,7 @@ public class LinkuService {
     private final AiArticleRepository aiArticleRepository;
     private final CurationLinkuRepository curationLinkuRepository;
     private final LinkuViewService linkuViewService;
+    private final AwsS3Service awsS3Service;
 
 
     @Transactional
@@ -193,6 +195,14 @@ public class LinkuService {
         // 6. 제목(title) 변경 (개인화: 공용 Linku가 아닌 이 유저의 UsersLinku.title만 변경)
         if (dto.getTitle() != null) {
             usersLinku.updateTitle(dto.getTitle());
+            usersLinkuModified = true;
+        }
+
+        // 6-1. 대표 이미지 변경 (개인화: 이 유저의 UsersLinku.imageUrl만 변경)
+        //      기존 이미지가 있으면 S3에서 먼저 삭제한 뒤 새 이미지를 업로드한다.
+        if (dto.getImage() != null && !dto.getImage().isEmpty()) {
+            String newImageUrl = awsS3Service.replaceFile(usersLinku.getImageUrl(), dto.getImage(), "linkucreate");
+            usersLinku.updateImageUrl(newImageUrl);
             usersLinkuModified = true;
         }
 
