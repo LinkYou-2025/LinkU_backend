@@ -25,6 +25,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -68,7 +69,7 @@ class AiArticleServiceTest {
 
                 given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(usersLinkuRepository.findByUserAndLinku(user, linku)).willReturn(Optional.of(usersLinku));
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of(usersLinku));
                 given(aiArticleAnalyzer.analyzeByUrl(any())).willReturn(result);
                 given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.empty());
                 given(aiArticleRepository.save(any(AiArticle.class))).willAnswer(inv -> inv.getArgument(0));
@@ -78,6 +79,9 @@ class AiArticleServiceTest {
                 ArgumentCaptor<AiArticle> captor = ArgumentCaptor.forClass(AiArticle.class);
                 verify(aiArticleRepository).save(captor.capture());
                 assertEquals(SUMMARY, captor.getValue().getSummary());
+                // ai_articles.title은 NOT NULL이라 linku.title로 채워져야 한다 (누락 시 DB insert 자체가 실패함)
+                assertEquals(linku.getTitle(), captor.getValue().getTitle());
+                assertNotNull(captor.getValue().getTitle());
                 assertTrue(usersLinku.getAiExist());
             }
 
@@ -92,7 +96,7 @@ class AiArticleServiceTest {
 
                 given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(usersLinkuRepository.findByUserAndLinku(user, linku)).willReturn(Optional.of(usersLinku));
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of(usersLinku));
                 given(aiArticleAnalyzer.analyzeByUrl(any())).willReturn(result);
                 given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.of(existingArticle));
 
@@ -113,7 +117,7 @@ class AiArticleServiceTest {
 
                 given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(usersLinkuRepository.findByUserAndLinku(user, linku)).willReturn(Optional.of(usersLinku));
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of(usersLinku));
                 given(aiArticleAnalyzer.analyzeByUrl(any())).willReturn(result);
                 given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.empty());
                 given(aiArticleRepository.save(any(AiArticle.class))).willAnswer(inv -> inv.getArgument(0));
@@ -143,7 +147,7 @@ class AiArticleServiceTest {
 
                 given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(usersLinkuRepository.findByUserAndLinku(user, linku)).willReturn(Optional.of(usersLinku));
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of(usersLinku));
                 given(aiArticleAnalyzer.analyzeByUrl(any())).willReturn(result);
                 given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.empty());
                 given(aiArticleRepository.save(any(AiArticle.class))).willAnswer(inv -> inv.getArgument(0));
@@ -165,7 +169,7 @@ class AiArticleServiceTest {
 
                 given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(usersLinkuRepository.findByUserAndLinku(user, linku)).willReturn(Optional.of(usersLinku));
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of(usersLinku));
                 given(aiArticleAnalyzer.analyzeByUrl(any())).willReturn(result);
                 given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.empty());
                 given(aiArticleRepository.save(any(AiArticle.class))).willAnswer(inv -> inv.getArgument(0));
@@ -175,6 +179,47 @@ class AiArticleServiceTest {
                 verify(alarmService).sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
                         AlarmType.LINK_SUMMARY_COMPLETE, LINKU_ID,
                         new AlarmPayload.LinkTitle(linku.getTitle())));
+            }
+
+            @Test
+            @DisplayName("동일 (user, linku)로 저장된 UsersLinku가 여러 건이면 가장 최근 것을 사용한다")
+            void UsersLinku가_여러건이면_가장_최근_것을_사용한다() {
+                Linku linku = LinkuFixture.linku(null);
+                Users user = LinkuFixture.user();
+                UsersLinku older = UsersLinku.builder()
+                        .userLinkuId(1L)
+                        .linku(linku)
+                        .user(user)
+                        .emotion(LinkuFixture.emotion())
+                        .emotionAi(true)
+                        .situationAi(true)
+                        .build();
+                org.springframework.test.util.ReflectionTestUtils.setField(
+                        older, "createdAt", java.time.LocalDateTime.now().minusDays(1));
+                UsersLinku newer = UsersLinku.builder()
+                        .userLinkuId(2L)
+                        .linku(linku)
+                        .user(user)
+                        .emotion(LinkuFixture.emotion())
+                        .emotionAi(true)
+                        .situationAi(true)
+                        .build();
+                org.springframework.test.util.ReflectionTestUtils.setField(
+                        newer, "createdAt", java.time.LocalDateTime.now());
+                AiArticleResultDTO result = new AiArticleResultDTO(SUMMARY);
+
+                given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
+                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+                // DB에 중복 저장된 상황(실제로 발생했던 버그)을 재현: 여러 건을 반환
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of(older, newer));
+                given(aiArticleAnalyzer.analyzeByUrl(any())).willReturn(result);
+                given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.empty());
+                given(aiArticleRepository.save(any(AiArticle.class))).willAnswer(inv -> inv.getArgument(0));
+
+                aiArticleService.saveAiArticle(LINKU_ID, USER_ID);
+
+                assertTrue(newer.getAiExist());
+                assertFalse(older.getAiExist()); // 더 오래된 UsersLinku는 건드리지 않음
             }
         }
 
@@ -210,7 +255,7 @@ class AiArticleServiceTest {
 
                 given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(usersLinkuRepository.findByUserAndLinku(user, linku)).willReturn(Optional.empty());
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of());
 
                 assertThrows(GeneralException.class,
                         () -> aiArticleService.saveAiArticle(LINKU_ID, USER_ID));
@@ -237,7 +282,7 @@ class AiArticleServiceTest {
                 given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
                 given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.empty());
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(usersLinkuRepository.findByUserAndLinku(user, linku)).willReturn(Optional.of(usersLinku));
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of(usersLinku));
                 given(aiArticleAnalyzer.analyzeByUrl(any())).willReturn(result);
                 given(aiArticleRepository.save(any(AiArticle.class))).willAnswer(inv -> inv.getArgument(0));
 
@@ -259,7 +304,7 @@ class AiArticleServiceTest {
                 given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
                 given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.of(existingArticle));
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(usersLinkuRepository.findByUserAndLinku(user, linku)).willReturn(Optional.of(usersLinku));
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of(usersLinku));
                 given(aiArticleAnalyzer.analyzeByUrl(any())).willReturn(result);
 
                 aiArticleService.saveOrGetAiArticle(LINKU_ID, USER_ID);
@@ -279,7 +324,7 @@ class AiArticleServiceTest {
                 given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
                 given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.of(existingArticle));
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(usersLinkuRepository.findByUserAndLinku(user, linku)).willReturn(Optional.of(usersLinku));
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of(usersLinku));
 
                 aiArticleService.saveOrGetAiArticle(LINKU_ID, USER_ID);
 
@@ -304,7 +349,7 @@ class AiArticleServiceTest {
                 given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
                 given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.of(articleWithNullSummary));
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(usersLinkuRepository.findByUserAndLinku(user, linku)).willReturn(Optional.of(usersLinku));
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of(usersLinku));
                 given(aiArticleAnalyzer.analyzeByUrl(any())).willReturn(result);
 
                 aiArticleService.saveOrGetAiArticle(LINKU_ID, USER_ID);

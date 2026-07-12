@@ -91,12 +91,14 @@ class AiArticleControllerTest {
                 // given
                 Long categoryId = 1L;
 
-                LinkuResponseDTO.LinkuResultDTO article1 = LinkuResponseDTO.LinkuResultDTO.builder()
+                LinkuResponseDTO.AiArticleSummaryDTO article1 = LinkuResponseDTO.AiArticleSummaryDTO.builder()
                         .linkuId(101L)
-                        .userLinkuId(1001L)
-                        .categoryId(categoryId)
+                        .linku("https://example.com/article")
+                        .emotionId(2L)
+                        .domain("naver")
+                        .domainImageUrl("https://img1.daumcdn.net/thumb/R800x0")
                         .title("첫 번째 AI 제목")
-                        .aiArticleExists(true)
+                        .linkuImageUrl("https://img1.daumcdn.net/thumb/R800x0")
                         .build();
 
                 LinkuResponseDTO.LinkuSliceResultDTO mockSlice = LinkuResponseDTO.LinkuSliceResultDTO.builder()
@@ -109,7 +111,8 @@ class AiArticleControllerTest {
                         .willReturn(mockSlice);
 
                 // when & then
-                mockMvc.perform(get("/api/v1/aiarticle/category/{categoryId}", categoryId)
+                mockMvc.perform(get("/api/v1/aiarticle")
+                                .param("categoryId", String.valueOf(categoryId))
                                 .param("cursor", "0")
                                 .param("limit", "10")
                                 .contentType(MediaType.APPLICATION_JSON))
@@ -117,10 +120,10 @@ class AiArticleControllerTest {
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.result.linkuList.length()").value(1))
                         .andExpect(jsonPath("$.result.linkuList[0].linkuId").value(101L))
-                        .andExpect(jsonPath("$.result.linkuList[0].userLinkuId").value(1001L))
-                        .andExpect(jsonPath("$.result.linkuList[0].categoryId").value(1L))
+                        .andExpect(jsonPath("$.result.linkuList[0].linku").value("https://example.com/article"))
+                        .andExpect(jsonPath("$.result.linkuList[0].emotionId").value(2L))
+                        .andExpect(jsonPath("$.result.linkuList[0].domain").value("naver"))
                         .andExpect(jsonPath("$.result.linkuList[0].title").value("첫 번째 AI 제목"))
-                        .andExpect(jsonPath("$.result.linkuList[0].aiArticleExists").value(true))
                         .andExpect(jsonPath("$.result.nextCursor").value("1001"))
                         .andExpect(jsonPath("$.result.hasNext").value(true))
                         .andDo(print());
@@ -142,7 +145,8 @@ class AiArticleControllerTest {
                         .willReturn(emptySlice);
 
                 // when & then
-                mockMvc.perform(get("/api/v1/aiarticle/category/{categoryId}", emptyCategoryId)
+                mockMvc.perform(get("/api/v1/aiarticle")
+                                .param("categoryId", String.valueOf(emptyCategoryId))
                                 .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
@@ -168,7 +172,8 @@ class AiArticleControllerTest {
                         .willReturn(emptySlice);
 
                 // when & then
-                mockMvc.perform(get("/api/v1/aiarticle/category/{categoryId}", notFoundCategoryId)
+                mockMvc.perform(get("/api/v1/aiarticle")
+                                .param("categoryId", String.valueOf(notFoundCategoryId))
                                 .param("cursor", "0")
                                 .param("limit", "10")
                                 .contentType(MediaType.APPLICATION_JSON))
@@ -189,7 +194,18 @@ class AiArticleControllerTest {
             @DisplayName("categoryId가 문자열이면 400 Bad Request를 반환한다")
             void getMyAiArticlesByCategory_InvalidCategoryIdType() throws Exception {
                 // when & then
-                mockMvc.perform(get("/api/v1/aiarticle/category/{categoryId}", "invalid")
+                mockMvc.perform(get("/api/v1/aiarticle")
+                                .param("categoryId", "invalid")
+                                .contentType(MediaType.APPLICATION_JSON))
+                        .andExpect(status().isBadRequest())
+                        .andDo(print());
+            }
+
+            @Test
+            @DisplayName("categoryId가 없으면 400 Bad Request를 반환한다")
+            void getMyAiArticlesByCategory_MissingCategoryId() throws Exception {
+                // when & then
+                mockMvc.perform(get("/api/v1/aiarticle")
                                 .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isBadRequest())
                         .andDo(print());
@@ -203,7 +219,8 @@ class AiArticleControllerTest {
                         .willThrow(new GeneralException(ErrorStatus._INTERNAL_SERVER_ERROR));
 
                 // when & then
-                mockMvc.perform(get("/api/v1/aiarticle/category/{categoryId}", 1L)
+                mockMvc.perform(get("/api/v1/aiarticle")
+                                .param("categoryId", "1")
                                 .param("cursor", "0")
                                 .param("limit", "10")
                                 .contentType(MediaType.APPLICATION_JSON))

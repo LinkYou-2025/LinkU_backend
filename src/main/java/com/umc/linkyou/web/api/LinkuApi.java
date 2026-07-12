@@ -2,6 +2,7 @@ package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
@@ -11,6 +12,7 @@ import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -80,13 +82,36 @@ public interface LinkuApi {
             @RequestParam(defaultValue = "10") int limit
     );
 
-    @Operation(summary = "링크 수정", description = "기존 링크의 정보(URL, 메모, 감정, 도메인, 제목 등)를 수정합니다.")
-    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
-    @PatchMapping(value = "/{linkuId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "링크 수정",
+            description = """
+                    기존 링크의 정보(메모, 감정, 상황, 도메인, 제목, 대표 이미지)를 수정합니다. 모든 필드는 선택이며, 보낸 필드만 변경됩니다.
+
+                    - **image** (선택): 새 이미지를 첨부하면 기존에 등록돼 있던 이미지(있는 경우)는 S3에서 삭제되고 새 이미지로 교체됩니다. 첨부하지 않으면 기존 이미지가 그대로 유지됩니다.
+                    - URL 자체는 이 API로 변경할 수 없습니다.
+                    - 폴더 이동은 이 API로 처리하지 않고 별도의 링크 폴더 이동 API(`PATCH /linku/{linkuId}/folder`)를 사용해야 합니다.
+                    """
+    )
+    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND}, errorStatus = {ErrorStatus._DOMAIN_NOT_FOUND})
+    @PatchMapping(value = "/{linkuId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long linkuId,
-            @RequestBody LinkuRequestDTO.LinkuUpdateDTO updateDTO
+            @RequestParam(required = false) String memo,
+            @RequestParam(required = false) Long emotionId,
+            @RequestParam(required = false) Long situationId,
+            @RequestParam(required = false) Long domainId,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) MultipartFile image
+    );
+
+    @Operation(summary = "링크 폴더 이동", description = "링크가 속한 폴더를 변경합니다. 링크(Linku)는 동일 URL을 저장한 모든 유저가 공유하는 데이터이므로, 이 API는 해당 유저 소유의 폴더 매핑만 변경하며 링크 자체의 카테고리는 변경하지 않습니다. 이동 대상 폴더는 중분류(최상위 폴더)만 지정할 수 있습니다.")
+    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._USER_LINKU_NOT_FOUND}, folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN})
+    @PatchMapping(value = "/{linkuId}/folder", consumes = MediaType.APPLICATION_JSON_VALUE)
+    ApiResponse<LinkuResponseDTO.LinkuFolderChangeResultDTO> updateLinkuFolder(
+            @CurrentUser CustomUserDetails userDetails,
+            @PathVariable Long linkuId,
+            @Valid @RequestBody LinkuRequestDTO.LinkuFolderUpdateDTO updateDTO
     );
 
     @Operation(summary = "링크 추천", description = "상황(situation)과 감정(emotion)을 기반으로 링크를 추천합니다. 페이지네이션을 지원합니다.")
