@@ -15,7 +15,7 @@ import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.config.TestExternalConfig;
-import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
+import com.umc.linkyou.web.dto.linku.LinkuSearchResponseDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -59,16 +59,16 @@ class LinkuRepositoryImplTest {
     private EmotionRepository emotionRepository;
 
     @Nested
-    @DisplayName("검색어 찾기")
-    class FindUserSavedSuggestions {
+    @DisplayName("링크 검색 (커서 페이징)")
+    class SearchUserLinks {
 
         @Nested
         @DisplayName("성공 케이스")
         class SuccessCase {
 
             @Test
-            @DisplayName("prefix 검색이 정상 동작한다")
-            void prefixSearch() {
+            @DisplayName("본인이 저장한 링크만 최신 저장 순으로 검색된다")
+            void search() {
                 Users user = userRepository.save(createUser("user1"));
                 Users otherUser = userRepository.save(createUser("user2"));
 
@@ -93,12 +93,13 @@ class LinkuRepositoryImplTest {
                 usersLinkuRepository.save(createUsersLinku(user, python, emotion));
                 usersLinkuRepository.save(createUsersLinku(otherUser, java1, emotion));
 
-                List<LinkuSearchSuggestionResponse> result =
-                        linkuRepository.findUserSavedSuggestions(user.getId(), "Ja");
+                List<LinkuSearchResponseDTO.LinkuSearchItemDTO> result =
+                        linkuRepository.searchUserLinks(user.getId(), "Ja", null, 10);
 
                 assertThat(result).hasSize(2);
-                assertThat(result).extracting(LinkuSearchSuggestionResponse::title)
-                        .containsExactly("Java Guide", "Java Spring");
+                assertThat(result).extracting(LinkuSearchResponseDTO.LinkuSearchItemDTO::title)
+                        .containsExactly("Java Spring", "Java Guide"); // 최신 저장 순
+                assertThat(result).allSatisfy(item -> assertThat(item.tags()).isEmpty());
             }
         }
     }
