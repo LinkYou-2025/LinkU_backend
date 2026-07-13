@@ -44,3 +44,6 @@ out/
 **/linku-firebase-adminsdk.json
 **/gcp-credentials.json
 
+
+# Claude Code worktrees
+.claude/worktrees/
