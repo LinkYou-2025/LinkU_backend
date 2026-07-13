@@ -11,16 +11,19 @@ import com.umc.linkyou.service.Linku.LinkuSearchService;
 import com.umc.linkyou.service.Linku.LinkuService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.api.LinkuApi;
+import com.umc.linkyou.web.dto.linku.LinkuQuickSearchResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
-import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
+import com.umc.linkyou.web.dto.linku.LinkuSearchResponseDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 @ApiV1
+@Validated
 @RequiredArgsConstructor
 public class LinkuController implements LinkuApi {
 
@@ -71,8 +74,13 @@ public class LinkuController implements LinkuApi {
     }
 
     @Override
-    public ApiResponse<List<LinkuSearchSuggestionResponse>> quickSearch(@CurrentUser CustomUserDetails userDetails, @RequestParam String keyword) {
-        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_SEARCH_OK, linkuSearchService.suggest(userDetails.getUserId(), keyword));
+    public ApiResponse<LinkuSearchResponseDTO.LinkuSearchCursorPageResponse> searchLinku(@CurrentUser CustomUserDetails userDetails, @RequestParam String keyword, @RequestParam(defaultValue = "0") Long cursor, @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_SEARCH_OK, linkuSearchService.search(userDetails.getUserId(), keyword, cursor, size));
+    }
+
+    @Override
+    public ApiResponse<List<LinkuQuickSearchResponseDTO>> quickSearch(@CurrentUser CustomUserDetails userDetails, @RequestParam String keyword) {
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_QUICK_SEARCH_OK, linkuSearchService.quickSearch(userDetails.getUserId(), keyword));
     }
 
     @Override
