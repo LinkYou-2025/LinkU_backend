@@ -23,8 +23,12 @@ public class GeminiConfig {
     public Client vertexAiClient(
             @Value("${spring.cloud.gcp.project-id}") String projectId,
             @Value("${spring.cloud.gcp.location}") String location,
-            @Value("${GCP_CREDENTIALS_JSON}") String credentialsBase64
+            @Value("${GCP_CREDENTIALS_JSON:}") String credentialsBase64
     ) throws IOException {
+        if (credentialsBase64 == null || credentialsBase64.isBlank()) {
+            log.warn("GCP credentials not configured — Gemini Client disabled");
+            return null;
+        }
         byte[] decoded = Base64.getDecoder().decode(credentialsBase64);
         try (InputStream is = new ByteArrayInputStream(decoded)) {
             GoogleCredentials credentials = GoogleCredentials.fromStream(is)
