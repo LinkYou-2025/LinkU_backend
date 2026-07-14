@@ -16,7 +16,7 @@ services:
       DB_DRIVER: org.postgresql.Driver
       DB_URL: jdbc:postgresql://postgres:5432/linkUDB
       DB_USERNAME: linkU
-      DB_PASSWORD: ${DB_PASSWORD:-linku1234}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_URL: redis://redis:6379
@@ -36,7 +36,7 @@ services:
     environment:
       POSTGRES_DB: linkUDB
       POSTGRES_USER: linkU
-      POSTGRES_PASSWORD: linku1234
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       TZ: Asia/Seoul
     volumes:
       - postgres_data:/var/lib/postgresql/data
