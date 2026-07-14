@@ -6,6 +6,7 @@ import com.umc.linkyou.apiPayload.code.status.gemini.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,7 +18,7 @@ import java.util.concurrent.TimeoutException;
 @RequiredArgsConstructor
 public class GeminiClient {
 
-    private final Client client;
+    private final ObjectProvider<Client> clientProvider;
 
     @Value("${gemini.model.name}")
     private String modelName;
@@ -45,6 +46,11 @@ public class GeminiClient {
 
     private String generate(String systemInstruction, String userPrompt, Tool tool, int maxTokens, float temp)
     {
+        Client client = clientProvider.getIfAvailable();
+        if (client == null) {
+            log.warn("Gemini Client 비활성 상태에서 호출됨");
+            throw new GeneralException(GeminiErrorStatus.GEMINI_API_ERROR);
+        }
         try {
             GenerateContentConfig.Builder builder = GenerateContentConfig.builder()
                     .systemInstruction(Content.fromParts(Part.fromText(systemInstruction)))

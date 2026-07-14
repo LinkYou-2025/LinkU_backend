@@ -1,0 +1,25 @@
+spring:
+  config:
+    import: optional:file:/app/config/application-secret.properties
+  jpa:
+    show-sql: false
+
+  flyway:
+    locations:
+      - classpath:db/migration
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+logging:
+  level:
+    root: INFO
+    com.umc.linkyou: INFO
+    org.springframework.web: WARN
+    org.hibernate: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
