@@ -7,14 +7,12 @@ import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
-import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-@Component
 public class FolderConverter {
 
-    public FolderResponseDTO toFolderResponseDTO(Folder folder) {
+    public static FolderResponseDTO toFolderResponseDTO(Folder folder) {
         if (folder == null) {
             return null;
         }
@@ -30,30 +28,34 @@ public class FolderConverter {
                 .build();
     }
 
-    public FolderResponseDTO toFolderResponseDTO(Folder folder, Boolean isBookmarked) {
-        FolderResponseDTO dto = toFolderResponseDTO(folder);
-        if (dto != null) {
-            dto.setIsBookmarked(isBookmarked);
+    public static FolderResponseDTO toFolderResponseDTO(Folder folder, Boolean isBookmarked) {
+        if (folder == null) {
+            return null;
         }
-        return dto;
-    }
-
-    public FolderTreeResponseDTO toFolderTreeDTO(Folder folder, Map<Long, Boolean> bookmarkMap) {
-        FolderTreeResponseDTO dto = new FolderTreeResponseDTO();
-
-        dto.setFolderId(folder.getFolderId());
-        dto.setFolderName(folder.getFolderName());
-        dto.setIsBookmarked(bookmarkMap.getOrDefault(folder.getFolderId(), false));
-
         Category category = folder.getCategory();
-        if (category != null) {
-            dto.setCategoryId(category.getCategoryId());
-        }
-
-        return dto;
+        return FolderResponseDTO.builder()
+                .folderId(folder.getFolderId())
+                .folderName(folder.getFolderName())
+                .isBookmarked(isBookmarked)
+                .categoryId(category != null ? category.getCategoryId() : null)
+                .categoryName(category != null ? category.getCategoryName() : null)
+                .parentFolderId(folder.getParentFolder() != null ? folder.getParentFolder().getFolderId() : null)
+                .createdAt(folder.getCreatedAt())
+                .updatedAt(folder.getUpdatedAt())
+                .build();
     }
 
-    public Folder toFolder(Category category) {
+    public static FolderTreeResponseDTO toFolderTreeDTO(Folder folder, Map<Long, Boolean> bookmarkMap) {
+        Category category = folder.getCategory();
+        return FolderTreeResponseDTO.builder()
+                .folderId(folder.getFolderId())
+                .folderName(folder.getFolderName())
+                .isBookmarked(bookmarkMap.getOrDefault(folder.getFolderId(), false))
+                .categoryId(category != null ? category.getCategoryId() : null)
+                .build();
+    }
+
+    public static Folder toFolder(Category category) {
         return Folder.builder()
                 .category(category)
                 .folderName(category.getCategoryName())
@@ -61,7 +63,7 @@ public class FolderConverter {
                 .build();
     }
 
-    public UsersFolder toUsersFolder(Users user, Folder folder) {
+    public static UsersFolder toUsersFolder(Users user, Folder folder) {
         return UsersFolder.builder()
                 .user(user)
                 .folder(folder)

@@ -17,7 +17,7 @@ public class AiArticle extends BaseEntity {
     @Column(name = "ai_article_id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "linku_id", nullable = false, unique = true)
     private Linku linku;
 

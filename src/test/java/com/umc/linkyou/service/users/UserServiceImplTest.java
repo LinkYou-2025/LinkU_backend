@@ -9,6 +9,7 @@ import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.enums.DeviceType;
+import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.enums.UserStatus;
@@ -89,7 +90,7 @@ class UserServiceImplTest {
                         .email("test@example.com")
                         .password("password123")
                         .jobId(1L)
-                        .gender(1)
+                        .gender(Gender.MALE)
                         .purposeList(new ArrayList<>())
                         .interestList(new ArrayList<>())
                         .termsMap(Collections.emptyMap())
@@ -136,7 +137,7 @@ class UserServiceImplTest {
                         .build();
 
                 UserRequestDTO.SocialCompleteDTO request = new UserRequestDTO.SocialCompleteDTO(
-                        "완성닉네임", 1, 1L, new ArrayList<>(), new ArrayList<>(), Collections.emptyMap()
+                        "완성닉네임", Gender.MALE, 1L, new ArrayList<>(), new ArrayList<>(), Collections.emptyMap()
                 );
 
                 when(userRepository.findById(eq(tempUser.getId()))).thenReturn(Optional.of(tempUser));

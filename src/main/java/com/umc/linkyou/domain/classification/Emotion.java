@@ -7,7 +7,7 @@ import lombok.*;
 @Table(name = "emotions")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Emotion {
 

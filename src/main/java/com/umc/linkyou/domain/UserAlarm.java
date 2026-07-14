@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Id;
@@ -28,6 +29,11 @@ import java.time.LocalDateTime;
         uniqueConstraints = @UniqueConstraint(
                 name = "uq_user_alarm_user_alarm",
                 columnNames = {"user_id", "alarm_id"}
+        ),
+        // 미읽음 알림 존재 여부 조회용 인덱스
+        indexes = @Index(
+                name = "idx_user_alarms_unread",
+                columnList = "user_id, is_read, created_at"
         )
 )
 public class UserAlarm extends BaseEntity {

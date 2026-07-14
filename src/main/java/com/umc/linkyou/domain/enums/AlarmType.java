@@ -9,9 +9,16 @@ public enum AlarmType {
 
     LINK_SUMMARY_COMPLETE(
             "링크 요약 완료",
-            "저장한 링크 요약이 준비됐어요",
+            "'{linkTitle}' 링크에 대한 AI 요약이 완료되었어요",
             AlarmSettingType.LINK,
             AlarmResponseType.LINK
+    ),
+
+    SHARED_FOLDER_INVITE(
+            "공유폴더 초대",
+            "{nickname}님이 '{folderName}' 폴더를 공유했어요. 지금 바로 확인해보세요!",
+            AlarmSettingType.FOLDER,
+            AlarmResponseType.FOLDER
     ),
 
     FOLDER_DELETED(

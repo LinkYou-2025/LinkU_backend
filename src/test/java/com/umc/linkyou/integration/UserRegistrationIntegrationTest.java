@@ -1,10 +1,11 @@
 package com.umc.linkyou.integration;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Job;
+import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.oauth2.utils.UserSocialLoginHelper;
@@ -64,7 +65,7 @@ public class UserRegistrationIntegrationTest {
                 .email("integration@test.com")
                 .nickName("통합유저")
                 .password("pass123")
-                .gender(1)
+                .gender(Gender.MALE)
                 .jobId(testJob.getId())
                 .purposeList(List.of("STUDY"))
                 .interestList(List.of("IT"))
@@ -96,7 +97,7 @@ public class UserRegistrationIntegrationTest {
                 .email("already@active.com")
                 .nickName("기존유저")
                 .password("pass123")
-                .gender(1)
+                .gender(Gender.MALE)
                 .jobId(testJob.getId())
                 .purposeList(List.of("STUDY"))
                 .interestList(List.of("IT"))
@@ -108,7 +109,7 @@ public class UserRegistrationIntegrationTest {
 
         // 2. 소셜 프로필 완성 DTO (일반 클래스이므로 기존 생성자 유지)
         UserRequestDTO.SocialCompleteDTO completeReq = new UserRequestDTO.SocialCompleteDTO(
-                "새닉네임", 2, testJob.getId(), List.of("WORK"), List.of("ART"), Collections.emptyMap()
+                "새닉네임", Gender.FEMALE, testJob.getId(), List.of("WORK"), List.of("ART"), Collections.emptyMap()
         );
 
         // 3. 예외 발생 검증
@@ -118,6 +119,6 @@ public class UserRegistrationIntegrationTest {
         );
 
         // getCode() 메서드를 통해 에러 코드 검증
-        assertEquals(ErrorStatus._ALREADY_ACTIVE_USER, exception.getCode());
+        assertEquals(UserErrorStatus._DUPLICATE_JOIN_REQUEST, exception.getCode());
     }
 }

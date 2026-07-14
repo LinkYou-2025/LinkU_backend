@@ -29,6 +29,4 @@ public interface FolderService {
     // 폴더 내부 링크, 폴더 목록 조회
     FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort);
 
-    // 유저의 카테고리에 해당하는 중분류 폴더 조회
-    Folder findFolder(Long userId, Category category);
 }

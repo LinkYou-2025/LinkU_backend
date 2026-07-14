@@ -9,7 +9,7 @@ import lombok.*;
         uniqueConstraints = @UniqueConstraint(name = "uq_keyword_name", columnNames = "name"))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Keyword extends BaseEntity {
 

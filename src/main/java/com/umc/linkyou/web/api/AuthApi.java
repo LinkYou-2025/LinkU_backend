@@ -52,8 +52,7 @@ public interface AuthApi {
                     """
     )
     @ApiAuthSuccessCode(AuthSuccessStatus.LOGIN_SUCCESS)
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._LOGIN_FAILED, UserErrorStatus._USER_INACTIVE})
-    @ApiErrorCode(errorStatus = {ErrorStatus._SOCIAL_ACCOUNT_ONLY})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._LOGIN_FAILED, UserErrorStatus._USER_INACTIVE, UserErrorStatus._SOCIAL_ACCOUNT_ONLY, UserErrorStatus._USER_NOT_FOUND})
     @PostMapping("/login")
     ApiResponse<UserResponseDTO.LoginResultDTO> login(@RequestBody @Valid UserRequestDTO.LoginRequestDTO request);
 

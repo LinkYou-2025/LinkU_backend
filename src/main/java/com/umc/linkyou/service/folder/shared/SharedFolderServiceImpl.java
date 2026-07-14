@@ -1,8 +1,8 @@
 package com.umc.linkyou.service.folder.shared;
 
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.FolderConverter;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.enums.PermissionType;
@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class SharedFolderServiceImpl implements SharedFolderService {
     private final UsersFolderRepository usersFolderRepository;
-    private final FolderConverter folderConverter;
 
     // 공유받은 폴더 목록 조회 (소유자별 그룹핑)
     public List<SharedFolderGroupResponseDTO> getSharedFolders(Long userId) {
@@ -77,7 +76,7 @@ public class SharedFolderServiceImpl implements SharedFolderService {
             String nickname = owner != null ? owner.getNickName() : "닉네임 없음";
 
             List<FolderTreeResponseDTO> folderDTOs = folders.stream()
-                    .map(folder -> folderConverter.toFolderTreeDTO(folder, bookmarkMap))
+                    .map(folder -> FolderConverter.toFolderTreeDTO(folder, bookmarkMap))
                     .collect(Collectors.toList());
 
             SharedFolderGroupResponseDTO dto = SharedFolderGroupResponseDTO.builder()

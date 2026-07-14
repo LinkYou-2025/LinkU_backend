@@ -1,14 +1,17 @@
 package com.umc.linkyou.domain.classification;
 
 import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.enums.Purpose;
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "purposes")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Purposes {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -19,26 +22,15 @@ public class Purposes {
     @Column(nullable = false)
     private LocalDateTime selectedAt;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false) // 외래키 설정
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private Users user;
 
-    public Purposes() {
-
+    public static Purposes of(String purpose, Users user) {
+        Purposes entity = new Purposes();
+        entity.purpose = purpose;
+        entity.user = user;
+        entity.selectedAt = LocalDateTime.now();
+        return entity;
     }
-
-    public Purposes(String enumPurpose, Users newUser) {
-        this.purpose = enumPurpose;
-        this.user = newUser;
-        this.selectedAt = LocalDateTime.now();
-    }
-
-    @PrePersist
-    public void prePersist() {
-        System.out.println("[PREPERSIST] selectedAt = " + this.selectedAt);
-        if (this.selectedAt == null) {
-            this.selectedAt = LocalDateTime.now();
-        }
-    }
-
 }

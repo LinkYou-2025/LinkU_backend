@@ -15,7 +15,7 @@ import java.util.List;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 @Entity
 @Table(name = "users_linkus")
@@ -76,6 +76,14 @@ public class UsersLinku extends BaseEntity {
 
     public void updateMemo(String memo) {
         this.memo = memo;
+    }
+
+    public void updateTitle(String title) {
+        this.title = title;
+    }
+
+    public void updateImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public void updateEmotion(Emotion emotion) {

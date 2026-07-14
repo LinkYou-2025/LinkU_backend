@@ -1,10 +1,10 @@
 package com.umc.linkyou.service.folder;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Folder;
@@ -41,7 +41,6 @@ public class FolderServiceImpl implements FolderService {
     private final UserRepository userRepository;
     private final UsersFolderRepository usersFolderRepository;
     private final LinkuFolderRepository linkuFolderRepository;
-    private final FolderConverter folderConverter;
     private final ApplicationEventPublisher eventPublisher;
 
     // 하위 폴더 생성
@@ -135,7 +134,7 @@ public class FolderServiceImpl implements FolderService {
             folder.updateFolderName(req.getFolderName());
         }
 
-        return folderConverter.toFolderResponseDTO(folder, usersFolder.getIsBookmarked());
+        return FolderConverter.toFolderResponseDTO(folder, usersFolder.getIsBookmarked());
     }
 
     // 폴더 삭제
@@ -196,18 +195,21 @@ public class FolderServiceImpl implements FolderService {
     }
 
     private FolderTreeResponseDTO buildTreeFromMap(Folder folder, Map<Long, List<Folder>> parentChildMap, Map<Long, Boolean> bookmarkMap) {
-        FolderTreeResponseDTO dto = folderConverter.toFolderTreeDTO(folder, bookmarkMap);
-
         List<Folder> childFolders = parentChildMap.get(folder.getFolderId());
-        if (childFolders != null && !childFolders.isEmpty()) {
-            List<FolderTreeResponseDTO> childDTOs = childFolders.stream()
-                    .map(child -> buildTreeFromMap(child, parentChildMap, bookmarkMap))
-                    .collect(Collectors.toList());
-            dto.setChildren(childDTOs);
-        } else {
-            dto.setChildren(null);
-        }
-        return dto;
+        List<FolderTreeResponseDTO> childDTOs = (childFolders != null && !childFolders.isEmpty())
+                ? childFolders.stream()
+                        .map(child -> buildTreeFromMap(child, parentChildMap, bookmarkMap))
+                        .collect(Collectors.toList())
+                : null;
+
+        Category category = folder.getCategory();
+        return FolderTreeResponseDTO.builder()
+                .folderId(folder.getFolderId())
+                .folderName(folder.getFolderName())
+                .isBookmarked(bookmarkMap.getOrDefault(folder.getFolderId(), false))
+                .categoryId(category != null ? category.getCategoryId() : null)
+                .children(childDTOs)
+                .build();
     }
 
     // 중분류 폴더 목록 조회
@@ -374,12 +376,6 @@ public class FolderServiceImpl implements FolderService {
         resp.setNextCursor(nextCursor);
 
         return resp;
-    }
-
-    // 유저의 카테고리에 해당하는 중분류 폴더 조회
-    public Folder findFolder(Long userId, Category category) {
-        return usersFolderRepository.findFolderByUserIdAndCategory(userId, category)
-                .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
     }
 
 }

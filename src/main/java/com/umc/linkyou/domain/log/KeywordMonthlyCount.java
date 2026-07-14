@@ -17,7 +17,7 @@ import org.hibernate.annotations.OnDeleteAction;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class KeywordMonthlyCount {
 
