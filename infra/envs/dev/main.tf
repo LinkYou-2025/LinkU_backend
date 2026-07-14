@@ -12,4 +12,7 @@ module "app" {
   security_group_ids    = var.security_group_ids
 
   root_volume_size = var.root_volume_size
+
+  # 기존 인스턴스가 비암호화 볼륨이라 true로 바꾸면 재생성됨
+  root_volume_encrypted = false
 }

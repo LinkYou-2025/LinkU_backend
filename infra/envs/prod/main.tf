@@ -21,7 +21,7 @@ module "app" {
   create_security_group = true
   vpc_id                = data.aws_vpc.default.id
   # nginx가 80/443으로 받고 내부에서 8080으로 프록시 (8080은 외부 미노출)
-  ingress_ports         = [22, 80, 443]
+  ingress_ports = [22, 80, 443]
 
   # 고정 IP (Elastic IP)
   create_eip = true
@@ -40,4 +40,7 @@ module "db" {
   db_name     = "linkUDB"
   db_username = "linkU"
   db_password = var.db_password
+
+  skip_final_snapshot = false
+  deletion_protection = true
 }

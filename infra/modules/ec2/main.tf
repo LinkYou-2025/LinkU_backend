@@ -37,6 +37,12 @@ resource "aws_instance" "this" {
   root_block_device {
     volume_size = var.root_volume_size
     volume_type = "gp3"
+    encrypted   = var.root_volume_encrypted
+  }
+
+  metadata_options {
+    http_endpoint = "enabled"
+    http_tokens   = "required"
   }
 
   tags = {

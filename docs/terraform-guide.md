@@ -114,7 +114,7 @@ terraform output    # 서버 IP, RDS 엔드포인트 등 확인
 - 인프라 변경은 콘솔에서 직접 하지 않고 Terraform 코드 수정 → PR → apply 순서로 합니다.
   콘솔에서 직접 바꾸면 코드와 실제 상태가 어긋나서(drift) 다음 apply 때 되돌아갑니다.
 - `terraform destroy`는 환경 전체를 삭제하는 명령입니다. 실행 전 반드시 팀 합의를 거치세요.
-  (prod RDS는 `skip_final_snapshot = true`라 destroy 시 데이터가 스냅샷 없이 사라집니다)
+  (prod RDS는 삭제 보호가 켜져 있어 바로 삭제되지 않고, 삭제 시 최종 스냅샷이 강제됩니다)
 
 ## 서버 SSH 접속
 

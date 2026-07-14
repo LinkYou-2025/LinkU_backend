@@ -61,3 +61,9 @@ variable "root_volume_size" {
   type        = number
   default     = 20
 }
+
+variable "root_volume_encrypted" {
+  description = "루트 볼륨 암호화 여부 (기존 비암호화 인스턴스는 true로 바꾸면 재생성됨)"
+  type        = bool
+  default     = true
+}

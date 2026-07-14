@@ -47,3 +47,15 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "skip_final_snapshot" {
+  description = "삭제 시 최종 스냅샷 생략 여부"
+  type        = bool
+  default     = false
+}
+
+variable "deletion_protection" {
+  description = "삭제 보호 활성화 여부"
+  type        = bool
+  default     = false
+}
