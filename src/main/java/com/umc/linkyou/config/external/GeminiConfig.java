@@ -7,10 +7,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.Resource;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Base64;
 import java.util.Collections;
 
 @Slf4j
@@ -22,10 +23,10 @@ public class GeminiConfig {
     public Client vertexAiClient(
             @Value("${spring.cloud.gcp.project-id}") String projectId,
             @Value("${spring.cloud.gcp.location}") String location,
-            @Value("${gemini.credentials.path}") Resource credentialsResource
-    ) {
-        try (InputStream is = credentialsResource.getInputStream()) {
-            // Vertex AI 용 최소 요구 스코프 설정
+            @Value("${GCP_CREDENTIALS_JSON}") String credentialsBase64
+    ) throws IOException {
+        byte[] decoded = Base64.getDecoder().decode(credentialsBase64);
+        try (InputStream is = new ByteArrayInputStream(decoded)) {
             GoogleCredentials credentials = GoogleCredentials.fromStream(is)
                     .createScoped(Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
 
@@ -36,11 +37,8 @@ public class GeminiConfig {
                     .credentials(credentials)
                     .build();
 
-            log.info("Gemini Client 초기화 성공: {}", credentialsResource.getFilename());
+            log.info("Gemini Client 초기화 성공");
             return client;
-        } catch (IOException e) {
-            log.error("Gemini 인증 파일 로드 실패: {}", credentialsResource.getDescription());
-            throw new RuntimeException(e);
         }
     }
 }

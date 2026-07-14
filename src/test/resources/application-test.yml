@@ -24,7 +24,59 @@ spring:
       url: redis://localhost:6379
       timeout: 3000ms
 
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-google-client-id
+            client-secret: test-google-client-secret
+            redirect-uri: http://localhost:8080/login/oauth2/code/google
+          kakao:
+            client-id: test-kakao-client-id
+            client-secret: test-kakao-client-secret
+            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
+
 jwt:
   redis:
     host: localhost
     port: 6379
+  token:
+    keys:
+      access: dGVzdC1hY2Nlc3Mta2V5LWZvci11bml0LXRlc3Rpbmctb25seQ==
+      refresh: dGVzdC1yZWZyZXNoLWtleS1mb3ItdW5pdC10ZXN0aW5nLW9ubHk=
+  hmac-secret: dGVzdC1obWFjLXNlY3JldC1mb3ItdW5pdC10ZXN0aW5nLW9ubHk=
+
+cloud:
+  aws:
+    credentials:
+      access-key: test-access-key
+      secret-key: test-secret-key
+    s3:
+      bucket: test-bucket
+      base-url: https://test-bucket.s3.amazonaws.com
+    cloudfront:
+      domain: test.cloudfront.net
+    ses:
+      from: no-reply@test.com
+      access-key: test-ses-access-key
+      secret-key: test-ses-secret-key
+
+custom:
+  search:
+    api:
+      key: test-search-api-key
+    engine:
+      id: test-engine-id
+
+app:
+  deeplink:
+    base-url: http://localhost:8080
+  server:
+    base-url: http://localhost:8080
+
+kakao:
+  admin-key: test-kakao-admin-key
+
+google:
+  client-id: test-google-client-id
