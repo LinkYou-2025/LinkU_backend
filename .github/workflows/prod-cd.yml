@@ -1,7 +1,7 @@
-name: dev-cd
+name: prod-cd
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "production" ]
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,7 +33,6 @@ jobs:
           mkdir -p src/main/resources/static/.well-known
           echo '${{ secrets.ASSETLINKS_JSON }}' > src/main/resources/static/.well-known/assetlinks.json
 
-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
@@ -44,13 +43,22 @@ jobs:
         run: |
           docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
           docker build -t app .
-          docker tag app ${{ secrets.DOCKER_REPO_NAME }}:latest
-          docker push ${{ secrets.DOCKER_REPO_NAME }}:latest
+          docker tag app ${{ secrets.DOCKER_REPO_NAME }}:prod
+          docker push ${{ secrets.DOCKER_REPO_NAME }}:prod
 
-      - name: Deploy to dev
+      - name: Copy compose file to prod
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ubuntu
+          key: ${{ secrets.PRIVATE_KEY }}
+          source: "docker-compose.prod.yml"
+          target: "/home/ubuntu/linkyou/"
+
+      - name: Deploy to prod
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.HOST }}
+          host: ${{ secrets.PROD_HOST }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
@@ -60,20 +68,21 @@ jobs:
               exit 1
             fi
 
+            echo "DOCKER_REPO_NAME=${{ secrets.DOCKER_REPO_NAME }}" > /home/ubuntu/linkyou/.env
+
             sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-            sudo docker pull ${{ secrets.DOCKER_REPO_NAME }}:latest
+            sudo docker pull ${{ secrets.DOCKER_REPO_NAME }}:prod
 
             cd /home/ubuntu/linkyou
-            export DOCKER_REPO_NAME=${{ secrets.DOCKER_REPO_NAME }}
-            sudo -E docker compose -f docker-compose.remote.yml down
-            sudo -E docker compose -f docker-compose.remote.yml up -d
-      
+            sudo docker compose -f docker-compose.prod.yml down
+            sudo docker compose -f docker-compose.prod.yml up -d
+
             sudo docker image prune -a -f
 
       - name: Wait for Spring Boot to be ready
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.HOST }}
+          host: ${{ secrets.PROD_HOST }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |

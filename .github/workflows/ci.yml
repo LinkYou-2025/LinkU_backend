@@ -34,13 +34,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Make application-secret.properties
-        run: |
-          mkdir -p src/main/resources
-          echo "$APPLICATION" > src/main/resources/application-secret.properties
-        env:
-          APPLICATION: ${{ secrets.APPLICATION }}
-
       - name: Create GCP credentials file
         run: |
           echo "${{ secrets.GCP_CREDENTIALS_BASE64 }}" | base64 --decode > src/main/resources/gcp-credentials.json
