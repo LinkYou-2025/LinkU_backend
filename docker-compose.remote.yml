@@ -8,15 +8,15 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - /home/ubuntu/linku-key.json:/app/linku-key.json:ro
+      - /home/ubuntu/secrets/application-secret.properties:/app/config/application-secret.properties:ro
     environment:
-      GOOGLE_APPLICATION_CREDENTIALS: /app/linku-key.json
+      SPRING_PROFILES_ACTIVE: dev
       TZ: Asia/Seoul
       # DB (같은 compose 네트워크의 postgres 컨테이너로 접속)
       DB_DRIVER: org.postgresql.Driver
       DB_URL: jdbc:postgresql://postgres:5432/linkUDB
       DB_USERNAME: linkU
-      DB_PASSWORD: ${DB_PASSWORD:-linkU1234}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_URL: redis://redis:6379
