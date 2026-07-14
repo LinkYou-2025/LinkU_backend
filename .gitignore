@@ -43,4 +43,6 @@ out/
 
 **/linku-firebase-adminsdk.json
 **/gcp-credentials.json
-
+/infra/envs/prod/terraform.tfvars
+/infra/envs/dev/terraform.tfvars
+.DS_Store
