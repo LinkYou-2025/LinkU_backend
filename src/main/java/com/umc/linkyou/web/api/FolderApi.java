@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "folder-controller", description = "폴더 관련 API")
+@Tag(name = "폴더 API", description = "폴더와 관련 된 API 입니다")
 @RequestMapping("/folders")
 public interface FolderApi {
 

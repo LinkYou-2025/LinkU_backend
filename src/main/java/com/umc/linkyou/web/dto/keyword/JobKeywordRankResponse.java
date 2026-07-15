@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class KeywordRankResponse {
+public class JobKeywordRankResponse {
     private String name;
     private long count;
 }
