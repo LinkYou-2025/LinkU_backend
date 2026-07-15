@@ -14,6 +14,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
+import static com.umc.linkyou.support.fixture.LinkuFixture.quickSearchItem;
+import static com.umc.linkyou.support.fixture.LinkuFixture.searchItem;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,11 +36,6 @@ class LinkuSearchServiceTest {
     @Mock
     private LinkuRepository linkuRepository;
 
-    private LinkuSearchResponseDTO.LinkuSearchItemDTO item(Long userLinkuId, String title) {
-        return new LinkuSearchResponseDTO.LinkuSearchItemDTO(
-                userLinkuId, userLinkuId, title, null, List.of(), "img", "도메인");
-    }
-
     @Nested
     @DisplayName("성공 케이스")
     class SuccessCase {
@@ -46,12 +43,8 @@ class LinkuSearchServiceTest {
         @Test
         @DisplayName("퀵서치 - keyword 앞뒤 공백을 제거한다")
         void quickSearch_trimKeyword() {
-            List<LinkuQuickSearchResponseDTO> mockResult = List.of(
-                    new LinkuQuickSearchResponseDTO("Java Guide", "img", 1L)
-            );
-
             when(linkuRepository.findQuickByKeyword(1L, "Java"))
-                    .thenReturn(mockResult);
+                    .thenReturn(List.of(quickSearchItem("Java Guide", 1L)));
 
             List<LinkuQuickSearchResponseDTO> result = linkuSearchService.quickSearch(1L, "  Java  ");
 
@@ -64,7 +57,7 @@ class LinkuSearchServiceTest {
         @DisplayName("검색 - size+1개가 조회되면 hasNext true, 마지막 항목은 잘라낸다")
         void search_hasNext() {
             when(linkuRepository.searchUserLinks(1L, "Java", null, 2))
-                    .thenReturn(List.of(item(30L, "A"), item(20L, "B"), item(10L, "C")));
+                    .thenReturn(List.of(searchItem(30L, "A"), searchItem(20L, "B"), searchItem(10L, "C")));
 
             LinkuSearchResponseDTO.LinkuSearchCursorPageResponse result =
                     linkuSearchService.search(1L, "Java", null, 2);
@@ -78,7 +71,7 @@ class LinkuSearchServiceTest {
         @DisplayName("검색 - size 이하로 조회되면 hasNext false")
         void search_noNext() {
             when(linkuRepository.searchUserLinks(1L, "Java", null, 10))
-                    .thenReturn(List.of(item(30L, "A")));
+                    .thenReturn(List.of(searchItem(30L, "A")));
 
             LinkuSearchResponseDTO.LinkuSearchCursorPageResponse result =
                     linkuSearchService.search(1L, "Java", null, 10);

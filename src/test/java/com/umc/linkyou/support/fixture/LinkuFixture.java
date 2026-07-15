@@ -9,6 +9,10 @@ import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.folder.Folder;
+import com.umc.linkyou.web.dto.linku.LinkuQuickSearchResponseDTO;
+import com.umc.linkyou.web.dto.linku.LinkuSearchResponseDTO;
+
+import java.util.List;
 
 public final class LinkuFixture {
 
@@ -81,6 +85,15 @@ public final class LinkuFixture {
 
     public static Linku linkuWithoutImage() {
         return linku(null);
+    }
+
+    public static LinkuSearchResponseDTO.LinkuSearchItemDTO searchItem(Long userLinkuId, String title) {
+        return new LinkuSearchResponseDTO.LinkuSearchItemDTO(
+                userLinkuId, userLinkuId, title, null, List.of(), "https://img.example.com/icon.png", "example");
+    }
+
+    public static LinkuQuickSearchResponseDTO quickSearchItem(String title, Long userLinkuId) {
+        return new LinkuQuickSearchResponseDTO(title, "https://img.example.com/icon.png", userLinkuId);
     }
 
     public static AiArticle aiArticle(Linku linku, String summary) {
