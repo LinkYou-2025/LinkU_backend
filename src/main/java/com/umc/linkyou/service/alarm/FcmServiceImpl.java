@@ -9,6 +9,7 @@ import com.umc.linkyou.repository.UserFcmTokenRepository;
 import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ import static java.util.Collections.singletonList;
 
 @Slf4j
 @Service
+@ConditionalOnBean(FirebaseMessaging.class)
 @RequiredArgsConstructor
 public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
 
