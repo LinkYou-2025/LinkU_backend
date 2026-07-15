@@ -94,16 +94,24 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
                 .toList();
     }
 
-    // 검색어 자동완성 (최대 3개 반환) - 내가 저장한 링크의 제목에서 후보 추출
+    // 검색어 자동완성 (최대 3개) - 검색과 동일한 제목+태그 매칭, 최신 저장 순 상위 3개
     @Override
     public List<LinkuQuickSearchResponseDTO> findQuickByKeyword(Long userId, String keyword) {
         QUsersLinku ul = QUsersLinku.usersLinku;
         QLinku l = QLinku.linku;
         QDomain d = QDomain.domain;
+        QLinkuKeyword lk = QLinkuKeyword.linkuKeyword;
 
         StringExpression displayTitle = ul.title.coalesce(l.title);
 
-        List<LinkuQuickSearchResponseDTO> candidates = queryFactory
+        BooleanExpression titleMatches = displayTitle.containsIgnoreCase(keyword);
+        BooleanExpression tagMatches = JPAExpressions
+                .selectOne()
+                .from(lk)
+                .where(lk.linku.eq(l), lk.keyword.name.containsIgnoreCase(keyword))
+                .exists();
+
+        return queryFactory
                 .select(Projections.constructor(
                         LinkuQuickSearchResponseDTO.class,
                         displayTitle,
@@ -115,24 +123,11 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
                 .leftJoin(l.domain, d)
                 .where(
                         ul.user.id.eq(userId),
-                        displayTitle.containsIgnoreCase(keyword)
+                        titleMatches.or(tagMatches)
                 )
-                .orderBy(displayTitle.asc())
-                .fetch();
-
-        // 같은 제목 중복 제거 후 검색어로 시작하는 후보 우선 정렬, 최대 3개 반환
-        String lower = keyword.toLowerCase();
-        return candidates.stream()
-                .collect(Collectors.toMap(
-                        LinkuQuickSearchResponseDTO::title,
-                        c -> c,
-                        (first, dup) -> first,
-                        LinkedHashMap::new
-                ))
-                .values().stream()
-                .sorted(Comparator.comparingInt(c -> c.title().toLowerCase(Locale.ROOT).startsWith(lower) ? 0 : 1))
+                .orderBy(ul.userLinkuId.desc())
                 .limit(3)
-                .toList();
+                .fetch();
     }
 
     @Override
