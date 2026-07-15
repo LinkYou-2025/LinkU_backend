@@ -2,6 +2,7 @@ package com.umc.linkyou.support.fixture;
 
 import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.Linku;
+import com.umc.linkyou.domain.LinkuSearchHistory;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
@@ -94,6 +95,14 @@ public final class LinkuFixture {
 
     public static LinkuQuickSearchResponseDTO quickSearchItem(String title, Long userLinkuId) {
         return new LinkuQuickSearchResponseDTO(title, "https://img.example.com/icon.png", userLinkuId);
+    }
+
+    public static LinkuSearchHistory searchHistory(Long id, Long userId, String keyword) {
+        return LinkuSearchHistory.builder()
+                .id(id)
+                .userId(userId)
+                .keyword(keyword)
+                .build();
     }
 
     public static AiArticle aiArticle(Linku linku, String summary) {
