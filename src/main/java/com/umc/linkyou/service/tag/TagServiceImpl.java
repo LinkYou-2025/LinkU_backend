@@ -37,11 +37,11 @@ public class TagServiceImpl implements TagService {
 
         List<TagStatRow> emotionCounts = usersLinkuRepository
                 .countByEmotionForUserAndPeriod(userId, start, end).stream()
-                .map(row -> new TagStatRow(KeywordType.EMOTION, (Long) row[0], (Long) row[1]))
+                .map(row -> new TagStatRow(KeywordType.EMOTION, row.refId(), row.count()))
                 .toList();
         List<TagStatRow> situationCounts = usersLinkuRepository
                 .countBySituationForUserAndPeriod(userId, start, end).stream()
-                .map(row -> new TagStatRow(KeywordType.SITUATION, (Long) row[0], (Long) row[1]))
+                .map(row -> new TagStatRow(KeywordType.SITUATION, row.refId(), row.count()))
                 .toList();
 
         long total = Stream.concat(emotionCounts.stream(), situationCounts.stream())

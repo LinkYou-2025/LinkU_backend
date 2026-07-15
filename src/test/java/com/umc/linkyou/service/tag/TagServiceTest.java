@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
+import com.umc.linkyou.repository.dto.TagCountRow;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.service.common.TagNameResolver;
 import com.umc.linkyou.web.dto.tag.MyTagRankResponse;
@@ -52,13 +53,13 @@ class TagServiceTest {
             void 이번_달_저장한_감정과_상황_카운트를_합산해_전체_합계_대비_퍼센트로_반환한다() {
                 given(userRepository.existsById(USER_ID)).willReturn(true);
                 given(usersLinkuRepository.countByEmotionForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
-                        .willReturn(List.<Object[]>of(
-                                new Object[]{1L, 5L},
-                                new Object[]{2L, 2L}
+                        .willReturn(List.of(
+                                new TagCountRow(1L, 5L),
+                                new TagCountRow(2L, 2L)
                         ));
                 given(usersLinkuRepository.countBySituationForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
-                        .willReturn(List.<Object[]>of(
-                                new Object[]{10L, 3L}
+                        .willReturn(List.of(
+                                new TagCountRow(10L, 3L)
                         ));
                 given(tagNameResolver.resolve(KeywordType.EMOTION, 1L)).willReturn("즐거움");
                 given(tagNameResolver.resolve(KeywordType.SITUATION, 10L)).willReturn("출근길");
@@ -80,13 +81,13 @@ class TagServiceTest {
             void 종류가_limit보다_많을_시_상위_limit개만_반환한다() {
                 given(userRepository.existsById(USER_ID)).willReturn(true);
                 given(usersLinkuRepository.countByEmotionForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
-                        .willReturn(List.<Object[]>of(
-                                new Object[]{1L, 5L},
-                                new Object[]{2L, 2L}
+                        .willReturn(List.of(
+                                new TagCountRow(1L, 5L),
+                                new TagCountRow(2L, 2L)
                         ));
                 given(usersLinkuRepository.countBySituationForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
-                        .willReturn(List.<Object[]>of(
-                                new Object[]{10L, 3L}
+                        .willReturn(List.of(
+                                new TagCountRow(10L, 3L)
                         ));
                 given(tagNameResolver.resolve(KeywordType.EMOTION, 1L)).willReturn("즐거움");
 

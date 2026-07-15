@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Job;
+import com.umc.linkyou.repository.dto.KeywordCountRow;
 import com.umc.linkyou.repository.mapping.LinkuKeywordRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.web.dto.keyword.JobKeywordRankResponse;
@@ -58,7 +59,7 @@ class KeywordServiceTest {
                 Users user = Users.builder().id(USER_ID).job(job).build();
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
                 given(linkuKeywordRepository.findTopKeywordNamesByJobIdAndPeriod(eq(JOB_ID), eq(MONTH_START), eq(MONTH_END), any()))
-                        .willReturn(List.<Object[]>of(new Object[]{"스프링", 15L}));
+                        .willReturn(List.of(new KeywordCountRow("스프링", 15L)));
 
                 List<JobKeywordRankResponse> result = keywordService.getJobTopKeywords(USER_ID, BASE_MONTH, 15);
 

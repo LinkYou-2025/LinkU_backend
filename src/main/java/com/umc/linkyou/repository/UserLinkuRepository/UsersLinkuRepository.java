@@ -3,6 +3,7 @@ package com.umc.linkyou.repository.UserLinkuRepository;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.repository.dto.TagCountRow;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -46,28 +47,28 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
 
     // 해당 기간 유저가 저장한 링크의 감정별 저장 횟수
     @Query("""
-            SELECT ul.emotion.emotionId, COUNT(ul)
+            SELECT new com.umc.linkyou.repository.dto.TagCountRow(ul.emotion.emotionId, COUNT(ul))
             FROM UsersLinku ul
             WHERE ul.user.id = :userId
             AND ul.emotion IS NOT NULL
             AND ul.createdAt >= :start AND ul.createdAt < :end
             GROUP BY ul.emotion.emotionId
             """)
-    List<Object[]> countByEmotionForUserAndPeriod(
+    List<TagCountRow> countByEmotionForUserAndPeriod(
             @Param("userId") Long userId,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 
     // 해당 기간 유저가 저장한 링크의 상황별 저장 횟수
     @Query("""
-            SELECT ul.situation.id, COUNT(ul)
+            SELECT new com.umc.linkyou.repository.dto.TagCountRow(ul.situation.id, COUNT(ul))
             FROM UsersLinku ul
             WHERE ul.user.id = :userId
             AND ul.situation IS NOT NULL
             AND ul.createdAt >= :start AND ul.createdAt < :end
             GROUP BY ul.situation.id
             """)
-    List<Object[]> countBySituationForUserAndPeriod(
+    List<TagCountRow> countBySituationForUserAndPeriod(
             @Param("userId") Long userId,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);

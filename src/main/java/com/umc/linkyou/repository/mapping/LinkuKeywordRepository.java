@@ -3,6 +3,7 @@ package com.umc.linkyou.repository.mapping;
 import com.umc.linkyou.domain.Keyword;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.mapping.LinkuKeyword;
+import com.umc.linkyou.repository.dto.KeywordCountRow;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,7 +19,7 @@ public interface LinkuKeywordRepository extends JpaRepository<LinkuKeyword, Long
 
     // 해당 월에 같은 직업 유저들이 저장한 링크의 키워드별 등장 횟수 상위 N건
     @Query("""
-            SELECT k.name, COUNT(ul)
+            SELECT new com.umc.linkyou.repository.dto.KeywordCountRow(k.name, COUNT(ul))
             FROM LinkuKeyword lk
             JOIN lk.keyword k
             JOIN lk.linku l
@@ -28,7 +29,7 @@ public interface LinkuKeywordRepository extends JpaRepository<LinkuKeyword, Long
             GROUP BY k.name
             ORDER BY COUNT(ul) DESC
             """)
-    List<Object[]> findTopKeywordNamesByJobIdAndPeriod(
+    List<KeywordCountRow> findTopKeywordNamesByJobIdAndPeriod(
             @Param("jobId") Long jobId,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,

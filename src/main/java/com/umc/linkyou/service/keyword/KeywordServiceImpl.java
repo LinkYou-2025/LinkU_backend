@@ -62,8 +62,8 @@ public class KeywordServiceImpl implements KeywordService {
                 .findTopKeywordNamesByJobIdAndPeriod(user.getJob().getId(), start, end, PageRequest.of(0, limit))
                 .stream()
                 .map(row -> JobKeywordRankResponse.builder()
-                        .name((String) row[0])
-                        .count((Long) row[1])
+                        .name(row.name())
+                        .count(row.count())
                         .build())
                 .toList();
     }
