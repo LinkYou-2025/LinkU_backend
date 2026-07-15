@@ -2,8 +2,11 @@ package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.domain.LinkuSearchHistory;
+import com.umc.linkyou.repository.LinkuSearchHistoryRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.web.dto.linku.LinkuQuickSearchResponseDTO;
+import com.umc.linkyou.web.dto.linku.LinkuSearchHistoryItemDTO;
 import com.umc.linkyou.web.dto.linku.LinkuSearchResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,8 +20,10 @@ import java.util.List;
 public class LinkuSearchService{
 
     private final LinkuRepository linkuRepository;
+    private final LinkuSearchHistoryRepository linkuSearchHistoryRepository;
 
     // 링크 검색 (커서 페이징)
+    @Transactional
     public LinkuSearchResponseDTO.LinkuSearchCursorPageResponse search(Long userId, String keyword, Long cursor, int size) {
         String trimmed = validateKeyword(keyword);
 
@@ -34,10 +39,43 @@ public class LinkuSearchService{
         List<LinkuSearchResponseDTO.LinkuSearchItemDTO> items = hasNext ? fetched.subList(0, size) : fetched;
         Long nextCursor = items.isEmpty() ? null : items.get(items.size() - 1).userLinkuId();
 
+        // 키워드 저장
+        linkuSearchHistoryRepository.save(LinkuSearchHistory.of(userId, trimmed));
+        // 10개 넘으면 가장 오래된 것 삭제
+        if (linkuSearchHistoryRepository.countByUserId(userId) > 10) {
+            linkuSearchHistoryRepository.findFirstByUserIdOrderByCreatedAtAsc(userId)
+                    .ifPresent(h -> linkuSearchHistoryRepository.deleteById(h.getId()));
+        }
+
         return new LinkuSearchResponseDTO.LinkuSearchCursorPageResponse(items, nextCursor, hasNext);
     }
 
-    // 검색어 자동완성 (퀵서치)
+    // 검색어 모두 삭제
+    @Transactional
+    public void deleteAllKeywords(Long userId) {
+        long deleted = linkuSearchHistoryRepository.deleteAllByUserId(userId);
+        if (deleted == 0) {
+            throw new GeneralException(LinkuErrorStatus._SEARCH_HISTORY_NOT_FOUND);
+        }
+    }
+
+    // 검색어 단일 삭제
+    @Transactional
+    public void deleteKeyword(Long userId, Long searchHistoryId) {
+        // 키워드 조회
+        LinkuSearchHistory history = linkuSearchHistoryRepository.findByUserIdAndId(userId, searchHistoryId)
+                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._SEARCH_HISTORY_NOT_FOUND));
+        linkuSearchHistoryRepository.delete(history);
+    }
+
+    // 최근 검색어 조회
+    public List<LinkuSearchHistoryItemDTO> getRecentKeywords(Long userId) {
+        return linkuSearchHistoryRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
+                .map(h -> new LinkuSearchHistoryItemDTO(h.getId(), h.getKeyword()))
+                .toList();
+    }
+    
+    // 검색어 자동완성
     public List<LinkuQuickSearchResponseDTO> quickSearch(Long userId, String keyword) {
         return linkuRepository.findQuickByKeyword(userId, validateKeyword(keyword));
     }
