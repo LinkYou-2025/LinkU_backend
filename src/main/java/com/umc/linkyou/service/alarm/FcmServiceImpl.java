@@ -9,7 +9,7 @@ import com.umc.linkyou.repository.UserFcmTokenRepository;
 import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,19 +21,20 @@ import static java.util.Collections.singletonList;
 
 @Slf4j
 @Service
-@ConditionalOnBean(FirebaseMessaging.class)
 @RequiredArgsConstructor
 public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
 
     private static final String CLICK_ACTION = "notice_icon_click";
 
-    private final FirebaseMessaging firebaseMessaging;
+    @Autowired(required = false)
+    private FirebaseMessaging firebaseMessaging;
     private final UserFcmTokenRepository userFcmTokenRepository;
 
     // 사용자 전체 기기에 멀티캐스트 전송
     @Override
     @Transactional
     public void sendToUser(Long userId, FcmSendRequestDTO requestDTO) {
+        if (firebaseMessaging == null) return;
         List<UsersFcmToken> activeTokens = userFcmTokenRepository.findAllActiveAndNotExpiredByUserId(userId, LocalDateTime.now());
         if (activeTokens.isEmpty()) return;
 
@@ -54,6 +55,7 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
     // 단일 토큰 전송 (테스트용)
     @Override
     public void sendToToken(String token, FcmSendRequestDTO requestDTO) {
+        if (firebaseMessaging == null) return;
         try {
             firebaseMessaging.send(buildMessage(token, requestDTO));
         } catch (FirebaseMessagingException e) {
@@ -65,6 +67,7 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
     // 토픽 브로드캐스트 전송
     @Override
     public void sendToTopic(FcmSendRequestDTO requestDTO) {
+        if (firebaseMessaging == null) return;
         try {
             firebaseMessaging.send(buildTopicMessage(resolveTopic(requestDTO), requestDTO));
         } catch (FirebaseMessagingException e) {
@@ -75,6 +78,7 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
     // 토픽 구독 상태 일괄 업데이트
     @Override
     public void updateTopicSubscription(String token, List<String> topics, boolean shouldSubscribe) {
+        if (firebaseMessaging == null) return;
         List<String> failedTopics = new ArrayList<>();
         for (String topic : topics) {
             try {
