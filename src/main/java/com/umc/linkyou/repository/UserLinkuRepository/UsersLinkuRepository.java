@@ -49,6 +49,7 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
             SELECT ul.emotion.emotionId, COUNT(ul)
             FROM UsersLinku ul
             WHERE ul.user.id = :userId
+            AND ul.emotion IS NOT NULL
             AND ul.createdAt >= :start AND ul.createdAt < :end
             GROUP BY ul.emotion.emotionId
             """)
