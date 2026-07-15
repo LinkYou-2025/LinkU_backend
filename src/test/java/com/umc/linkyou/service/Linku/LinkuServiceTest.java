@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -490,6 +491,181 @@ class LinkuServiceTest {
                 // then
                 assertEquals("https://cdn.example.com/old.jpg", usersLinku.getImageUrl());
                 verify(awsS3Service, never()).replaceFile(any(), any(), any());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("updateLinku() - 카테고리(중분류) 변경")
+    class UpdateLinkuCategory {
+
+        private static final Long NEW_CATEGORY_ID = 5L;
+
+        private Category newCategory() {
+            return Category.builder()
+                    .categoryId(NEW_CATEGORY_ID)
+                    .categoryName("여행")
+                    .build();
+        }
+
+        private Folder newRootFolder(Category category) {
+            return Folder.builder()
+                    .folderId(40L)
+                    .folderName("여행")
+                    .category(category)
+                    .build();
+        }
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("categoryId 제공 시 내 소유 중분류 폴더로 LinkuFolder 매핑이 이동하고, 공용 Linku는 변경되지 않는다")
+            void categoryId_제공_시_내_중분류_폴더로_매핑이_이동한다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                Linku linku = usersLinku.getLinku();
+                Category newCategory = newCategory();
+                Folder oldFolder = LinkuFixture.folder();
+                Folder targetFolder = newRootFolder(newCategory);
+                LinkuFolder linkuFolder = LinkuFolder.builder()
+                        .linkuFolderId(2000L)
+                        .folder(oldFolder)
+                        .usersLinku(usersLinku)
+                        .build();
+
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()))
+                        .willReturn(Optional.of(linkuFolder));
+                given(categoryRepository.findById(NEW_CATEGORY_ID)).willReturn(Optional.of(newCategory));
+                given(usersFolderRepository.findFolderByUserIdAndCategory(USER_ID, newCategory))
+                        .willReturn(Optional.of(targetFolder));
+
+                // when
+                LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(USER_ID, 100L,
+                        LinkuRequestDTO.LinkuUpdateDTO.builder().categoryId(NEW_CATEGORY_ID).build());
+
+                // then: LinkuFolder의 folder만 교체되고 저장됨. 공유 Linku 엔티티는 건드리지 않음
+                assertEquals(targetFolder, linkuFolder.getFolder());
+                verify(linkuFolderRepository).save(linkuFolder);
+                verify(linkuRepository, never()).save(any());
+                assertNotEquals(NEW_CATEGORY_ID, linku.getCategory().getCategoryId());
+
+                // then: 응답은 새로 이동한 폴더 기준 정보를 반영
+                assertEquals(NEW_CATEGORY_ID, result.getCategoryId());
+                assertEquals("여행", result.getFolderName());
+            }
+
+            @Test
+            @DisplayName("categoryId 미제공 시 폴더 매핑은 변경되지 않는다")
+            void categoryId_미제공_시_폴더_매핑_변경없다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                Folder oldFolder = LinkuFixture.folder();
+                LinkuFolder linkuFolder = LinkuFolder.builder()
+                        .folder(oldFolder)
+                        .usersLinku(usersLinku)
+                        .build();
+
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()))
+                        .willReturn(Optional.of(linkuFolder));
+
+                // when
+                linkuService.updateLinku(USER_ID, 100L,
+                        LinkuRequestDTO.LinkuUpdateDTO.builder().memo("메모만 변경").build());
+
+                // then
+                assertEquals(oldFolder, linkuFolder.getFolder());
+                verify(linkuFolderRepository, never()).save(any());
+                verify(categoryRepository, never()).findById(any());
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+
+            @Test
+            @DisplayName("존재하지 않는 categoryId면 예외가 발생한다")
+            void 존재하지_않는_categoryId면_예외가_발생한다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                LinkuFolder linkuFolder = LinkuFolder.builder()
+                        .folder(LinkuFixture.folder())
+                        .usersLinku(usersLinku)
+                        .build();
+
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()))
+                        .willReturn(Optional.of(linkuFolder));
+                given(categoryRepository.findById(999L)).willReturn(Optional.empty());
+
+                // when & then
+                GeneralException ex = assertThrows(GeneralException.class,
+                        () -> linkuService.updateLinku(USER_ID, 100L,
+                                LinkuRequestDTO.LinkuUpdateDTO.builder().categoryId(999L).build()));
+                assertEquals(CategoryErrorStatus._CATEGORY_NOT_FOUND, ex.getCode());
+                verify(linkuFolderRepository, never()).save(any());
+            }
+
+            @Test
+            @DisplayName("해당 카테고리의 내 소유 중분류 폴더가 없으면 예외가 발생한다")
+            void 카테고리에_해당하는_내_폴더가_없으면_예외가_발생한다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                Category newCategory = newCategory();
+                LinkuFolder linkuFolder = LinkuFolder.builder()
+                        .folder(LinkuFixture.folder())
+                        .usersLinku(usersLinku)
+                        .build();
+
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()))
+                        .willReturn(Optional.of(linkuFolder));
+                given(categoryRepository.findById(NEW_CATEGORY_ID)).willReturn(Optional.of(newCategory));
+                given(usersFolderRepository.findFolderByUserIdAndCategory(USER_ID, newCategory))
+                        .willReturn(Optional.empty());
+
+                // when & then
+                GeneralException ex = assertThrows(GeneralException.class,
+                        () -> linkuService.updateLinku(USER_ID, 100L,
+                                LinkuRequestDTO.LinkuUpdateDTO.builder().categoryId(NEW_CATEGORY_ID).build()));
+                assertEquals(FolderErrorStatus._FOLDER_NOT_FOUND, ex.getCode());
+                verify(linkuFolderRepository, never()).save(any());
+            }
+
+            @Test
+            @DisplayName("이 사용자의 링크-폴더 매핑이 없으면 예외가 발생한다")
+            void 링크_폴더_매핑이_없으면_예외가_발생한다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                Category newCategory = newCategory();
+                Folder targetFolder = newRootFolder(newCategory);
+
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()))
+                        .willReturn(Optional.empty());
+                given(categoryRepository.findById(NEW_CATEGORY_ID)).willReturn(Optional.of(newCategory));
+                given(usersFolderRepository.findFolderByUserIdAndCategory(USER_ID, newCategory))
+                        .willReturn(Optional.of(targetFolder));
+
+                // when & then
+                GeneralException ex = assertThrows(GeneralException.class,
+                        () -> linkuService.updateLinku(USER_ID, 100L,
+                                LinkuRequestDTO.LinkuUpdateDTO.builder().categoryId(NEW_CATEGORY_ID).build()));
+                assertEquals(LinkuErrorStatus._USER_LINKU_NOT_FOUND, ex.getCode());
             }
         }
     }
