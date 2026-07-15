@@ -15,6 +15,7 @@ import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.config.TestExternalConfig;
+import com.umc.linkyou.web.dto.linku.LinkuQuickSearchResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuSearchResponseDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -101,6 +102,66 @@ class LinkuRepositoryImplTest {
                         .containsExactly("Java Spring", "Java Guide"); // 최신 저장 순
                 assertThat(result).allSatisfy(item -> assertThat(item.tags()).isEmpty());
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("검색어 자동완성 (findQuickByKeyword)")
+    class FindQuickByKeyword {
+
+        @Test
+        @DisplayName("제목에 키워드가 포함된 후보를 최대 3개 반환한다")
+        void returnsAtMostThree() {
+            Users user = userRepository.save(createUser("autocomplete_u1"));
+            Domain domain = domainRepository.save(createDomain("google.com", "구글", "https://img.com/a.png"));
+            Fcolor fcolor = fcolorRepository.save(createFcolor());
+            Category category = categoryRepository.save(createCategory("개발", fcolor));
+            Emotion emotion = emotionRepository.save(createEmotion());
+
+            for (int i = 1; i <= 5; i++) {
+                Linku l = linkuRepository.save(createLinku("Java 강의 " + i, "linkQ" + i, category, domain));
+                usersLinkuRepository.save(createUsersLinku(user, l, emotion));
+            }
+
+            List<LinkuQuickSearchResponseDTO> result = linkuRepository.findQuickByKeyword(user.getId(), "Java");
+
+            assertThat(result).hasSize(3);
+        }
+
+        @Test
+        @DisplayName("사용자 지정 제목(ul.title)으로 자동완성이 동작한다")
+        void matchesCustomTitle() {
+            Users user = userRepository.save(createUser("autocomplete_u2"));
+            Domain domain = domainRepository.save(createDomain("google.com", "구글", "https://img.com/b.png"));
+            Fcolor fcolor = fcolorRepository.save(createFcolor());
+            Category category = categoryRepository.save(createCategory("개발", fcolor));
+            Emotion emotion = emotionRepository.save(createEmotion());
+
+            Linku l = linkuRepository.save(createLinku("원본 크롤링 제목", "linkQX", category, domain));
+            usersLinkuRepository.save(createUsersLinkuWithTitle(user, l, emotion, "커스텀 자바 가이드"));
+
+            List<LinkuQuickSearchResponseDTO> result = linkuRepository.findQuickByKeyword(user.getId(), "자바");
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).title()).isEqualTo("커스텀 자바 가이드");
+        }
+
+        @Test
+        @DisplayName("다른 사용자의 링크는 포함되지 않는다")
+        void excludesOtherUsersLinks() {
+            Users user = userRepository.save(createUser("autocomplete_u3"));
+            Users other = userRepository.save(createUser("autocomplete_u4"));
+            Domain domain = domainRepository.save(createDomain("google.com", "구글", "https://img.com/c.png"));
+            Fcolor fcolor = fcolorRepository.save(createFcolor());
+            Category category = categoryRepository.save(createCategory("개발", fcolor));
+            Emotion emotion = emotionRepository.save(createEmotion());
+
+            Linku l = linkuRepository.save(createLinku("Java Tips", "linkQY", category, domain));
+            usersLinkuRepository.save(createUsersLinku(other, l, emotion));
+
+            List<LinkuQuickSearchResponseDTO> result = linkuRepository.findQuickByKeyword(user.getId(), "Java");
+
+            assertThat(result).isEmpty();
         }
     }
 
@@ -201,6 +262,15 @@ class LinkuRepositoryImplTest {
                 .user(user)
                 .linku(linku)
                 .emotion(emotion)
+                .build();
+    }
+
+    private UsersLinku createUsersLinkuWithTitle(Users user, Linku linku, Emotion emotion, String customTitle) {
+        return UsersLinku.builder()
+                .user(user)
+                .linku(linku)
+                .emotion(emotion)
+                .title(customTitle)
                 .build();
     }
 }

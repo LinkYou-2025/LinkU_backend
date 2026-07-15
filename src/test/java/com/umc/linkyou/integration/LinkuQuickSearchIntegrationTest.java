@@ -326,6 +326,21 @@ class LinkuQuickSearchIntegrationTest {
     }
 
     @Test
+    @DisplayName("자동완성 - 사용자가 지정한 제목으로도 검색된다")
+    void autocomplete_byCustomTitle_returnsLink() throws Exception {
+        Users user = createUser("search_user_15");
+        Linku linku = createLinku("원본 크롤링 제목", "https://youtube.com/watch?v=custom");
+        saveToUser(user, linku, "내가 바꾼 스프링 강의");
+
+        mockMvc.perform(get("/api/v1/linku/search/quick")
+                        .param("keyword", "스프링")
+                        .with(authentication(authFor(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.length()").value(1))
+                .andExpect(jsonPath("$.result[0].title").value("내가 바꾼 스프링 강의"));
+    }
+
+    @Test
     @DisplayName("자동완성 - 검색어가 1글자면 400을 반환한다")
     void autocomplete_singleCharKeyword_badRequest() throws Exception {
         Users user = createUser("search_user_14");
