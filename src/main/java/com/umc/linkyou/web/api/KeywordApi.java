@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.YearMonth;
 import java.util.List;
 
 @Tag(name = "키워드 API", description = "링크 키워드 통계 관련 API")
@@ -24,7 +25,7 @@ public interface KeywordApi {
     @GetMapping("/job")
     ResponseEntity<ApiResponse<List<JobKeywordRankResponse>>> getJobTopKeywords(
             @CurrentUser CustomUserDetails userDetails,
-            @RequestParam String month,
+            @RequestParam YearMonth month,
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit
     );
 }

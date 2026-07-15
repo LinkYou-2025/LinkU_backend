@@ -32,9 +32,8 @@ public class TagServiceImpl implements TagService {
             throw new GeneralException(UserErrorStatus._USER_NOT_FOUND);
         }
 
-        YearMonth ym = YearMonth.parse(month);
-        LocalDateTime start = ym.atDay(1).atStartOfDay();
-        LocalDateTime end = ym.plusMonths(1).atDay(1).atStartOfDay();
+        LocalDateTime start = month.atDay(1).atStartOfDay();
+        LocalDateTime end = month.plusMonths(1).atDay(1).atStartOfDay();
 
         List<TagStatRow> emotionCounts = usersLinkuRepository
                 .countByEmotionForUserAndPeriod(userId, start, end).stream()

@@ -2,7 +2,6 @@ package com.umc.linkyou.service.tag;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
@@ -19,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -31,9 +29,9 @@ class TagServiceTest {
 
     private static final long USER_ID = 48L;
     private static final long UNKNOWN_USER_ID = 999L;
-    private static final String BASE_MONTH = "2026-03";
-    private static final LocalDateTime MONTH_START = YearMonth.parse(BASE_MONTH).atDay(1).atStartOfDay();
-    private static final LocalDateTime MONTH_END = YearMonth.parse(BASE_MONTH).plusMonths(1).atDay(1).atStartOfDay();
+    private static final YearMonth BASE_MONTH = YearMonth.parse("2026-03");
+    private static final LocalDateTime MONTH_START = BASE_MONTH.atDay(1).atStartOfDay();
+    private static final LocalDateTime MONTH_END = BASE_MONTH.plusMonths(1).atDay(1).atStartOfDay();
 
     @InjectMocks private TagServiceImpl tagService;
 

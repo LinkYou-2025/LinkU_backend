@@ -33,9 +33,9 @@ class KeywordServiceTest {
     private static final long USER_ID = 48L;
     private static final long UNKNOWN_USER_ID = 999L;
     private static final long JOB_ID = 7L;
-    private static final String BASE_MONTH = "2026-03";
-    private static final LocalDateTime MONTH_START = YearMonth.parse(BASE_MONTH).atDay(1).atStartOfDay();
-    private static final LocalDateTime MONTH_END = YearMonth.parse(BASE_MONTH).plusMonths(1).atDay(1).atStartOfDay();
+    private static final YearMonth BASE_MONTH = YearMonth.parse("2026-03");
+    private static final LocalDateTime MONTH_START = BASE_MONTH.atDay(1).atStartOfDay();
+    private static final LocalDateTime MONTH_END = BASE_MONTH.plusMonths(1).atDay(1).atStartOfDay();
 
     @InjectMocks private KeywordServiceImpl keywordService;
 

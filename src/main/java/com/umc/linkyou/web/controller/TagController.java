@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.YearMonth;
 import java.util.List;
 
 @ApiV1
@@ -26,7 +27,7 @@ public class TagController implements TagApi {
     @Override
     public ResponseEntity<ApiResponse<List<MyTagRankResponse>>> getMyTopTags(
             @CurrentUser CustomUserDetails userDetails,
-            @RequestParam String month,
+            @RequestParam YearMonth month,
             @RequestParam(defaultValue = "3") @Min(1) @Max(50) int limit) {
         return ResponseEntity.ok(ApiResponse.onSuccess(tagService.getMyTopTags(userDetails.getUserId(), month, limit)));
     }

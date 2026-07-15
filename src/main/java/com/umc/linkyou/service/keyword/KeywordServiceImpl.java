@@ -47,7 +47,7 @@ public class KeywordServiceImpl implements KeywordService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<JobKeywordRankResponse> getJobTopKeywords(Long userId, String month, int limit) {
+    public List<JobKeywordRankResponse> getJobTopKeywords(Long userId, YearMonth month, int limit) {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
@@ -55,9 +55,8 @@ public class KeywordServiceImpl implements KeywordService {
             throw new GeneralException(UserErrorStatus._JOB_NOT_SET);
         }
 
-        YearMonth ym = YearMonth.parse(month);
-        LocalDateTime start = ym.atDay(1).atStartOfDay();
-        LocalDateTime end = ym.plusMonths(1).atDay(1).atStartOfDay();
+        LocalDateTime start = month.atDay(1).atStartOfDay();
+        LocalDateTime end = month.plusMonths(1).atDay(1).atStartOfDay();
 
         return linkuKeywordRepository
                 .findTopKeywordNamesByJobIdAndPeriod(user.getJob().getId(), start, end, PageRequest.of(0, limit))
