@@ -27,9 +27,10 @@ public class TagServiceImpl implements TagService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<MyTagRankResponse> getMyTopTags(Long userId, String month, int limit) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+    public List<MyTagRankResponse> getMyTopTags(Long userId, YearMonth month, int limit) {
+        if (!userRepository.existsById(userId)) {
+            throw new GeneralException(UserErrorStatus._USER_NOT_FOUND);
+        }
 
         YearMonth ym = YearMonth.parse(month);
         LocalDateTime start = ym.atDay(1).atStartOfDay();

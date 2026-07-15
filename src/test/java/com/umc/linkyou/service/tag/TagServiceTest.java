@@ -52,7 +52,7 @@ class TagServiceTest {
             @Test
             @DisplayName("이번_달_저장한_감정과_상황_카운트를_합산해_전체_합계_대비_퍼센트로_반환한다")
             void 이번_달_저장한_감정과_상황_카운트를_합산해_전체_합계_대비_퍼센트로_반환한다() {
-                given(userRepository.findById(USER_ID)).willReturn(Optional.of(Users.builder().id(USER_ID).build()));
+                given(userRepository.existsById(USER_ID)).willReturn(true);
                 given(usersLinkuRepository.countByEmotionForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
                         .willReturn(List.<Object[]>of(
                                 new Object[]{1L, 5L},
@@ -80,7 +80,7 @@ class TagServiceTest {
             @Test
             @DisplayName("종류가_limit보다_많을_시_상위_limit개만_반환한다")
             void 종류가_limit보다_많을_시_상위_limit개만_반환한다() {
-                given(userRepository.findById(USER_ID)).willReturn(Optional.of(Users.builder().id(USER_ID).build()));
+                given(userRepository.existsById(USER_ID)).willReturn(true);
                 given(usersLinkuRepository.countByEmotionForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
                         .willReturn(List.<Object[]>of(
                                 new Object[]{1L, 5L},
@@ -102,7 +102,7 @@ class TagServiceTest {
             @Test
             @DisplayName("이번_달_저장한_기록이_없을_시_빈_목록을_반환한다")
             void 이번_달_저장한_기록이_없을_시_빈_목록을_반환한다() {
-                given(userRepository.findById(USER_ID)).willReturn(Optional.of(Users.builder().id(USER_ID).build()));
+                given(userRepository.existsById(USER_ID)).willReturn(true);
                 given(usersLinkuRepository.countByEmotionForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
                         .willReturn(List.of());
                 given(usersLinkuRepository.countBySituationForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
@@ -121,7 +121,7 @@ class TagServiceTest {
             @Test
             @DisplayName("존재하지_않는_userId로_호출_시_USER_NOT_FOUND_예외를_던진다")
             void 존재하지_않는_userId로_호출_시_USER_NOT_FOUND_예외를_던진다() {
-                given(userRepository.findById(UNKNOWN_USER_ID)).willReturn(Optional.empty());
+                given(userRepository.existsById(UNKNOWN_USER_ID)).willReturn(false);
 
                 assertThatThrownBy(() -> tagService.getMyTopTags(UNKNOWN_USER_ID, BASE_MONTH, 3))
                         .isInstanceOf(GeneralException.class)
