@@ -2,6 +2,7 @@ package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
@@ -85,14 +86,20 @@ public interface LinkuApi {
     @Operation(
             summary = "링크 수정",
             description = """
-                    기존 링크의 정보(메모, 감정, 상황, 도메인, 제목, 대표 이미지)를 수정합니다. 모든 필드는 선택이며, 보낸 필드만 변경됩니다.
+                    기존 링크의 정보(메모, 감정, 상황, 도메인, 카테고리, 제목, 대표 이미지)를 수정합니다. 모든 필드는 선택이며, 보낸 필드만 변경됩니다.
 
                     - **image** (선택): 새 이미지를 첨부하면 기존에 등록돼 있던 이미지(있는 경우)는 S3에서 삭제되고 새 이미지로 교체됩니다. 첨부하지 않으면 기존 이미지가 그대로 유지됩니다.
+                    - **categoryId** (선택): 카테고리를 변경하면 링크(Linku)의 공유 카테고리 자체는 바뀌지 않고, 내 폴더 중 해당 카테고리의 중분류(루트) 폴더로 이 링크가 이동합니다. 소분류로는 이동하지 않습니다.
                     - URL 자체는 이 API로 변경할 수 없습니다.
-                    - 폴더 이동은 이 API로 처리하지 않고 별도의 링크 폴더 이동 API(`PATCH /linku/{linkuId}/folder`)를 사용해야 합니다.
+                    - 소분류 폴더로의 이동은 이 API로 처리하지 않고 별도의 링크 폴더 이동 API(`PATCH /linku/{linkuId}/folder`)를 사용해야 합니다.
                     """
     )
-    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND}, errorStatus = {ErrorStatus._DOMAIN_NOT_FOUND})
+    @ApiErrorCode(
+            linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND},
+            errorStatus = {ErrorStatus._DOMAIN_NOT_FOUND},
+            categoryErrorStatus = {CategoryErrorStatus._CATEGORY_NOT_FOUND},
+            folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}
+    )
     @PatchMapping(value = "/{linkuId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(
             @CurrentUser CustomUserDetails userDetails,
@@ -101,6 +108,7 @@ public interface LinkuApi {
             @RequestParam(required = false) Long emotionId,
             @RequestParam(required = false) Long situationId,
             @RequestParam(required = false) Long domainId,
+            @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String title,
             @RequestParam(required = false) MultipartFile image
     );

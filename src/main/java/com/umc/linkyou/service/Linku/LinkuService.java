@@ -2,6 +2,7 @@ package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -210,6 +211,26 @@ public class LinkuService {
             linkuModified = true;
         }
 
+        // 5-1. 카테고리(중분류) 변경
+        //      Linku는 동일 URL을 저장한 모든 유저가 공유하는 엔티티이므로 category 자체를 바꾸지 않고,
+        //      이 유저 소유의 해당 카테고리 중분류(루트) 폴더로 LinkuFolder 매핑만 이동한다.
+        LinkuFolder linkuFolder = linkuFolderRepository
+                .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId())
+                .orElse(null);
+
+        if (dto.getCategoryId() != null) {
+            Category newCategory = categoryRepository.findById(dto.getCategoryId())
+                    .orElseThrow(() -> new GeneralException(CategoryErrorStatus._CATEGORY_NOT_FOUND));
+            Folder targetFolder = usersFolderRepository.findFolderByUserIdAndCategory(userId, newCategory)
+                    .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
+
+            if (linkuFolder == null) {
+                throw new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND);
+            }
+            linkuFolder.updateFolder(targetFolder);
+            linkuFolderRepository.save(linkuFolder);
+        }
+
         // 6. 제목(title) 변경 (개인화: 공용 Linku가 아닌 이 유저의 UsersLinku.title만 변경)
         if (dto.getTitle() != null) {
             usersLinku.updateTitle(dto.getTitle());
@@ -229,11 +250,10 @@ public class LinkuService {
         if (linkuModified) linkuRepository.save(linku);
         if (usersLinkuModified) usersLinkuRepository.save(usersLinku);
 
-        // 8. 최신 폴더 매핑 정보, 카테고리, 도메인 등 다시 조회해 응답 준비
-        LinkuFolder linkuFolder = linkuFolderRepository
-                .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId())
-                .orElse(null);
-        Category category = linku.getCategory();
+        // 8. 카테고리, 도메인 등 응답 준비
+        //    categoryId는 공유 Linku가 아니라 이 유저가 속한 폴더(중분류) 기준으로 내려준다.
+        //    (폴더 매핑이 없는 예외적인 경우에만 공유 Linku의 category로 대체)
+        Category category = linkuFolder != null ? linkuFolder.getFolder().getCategory() : linku.getCategory();
         Domain domain = linku.getDomain();
 
         // 9. DTO 변환해 반환 (모든 정보 최신상태로 응답)
