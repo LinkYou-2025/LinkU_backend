@@ -8,6 +8,7 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
+import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.mapping.LinkuKeyword;
@@ -17,6 +18,7 @@ import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.categoryRepository.FcolorRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
+import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.keywordRepository.KeywordRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
@@ -79,6 +81,9 @@ class LinkuQuickSearchIntegrationTest {
     private EmotionRepository emotionRepository;
 
     @Autowired
+    private SituationRepository situationRepository;
+
+    @Autowired
     private KeywordRepository keywordRepository;
 
     @Autowired
@@ -87,6 +92,7 @@ class LinkuQuickSearchIntegrationTest {
     private Domain domain;
     private Category category;
     private Emotion emotion;
+    private Situation situation;
 
     @BeforeEach
     void setUp() {
@@ -111,6 +117,10 @@ class LinkuQuickSearchIntegrationTest {
 
         emotion = emotionRepository.save(Emotion.builder()
                 .name("기쁨")
+                .build());
+
+        situation = situationRepository.save(Situation.builder()
+                .name("일상")
                 .build());
     }
 
@@ -287,7 +297,7 @@ class LinkuQuickSearchIntegrationTest {
                         .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
-                .andExpect(jsonPath("$.code").value("LINKU2007"))
+                .andExpect(jsonPath("$.code").value("LINKU2008"))
                 .andExpect(jsonPath("$.result.length()").value(1))
                 .andExpect(jsonPath("$.result[0].title").value("스프링 부트 강의"))
                 .andExpect(jsonPath("$.result[0].domainImageUrl").value("https://image.com/youtube.png"))
@@ -368,6 +378,8 @@ class LinkuQuickSearchIntegrationTest {
                 .linkuUrl(url)
                 .category(category)
                 .domain(domain)
+                .emotion(emotion)
+                .situation(situation)
                 .build());
     }
 

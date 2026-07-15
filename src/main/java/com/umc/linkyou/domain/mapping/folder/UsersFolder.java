@@ -12,8 +12,8 @@ import org.hibernate.annotations.OnDeleteAction;
 @Entity
 @Table(name = "users_folders")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class UsersFolder extends BaseEntity {
     @Id

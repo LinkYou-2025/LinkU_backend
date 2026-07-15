@@ -31,7 +31,8 @@ public class LinkuConverter {
             UsersLinku usersLinku,
             LinkuFolder linkuFolder,
             Category category,
-            Domain domain,
+            String domainName,
+            String domainImageUrl,
             Boolean aiArticleExists,
             String keyword,
             String summary
@@ -40,7 +41,7 @@ public class LinkuConverter {
                 .userId(userId)
                 .userLinkuId(usersLinku != null ? usersLinku.getUserLinkuId() : null)
                 .linkuId(linku.getLinkuId())
-                .linkuFolderId(linkuFolder != null ? linkuFolder.getLinkuFolderId() : null)
+                .folderName(linkuFolder != null && linkuFolder.getFolder() != null ? linkuFolder.getFolder().getFolderName() : null)
                 .categoryId(category != null ? category.getCategoryId() : null)
                 .linku(linku.getLinkuUrl())
                 .memo(usersLinku.getMemo())
@@ -48,9 +49,9 @@ public class LinkuConverter {
                 .situationId(usersLinku.getSituation() != null ? usersLinku.getSituation().getId() : null)
                 .isEmotionAi(usersLinku.getEmotionAi())
                 .isSituationAi(usersLinku.getSituationAi())
-                .domain(domain != null ? domain.getName() : null)
+                .domain(domainName)
                 .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
-                .domainImageUrl(domain != null ? domain.getImageUrl() : null)
+                .domainImageUrl(domainImageUrl)
                 .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
                 .aiArticleExists(aiArticleExists != null ? aiArticleExists : false)
                 .createdAt(linku.getCreatedAt())
@@ -59,6 +60,7 @@ public class LinkuConverter {
                 .summary(summary)
                 .build();
     }
+
 
     public static LinkuResponseDTO.LinkuResultDTO toLinkuResultDTO(
             Long userId,
@@ -72,7 +74,7 @@ public class LinkuConverter {
         return LinkuResponseDTO.LinkuResultDTO.builder()
                 .userId(userId)
                 .linkuId(linku.getLinkuId())
-                .linkuFolderId(linkuFolder != null ? linkuFolder.getLinkuFolderId() : null)
+                .folderName(linkuFolder != null && linkuFolder.getFolder() != null ? linkuFolder.getFolder().getFolderName() : null)
                 .categoryId(category != null ? category.getCategoryId() : null)
                 .linku(linku.getLinkuUrl())
                 .memo(usersLinku.getMemo())
@@ -90,6 +92,21 @@ public class LinkuConverter {
                 .build();
     }
 
+
+    // 링크 폴더 이동 → LinkuFolderChangeResultDTO 변환 (folderId는 실제 Folder PK, category는 직접 변경하지 않으므로 미포함)
+    public static LinkuResponseDTO.LinkuFolderChangeResultDTO toLinkuFolderChangeResultDTO(
+            Linku linku,
+            LinkuFolder linkuFolder
+    ) {
+        Folder folder = linkuFolder != null ? linkuFolder.getFolder() : null;
+        return LinkuResponseDTO.LinkuFolderChangeResultDTO.builder()
+                .linkuId(linku.getLinkuId())
+                .folderId(folder != null ? folder.getFolderId() : null)
+                .folderName(folder != null ? folder.getFolderName() : null)
+                .createdAt(linku.getCreatedAt())
+                .updatedAt(linku.getUpdatedAt())
+                .build();
+    }
 
     // Linku -> LinkuIsExistDTO 변환
     public static LinkuResponseDTO.LinkuIsExistDTO toLinkuIsExistDTO(Long userId, UsersLinku usersLinku) {
@@ -142,19 +159,23 @@ public class LinkuConverter {
     }
 
     // Linku 생성
-    public static Linku toLinku(String linkuUrl, Category category, Domain domain, String title, String imgUrl) {
+    public static Linku toLinku(String linkuUrl, Category category, Domain domain, String title, String imgUrl, Emotion emotion, Situation situation) {
         return Linku.builder()
                 .linkuUrl(linkuUrl)
                 .category(category)
                 .domain(domain)
+                .emotion(emotion)
+                .situation(situation)
                 .title(title != null ? title : "")
                 .imgUrl(imgUrl)
                 .build();
     }
-    public static LinkuResponseDTO.LinkuSimpleDTO toLinkuSimpleDTO(Linku linku, UsersLinku usersLinku, Domain domain, boolean aiArticleExists) {
+    public static LinkuResponseDTO.LinkuSimpleDTO toLinkuSimpleDTO(Linku linku, UsersLinku usersLinku, Domain domain, boolean aiArticleExists, LinkuFolder linkuFolder) {
         return LinkuResponseDTO.LinkuSimpleDTO.builder()
+                .userLinkuId(usersLinku != null ? usersLinku.getUserLinkuId() : null)
                 .linkuId(linku.getLinkuId())
                 .categoryId(linku.getCategory() != null ? linku.getCategory().getCategoryId() : null)
+                .folderName(linkuFolder != null ? linkuFolder.getFolder().getFolderName() : null)
                 .linku(linku.getLinkuUrl())
                 .memo(usersLinku != null ? usersLinku.getMemo() : null)
                 .emotionId(usersLinku != null && usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
@@ -173,6 +194,7 @@ public class LinkuConverter {
         Domain domain = linku.getDomain();
 
         return LinkuResponseDTO.LinkuSimpleDTO.builder()
+                .userLinkuId(usersLinku.getUserLinkuId())
                 .linkuId(linku.getLinkuId())
                 .categoryId(linku.getCategory() != null ? linku.getCategory().getCategoryId() : null)
                 .memo(usersLinku.getMemo())

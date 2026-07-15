@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Table(name = "curations")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Curation extends BaseEntity {
     @Id

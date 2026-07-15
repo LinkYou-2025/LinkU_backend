@@ -1,13 +1,15 @@
 package com.umc.linkyou.domain.classification;
 
 import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.enums.Interest;
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "interests")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Interests {
 
     @Id
@@ -18,27 +20,17 @@ public class Interests {
     private String interest;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false) // 외래키 설정
+    @JoinColumn(name = "user_id", nullable = false)
     private Users user;
 
     @Column(nullable = false)
     private LocalDateTime selectedAt;
 
-    public Interests() {
-
+    public static Interests of(String interest, Users user) {
+        Interests entity = new Interests();
+        entity.interest = interest;
+        entity.user = user;
+        entity.selectedAt = LocalDateTime.now();
+        return entity;
     }
-
-    public Interests(String enumInterest, Users newUser) {
-        this.interest = enumInterest;
-        this.user = newUser;
-        this.selectedAt = LocalDateTime.now();
-    }
-
-    @PrePersist
-    public void prePersist() {
-        if (this.selectedAt == null) {
-            this.selectedAt = LocalDateTime.now();
-        }
-    }
-
 }

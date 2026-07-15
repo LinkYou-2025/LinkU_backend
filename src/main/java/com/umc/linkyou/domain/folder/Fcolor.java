@@ -11,8 +11,8 @@ import java.util.List;
 @Entity
 @Table(name = "fcolors")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Fcolor {
     @Id

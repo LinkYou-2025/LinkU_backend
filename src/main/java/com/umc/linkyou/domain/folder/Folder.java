@@ -13,8 +13,8 @@ import java.util.List;
 @Entity
 @Table(name = "folders")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Folder extends BaseEntity {
     @Id

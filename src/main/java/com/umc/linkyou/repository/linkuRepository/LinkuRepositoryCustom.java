@@ -11,4 +11,6 @@ public interface LinkuRepositoryCustom {
     List<LinkuSearchResponseDTO.LinkuSearchItemDTO> searchUserLinks(Long userId, String keyword, Long cursor, int size);
     List<LinkuQuickSearchResponseDTO> findQuickByKeyword(Long userId, String keyword);
     Optional<Linku> findByLinku(String normalizedLink);
+
+
 }

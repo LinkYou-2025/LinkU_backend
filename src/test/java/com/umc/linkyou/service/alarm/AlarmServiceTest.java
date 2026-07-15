@@ -28,7 +28,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static com.umc.linkyou.support.fixture.AlarmFixture.*;
@@ -306,6 +305,7 @@ class AlarmServiceTest {
         @DisplayName("알림이 저장되고 PersonalAlarmEvent가 발행된다")
         void 알림발송_성공() {
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
+            given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user())));
             given(alarmRepository.save(any())).willReturn(alarm(AlarmType.LINK_SUMMARY_COMPLETE));
 
             alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
@@ -321,11 +321,12 @@ class AlarmServiceTest {
         void 폴더삭제알림_본문전체일치() {
             ArgumentCaptor<Alarm> alarmCaptor = ArgumentCaptor.forClass(Alarm.class);
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
+            given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user())));
             given(alarmRepository.save(alarmCaptor.capture())).willAnswer(inv -> inv.getArgument(0));
 
             alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
                     AlarmType.FOLDER_DELETED, 300L,
-                    Map.of("nickname", "주인", "folderName", "어학")));
+                    new AlarmPayload.NicknameAndFolder("주인", "어학")));
 
             assertThat(alarmCaptor.getValue().getBody())
                     .isEqualTo("주인님이 '어학' 폴더를 삭제해 더 이상 접근할 수 없어요");
@@ -336,6 +337,7 @@ class AlarmServiceTest {
         void 큐레이션알림_닉네임포함() {
             ArgumentCaptor<Alarm> alarmCaptor = ArgumentCaptor.forClass(Alarm.class);
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
+            given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user())));
             given(alarmRepository.save(alarmCaptor.capture())).willAnswer(inv -> inv.getArgument(0));
 
             alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
@@ -356,6 +358,97 @@ class AlarmServiceTest {
                     .isInstanceOf(GeneralException.class)
                     .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                             .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
+        }
+
+        @Test
+        @DisplayName("해당 타입의 알림 설정이 꺼져 있으면 발송하지 않는다")
+        void 설정꺼짐_발송스킵() {
+            Users user = user();
+            AlarmSetting setting = defaultSetting(user);
+            setting.updateLink(false);
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(setting));
+
+            alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
+                    AlarmType.LINK_SUMMARY_COMPLETE, 1L, new AlarmPayload.LinkTitle("제목")));
+
+            verify(alarmRepository, never()).save(any());
+            verify(userAlarmRepository, never()).save(any());
+            verify(eventPublisher, never()).publishEvent((Object) any());
+        }
+
+        @Test
+        @DisplayName("알림 설정이 초기화되지 않은 유저면 발송하지 않는다")
+        void 설정미초기화_발송스킵() {
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
+            given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.empty());
+
+            alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
+                    AlarmType.LINK_SUMMARY_COMPLETE, 1L, new AlarmPayload.LinkTitle("제목")));
+
+            verify(alarmRepository, never()).save(any());
+            verify(userAlarmRepository, never()).save(any());
+            verify(eventPublisher, never()).publishEvent((Object) any());
+        }
+    }
+
+    @Nested
+    @DisplayName("일괄 알림 발송 (sendAlarmBulk)")
+    class SendAlarmBulk {
+
+        private static final Long MEMBER_A = 2L;
+        private static final Long MEMBER_B = 3L;
+        private static final Long MEMBER_C = 4L;
+        private static final Long TARGET_ID = 300L;
+
+        private final AlarmPayload payload = new AlarmPayload.NicknameAndFolder("주인", "어학");
+
+        private Users userWith(Long id) {
+            return Users.builder().id(id).nickName("u" + id).build();
+        }
+
+        @Test
+        @DisplayName("설정 켜진 유저에게만 Alarm 1건 + UserAlarm N건을 배치 저장하고 이벤트를 발행한다")
+        void 설정켜진유저만_배치발송() {
+            AlarmSetting sA = defaultSetting(userWith(MEMBER_A));
+            AlarmSetting sB = defaultSetting(userWith(MEMBER_B));
+            sB.updateFolder(false); // OFF
+            AlarmSetting sC = defaultSetting(userWith(MEMBER_C));
+
+            List<Long> ids = List.of(MEMBER_A, MEMBER_B, MEMBER_C);
+            given(alarmSettingRepository.findAllByUserIdIn(ids)).willReturn(List.of(sA, sB, sC));
+            given(alarmRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            given(userRepository.getReferenceById(anyLong())).willAnswer(inv -> userWith(inv.getArgument(0)));
+
+            alarmService.sendAlarmBulk(ids, AlarmType.FOLDER_DELETED, TARGET_ID, payload);
+
+            verify(alarmRepository, times(1)).save(any());
+            ArgumentCaptor<List<UserAlarm>> captor = ArgumentCaptor.forClass(List.class);
+            verify(userAlarmRepository).saveAll(captor.capture());
+            assertThat(captor.getValue()).hasSize(2); // A, C 만
+            verify(eventPublisher, times(2)).publishEvent((Object) any());
+        }
+
+        @Test
+        @DisplayName("전원 설정이 꺼져 있으면 아무것도 저장·발행하지 않는다")
+        void 전원꺼짐_스킵() {
+            AlarmSetting sA = defaultSetting(userWith(MEMBER_A));
+            sA.updateFolder(false);
+            given(alarmSettingRepository.findAllByUserIdIn(List.of(MEMBER_A))).willReturn(List.of(sA));
+
+            alarmService.sendAlarmBulk(List.of(MEMBER_A), AlarmType.FOLDER_DELETED, TARGET_ID, payload);
+
+            verify(alarmRepository, never()).save(any());
+            verify(userAlarmRepository, never()).saveAll(any());
+            verify(eventPublisher, never()).publishEvent((Object) any());
+        }
+
+        @Test
+        @DisplayName("userIds가 비어 있으면 설정 조회도 하지 않는다")
+        void 빈리스트_스킵() {
+            alarmService.sendAlarmBulk(List.of(), AlarmType.FOLDER_DELETED, TARGET_ID, payload);
+
+            verifyNoInteractions(alarmSettingRepository, alarmRepository, userAlarmRepository, eventPublisher);
         }
     }
 
@@ -436,6 +529,33 @@ class AlarmServiceTest {
                     .isInstanceOf(GeneralException.class)
                     .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                             .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
+        }
+    }
+
+    @Nested
+    @DisplayName("읽지 않은 알림 존재 여부 조회 (hasUnreadAlarm)")
+    class HasUnreadAlarm {
+
+        @Test
+        @DisplayName("읽지 않은 알림이 있으면 hasUnread=true를 반환한다")
+        void 읽지않은알림_있음() {
+            given(userAlarmRepository.existsByUser_IdAndIsReadFalseAndCreatedAtAfter(eq(USER_ID), any()))
+                    .willReturn(true);
+
+            AlarmResponseDTO.UnreadAlarmExistsDTO result = alarmService.hasUnreadAlarm(USER_ID);
+
+            assertThat(result.hasUnread()).isTrue();
+        }
+
+        @Test
+        @DisplayName("읽지 않은 알림이 없으면 hasUnread=false를 반환한다")
+        void 읽지않은알림_없음() {
+            given(userAlarmRepository.existsByUser_IdAndIsReadFalseAndCreatedAtAfter(eq(USER_ID), any()))
+                    .willReturn(false);
+
+            AlarmResponseDTO.UnreadAlarmExistsDTO result = alarmService.hasUnreadAlarm(USER_ID);
+
+            assertThat(result.hasUnread()).isFalse();
         }
     }
 

@@ -10,31 +10,24 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Base64;
 
 @Slf4j
 @Configuration
 public class FcmConfig {
 
-    @Value("${fcm.credentials.path:classpath:linku-firebase-adminsdk.json}")
-    private String firebaseCredentialsPath;
-
-    private final ResourceLoader resourceLoader;
-
-    public FcmConfig(ResourceLoader resourceLoader) {
-        this.resourceLoader = resourceLoader;
-    }
+    @Value("${FIREBASE_CREDENTIALS_JSON:}")
+    private String credentialsBase64;
 
     @Bean(destroyMethod = "")
     @ConditionalOnMissingBean(FirebaseApp.class)
     public FirebaseApp firebaseApp() throws IOException {
-        Resource resource = resourceLoader.getResource(firebaseCredentialsPath);
-        if (!resource.exists() || resource.contentLength() == 0) {
-            log.warn("Firebase credentials file not found or empty — FCM disabled: {}", firebaseCredentialsPath);
+        if (credentialsBase64 == null || credentialsBase64.isBlank()) {
+            log.warn("Firebase credentials not configured — FCM disabled");
             return null;
         }
         try {
@@ -42,8 +35,9 @@ public class FcmConfig {
         } catch (IllegalStateException ignored) {
             // 기본 앱이 없으므로 초기화
         }
-        try (InputStream inputStream = resource.getInputStream()) {
-            GoogleCredentials credentials = GoogleCredentials.fromStream(inputStream);
+        byte[] decoded = Base64.getDecoder().decode(credentialsBase64);
+        try (InputStream is = new ByteArrayInputStream(decoded)) {
+            GoogleCredentials credentials = GoogleCredentials.fromStream(is);
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(credentials)
                     .build();

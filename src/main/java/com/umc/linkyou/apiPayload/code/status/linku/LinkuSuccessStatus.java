@@ -16,7 +16,8 @@ public enum LinkuSuccessStatus implements BaseSuccessCode {
     LINKU_UPDATED(HttpStatus.OK, "LINKU2004", "링크 수정에 성공했습니다."),
     LINKU_SEARCH_OK(HttpStatus.OK, "LINKU2005", "링크 검색에 성공했습니다."),
     LINKU_DELETED(HttpStatus.OK, "LINKU2006", "링크 삭제에 성공했습니다."),
-    LINKU_QUICK_SEARCH_OK(HttpStatus.OK, "LINKU2007", "검색어 자동완성 결과를 가져왔습니다.");
+    LINKU_FOLDER_UPDATED(HttpStatus.OK, "LINKU2007", "링크 폴더 이동에 성공했습니다."),
+    LINKU_QUICK_SEARCH_OK(HttpStatus.OK, "LINKU2008", "검색어 자동완성 결과를 가져왔습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
