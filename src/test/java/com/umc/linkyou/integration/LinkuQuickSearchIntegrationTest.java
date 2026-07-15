@@ -305,8 +305,8 @@ class LinkuQuickSearchIntegrationTest {
     }
 
     @Test
-    @DisplayName("자동완성 - 태그만 일치하는 링크는 후보에 나오지 않는다")
-    void autocomplete_excludesTagOnlyMatches() throws Exception {
+    @DisplayName("자동완성 - 태그만 일치하는 링크도 후보에 포함된다")
+    void autocomplete_includesTagOnlyMatches() throws Exception {
         Users user = createUser("search_user_12");
         Linku linku = createLinku("자바 유용한 팁", "https://youtube.com/watch?v=9");
         saveToUser(user, linku, null);
@@ -316,7 +316,7 @@ class LinkuQuickSearchIntegrationTest {
                         .param("keyword", "스프링")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.length()").value(0));
+                .andExpect(jsonPath("$.result.length()").value(1));
     }
 
     @Test
