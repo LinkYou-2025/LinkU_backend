@@ -70,6 +70,7 @@ public class LinkuController implements LinkuApi {
             @RequestParam(required = false) Long emotionId,
             @RequestParam(required = false) Long situationId,
             @RequestParam(required = false) Long domainId,
+            @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String title,
             @RequestParam(required = false) MultipartFile image) {
         LinkuRequestDTO.LinkuUpdateDTO updateDTO = LinkuRequestDTO.LinkuUpdateDTO.builder()
@@ -77,6 +78,7 @@ public class LinkuController implements LinkuApi {
                 .emotionId(emotionId)
                 .situationId(situationId)
                 .domainId(domainId)
+                .categoryId(categoryId)
                 .title(title)
                 .image(image)
                 .build();

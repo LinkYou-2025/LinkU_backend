@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.util.LinkedHashMap;
@@ -54,6 +55,15 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         log.error("[Method Argument Not Valid] Errors: {}", errors, e);
         return handleExceptionInternalArgs(e, HttpHeaders.EMPTY, CommonErrorStatus._BAD_REQUEST, request, errors);
     }
+
+    @ExceptionHandler
+    public ResponseEntity<Object> handleTypeMismatch(MethodArgumentTypeMismatchException e, WebRequest request) {
+        Map<String, String> errors = Map.of(e.getName(), "형식이 올바르지 않습니다.");
+
+        log.error("[Method Argument Type Mismatch] Parameter: {}, Value: {}", e.getName(), e.getValue(), e);
+        return handleExceptionInternalArgs(e, HttpHeaders.EMPTY, CommonErrorStatus._BAD_REQUEST, request, errors);
+    }
+
     @ExceptionHandler
     public ResponseEntity<Object> exception(Exception e, WebRequest request) {
         log.error("[Unhandled Exception] {}", e.getMessage(), e);

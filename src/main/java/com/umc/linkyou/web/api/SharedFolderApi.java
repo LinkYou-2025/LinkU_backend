@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "shared-folder-controller", description = "공유 받은 폴더 관련 API")
+@Tag(name = "공유 받은 폴더 API", description = "공유 받은 폴더 관련 API")
 @RequestMapping("/folders/shared")
 public interface SharedFolderApi {
 

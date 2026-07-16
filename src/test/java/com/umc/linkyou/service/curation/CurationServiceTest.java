@@ -6,7 +6,6 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.repository.curationRepository.CurationRepository;
-import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.web.dto.curation.CurationDetailResponse;
@@ -39,7 +38,6 @@ class CurationServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private CurationRepository curationRepository;
     @Mock private ThumbnailUrlProvider thumbnailUrlProvider;
-    @Mock private KeywordMonthlyCountRepository keywordMonthlyCountRepository;
 
     @Nested
     @DisplayName("큐레이션 생성")
@@ -110,7 +108,6 @@ class CurationServiceTest {
 
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
                 given(curationRepository.findById(CURATION_ID)).willReturn(Optional.of(curation));
-                given(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonth(eq(USER_ID), eq(MONTH),any())).willReturn(List.of());
 
                 CurationDetailResponse result = curationService.getCurationDetail(USER_ID, CURATION_ID);
 

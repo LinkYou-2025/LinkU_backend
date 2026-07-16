@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class KeywordNameResolver {
+public class TagNameResolver {
 
     private final EmotionMapper emotionMapper;
     private final SituationRepository situationRepository;
