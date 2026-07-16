@@ -1,15 +1,12 @@
 package com.umc.linkyou.service.users;
 
-import com.umc.linkyou.domain.AuthAccount;
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.enums.Provider;
-import com.umc.linkyou.domain.enums.UserStatus;
-import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
-import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.web.dto.UserRequestDTO;
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.Optional;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import com.umc.linkyou.support.config.TestExternalConfig;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,11 +16,14 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-// 2. Java Util 클래스 import
-import java.util.Optional;
-
+import com.umc.linkyou.domain.AuthAccount;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.Provider;
+import com.umc.linkyou.domain.enums.UserStatus;
+import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.support.config.TestExternalConfig;
+import com.umc.linkyou.web.dto.UserRequestDTO;
 
 @ActiveProfiles("test")
 @SpringBootTest
@@ -31,38 +31,36 @@ import java.util.Optional;
 @Transactional
 class UserWithdrawServiceTest {
 
-    @Autowired
-    private UserWithdrawService userWithdrawService;
+    @Autowired private UserWithdrawService userWithdrawService;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private AuthAccountRepository authAccountRepository;
+    @Autowired private AuthAccountRepository authAccountRepository;
 
-    @PersistenceContext
-    private EntityManager em;
+    @PersistenceContext private EntityManager em;
 
     private Long testUserId;
 
     @BeforeEach
     void setUp() {
         // 1. 테스트용 부모 유저 생성
-        Users user = Users.builder()
-                .nickName("탈퇴테스트유저")
-                .password("testPassword123!")
-                .status(UserStatus.ACTIVE)
-                .build();
+        Users user =
+                Users.builder()
+                        .nickName("탈퇴테스트유저")
+                        .password("testPassword123!")
+                        .status(UserStatus.ACTIVE)
+                        .build();
         userRepository.save(user);
         testUserId = user.getId();
 
         // 2. 외래 키 제약을 테스트하기 위해 자식 데이터(AuthAccount) 생성
-        authAccountRepository.save(AuthAccount.builder()
-                .user(user)
-                .provider(Provider.GENERAL)
-                .email("test@linku.com")
-                .externalId("test@linku.com")
-                .build());
+        authAccountRepository.save(
+                AuthAccount.builder()
+                        .user(user)
+                        .provider(Provider.GENERAL)
+                        .email("test@linku.com")
+                        .externalId("test@linku.com")
+                        .build());
 
         // 영속성 컨텍스트를 DB와 동기화
         em.flush();
@@ -103,7 +101,8 @@ class UserWithdrawServiceTest {
         assertTrue(deletedUser.isEmpty(), "유저가 DB에서 삭제되지 않았습니다.");
 
         // 2. 자식 데이터(AuthAccount) 삭제 확인
-        boolean authExists = authAccountRepository.existsByUserIdAndProvider(testUserId, Provider.GENERAL);
+        boolean authExists =
+                authAccountRepository.existsByUserIdAndProvider(testUserId, Provider.GENERAL);
         assertFalse(authExists, "연관된 AuthAccount 데이터가 삭제되지 않았습니다.");
     }
 
@@ -114,9 +113,11 @@ class UserWithdrawServiceTest {
         Long nonExistentId = 9999L;
 
         // when & then
-        assertThrows(com.umc.linkyou.apiPayload.exception.GeneralException.class, () -> {
-            userWithdrawService.testImmediateDelete(nonExistentId);
-        });
+        assertThrows(
+                com.umc.linkyou.apiPayload.exception.GeneralException.class,
+                () -> {
+                    userWithdrawService.testImmediateDelete(nonExistentId);
+                });
     }
 
     @Test
@@ -144,7 +145,9 @@ class UserWithdrawServiceTest {
         assertFalse(userRepository.existsById(testUserId));
 
         // 자식(AuthAccount)도 함께 삭제되었는지 다시 확인
-        Optional<AuthAccount> authAccount = authAccountRepository.findByProviderAndExternalId(Provider.GENERAL, "test@linku.com");
+        Optional<AuthAccount> authAccount =
+                authAccountRepository.findByProviderAndExternalId(
+                        Provider.GENERAL, "test@linku.com");
         assertTrue(authAccount.isEmpty(), "OrphanRemoval 또는 clear() 처리가 정상적으로 동작하지 않았습니다.");
     }
 
@@ -164,12 +167,13 @@ class UserWithdrawServiceTest {
         Users user = userRepository.findById(testUserId).get();
 
         // 4. 이제 테스트 타겟인 '카카오 계정'만 딱 하나 생성
-        AuthAccount kakaoAuth = AuthAccount.builder()
-                .user(user)
-                .provider(Provider.KAKAO)
-                .externalId("kakao_12345")
-                .email("kakao@test.com")
-                .build();
+        AuthAccount kakaoAuth =
+                AuthAccount.builder()
+                        .user(user)
+                        .provider(Provider.KAKAO)
+                        .externalId("kakao_12345")
+                        .email("kakao@test.com")
+                        .build();
 
         authAccountRepository.save(kakaoAuth);
 
@@ -188,7 +192,8 @@ class UserWithdrawServiceTest {
         // 이제 Actual이 INACTIVE로 정상 반영될 거예요!
         assertEquals(UserStatus.INACTIVE, foundUser.getStatus(), "다른 계정이 없으므로 INACTIVE여야 합니다.");
 
-        boolean exists = authAccountRepository.existsByUserIdAndProvider(testUserId, Provider.KAKAO);
+        boolean exists =
+                authAccountRepository.existsByUserIdAndProvider(testUserId, Provider.KAKAO);
         assertFalse(exists, "카카오 연동 정보는 DB에서 삭제되어야 합니다.");
     }
 }
