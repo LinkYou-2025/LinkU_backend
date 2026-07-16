@@ -8,12 +8,17 @@ import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
+import com.umc.linkyou.web.dto.linku.LinkuQuickSearchResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
-import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
+import com.umc.linkyou.web.dto.linku.LinkuSearchResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -133,11 +138,20 @@ public interface LinkuApi {
             @RequestParam(defaultValue = "5") int size
     );
 
-    @Operation(summary = "빠른 검색 (사용자 저장 링크 전체 대상)", description = "사용자가 저장한 링크 전체를 대상으로 키워드가 포함된 추천 검색어 목록을 조회합니다.")
-    @GetMapping("/search/quick")
-    ApiResponse<List<LinkuSearchSuggestionResponse>> quickSearch(
+    @Operation(summary = "링크 검색", description = "사용자가 저장한 링크에서 제목·태그가 검색어와 일치하는 링크 목록을 최신 저장 순으로 조회합니다. 커서는 필수입니다. 첫 페이지는 0, 이후에는 응답의 nextCursor 값을 보냅니다.")
+    @GetMapping("/search")
+    ApiResponse<LinkuSearchResponseDTO.LinkuSearchCursorPageResponse> searchLinku(
             @CurrentUser CustomUserDetails userDetails,
-            @RequestParam String keyword
+            @RequestParam @Size(max = 20, message = "검색어는 20자 이하로 입력해주세요.") String searchQuery,
+            @RequestParam(defaultValue = "0") @PositiveOrZero Long cursor,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(20) int size
+    );
+
+    @Operation(summary = "검색어 자동완성", description = "사용자가 저장한 링크의 제목에서 검색어와 일치하는 자동완성 후보를 최대 3개 반환합니다.")
+    @GetMapping("/search/quick")
+    ApiResponse<List<LinkuQuickSearchResponseDTO>> quickSearch(
+            @CurrentUser CustomUserDetails userDetails,
+            @RequestParam @Size(max = 20, message = "검색어는 20자 이하로 입력해주세요.") String searchQuery
     );
 
     @Operation(summary = "링크 삭제", description = "사용자가 저장한 링크를 삭제합니다.")
