@@ -39,7 +39,7 @@ Java 17 + Spring Boot 3, PostgreSQL, Redis 기반이며 Apple/Kakao OAuth2, JWT 
 
 아래 규칙은 `.claude/hooks/`가 **exit 2로 차단**합니다.
 
-- **커밋 메시지**: Conventional Commits 형식 + 영문만 (`commit-msg-check.sh`)
+- **커밋 메시지**: Conventional Commits 형식 (`commit-msg-check.sh`)
 - **`@AuthenticationPrincipal` 직접 사용 금지**: 반드시 `@CurrentUser` 사용 (`post-edit-dispatch.sh`)
 
 ## Other Always-Rules (코드 리뷰에서 확인)
@@ -84,6 +84,6 @@ com.umc.linkyou/
 
 ## Language Conventions
 
-- **Commit messages**: 영문 (Conventional Commits, `commit-msg-check.sh` 훅이 강제)
+- **Commit messages**: Conventional Commits 형식 (`commit-msg-check.sh` 훅이 강제), 한글/영문 모두 허용
 - **API 응답**: 항상 `ApiResponse<T>` 래퍼 사용
 - **인증**: `@CurrentUser CustomUserDetails userDetails` — `@AuthenticationPrincipal` 직접 사용 금지

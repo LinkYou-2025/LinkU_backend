@@ -24,8 +24,8 @@ public class LinkuSearchService{
 
     // 링크 검색 (커서 페이징)
     @Transactional
-    public LinkuSearchResponseDTO.LinkuSearchCursorPageResponse search(Long userId, String keyword, Long cursor, int size) {
-        String trimmed = validateKeyword(keyword);
+    public LinkuSearchResponseDTO.LinkuSearchCursorPageResponse search(Long userId, String searchQuery, Long cursor, int size) {
+        String trimmed = validateSearchQuery(searchQuery);
 
         if (size <= 0) {
             return new LinkuSearchResponseDTO.LinkuSearchCursorPageResponse(List.of(), null, false);
@@ -73,15 +73,15 @@ public class LinkuSearchService{
     }
     
     // 검색어 자동완성
-    public List<LinkuQuickSearchResponseDTO> quickSearch(Long userId, String keyword) {
-        return linkuRepository.findQuickByKeyword(userId, validateKeyword(keyword));
+    public List<LinkuQuickSearchResponseDTO> quickSearch(Long userId, String searchQuery) {
+        return linkuRepository.findQuickByKeyword(userId, validateSearchQuery(searchQuery));
     }
 
-    private String validateKeyword(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
+    private String validateSearchQuery(String searchQuery) {
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
             throw new GeneralException(LinkuErrorStatus._LINKU_SEARCH_KEYWORD_REQUIRED);
         }
-        String trimmed = keyword.trim();
+        String trimmed = searchQuery.trim();
         if (trimmed.length() < 2) {
             throw new GeneralException(LinkuErrorStatus._LINKU_SEARCH_KEYWORD_TOO_SHORT);
         }

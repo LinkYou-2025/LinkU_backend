@@ -138,20 +138,20 @@ public interface LinkuApi {
             @RequestParam(defaultValue = "5") int size
     );
 
-    @Operation(summary = "링크 검색", description = "사용자가 저장한 링크에서 제목·태그가 키워드와 일치하는 링크 목록을 최신 저장 순으로 조회합니다. 커서는 필수입니다. 첫 페이지는 0, 이후에는 응답의 nextCursor 값을 보냅니다.")
+    @Operation(summary = "링크 검색", description = "사용자가 저장한 링크에서 제목·태그가 검색어와 일치하는 링크 목록을 최신 저장 순으로 조회합니다. 커서는 필수입니다. 첫 페이지는 0, 이후에는 응답의 nextCursor 값을 보냅니다.")
     @GetMapping("/search")
     ApiResponse<LinkuSearchResponseDTO.LinkuSearchCursorPageResponse> searchLinku(
             @CurrentUser CustomUserDetails userDetails,
-            @RequestParam @Size(max = 20, message = "검색어는 20자 이하로 입력해주세요.") String keyword,
+            @RequestParam @Size(max = 20, message = "검색어는 20자 이하로 입력해주세요.") String searchQuery,
             @RequestParam(defaultValue = "0") @PositiveOrZero Long cursor,
             @RequestParam(defaultValue = "10") @Min(1) @Max(20) int size
     );
 
-    @Operation(summary = "검색어 자동완성", description = "사용자가 저장한 링크의 제목에서 키워드와 일치하는 자동완성 후보를 최대 3개 반환합니다.")
+    @Operation(summary = "검색어 자동완성", description = "사용자가 저장한 링크의 제목에서 검색어와 일치하는 자동완성 후보를 최대 3개 반환합니다.")
     @GetMapping("/search/quick")
     ApiResponse<List<LinkuQuickSearchResponseDTO>> quickSearch(
             @CurrentUser CustomUserDetails userDetails,
-            @RequestParam @Size(max = 20, message = "검색어는 20자 이하로 입력해주세요.") String keyword
+            @RequestParam @Size(max = 20, message = "검색어는 20자 이하로 입력해주세요.") String searchQuery
     );
 
     @Operation(summary = "링크 삭제", description = "사용자가 저장한 링크를 삭제합니다.")

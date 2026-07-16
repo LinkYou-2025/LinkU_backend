@@ -96,13 +96,13 @@ public class LinkuController implements LinkuApi {
     }
 
     @Override
-    public ApiResponse<LinkuSearchResponseDTO.LinkuSearchCursorPageResponse> searchLinku(@CurrentUser CustomUserDetails userDetails, @RequestParam String keyword, @RequestParam(defaultValue = "0") Long cursor, @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_SEARCH_OK, linkuSearchService.search(userDetails.getUserId(), keyword, cursor, size));
+    public ApiResponse<LinkuSearchResponseDTO.LinkuSearchCursorPageResponse> searchLinku(@CurrentUser CustomUserDetails userDetails, @RequestParam String searchQuery, @RequestParam(defaultValue = "0") Long cursor, @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_SEARCH_OK, linkuSearchService.search(userDetails.getUserId(), searchQuery, cursor, size));
     }
 
     @Override
-    public ApiResponse<List<LinkuQuickSearchResponseDTO>> quickSearch(@CurrentUser CustomUserDetails userDetails, @RequestParam String keyword) {
-        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_QUICK_SEARCH_OK, linkuSearchService.quickSearch(userDetails.getUserId(), keyword));
+    public ApiResponse<List<LinkuQuickSearchResponseDTO>> quickSearch(@CurrentUser CustomUserDetails userDetails, @RequestParam String searchQuery) {
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_QUICK_SEARCH_OK, linkuSearchService.quickSearch(userDetails.getUserId(), searchQuery));
     }
 
     @Override

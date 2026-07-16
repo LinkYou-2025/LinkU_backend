@@ -134,7 +134,7 @@ class LinkuQuickSearchIntegrationTest {
         saveToUser(user, linku, null);
 
         mockMvc.perform(get("/api/v1/linku/search")
-                        .param("keyword", "부트")
+                        .param("searchQuery", "부트")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
@@ -155,7 +155,7 @@ class LinkuQuickSearchIntegrationTest {
         saveToUser(user, linku, "내가 바꾼 제목");
 
         mockMvc.perform(get("/api/v1/linku/search")
-                        .param("keyword", "바꾼")
+                        .param("searchQuery", "바꾼")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.items.length()").value(1))
@@ -171,7 +171,7 @@ class LinkuQuickSearchIntegrationTest {
         attachTag(linku, "스프링");
 
         mockMvc.perform(get("/api/v1/linku/search")
-                        .param("keyword", "스프링")
+                        .param("searchQuery", "스프링")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.items.length()").value(1))
@@ -187,7 +187,7 @@ class LinkuQuickSearchIntegrationTest {
         saveToUser(user, linku, null);
 
         mockMvc.perform(get("/api/v1/linku/search")
-                        .param("keyword", "youtube")
+                        .param("searchQuery", "youtube")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.items.length()").value(1))
@@ -203,7 +203,7 @@ class LinkuQuickSearchIntegrationTest {
         saveToUser(owner, linku, null);
 
         mockMvc.perform(get("/api/v1/linku/search")
-                        .param("keyword", "스프링")
+                        .param("searchQuery", "스프링")
                         .with(authentication(authFor(other))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.items.length()").value(0))
@@ -220,7 +220,7 @@ class LinkuQuickSearchIntegrationTest {
         saveToUser(user, second, null);
 
         mockMvc.perform(get("/api/v1/linku/search")
-                        .param("keyword", "스프링")
+                        .param("searchQuery", "스프링")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.items[0].title").value("스프링 강의 둘"))
@@ -237,7 +237,7 @@ class LinkuQuickSearchIntegrationTest {
         }
 
         MvcResult firstPage = mockMvc.perform(get("/api/v1/linku/search")
-                        .param("keyword", "스프링")
+                        .param("searchQuery", "스프링")
                         .param("size", "10")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
@@ -250,7 +250,7 @@ class LinkuQuickSearchIntegrationTest {
         long nextCursor = root.path("result").path("nextCursor").asLong();
 
         mockMvc.perform(get("/api/v1/linku/search")
-                        .param("keyword", "스프링")
+                        .param("searchQuery", "스프링")
                         .param("cursor", String.valueOf(nextCursor))
                         .param("size", "10")
                         .with(authentication(authFor(user))))
@@ -265,7 +265,7 @@ class LinkuQuickSearchIntegrationTest {
         Users user = createUser("search_user_9");
 
         mockMvc.perform(get("/api/v1/linku/search")
-                        .param("keyword", "   ")
+                        .param("searchQuery", "   ")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("LINKU4003"));
@@ -277,7 +277,7 @@ class LinkuQuickSearchIntegrationTest {
         Users user = createUser("search_user_10");
 
         mockMvc.perform(get("/api/v1/linku/search")
-                        .param("keyword", " 스 ")
+                        .param("searchQuery", " 스 ")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("LINKU4005"));
@@ -293,7 +293,7 @@ class LinkuQuickSearchIntegrationTest {
         saveToUser(user, linku, null);
 
         mockMvc.perform(get("/api/v1/linku/search/quick")
-                        .param("keyword", "스프링")
+                        .param("searchQuery", "스프링")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
@@ -313,7 +313,7 @@ class LinkuQuickSearchIntegrationTest {
         attachTag(linku, "스프링");
 
         mockMvc.perform(get("/api/v1/linku/search/quick")
-                        .param("keyword", "스프링")
+                        .param("searchQuery", "스프링")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.length()").value(1));
@@ -329,7 +329,7 @@ class LinkuQuickSearchIntegrationTest {
         }
 
         mockMvc.perform(get("/api/v1/linku/search/quick")
-                        .param("keyword", "스프링")
+                        .param("searchQuery", "스프링")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.length()").value(3));
@@ -343,7 +343,7 @@ class LinkuQuickSearchIntegrationTest {
         saveToUser(user, linku, "내가 바꾼 스프링 강의");
 
         mockMvc.perform(get("/api/v1/linku/search/quick")
-                        .param("keyword", "스프링")
+                        .param("searchQuery", "스프링")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.length()").value(1))
@@ -356,7 +356,7 @@ class LinkuQuickSearchIntegrationTest {
         Users user = createUser("search_user_14");
 
         mockMvc.perform(get("/api/v1/linku/search/quick")
-                        .param("keyword", "스")
+                        .param("searchQuery", "스")
                         .with(authentication(authFor(user))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("LINKU4005"));
