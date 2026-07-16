@@ -37,7 +37,7 @@ public class LinkuSearchService{
 
         boolean hasNext = fetched.size() > size;
         List<LinkuSearchResponseDTO.LinkuSearchItemDTO> items = hasNext ? fetched.subList(0, size) : fetched;
-        Long nextCursor = items.isEmpty() ? null : items.get(items.size() - 1).userLinkuId();
+        Long nextCursor = hasNext ? items.get(items.size() - 1).userLinkuId() : null;
 
         // 키워드 저장
         linkuSearchHistoryRepository.save(LinkuSearchHistory.of(userId, trimmed));

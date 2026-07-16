@@ -83,7 +83,7 @@ class LinkuSearchServiceTest {
             }
 
             @Test
-            @DisplayName("검색 - size 이하로 조회되면 hasNext false")
+            @DisplayName("검색 - size 이하로 조회되면 hasNext false, nextCursor는 null")
             void 검색_결과가_size이하면_hasNext_false를_반환한다() {
                 when(linkuRepository.searchUserLinks(1L, "Java", null, 10))
                         .thenReturn(List.of(searchItem(30L, "A")));
@@ -93,7 +93,7 @@ class LinkuSearchServiceTest {
 
                 assertThat(result.hasNext()).isFalse();
                 assertThat(result.items()).hasSize(1);
-                assertThat(result.nextCursor()).isEqualTo(30L);
+                assertThat(result.nextCursor()).isNull();
             }
 
             @Test

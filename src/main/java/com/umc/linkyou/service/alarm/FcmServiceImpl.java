@@ -20,6 +20,7 @@ import static java.util.Collections.singletonList;
 
 @Slf4j
 @Service
+@Transactional(readOnly = true)
 public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
 
     private static final String CLICK_ACTION = "notice_icon_click";
