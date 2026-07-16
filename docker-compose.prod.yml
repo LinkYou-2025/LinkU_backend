@@ -22,6 +22,7 @@ services:
       JWT_REDIS_PORT: 6379
     volumes:
       - /home/ubuntu/secrets/application-secret.properties:/app/config/application-secret.properties:ro
+      - /home/ubuntu/secrets/linku-firebase-adminsdk.json:/app/config/linku-firebase-adminsdk.json:ro
     depends_on:
       redis:
         condition: service_started
