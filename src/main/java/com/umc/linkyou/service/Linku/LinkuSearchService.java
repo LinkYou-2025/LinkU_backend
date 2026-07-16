@@ -50,13 +50,10 @@ public class LinkuSearchService{
         return new LinkuSearchResponseDTO.LinkuSearchCursorPageResponse(items, nextCursor, hasNext);
     }
 
-    // 검색어 모두 삭제
+    // 검색어 모두 삭제 (기록 없어도 정상 처리)
     @Transactional
     public void deleteAllKeywords(Long userId) {
-        long deleted = linkuSearchHistoryRepository.deleteAllByUserId(userId);
-        if (deleted == 0) {
-            throw new GeneralException(LinkuErrorStatus._SEARCH_HISTORY_NOT_FOUND);
-        }
+        linkuSearchHistoryRepository.deleteAllByUserId(userId);
     }
 
     // 검색어 단일 삭제

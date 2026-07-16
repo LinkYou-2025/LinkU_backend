@@ -266,23 +266,18 @@ class LinkuSearchServiceTest {
         @Test
         @DisplayName("검색어가 존재하면 모두 삭제된다")
         void 검색어가_존재하면_모두_삭제된다() {
-            given(linkuSearchHistoryRepository.deleteAllByUserId(1L)).willReturn(3L);
-
             linkuSearchService.deleteAllKeywords(1L);
 
             verify(linkuSearchHistoryRepository).deleteAllByUserId(1L);
         }
 
         @Test
-        @DisplayName("삭제할 검색어가 없으면 예외를 던진다")
-        void 삭제할_검색어가_없으면_예외를_던진다() {
-            given(linkuSearchHistoryRepository.deleteAllByUserId(1L)).willReturn(0L);
-
-            GeneralException ex = org.junit.jupiter.api.Assertions.assertThrows(
-                    GeneralException.class,
+        @DisplayName("검색어가 없어도 예외 없이 정상 처리된다")
+        void 검색어가_없어도_예외_없이_정상_처리된다() {
+            org.junit.jupiter.api.Assertions.assertDoesNotThrow(
                     () -> linkuSearchService.deleteAllKeywords(1L)
             );
-            assertEquals(LinkuErrorStatus._SEARCH_HISTORY_NOT_FOUND, ex.getCode());
+            verify(linkuSearchHistoryRepository).deleteAllByUserId(1L);
         }
     }
 }

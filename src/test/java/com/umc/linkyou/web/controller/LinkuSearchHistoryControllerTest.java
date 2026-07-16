@@ -177,25 +177,23 @@ class LinkuSearchHistoryControllerTest {
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value(LinkuSuccessStatus.SEARCH_HISTORY_ALL_DELETED.getCode()));
             }
+
+            @Test
+            @DisplayName("검색어가 없어도 200을 반환한다")
+            @WithCustomUser(userId = 1L)
+            void 검색어가_없어도_200을_반환한다() throws Exception {
+                willDoNothing().given(linkuSearchService).deleteAllKeywords(1L);
+
+                mockMvc.perform(delete("/api/v1/links/search/history")
+                                .with(csrf()))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true));
+            }
         }
 
         @Nested
         @DisplayName("실패")
         class Failure {
-
-            @Test
-            @DisplayName("삭제할 검색어가 없으면 404를 반환한다")
-            @WithCustomUser(userId = 1L)
-            void 삭제할_검색어가_없으면_404를_반환한다() throws Exception {
-                willThrow(new GeneralException(LinkuErrorStatus._SEARCH_HISTORY_NOT_FOUND))
-                        .given(linkuSearchService).deleteAllKeywords(anyLong());
-
-                mockMvc.perform(delete("/api/v1/links/search/history")
-                                .with(csrf()))
-                        .andExpect(status().isNotFound())
-                        .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(LinkuErrorStatus._SEARCH_HISTORY_NOT_FOUND.getCode()));
-            }
 
             @Test
             @DisplayName("인증되지 않은 요청은 401을 반환한다")

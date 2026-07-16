@@ -7,9 +7,8 @@ import com.umc.linkyou.domain.UsersFcmToken;
 import com.umc.linkyou.domain.enums.AlarmSettingType;
 import com.umc.linkyou.repository.UserFcmTokenRepository;
 import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,14 +20,18 @@ import static java.util.Collections.singletonList;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
 
     private static final String CLICK_ACTION = "notice_icon_click";
 
-    @Autowired(required = false)
-    private FirebaseMessaging firebaseMessaging;
+    private final FirebaseMessaging firebaseMessaging;
     private final UserFcmTokenRepository userFcmTokenRepository;
+
+    public FcmServiceImpl(@Nullable FirebaseMessaging firebaseMessaging,
+                          UserFcmTokenRepository userFcmTokenRepository) {
+        this.firebaseMessaging = firebaseMessaging;
+        this.userFcmTokenRepository = userFcmTokenRepository;
+    }
 
     // 사용자 전체 기기에 멀티캐스트 전송
     @Override

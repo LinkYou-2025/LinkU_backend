@@ -18,6 +18,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -141,7 +142,7 @@ public interface LinkuApi {
     @GetMapping("/search")
     ApiResponse<LinkuSearchResponseDTO.LinkuSearchCursorPageResponse> searchLinku(
             @CurrentUser CustomUserDetails userDetails,
-            @RequestParam String keyword,
+            @RequestParam @Size(max = 20, message = "검색어는 20자 이하로 입력해주세요.") String keyword,
             @RequestParam(defaultValue = "0") @PositiveOrZero Long cursor,
             @RequestParam(defaultValue = "10") @Min(1) @Max(20) int size
     );
@@ -150,7 +151,7 @@ public interface LinkuApi {
     @GetMapping("/search/quick")
     ApiResponse<List<LinkuQuickSearchResponseDTO>> quickSearch(
             @CurrentUser CustomUserDetails userDetails,
-            @RequestParam String keyword
+            @RequestParam @Size(max = 20, message = "검색어는 20자 이하로 입력해주세요.") String keyword
     );
 
     @Operation(summary = "링크 삭제", description = "사용자가 저장한 링크를 삭제합니다.")

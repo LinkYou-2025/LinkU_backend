@@ -18,5 +18,5 @@ public interface LinkuSearchHistoryRepository extends JpaRepository<LinkuSearchH
 
 
 
-    long deleteAllByUserId(Long userId);
+    void deleteAllByUserId(Long userId);
 }
