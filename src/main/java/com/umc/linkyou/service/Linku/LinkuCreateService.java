@@ -45,6 +45,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -71,6 +72,7 @@ public class LinkuCreateService {
     private static final Long DEFAULT_EMOTION_ID = 2L;
     private static final Long DEFAULT_DOMAIN_ID = 1L;
     private static final Long DEFAULT_SITUATION_ID = 1L;
+    private static final int MAX_FALLBACK_TITLE_LENGTH = 50;
 
     @Transactional
     public LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
@@ -108,10 +110,12 @@ public class LinkuCreateService {
             keywords = aiResult.map(LinkuResultDTO::keywords).orElse(null);
             aiEmotionId = aiResult.map(LinkuResultDTO::emotionId).orElse(null);
             aiSituationId = aiResult.map(LinkuResultDTO::situationId).orElse(null);
-            aiTitle = aiResult.map(LinkuResultDTO::title).orElse(null);
-            String crawledImgUrl = linkToImageService.getRelatedImageFromUrl(normalizedLink, aiTitle);
+            String rawAiTitle = aiResult.map(LinkuResultDTO::title).orElse(null);
+            String crawledImgUrl = linkToImageService.getRelatedImageFromUrl(normalizedLink, rawAiTitle);
             Emotion aiEmotion = resolveEmotion(null, aiEmotionId); //null이면 기본값으로 대체됨
             Situation aiSituation = resolveSituation(null, aiSituationId);
+            // 크롤링/AI 둘 다 실패해도 title이 null로 안 나가도록 보장 (linkus.title은 NOT NULL)
+            aiTitle = resolveTitle(rawAiTitle, domainTail, normalizedLink);
             // 신규 Linku 저장로직
             linku = linkuUpsertService.upsert(normalizedLink, category, domain, aiTitle, crawledImgUrl,aiEmotion,aiSituation);;
             keywordService.saveKeywords(linku, keywords);
@@ -211,6 +215,38 @@ public class LinkuCreateService {
                 : DEFAULT_SITUATION_ID;
         return situationRepository.findById(resolvedId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
+    }
+
+    // 크롤링/AI 둘 다 실패해도 절대 null을 리턴하지 않음 (linkus.title NOT NULL 대응)
+    public String resolveTitle(String aiTitle, String domainTail, String url) {
+        if (aiTitle != null && !aiTitle.isBlank()) {
+            return aiTitle;
+        }
+        String fallback = buildFallbackTitle(domainTail, url);
+        return (fallback != null && !fallback.isBlank()) ? fallback : "제목 없음";
+    }
+
+    // 도메인 + URL 디코딩된 경로 조합, 길이 제한
+    private String buildFallbackTitle(String domainTail, String url) {
+        if (domainTail == null || domainTail.isBlank()) {
+            return null;
+        }
+
+        String path = null;
+        try {
+            path = new URI(url).getPath(); // URI.getPath()는 퍼센트 인코딩을 디코딩된 상태로 반환
+        } catch (Exception e) {
+            // URL 파싱 실패 시 도메인만 사용
+        }
+
+        String combined = (path != null && !path.isBlank() && !path.equals("/"))
+                ? domainTail + path
+                : domainTail;
+
+        if (combined.length() > MAX_FALLBACK_TITLE_LENGTH) {
+            combined = combined.substring(0, MAX_FALLBACK_TITLE_LENGTH) + "…";
+        }
+        return combined;
     }
 
     public UsersLinku createUsersLinku(Users user, Linku linku, Emotion emotion, Situation situation,

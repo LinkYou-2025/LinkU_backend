@@ -242,7 +242,6 @@ class LinkuCreateServiceTest {
         lenient().when(domainRepository.findById(anyLong()))
                 .thenAnswer(inv -> Optional.of(LinkuFixture.domain()));
 
-        lenient().when(linkToImageService.extractTitle(TEST_URL)).thenReturn("테스트 제목");
         lenient().when(linkToImageService.getRelatedImageFromUrl(eq(TEST_URL), any())).thenReturn(crawledImageUrl);
 
         // linkuUpsertService.upsert() 결과 모킹 추가

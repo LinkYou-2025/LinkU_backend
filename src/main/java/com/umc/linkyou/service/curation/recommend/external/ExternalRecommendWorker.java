@@ -80,7 +80,7 @@ public class ExternalRecommendWorker {
         // 이미지 fetch 병렬 실행
         List<Map.Entry<ExternalLinkResultDTO, CompletableFuture<String>>> tasks = external.stream()
                 .filter(item -> item.getUrl() != null && !item.getUrl().isBlank())
-                .map(item -> Map.entry(item, imageFetchService.fetchAsync(item.getUrl())))
+                .map(item -> Map.entry(item, imageFetchService.fetchAsync(item.getUrl(), item.getTitle())))
                 .toList();
 
         curationLinkuRepository.deleteAllByCurationIdAndType(curationId, CurationLinkuType.EXTERNAL);

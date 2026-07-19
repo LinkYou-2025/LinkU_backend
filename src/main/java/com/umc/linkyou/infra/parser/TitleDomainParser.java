@@ -11,7 +11,7 @@ import java.net.URI;
 @Slf4j
 @Component
 public class TitleDomainParser {
-
+    // title을 추출하여 ai가 링크를 생성할 때 참조값으로 사용됨.
     public ParsedPageInfo parseUrl(String url) {
         String domain = null;
         try {
@@ -33,6 +33,9 @@ public class TitleDomainParser {
             }
             if (title == null || title.isBlank()) {
                 title = doc.title();
+            }
+            if (title != null) {
+                title = title.replaceAll("[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\s]", "");
             }
         } catch (Exception e) {
             log.warn("[도메인/제목 추출 실패] {}", e.getMessage());

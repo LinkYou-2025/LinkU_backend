@@ -30,21 +30,6 @@ public class LinkToImageService {
     @Value("${custom.search.engine.id}")
     private String searchEngineId;
 
-    public String extractTitle(String url) {
-        try {
-            Document doc = Jsoup.connect(url)
-                    .userAgent("Mozilla/5.0")
-                    .get();
-            String ogTitle = doc.select("meta[property=og:title]").attr("content");
-            if (ogTitle != null && !ogTitle.isEmpty()) {
-                return ogTitle.replaceAll("[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\s]", "");
-            }
-            return doc.title().replaceAll("[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\s]", "");
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
     // URL에서 도메인 추출
     private String extractDomainFromUrl(String url) {
         try {
@@ -191,10 +176,5 @@ public class LinkToImageService {
         }
 
         return null;
-    }
-
-    public String getRelatedImageFromUrl(String url) {
-        String title = extractTitle(url);
-        return getRelatedImageFromUrl(url, title);
     }
 }
