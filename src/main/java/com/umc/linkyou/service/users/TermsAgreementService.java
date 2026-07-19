@@ -81,4 +81,19 @@ public class TermsAgreementService {
         List<TermsAgreement> agreements = termsAgreementRepository.findAllByUserId(userDetails.getUserId());
         return TermsConverter.toTermsStatusDTO(userDetails.getUserId(), agreements);
     }
+
+    @Transactional
+    public void toggleMarketing(CustomUserDetails userDetails) {
+        // 조회 후 false면 true, true면 false로
+        TermsAgreement marketingTerm = termsAgreementRepository.findByUserIdAndTermsType(userDetails.getUserId(), TermsType.MARKETING)
+                .orElseGet(() -> {
+                    Users user = userRepository.findById(userDetails.getUserId())
+                            .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+                    return termsAgreementRepository.save(
+                            TermsConverter.toSingleTermAgreement(user, TermsType.MARKETING, false));
+                });
+
+        boolean newStatus = !marketingTerm.getIsAgreed();
+        TermsConverter.updateAgreement(marketingTerm, newStatus);
+    }
 }

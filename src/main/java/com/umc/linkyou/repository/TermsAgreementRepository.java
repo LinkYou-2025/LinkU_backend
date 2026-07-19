@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface TermsAgreementRepository extends JpaRepository<TermsAgreement, Long> {
     List<TermsAgreement> findByUserId(Long id);
     List<TermsAgreement> findAllByUserId(Long userId);
+
+    Optional<TermsAgreement> findByUserIdAndTermsType(Long userId, TermsType termsType);
 }

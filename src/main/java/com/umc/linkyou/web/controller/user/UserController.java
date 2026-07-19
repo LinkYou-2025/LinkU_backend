@@ -66,4 +66,10 @@ public class UserController implements UserApi {
         return ApiResponse.onSuccess(termsAgreementService.getTermsStatus(userDetails));
     }
 
+    @Override
+    public ApiResponse<Object> toggleMarketing(@CurrentUser CustomUserDetails userDetails) {
+        termsAgreementService.toggleMarketing(userDetails);
+        return ApiResponse.onSuccess(UserSuccessStatus.USER_MARKETING_AGREE_OK);
+    }
+
 }
