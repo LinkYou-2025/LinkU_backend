@@ -1,6 +1,7 @@
 package com.umc.linkyou.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.converter.TermsConverter;
 import com.umc.linkyou.domain.TermsAgreement;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Job;
@@ -28,6 +29,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -36,7 +38,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ActiveProfiles("test")
@@ -109,6 +113,96 @@ class TermsIntegrationTest {
                     .andExpect(jsonPath("$.isSuccess").value(true))
                     .andExpect(jsonPath("$.result.termsStatus.MARKETING").value(true));
         }
+    }
+
+    @Nested
+    @DisplayName("마케팅 약관 동의 토글 테스트")
+    class MarketingToggle {
+
+        @Test
+        @DisplayName("성공 - 동의(true) 상태에서 토글하면 비동의(false)로 변경된다")
+        void toggle_marketing_true_to_false() throws Exception {
+            Users user = createUser("토글유저1");
+            createMarketingAgreement(user, true);
+
+            mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
+                            .with(authentication(authFor(user))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.isSuccess").value(true))
+                    .andExpect(jsonPath("$.code").value("USERS2009"));
+
+            TermsAgreement result = termsAgreementRepository
+                    .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
+                    .orElseThrow();
+            assertFalse(result.getIsAgreed());
+        }
+
+        @Test
+        @DisplayName("성공 - 비동의(false) 상태에서 토글하면 동의(true)로 변경된다")
+        void toggle_marketing_false_to_true() throws Exception {
+            Users user = createUser("토글유저2");
+            createMarketingAgreement(user, false);
+
+            mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
+                            .with(authentication(authFor(user))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.isSuccess").value(true));
+
+            TermsAgreement result = termsAgreementRepository
+                    .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
+                    .orElseThrow();
+            assertTrue(result.getIsAgreed());
+        }
+
+        @Test
+        @DisplayName("성공 - 마케팅 약관 레코드가 없으면 최초 토글 시 동의(true) 상태로 신규 생성된다")
+        void toggle_marketing_creates_record_when_absent() throws Exception {
+            Users user = createUser("토글유저3");
+
+            mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
+                            .with(authentication(authFor(user))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.isSuccess").value(true))
+                    .andExpect(jsonPath("$.code").value("USERS2009"));
+
+            TermsAgreement result = termsAgreementRepository
+                    .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
+                    .orElseThrow();
+            assertTrue(result.getIsAgreed());
+            assertFalse(result.getIsRequired());
+            assertEquals(TermsConverter.CURRENT_TERMS_VERSION, result.getTermsVersion());
+            assertNotNull(result.getAgreedAt());
+        }
+
+        @Test
+        @DisplayName("성공 - 두 번 토글하면 원래 상태로 돌아온다")
+        void toggle_marketing_twice_restores_original_state() throws Exception {
+            Users user = createUser("토글유저4");
+            createMarketingAgreement(user, true);
+
+            mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
+                            .with(authentication(authFor(user))))
+                    .andExpect(status().isOk());
+            mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
+                            .with(authentication(authFor(user))))
+                    .andExpect(status().isOk());
+
+            TermsAgreement result = termsAgreementRepository
+                    .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
+                    .orElseThrow();
+            assertTrue(result.getIsAgreed());
+        }
+    }
+
+    private void createMarketingAgreement(Users user, boolean isAgreed) {
+        termsAgreementRepository.save(TermsAgreement.builder()
+                .user(user)
+                .termsType(TermsType.MARKETING)
+                .isRequired(false)
+                .termsVersion(TermsConverter.CURRENT_TERMS_VERSION)
+                .agreedAt(LocalDateTime.now())
+                .isAgreed(isAgreed)
+                .build());
     }
 
     private Authentication authFor(Users user) {
