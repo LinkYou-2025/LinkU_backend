@@ -112,7 +112,7 @@ public interface UserApi {
     // 마케팅 약관 동의 또는 비동의
     @Operation(
             summary = "마케팅 약관 동의 토글",
-            description = "사용자의 마케팅 약관 동의 상태를 토글합니다. 현재 동의 상태가 true이면 false로, false이면 true로 변경됩니다.)"
+            description = "사용자의 마케팅 약관 동의 상태를 토글합니다. 현재 동의 상태가 true이면 false로, false이면 true로 변경됩니다."
     )
     @ApiSuccessCode(SuccessStatus._OK)
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
