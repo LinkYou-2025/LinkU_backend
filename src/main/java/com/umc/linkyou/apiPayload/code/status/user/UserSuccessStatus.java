@@ -18,7 +18,7 @@ public enum UserSuccessStatus implements BaseSuccessCode {
     TERMS_UPDATE_OK(HttpStatus.OK, "USERS2006", "약관 동의 상태가 수정되었습니다."),
     TERMS_STATUS_OK(HttpStatus.OK, "USERS2007", "약관 동의 상태 조회에 성공했습니다."),
     USER_NICKNAME_OK(HttpStatus.OK, "USERS2008", "닉네임 조회에 성공했습니다."),
-    USER_MARKETING_AGREE_OK(HttpStatus.OK, "USERS2009","마케팅 동의에 성공했습니다.");
+    USER_MARKETING_AGREE_OK(HttpStatus.OK, "USERS2009","마케팅 동의 상태 변경에 성공했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
