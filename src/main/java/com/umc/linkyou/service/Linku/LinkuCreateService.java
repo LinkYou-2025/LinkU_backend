@@ -92,10 +92,18 @@ public class LinkuCreateService {
         // 2) 신규 링크인지 가볍게 먼저 확인해서, 신규일 때만 크롤링/AI 분석을 수행한다.
         //    (실제 저장 시점에 한 번 더 확인한다 — 아래 3)에서 외부 I/O를 처리하는 동안
         //     다른 요청이 같은 링크를 먼저 저장했을 가능성이 있기 때문)
-        boolean isNewLinku = linkuRepository.findByLinku(normalizedLink).isEmpty();
+        Optional<Linku> existingLinkuOpt = linkuRepository.findByLinku(normalizedLink);
+        boolean isNewLinku = existingLinkuOpt.isEmpty();
 
         // 3) 블로킹 외부 I/O는 전부 트랜잭션 밖에서 먼저 끝낸다.
         NewLinkuAiData aiData = isNewLinku ? prepareNewLinkuAiData(normalizedLink, domainTail) : null;
+
+        // 3-1) 이미지를 S3에 올리기 전에 검증부터 한다(카테고리/감정/상황 유효성 + 폴더 존재 여부).
+        //      예전에는 이 검증이 persistLinku() 트랜잭션 안, 즉 업로드보다 뒤에 있어서 검증
+        //      실패 시 S3에 이미 올라간 이미지가 고아 객체로 남았다. persistLinku()에서 카테고리/
+        //      폴더를 다시 조회하는 것과 중복되지만, isNewLinku 사전 확인과 같은 맥락의 안전장치다.
+        validateBeforeUpload(userId, dto, existingLinkuOpt, aiData);
+
         String userImageUrl = uploadUserImage(image);
         boolean validUrl = safeUrlFetcher.isReachable(normalizedLink);
 
@@ -108,6 +116,29 @@ public class LinkuCreateService {
                 .data(resultDto)
                 .validUrl(validUrl)
                 .build();
+    }
+
+    // 이미지 업로드보다 먼저 실행해서, 여기서 던지는 예외가 S3 고아 객체를 남기지 않게 한다.
+    // persistLinku() 트랜잭션 안에서 하는 것과 사실상 같은 검증(카테고리/감정/상황/폴더)을 먼저
+    // 한 번 해보는 것 - 그 사이 폴더가 삭제되는 등 극히 드문 경쟁 상황에서는 persistLinku() 쪽
+    // 검증이 최종적으로 다시 걸러준다.
+    private void validateBeforeUpload(
+            Long userId, LinkuRequestDTO.LinkuCreateDTO dto, Optional<Linku> existingLinkuOpt, NewLinkuAiData aiData) {
+        boolean userProvidedEmotion = dto.getEmotionId() != null && dto.getEmotionId() > 0;
+        boolean userProvidedSituation = dto.getSituationId() != null && dto.getSituationId() > 0;
+
+        // 사용자가 emotionId/situationId를 직접 지정했다면 존재하는 값인지 미리 확인한다.
+        resolveEmotion(userProvidedEmotion ? dto.getEmotionId() : null, null);
+        resolveSituation(userProvidedSituation ? dto.getSituationId() : null, null);
+
+        // 기존 링크면 이미 저장된 카테고리를, 신규 링크면 AI가 분류한(혹은 기본) 카테고리를 기준으로
+        // 이 유저의 해당 카테고리 폴더가 있는지 확인한다. persistLinku()의 분기와 동일한 로직이다.
+        Category category = existingLinkuOpt
+                .map(Linku::getCategory)
+                .orElseGet(() -> resolveCategory(aiData != null ? aiData.aiCategoryId() : null));
+
+        usersFolderRepository.findFolderByUserIdAndCategory(userId, category)
+                .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
     }
 
     // 크롤링(제목/본문/이미지) + AI 분석까지, DB에 쓰지 않는 순수 외부 I/O 단계.

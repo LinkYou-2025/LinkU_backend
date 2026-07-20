@@ -1,5 +1,7 @@
 package com.umc.linkyou.infra.parser;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.CrawlStrategy;
 import com.umc.linkyou.infra.net.SafeUrlFetcher;
@@ -16,9 +18,7 @@ import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Component
@@ -29,7 +29,12 @@ public class WebContentExtractor {
     private final RobotsTxtChecker robotsTxtChecker;
     private final SafeUrlFetcher safeUrlFetcher;
 
-    private final Map<String, ContentExtractorStrategy> crawlerStrategies = new ConcurrentHashMap<>();
+    // 도메인 tail(예: tistory.com) -> 크롤링 전략 캐시. 전략은 도메인 조합이 유한하고 거의 안 바뀌지만,
+    // 그래도 상한을 안 둔 순수 ConcurrentHashMap 대신 Caffeine으로 통일해 메모리 상한(maximumSize)을 보장한다.
+    // TTL은 필요 없다 - 도메인의 CrawlStrategy가 바뀌는 경우는 드물고, 바뀌어도 서버 재시작 전까지는
+    // 기존 전략을 계속 쓰는 것이 지금까지의 동작이었다.
+    private final Cache<String, ContentExtractorStrategy> crawlerStrategies =
+            Caffeine.newBuilder().maximumSize(2_000).build();
 
     interface ContentExtractorStrategy {
         String extract(Document doc, String url) throws Exception;
@@ -143,7 +148,7 @@ public class WebContentExtractor {
             List<String> domainTailCandidates = UrlValidUtils.extractDomainTailCandidates(safeUrl);
             ContentExtractorStrategy strategy = domainTailCandidates.isEmpty()
                     ? new DefaultExtractor()
-                    : crawlerStrategies.computeIfAbsent(domainTailCandidates.get(0), key -> createStrategy(domainTailCandidates));
+                    : crawlerStrategies.get(domainTailCandidates.get(0), key -> createStrategy(domainTailCandidates));
 
             Document doc = safeUrlFetcher.fetchDocument(safeUrl, "Mozilla/5.0", 15000);
 

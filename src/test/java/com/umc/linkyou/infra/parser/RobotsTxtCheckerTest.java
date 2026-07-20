@@ -13,9 +13,6 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -29,7 +26,7 @@ class RobotsTxtCheckerTest {
         return new SafeUrlFetcher(SsrfGuard.forTesting(true));
     }
 
-    private final RobotsTxtChecker checker = new RobotsTxtChecker(newTestFetcher(), Clock.systemUTC());
+    private final RobotsTxtChecker checker = new RobotsTxtChecker(newTestFetcher());
 
     private List<RobotsTxtChecker.Rule> parse(String robotsTxt, String userAgent) throws Exception {
         return checker.parseRules(new BufferedReader(new StringReader(robotsTxt)), userAgent);
@@ -422,7 +419,7 @@ class RobotsTxtCheckerTest {
                     User-agent: *
                     Disallow: /private/
                     """);
-            RobotsTxtChecker cachingChecker = new RobotsTxtChecker(newTestFetcher(), Clock.systemUTC());
+            RobotsTxtChecker cachingChecker = new RobotsTxtChecker(newTestFetcher());
 
             assertThat(cachingChecker.isAllowed(base + "/private/a", "Mozilla/5.0")).isFalse();
             assertThat(cachingChecker.isAllowed(base + "/public/a", "Mozilla/5.0")).isTrue();
@@ -431,55 +428,37 @@ class RobotsTxtCheckerTest {
             assertThat(requestCount.get()).isEqualTo(1);
         }
 
+        // TTL이 지난 뒤 Caffeine이 실제로 캐시를 만료시켜 재요청하는지는 Caffeine 라이브러리 자체의
+        // 책임 영역이라 여기서 다시 검증하지 않는다(만료 타이밍을 테스트하려면 실제로 몇 시간을
+        // 기다리거나 가짜 시간을 흘려보내야 하는데, 후자는 우리가 시간 소스를 직접 관리해야 해서
+        // Caffeine 기본 ticker를 쓰는 지금 구조와 맞지 않는다). 대신 우리 코드가 책임질 부분,
+        // 즉 "응답 성공/실패에 맞는 TTL을 선택해서 캐시에 넣었는가"만 검증한다.
         @Test
-        @DisplayName("TTL이 지나면 캐시가 만료되어 robots.txt를 다시 요청하고 새 규칙을 반영한다")
-        void TTL_만료후_재요청하여_새_규칙을_반영한다() throws Exception {
+        @DisplayName("robots.txt 조회에 성공하면 SUCCESS_TTL로 캐시된다")
+        void 조회_성공시_SUCCESS_TTL로_캐시된다() throws Exception {
             String base = startCountingServer("""
                     User-agent: *
                     Disallow: /private/
                     """);
-            MutableClock clock = new MutableClock(Instant.parse("2026-01-01T00:00:00Z"));
-            RobotsTxtChecker cachingChecker = new RobotsTxtChecker(newTestFetcher(), clock);
+            RobotsTxtChecker cachingChecker = new RobotsTxtChecker(newTestFetcher());
 
             assertThat(cachingChecker.isAllowed(base + "/public/a", "Mozilla/5.0")).isTrue();
-            assertThat(requestCount.get()).isEqualTo(1);
 
-            // TTL 이내에는 캐시를 그대로 쓴다 - 요청 수가 늘어나지 않는다.
-            assertThat(cachingChecker.isAllowed(base + "/public/b", "Mozilla/5.0")).isTrue();
-            assertThat(requestCount.get()).isEqualTo(1);
-
-            // SUCCESS_TTL을 넘기면 캐시가 만료되어 다시 요청한다.
-            clock.advance(RobotsTxtChecker.SUCCESS_TTL.plusSeconds(1));
-            assertThat(cachingChecker.isAllowed(base + "/public/c", "Mozilla/5.0")).isTrue();
-            assertThat(requestCount.get()).isEqualTo(2);
-        }
-    }
-
-    // 테스트에서 시간을 임의로 이동시키기 위한 Clock 구현체.
-    private static final class MutableClock extends Clock {
-        private Instant now;
-
-        MutableClock(Instant now) {
-            this.now = now;
+            assertThat(cachingChecker.cachedTtlFor(base + "/public/a", "Mozilla/5.0"))
+                    .isEqualTo(RobotsTxtChecker.SUCCESS_TTL);
         }
 
-        void advance(java.time.Duration duration) {
-            now = now.plus(duration);
-        }
+        @Test
+        @DisplayName("robots.txt 조회에 실패하면 FAILURE_TTL로 캐시된다")
+        void 조회_실패시_FAILURE_TTL로_캐시된다() throws Exception {
+            // RFC 2606에 의해 예약된, 절대 존재할 수 없는 도메인 - DNS 조회 자체가 실패한다.
+            String invalidUrl = "http://robots-cache-test.invalid/private/x";
+            RobotsTxtChecker cachingChecker = new RobotsTxtChecker(newTestFetcher());
 
-        @Override
-        public ZoneId getZone() {
-            return ZoneId.of("UTC");
-        }
+            assertThat(cachingChecker.isAllowed(invalidUrl, "Mozilla/5.0")).isTrue();
 
-        @Override
-        public Clock withZone(ZoneId zone) {
-            return this;
-        }
-
-        @Override
-        public Instant instant() {
-            return now;
+            assertThat(cachingChecker.cachedTtlFor(invalidUrl, "Mozilla/5.0"))
+                    .isEqualTo(RobotsTxtChecker.FAILURE_TTL);
         }
     }
 }

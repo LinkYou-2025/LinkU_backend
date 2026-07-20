@@ -41,7 +41,15 @@ public class SafeUrlFetcher {
             conn.setConnectTimeout(connectTimeoutMs);
             conn.setReadTimeout(readTimeoutMs);
 
-            int status = conn.getResponseCode();
+            int status;
+            try {
+                status = conn.getResponseCode();
+            } catch (IOException e) {
+                // getResponseCode() 자체가 실패하면(타임아웃 등) 이 hop의 커넥션이 안 닫힌 채로
+                // 새지 않도록 여기서 바로 닫고 다시 던진다.
+                conn.disconnect();
+                throw e;
+            }
             if (isRedirect(status)) {
                 String location = conn.getHeaderField("Location");
                 conn.disconnect();

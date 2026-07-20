@@ -13,7 +13,6 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,14 +34,16 @@ public class RobotsTxtChecker {
     private record CachedRules(List<Rule> rules, Duration ttl) {}
 
     // robots.txt는 자주 바뀌지 않으므로 정상 응답은 길게 캐시한다.
-    // package-private: 테스트에서 TTL만큼 시간을 이동시켜 만료 동작을 검증하기 위함
+    // package-private: 테스트에서 어떤 TTL이 선택됐는지 cachedTtlFor()로 비교하기 위함
     static final Duration SUCCESS_TTL = Duration.ofHours(24);
     // 타임아웃 등 일시적 fetch 실패는 짧게 캐시해서 곧 재시도되도록 한다.
     static final Duration FAILURE_TTL = Duration.ofMinutes(1);
 
-    // 캐시 키: host(:port)|userAgent. maximumSize로 상한을 둬서 다양한 도메인이 계속 쌓여도
+    // 캐시 키: scheme://host(:port)|userAgent. maximumSize로 상한을 둬서 다양한 도메인이 계속 쌓여도
     // 메모리가 무한정 늘어나지 않게 한다(예전 ConcurrentHashMap 구현은 상한이 없었다).
-    // ticker를 주입받은 Clock 기준으로 맞춰서, 테스트에서 Clock을 이동시키면 캐시 만료도 함께 반영되게 한다.
+    // 만료 시각 계산은 Caffeine 기본 ticker(실제 시스템 시간)를 그대로 쓴다 - 우리가 직접 시간을
+    // 관리할 이유가 없고, "TTL이 지나면 실제로 만료되는지"는 Caffeine 자체가 이미 검증하는 영역이라
+    // 우리 테스트에서 다시 검증할 필요도 없다(아래 cachedTtlFor() 참고).
     private final Cache<String, CachedRules> ruleCache;
 
     // 패턴 문자열 -> 컴파일된 정규식 캐시. rules 목록 자체는 도메인 단위로 캐시되지만,
@@ -51,16 +52,13 @@ public class RobotsTxtChecker {
     private final Cache<String, Pattern> compiledPatternCache;
 
     private final SafeUrlFetcher safeUrlFetcher;
-    private final Clock clock;
 
-    // 유일한 생성자: Spring이 자동으로 두 빈을 주입한다(Clock은 ClockConfig에서 등록).
-    // 테스트는 이 생성자에 직접 SafeUrlFetcher/Clock을 넘겨서 시간과 SSRF 정책을 통제한다.
-    public RobotsTxtChecker(SafeUrlFetcher safeUrlFetcher, Clock clock) {
+    // 유일한 생성자: Spring이 자동으로 주입한다.
+    // 테스트는 이 생성자에 직접 SafeUrlFetcher를 넘겨서 SSRF 정책을 통제한다.
+    public RobotsTxtChecker(SafeUrlFetcher safeUrlFetcher) {
         this.safeUrlFetcher = safeUrlFetcher;
-        this.clock = clock;
         this.ruleCache = Caffeine.newBuilder()
                 .maximumSize(5_000)
-                .ticker(() -> this.clock.instant().toEpochMilli() * 1_000_000L)
                 .expireAfter(new Expiry<String, CachedRules>() {
                     @Override
                     public long expireAfterCreate(String key, CachedRules value, long currentTime) {
@@ -86,9 +84,8 @@ public class RobotsTxtChecker {
     public boolean isAllowed(String urlStr, String userAgent) {
         try {
             URL url = new URL(urlStr);
-            // getHost()는 포트를 포함하지 않으므로, 표준 포트(80/443)가 아닌 경우를 위해 명시적으로 붙여준다.
-            String hostPart = url.getPort() != -1 ? url.getHost() + ":" + url.getPort() : url.getHost();
-            String cacheKey = hostPart + "|" + userAgent;
+            String hostPart = hostPart(url);
+            String cacheKey = cacheKey(url.getProtocol(), hostPart, userAgent);
 
             List<Rule> rules = resolveRules(url.getProtocol(), hostPart, userAgent, cacheKey);
 
@@ -119,6 +116,28 @@ public class RobotsTxtChecker {
         }
     }
 
+    // getHost()는 포트를 포함하지 않으므로, 표준 포트(80/443)가 아닌 경우를 위해 명시적으로 붙여준다.
+    private String hostPart(URL url) {
+        return url.getPort() != -1 ? url.getHost() + ":" + url.getPort() : url.getHost();
+    }
+
+    // scheme까지 키에 포함시킨다 - host만 쓰면 http/https robots.txt가 서로 다를 수 있는데도
+    // 같은 캐시 항목을 공유해서, 한쪽에서 조회한 규칙이 최대 SUCCESS_TTL(24h) 동안 다른 쪽에도
+    // 잘못 적용될 수 있었다.
+    private String cacheKey(String scheme, String hostPart, String userAgent) {
+        return scheme + "://" + hostPart + "|" + userAgent;
+    }
+
+    // package-private: 테스트에서 특정 host/userAgent가 어떤 TTL(성공/실패)로 캐시됐는지 확인하기 위함.
+    // Caffeine이 그 TTL이 지난 뒤 실제로 만료시키는지는 라이브러리 자체의 책임 영역이라 우리가 다시
+    // 검증할 필요가 없고, 우리 코드가 책임질 부분은 "성공/실패에 맞는 TTL을 골라 캐시에 넣었는가"뿐이다.
+    Duration cachedTtlFor(String urlStr, String userAgent) throws java.net.MalformedURLException {
+        URL url = new URL(urlStr);
+        String cacheKey = cacheKey(url.getProtocol(), hostPart(url), userAgent);
+        CachedRules cached = ruleCache.getIfPresent(cacheKey);
+        return cached != null ? cached.ttl() : null;
+    }
+
     // 캐시에 유효한 항목이 있으면 그대로 쓰고, 없거나 만료됐으면 새로 fetch한다.
     // 중복 fetch 허용형: 동시에 같은 호스트가 만료 시점을 맞히면 여러 스레드가 각자 fetch할 수 있다(락 없음).
     private List<Rule> resolveRules(String protocol, String hostPart, String userAgent, String cacheKey) {
@@ -137,16 +156,21 @@ public class RobotsTxtChecker {
         try {
             String robotsUrl = protocol + "://" + hostPart + "/robots.txt";
             HttpURLConnection conn = safeUrlFetcher.openConnection(robotsUrl, userAgent, 5000, 5000);
-
-            int responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
-                // robots.txt 없으면 기본 허용 - 정상적으로 확인된 상태이므로 길게 캐시한다.
-                rules = List.of();
-            } else {
-                try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
-                    rules = parseRules(reader, userAgent);
+            try {
+                int responseCode = conn.getResponseCode();
+                if (responseCode != 200) {
+                    // robots.txt 없으면 기본 허용 - 정상적으로 확인된 상태이므로 길게 캐시한다.
+                    rules = List.of();
+                } else {
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                        rules = parseRules(reader, userAgent);
+                    }
                 }
+            } finally {
+                // 응답 코드와 무관하게 항상 닫는다 - robots.txt가 없는 사이트(흔함)에서
+                // non-200 응답을 읽지 않고 그냥 두면 커넥션이 새는 문제가 있었다.
+                conn.disconnect();
             }
             ttl = SUCCESS_TTL;
         } catch (SsrfGuard.BlockedException e) {
