@@ -81,4 +81,19 @@ public class TermsAgreementService {
         List<TermsAgreement> agreements = termsAgreementRepository.findAllByUserId(userDetails.getUserId());
         return TermsConverter.toTermsStatusDTO(userDetails.getUserId(), agreements);
     }
+
+    @Transactional
+    public void toggleMarketing(CustomUserDetails userDetails) {
+        termsAgreementRepository.findByUserIdAndTermsType(userDetails.getUserId(), TermsType.MARKETING)
+                .ifPresentOrElse(
+                        // 기존 기록이 있으면 동의 상태 반전
+                        agreement -> TermsConverter.updateAgreement(agreement, !agreement.getIsAgreed()),
+                        // 없으면 최초 토글이므로 동의(true) 상태로 신규 생성
+                        () -> {
+                            Users user = userRepository.findById(userDetails.getUserId())
+                                    .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+                            termsAgreementRepository.save(
+                                    TermsConverter.toSingleTermAgreement(user, TermsType.MARKETING, true));
+                        });
+    }
 }
