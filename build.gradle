@@ -74,6 +74,9 @@ dependencies {
 	//jsoup 크롤링
 	implementation 'org.jsoup:jsoup:1.17.2'
 
+	// robots.txt 규칙/컴파일된 패턴 등 로컬(인메모리) 캐싱
+	implementation 'com.github.ben-manes.caffeine:caffeine'
+
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
 	//blue-green
@@ -102,6 +105,9 @@ dependencies {
 	//flyway
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
+
+	// 도메인 tail 계층 매칭(Public Suffix List 기반 eTLD+1 계산)에 사용
+	implementation 'com.google.guava:guava:33.2.1-jre'
 }
 
 clean {
