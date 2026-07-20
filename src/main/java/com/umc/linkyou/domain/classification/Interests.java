@@ -1,36 +1,25 @@
 package com.umc.linkyou.domain.classification;
 
-import com.umc.linkyou.domain.Users;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-
+// 관심사 마스터(카탈로그) 엔티티. Users 와는 UsersInterest 조인 엔티티를 통해 다대다로 연결된다.
 @Entity
 @Table(name = "interests")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder
 public class Interests {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String interest;
+    @Column(name = "name", nullable = false, unique = true, length = 50)
+    private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private Users user;
-
-    @Column(nullable = false)
-    private LocalDateTime selectedAt;
-
-    public static Interests of(String interest, Users user) {
-        Interests entity = new Interests();
-        entity.interest = interest;
-        entity.user = user;
-        entity.selectedAt = LocalDateTime.now();
-        return entity;
+    public static Interests of(String name) {
+        return Interests.builder().name(name).build();
     }
 }

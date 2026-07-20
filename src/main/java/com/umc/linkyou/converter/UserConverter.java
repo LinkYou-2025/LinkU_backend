@@ -7,6 +7,8 @@ import com.umc.linkyou.domain.classification.Interests;
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.domain.enums.UserStatus;
+import com.umc.linkyou.domain.mapping.UsersInterest;
+import com.umc.linkyou.domain.mapping.UsersPurpose;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import lombok.extern.slf4j.Slf4j;
@@ -83,18 +85,19 @@ public class UserConverter {
 
 
 
-    public static List<Purposes> toPurposes(Users user, List<String> purposeNames) {
-        if (purposeNames == null || purposeNames.isEmpty()) return List.of();
-        return purposeNames.stream()
-                .map(name -> Purposes.of(name, user))
+    // Users - Purposes 다대다 조인 엔티티 생성 (마스터 엔티티는 서비스 레이어에서 조회/생성 후 전달받음)
+    public static List<UsersPurpose> toUsersPurposes(Users user, List<Purposes> purposes) {
+        if (purposes == null || purposes.isEmpty()) return List.of();
+        return purposes.stream()
+                .map(purpose -> UsersPurpose.of(user, purpose))
                 .toList();
     }
 
-    // 엔티티의 초기 Interests 설정
-    public static List<Interests> toInterests(Users user, List<String> interestNames) {
-        if (interestNames == null || interestNames.isEmpty()) return List.of();
-        return interestNames.stream()
-                .map(name -> Interests.of(name, user))
+    // Users - Interests 다대다 조인 엔티티 생성 (마스터 엔티티는 서비스 레이어에서 조회/생성 후 전달받음)
+    public static List<UsersInterest> toUsersInterests(Users user, List<Interests> interests) {
+        if (interests == null || interests.isEmpty()) return List.of();
+        return interests.stream()
+                .map(interest -> UsersInterest.of(user, interest))
                 .toList();
     }
 }

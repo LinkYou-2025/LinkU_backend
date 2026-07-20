@@ -7,6 +7,8 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -40,9 +42,10 @@ public class UsersLinku extends BaseEntity {
     @Column(columnDefinition = "text")
     private String imageUrl;
 
-    // 연관관계: Users
+    // 연관관계: Users (탈퇴 시 개인 데이터 완전 삭제를 위해 DB 레벨 ON DELETE CASCADE 적용)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Users user;
 
     // 연관관계: Linku
