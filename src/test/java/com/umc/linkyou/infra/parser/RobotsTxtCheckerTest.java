@@ -26,7 +26,7 @@ class RobotsTxtCheckerTest {
 
     // 로컬 HTTP 서버(127.0.0.1)로 테스트하므로 loopback을 허용한 SafeUrlFetcher를 쓴다.
     private static SafeUrlFetcher newTestFetcher() {
-        return new SafeUrlFetcher(new SsrfGuard(true));
+        return new SafeUrlFetcher(SsrfGuard.forTesting(true));
     }
 
     private final RobotsTxtChecker checker = new RobotsTxtChecker(newTestFetcher(), Clock.systemUTC());

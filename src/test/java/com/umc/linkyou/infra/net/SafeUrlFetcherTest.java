@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class SafeUrlFetcherTest {
 
     // 로컬 HTTP 서버(127.0.0.1)로 테스트해야 하므로 loopback을 허용한 SsrfGuard를 쓴다.
-    private final SafeUrlFetcher fetcher = new SafeUrlFetcher(new SsrfGuard(true));
+    private final SafeUrlFetcher fetcher = new SafeUrlFetcher(SsrfGuard.forTesting(true));
 
     private HttpServer server;
 
@@ -126,7 +126,7 @@ class SafeUrlFetcherTest {
 
         @Test
         @DisplayName("404 응답이면 isReachable은 false를 반환한다")
-        void 404_응답이면_reachable_false() throws Exception {
+        void 응답코드가_404면_reachable_false() throws Exception {
             String base = startServer();
 
             assertThat(fetcher.isReachable(base + "/notfound")).isFalse();
