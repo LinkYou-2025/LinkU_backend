@@ -30,6 +30,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ActiveProfiles("test")
@@ -120,78 +120,93 @@ class TermsIntegrationTest {
     @DisplayName("마케팅 약관 동의 토글 테스트")
     class MarketingToggle {
 
-        @Test
-        @DisplayName("성공 - 동의(true) 상태에서 토글하면 비동의(false)로 변경된다")
-        void toggle_marketing_true_to_false() throws Exception {
-            Users user = createUser("토글유저1");
-            createMarketingAgreement(user, true);
+        @Nested
+        @DisplayName("성공 케이스")
+        class SuccessCase {
 
-            mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
-                            .with(authentication(authFor(user))))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.isSuccess").value(true))
-                    .andExpect(jsonPath("$.code").value("USERS2009"));
+            @Test
+            @DisplayName("동의 상태에서 토글 시 비동의로 변경한다")
+            void 동의_상태에서_토글_시_비동의로_변경한다() throws Exception {
+                Users user = createUser("토글유저1");
+                createMarketingAgreement(user, true);
 
-            TermsAgreement result = termsAgreementRepository
-                    .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
-                    .orElseThrow();
-            assertFalse(result.getIsAgreed());
-        }
+                mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
+                                .with(authentication(authFor(user))))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.code").value("USERS2009"))
+                        .andExpect(jsonPath("$.result").exists());
 
-        @Test
-        @DisplayName("성공 - 비동의(false) 상태에서 토글하면 동의(true)로 변경된다")
-        void toggle_marketing_false_to_true() throws Exception {
-            Users user = createUser("토글유저2");
-            createMarketingAgreement(user, false);
+                TermsAgreement result = termsAgreementRepository
+                        .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
+                        .orElseThrow();
+                assertFalse(result.getIsAgreed());
+            }
 
-            mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
-                            .with(authentication(authFor(user))))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.isSuccess").value(true));
+            @Test
+            @DisplayName("비동의 상태에서 토글 시 동의로 변경한다")
+            void 비동의_상태에서_토글_시_동의로_변경한다() throws Exception {
+                Users user = createUser("토글유저2");
+                createMarketingAgreement(user, false);
 
-            TermsAgreement result = termsAgreementRepository
-                    .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
-                    .orElseThrow();
-            assertTrue(result.getIsAgreed());
-        }
+                mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
+                                .with(authentication(authFor(user))))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.code").value("USERS2009"))
+                        .andExpect(jsonPath("$.result").exists());
 
-        @Test
-        @DisplayName("성공 - 마케팅 약관 레코드가 없으면 최초 토글 시 동의(true) 상태로 신규 생성된다")
-        void toggle_marketing_creates_record_when_absent() throws Exception {
-            Users user = createUser("토글유저3");
+                TermsAgreement result = termsAgreementRepository
+                        .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
+                        .orElseThrow();
+                assertTrue(result.getIsAgreed());
+            }
 
-            mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
-                            .with(authentication(authFor(user))))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.isSuccess").value(true))
-                    .andExpect(jsonPath("$.code").value("USERS2009"));
+            @Test
+            @DisplayName("레코드가 없을 때 최초 토글 시 동의 상태로 신규 생성한다")
+            void 레코드가_없을_때_최초_토글_시_동의_상태로_신규_생성한다() throws Exception {
+                Users user = createUser("토글유저3");
 
-            TermsAgreement result = termsAgreementRepository
-                    .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
-                    .orElseThrow();
-            assertTrue(result.getIsAgreed());
-            assertFalse(result.getIsRequired());
-            assertEquals(TermsConverter.CURRENT_TERMS_VERSION, result.getTermsVersion());
-            assertNotNull(result.getAgreedAt());
-        }
+                mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
+                                .with(authentication(authFor(user))))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.code").value("USERS2009"))
+                        .andExpect(jsonPath("$.result").exists());
 
-        @Test
-        @DisplayName("성공 - 두 번 토글하면 원래 상태로 돌아온다")
-        void toggle_marketing_twice_restores_original_state() throws Exception {
-            Users user = createUser("토글유저4");
-            createMarketingAgreement(user, true);
+                TermsAgreement result = termsAgreementRepository
+                        .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
+                        .orElseThrow();
+                assertTrue(result.getIsAgreed());
+                assertFalse(result.getIsRequired());
+                assertEquals(TermsConverter.CURRENT_TERMS_VERSION, result.getTermsVersion());
+                assertEquals(LocalDate.now(), result.getAgreedAt().toLocalDate());
+            }
 
-            mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
-                            .with(authentication(authFor(user))))
-                    .andExpect(status().isOk());
-            mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
-                            .with(authentication(authFor(user))))
-                    .andExpect(status().isOk());
+            @Test
+            @DisplayName("두 번 토글 시 원래 상태로 복구한다")
+            void 두_번_토글_시_원래_상태로_복구한다() throws Exception {
+                Users user = createUser("토글유저4");
+                createMarketingAgreement(user, true);
 
-            TermsAgreement result = termsAgreementRepository
-                    .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
-                    .orElseThrow();
-            assertTrue(result.getIsAgreed());
+                mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
+                                .with(authentication(authFor(user))))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.code").value("USERS2009"))
+                        .andExpect(jsonPath("$.result").exists());
+                mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
+                                .with(authentication(authFor(user))))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.code").value("USERS2009"))
+                        .andExpect(jsonPath("$.result").exists());
+
+                TermsAgreement result = termsAgreementRepository
+                        .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
+                        .orElseThrow();
+                assertTrue(result.getIsAgreed());
+            }
         }
     }
 
