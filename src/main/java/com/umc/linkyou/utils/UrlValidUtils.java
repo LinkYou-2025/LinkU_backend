@@ -27,6 +27,16 @@ public class UrlValidUtils {
         }
     }
 
+    // 링크 생성(LinkuCreateService)과 존재 여부 확인(LinkuService#existLinku) 양쪽에서 각자
+    // "정규화 + 검증"을 따로 구현하고 있던 것을 하나로 합친 것.
+    // 정규화 전 url로 검증하면 트레일링 슬래시 등으로 DB에 저장된 정규화 값과 어긋날 수 있으므로,
+    // 반드시 정규화 → 검증 순서로 처리하고 이후 조회/저장에는 정규화된 값을 사용해야 한다.
+    public static String normalizeAndValidateLinkuUrl(String url) {
+        String normalized = UrlUtils.normalizeUrl(url);
+        validateLinkuUrl(normalized);
+        return normalized;
+    }
+
     /**
      * 영상 플랫폼 링크 여부 판별
      */

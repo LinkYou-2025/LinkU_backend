@@ -64,12 +64,15 @@ public class LinkuService {
     @Transactional
     public ApiResponse<LinkuResponseDTO.LinkuIsExistDTO> existLinku(Long userId, String url) {
 
-        // 1. 영상 링크 차단 , 유효하지 않은 링크 차단 → 예외 던지기
-        UrlValidUtils.validateLinkuUrl(url);
+        // 1. 정규화 + 영상 링크/유효하지 않은 링크 차단 → 예외 던지기.
+        //    LinkuCreateService.validateAndNormalizeUrl()과 동일한 로직(UrlValidUtils.normalizeAndValidateLinkuUrl)을
+        //    공유한다. 정규화하지 않은 원본 url로 조회하면, createLinku 시 정규화되어 저장된 값(트레일링 슬래시 제거 등)과
+        //    어긋나 이미 저장된 링크인데도 "존재하지 않음"으로 잘못 판정될 수 있다.
+        String normalizedUrl = UrlValidUtils.normalizeAndValidateLinkuUrl(url);
 
         // 3. 기존에 링크 저장 여부 확인
         Optional<UsersLinku> usersLinkuOpt =
-                usersLinkuRepository.findByUserIdAndLinku_LinkuUrl(userId, url);
+                usersLinkuRepository.findByUserIdAndLinku_LinkuUrl(userId, normalizedUrl);
 
         LinkuResponseDTO.LinkuIsExistDTO dto =
                 LinkuConverter.toLinkuIsExistDTO(userId, usersLinkuOpt.orElse(null));

@@ -1,5 +1,8 @@
 package com.umc.linkyou.infra.parser;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
 import com.umc.linkyou.infra.net.SafeUrlFetcher;
 import com.umc.linkyou.infra.net.SsrfGuard;
 import lombok.extern.slf4j.Slf4j;
@@ -12,16 +15,13 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 // title/body 크롤링이 공통으로 사용하는 robots.txt 검사기.
 // Allow/Disallow 둘 다 반영하며, 더 구체적인(긴) 경로 규칙이 우선한다.
-// 도메인(host+userAgent) 단위로 파싱 결과를 캐싱해 같은 호스트에 대한 반복 조회가 매번 네트워크를 타지 않게 한다.
+// 도메인(host+userAgent) 단위로 파싱 결과를 Caffeine에 캐싱해 같은 호스트에 대한 반복 조회가 매번 네트워크를 타지 않게 한다.
 // robots.txt 자체도 SafeUrlFetcher를 거쳐야 사설/내부망 호스트에 대한 조회 시도가 막힌다.
 @Slf4j
 @Component
@@ -30,8 +30,9 @@ public class RobotsTxtChecker {
     // package-private: 테스트에서 parseRules()/isPathAllowed() 반환값을 직접 다루기 위함
     record Rule(String pattern, boolean isAllow) {}
 
-    // 캐시 항목: 파싱된 규칙 + 만료 시각. robots.txt 조회에 성공했든 실패했든 결과를 캐시한다.
-    private record CachedRules(List<Rule> rules, Instant expiresAt) {}
+    // 캐시 항목: 파싱된 규칙 + 이 항목에 적용할 TTL. robots.txt 조회에 성공했든 실패했든 결과를 캐시한다.
+    // 실제 만료 판단은 Caffeine의 Expiry가 이 ttl 값을 읽어 처리한다(아래 생성자 참고).
+    private record CachedRules(List<Rule> rules, Duration ttl) {}
 
     // robots.txt는 자주 바뀌지 않으므로 정상 응답은 길게 캐시한다.
     // package-private: 테스트에서 TTL만큼 시간을 이동시켜 만료 동작을 검증하기 위함
@@ -39,8 +40,16 @@ public class RobotsTxtChecker {
     // 타임아웃 등 일시적 fetch 실패는 짧게 캐시해서 곧 재시도되도록 한다.
     static final Duration FAILURE_TTL = Duration.ofMinutes(1);
 
-    // 캐시 키: host(:port)|userAgent
-    private final Map<String, CachedRules> ruleCache = new ConcurrentHashMap<>();
+    // 캐시 키: host(:port)|userAgent. maximumSize로 상한을 둬서 다양한 도메인이 계속 쌓여도
+    // 메모리가 무한정 늘어나지 않게 한다(예전 ConcurrentHashMap 구현은 상한이 없었다).
+    // ticker를 주입받은 Clock 기준으로 맞춰서, 테스트에서 Clock을 이동시키면 캐시 만료도 함께 반영되게 한다.
+    private final Cache<String, CachedRules> ruleCache;
+
+    // 패턴 문자열 -> 컴파일된 정규식 캐시. rules 목록 자체는 도메인 단위로 캐시되지만,
+    // isPathAllowed()가 같은 규칙 목록을 URL마다 반복 검사하면서 matches()도 매번 호출되므로,
+    // 여기서 한 번 더 캐싱하지 않으면 동일한 패턴을 URL 검사마다 계속 재컴파일하게 된다.
+    private final Cache<String, Pattern> compiledPatternCache;
+
     private final SafeUrlFetcher safeUrlFetcher;
     private final Clock clock;
 
@@ -49,6 +58,29 @@ public class RobotsTxtChecker {
     public RobotsTxtChecker(SafeUrlFetcher safeUrlFetcher, Clock clock) {
         this.safeUrlFetcher = safeUrlFetcher;
         this.clock = clock;
+        this.ruleCache = Caffeine.newBuilder()
+                .maximumSize(5_000)
+                .ticker(() -> this.clock.instant().toEpochMilli() * 1_000_000L)
+                .expireAfter(new Expiry<String, CachedRules>() {
+                    @Override
+                    public long expireAfterCreate(String key, CachedRules value, long currentTime) {
+                        return value.ttl().toNanos();
+                    }
+
+                    @Override
+                    public long expireAfterUpdate(
+                            String key, CachedRules value, long currentTime, long currentDuration) {
+                        return value.ttl().toNanos();
+                    }
+
+                    @Override
+                    public long expireAfterRead(
+                            String key, CachedRules value, long currentTime, long currentDuration) {
+                        return currentDuration; // 읽는다고 만료 시각을 늘리지 않는다(원래도 expireAfterWrite 방식이었음)
+                    }
+                })
+                .build();
+        this.compiledPatternCache = Caffeine.newBuilder().maximumSize(5_000).build();
     }
 
     public boolean isAllowed(String urlStr, String userAgent) {
@@ -90,8 +122,8 @@ public class RobotsTxtChecker {
     // 캐시에 유효한 항목이 있으면 그대로 쓰고, 없거나 만료됐으면 새로 fetch한다.
     // 중복 fetch 허용형: 동시에 같은 호스트가 만료 시점을 맞히면 여러 스레드가 각자 fetch할 수 있다(락 없음).
     private List<Rule> resolveRules(String protocol, String hostPart, String userAgent, String cacheKey) {
-        CachedRules cached = ruleCache.get(cacheKey);
-        if (cached != null && cached.expiresAt().isAfter(clock.instant())) {
+        CachedRules cached = ruleCache.getIfPresent(cacheKey);
+        if (cached != null) {
             return cached.rules();
         }
         return fetchAndCache(protocol, hostPart, userAgent, cacheKey);
@@ -126,7 +158,7 @@ public class RobotsTxtChecker {
             ttl = FAILURE_TTL;
         }
 
-        ruleCache.put(cacheKey, new CachedRules(rules, clock.instant().plus(ttl)));
+        ruleCache.put(cacheKey, new CachedRules(rules, ttl));
         return rules;
     }
 
@@ -235,13 +267,8 @@ public class RobotsTxtChecker {
     // '*'는 0개 이상의 임의 문자, 패턴 끝의 '$'는 URL의 끝을 의미한다. (Google robots.txt 와일드카드 규칙)
     private static final String REGEX_METACHARACTERS = ".^$|?+()[]{}\\";
 
-    // 패턴 문자열 -> 컴파일된 정규식 캐시. rules 목록 자체는 도메인 단위로 캐시되지만,
-    // isPathAllowed()가 같은 규칙 목록을 URL마다 반복 검사하면서 matches()도 매번 호출되므로,
-    // 여기서 한 번 더 캐싱하지 않으면 동일한 패턴을 URL 검사마다 계속 재컴파일하게 된다.
-    private final Map<String, Pattern> compiledPatternCache = new ConcurrentHashMap<>();
-
     boolean matches(String path, String pattern) {
-        Pattern compiled = compiledPatternCache.computeIfAbsent(pattern, this::compilePattern);
+        Pattern compiled = compiledPatternCache.get(pattern, this::compilePattern);
         if (compiled == null) {
             return false;
         }
@@ -249,7 +276,7 @@ public class RobotsTxtChecker {
     }
 
     // 컴파일 실패(사실상 거의 발생하지 않음 - toRegex()가 메타문자를 전부 이스케이프한다)는
-    // computeIfAbsent 특성상 캐싱되지 않고 다음 호출에서 다시 시도된다.
+    // null을 반환하며, Caffeine은 null 값을 캐싱하지 않으므로 다음 호출에서 다시 시도된다.
     private Pattern compilePattern(String pattern) {
         try {
             return Pattern.compile(toRegex(pattern));

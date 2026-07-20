@@ -74,6 +74,9 @@ dependencies {
 	//jsoup 크롤링
 	implementation 'org.jsoup:jsoup:1.17.2'
 
+	// robots.txt 규칙/컴파일된 패턴 등 로컬(인메모리) 캐싱
+	implementation 'com.github.ben-manes.caffeine:caffeine'
+
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
 	//blue-green

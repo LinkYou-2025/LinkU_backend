@@ -1,7 +1,6 @@
 package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
-import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
 import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
 import com.umc.linkyou.infra.net.SafeUrlFetcher;
@@ -40,7 +39,6 @@ import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.utils.UrlUtils;
 import com.umc.linkyou.utils.UrlValidUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -210,10 +208,7 @@ public class LinkuCreateService {
     // Utility methods - 모두 public으로 선언
 
     public String validateAndNormalizeUrl(String url) {
-        String normalized = UrlUtils.normalizeUrl(url);
-        if (UrlValidUtils.isVideoLink(normalized)) throw new GeneralException(LinkuErrorStatus._LINKU_VIDEO_NOT_ALLOWED);
-        if (!UrlValidUtils.isValidUrl(normalized)) throw new GeneralException(LinkuErrorStatus._LINKU_INVALID_URL);
-        return normalized;
+        return UrlValidUtils.normalizeAndValidateLinkuUrl(url);
     }
 
     private Category resolveCategory(Long aiCategoryId) {
