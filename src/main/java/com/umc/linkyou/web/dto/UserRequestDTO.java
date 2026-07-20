@@ -1,6 +1,7 @@
 package com.umc.linkyou.web.dto;
 
 import com.umc.linkyou.domain.enums.DeviceType;
+import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.TermsType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
@@ -19,7 +20,8 @@ public class UserRequestDTO {
             @Schema(example = "별명") @NotBlank String nickName,
             @Schema(example = "example@gmail.com") @NotBlank @Email String email,
             @Schema(example = "zaq123") @NotBlank String password,
-            @Schema(example = "1") @NotNull Integer gender,
+            @Schema(example = "MALE", allowableValues = {"MALE", "FEMALE"})
+            @NotNull(message = "성별은 필수입니다") Gender gender,
             @Schema(example = "1") @NotNull Long jobId,
             @Schema(example = "[\"CAREER\", \"STUDY\"]") @NotEmpty(message = "목적 리스트는 최소 1개 이상 선택해야 합니다") List<String> purposeList,
             @Schema(example = "[\"IT\", \"DESIGN\"]") @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다") List<String> interestList,
@@ -88,9 +90,9 @@ public class UserRequestDTO {
         @NotBlank(message = "닉네임은 필수입니다")
         private String nickName;
 
-        @Schema(description = "성별 (1=남성, 2=여성)", example = "1")
+        @Schema(description = "성별", example = "MALE", allowableValues = {"MALE", "FEMALE"})
         @NotNull(message = "성별은 필수입니다")
-        private Integer gender;
+        private Gender gender;
 
         @Schema(description = "직업 ID", example = "1")
         @NotNull(message = "직업은 필수입니다")

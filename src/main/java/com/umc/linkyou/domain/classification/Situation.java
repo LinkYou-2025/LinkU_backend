@@ -6,8 +6,8 @@ import lombok.*;
 @Entity
 @Table(name = "situations")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Situation {
     @Id

@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Builder
 @Table(name = "folder_share_links")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class FolderShareLink extends BaseEntity {
 
     @Id

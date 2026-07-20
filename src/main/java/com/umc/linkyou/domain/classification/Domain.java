@@ -7,8 +7,8 @@ import lombok.*;
 @Entity
 @Table(name = "domains")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Domain {
 

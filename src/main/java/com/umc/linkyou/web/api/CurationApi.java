@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "curation-controller", description = "큐레이션 관련 API")
+@Tag(name = "큐레이션 API", description = "큐레이션과 관련 된 API 입니다")
 @RequestMapping("/curations")
 public interface CurationApi {
 

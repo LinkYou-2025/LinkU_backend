@@ -9,7 +9,7 @@ import lombok.*;
 @Table(name = "situation_categories")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class SituationCategory {
 

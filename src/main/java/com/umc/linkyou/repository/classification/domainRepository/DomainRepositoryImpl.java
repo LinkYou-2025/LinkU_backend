@@ -25,14 +25,6 @@ public class DomainRepositoryImpl implements DomainRepositoryCustom {
         return Optional.ofNullable(result);
     }
     @Override
-    public Optional<Domain> findById(long id) {
-        Domain result = queryFactory
-                .selectFrom(d)
-                .where(d.domainId.eq(id))
-                .fetchFirst();
-        return Optional.ofNullable(result);
-    }
-    @Override
     public List<Domain> findByDomainTailIn(Collection<String> domainTails) {
         return queryFactory
                 .selectFrom(d)

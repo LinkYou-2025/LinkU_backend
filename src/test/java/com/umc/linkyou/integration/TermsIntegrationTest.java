@@ -5,6 +5,7 @@ import com.umc.linkyou.converter.TermsConverter;
 import com.umc.linkyou.domain.TermsAgreement;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Job;
+import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.domain.enums.UserStatus;
@@ -70,7 +71,7 @@ class TermsIntegrationTest {
                     "통합테스터",
                     "integration@test.com",
                     "pass1234",
-                    1,
+                    Gender.MALE,
                     job.getId(),
                     List.of("CAREER"),
                     List.of("IT"),

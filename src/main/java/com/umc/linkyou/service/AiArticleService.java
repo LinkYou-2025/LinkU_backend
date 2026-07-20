@@ -7,8 +7,10 @@ import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.AiArticleConverter;
 import com.umc.linkyou.domain.AiArticle;
+import com.umc.linkyou.domain.AlarmPayload;
 import com.umc.linkyou.domain.Linku;
-import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.classification.Domain;
+import com.umc.linkyou.domain.enums.AlarmType;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.infra.ai.AiArticleAnalyzer;
 import com.umc.linkyou.infra.ai.dto.AiArticleResultDTO;
@@ -17,13 +19,16 @@ import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.service.alarm.AlarmService;
 import com.umc.linkyou.web.dto.AiArticleResponseDTO;
+import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,14 +42,17 @@ public class AiArticleService {
     private final AiArticleRepository aiArticleRepository;
     private final UsersLinkuRepository usersLinkuRepository;
     private final AiArticleAnalyzer aiArticleAnalyzer;
+    private final AlarmService alarmService;
 
     @Transactional
     public AiArticleResponseDTO.AiArticleResultDTO saveAiArticle(Long linkuId, Long userId) {
         Linku linku = linkuRepository.findById(linkuId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
-        Users user = userRepository.findById(userId)
+        userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
-        UsersLinku usersLinku = usersLinkuRepository.findByUserAndLinku(user, linku)
+        // 동일 (user, linku) 조합으로 저장된 UsersLinku가 여러 건일 수 있어 최신 1건을 사용한다.
+        UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId).stream()
+                .max(Comparator.comparing(UsersLinku::getCreatedAt))
                 .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
 
         AiArticleResultDTO result = aiArticleAnalyzer.analyzeByUrl(linku.getLinkuUrl());
@@ -58,10 +66,12 @@ public class AiArticleService {
                         AiArticleConverter.toEntity(result, linku)
                 ));
 
-        if (linku.getAiArticle() == null || !linku.getAiArticle().equals(article)) {
-            linku.assignAiArticle(article);
-        }
         usersLinku.markAiExist(true);
+
+        // 요약 완료 시 링크 요약 알림 발송. 설정 필터링은 sendAlarm 내부에서 처리한다.
+        String linkTitle = usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle();
+        alarmService.sendAlarm(userId, new AlarmRequestDTO.AlarmSendRequestDTO(
+                AlarmType.LINK_SUMMARY_COMPLETE, linkuId, new AlarmPayload.LinkTitle(linkTitle)));
 
         return AiArticleConverter.toDto(article, linku, usersLinku);
     }
@@ -85,9 +95,11 @@ public class AiArticleService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
         AiArticle article = aiArticleRepository.findByLinku(linku)
                 .orElseThrow(() -> new GeneralException(AiArticleErrorStatus._AI_ARTICLE_NOT_FOUND));
-        Users user = userRepository.findById(userId)
+        userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
-        UsersLinku usersLinku = usersLinkuRepository.findByUserAndLinku(user, linku)
+        // 동일 (user, linku) 조합으로 저장된 UsersLinku가 여러 건일 수 있어 최신 1건을 사용한다.
+        UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId).stream()
+                .max(Comparator.comparing(UsersLinku::getCreatedAt))
                 .orElse(null);
 
         return AiArticleConverter.toDto(article, linku, usersLinku);
@@ -104,28 +116,18 @@ public class AiArticleService {
                 ? String.valueOf(resultList.get(resultList.size() - 1).getUserLinkuId())
                 : null;
 
-        List<LinkuResponseDTO.LinkuResultDTO> linkuResultDTOs = resultList.stream()
+        List<LinkuResponseDTO.AiArticleSummaryDTO> linkuResultDTOs = resultList.stream()
                 .map(ul -> {
                     Linku l = ul.getLinku();
-                    AiArticle a = l.getAiArticle();
-                    String keyword = l.getLinkuKeywords().stream()
-                            .map(lk -> lk.getKeyword().getName())
-                            .collect(Collectors.joining(", "));
-                    return LinkuResponseDTO.LinkuResultDTO.builder()
-                            .userId(userId)
-                            .userLinkuId(ul.getUserLinkuId())
+                    Domain domain = l.getDomain();
+                    return LinkuResponseDTO.AiArticleSummaryDTO.builder()
                             .linkuId(l.getLinkuId())
-                            .categoryId(l.getCategory().getCategoryId())
                             .linku(l.getLinkuUrl())
-                            .memo(ul.getMemo())
-                            .emotionId(ul.getEmotion().getEmotionId())
+                            .emotionId(ul.getEmotion() != null ? ul.getEmotion().getEmotionId() : null)
+                            .domain(domain != null ? domain.getName() : null)
+                            .domainImageUrl(domain != null ? domain.getImageUrl() : null)
                             .title(ul.getTitle() != null ? ul.getTitle() : l.getTitle())
-                            .summary(a != null ? a.getSummary() : "요약 정보가 없습니다.")
-                            .keyword(keyword)
                             .linkuImageUrl(ul.getImageUrl() != null ? ul.getImageUrl() : l.getImgUrl())
-                            .aiArticleExists(ul.getAiExist())
-                            .createdAt(ul.getCreatedAt())
-                            .updatedAt(ul.getUpdatedAt())
                             .build();
                 })
                 .collect(Collectors.toList());
