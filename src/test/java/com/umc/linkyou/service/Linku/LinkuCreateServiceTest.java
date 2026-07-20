@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
+import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
 import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
@@ -24,6 +25,7 @@ import com.umc.linkyou.service.folder.FolderService;
 import com.umc.linkyou.service.keyword.KeywordService;
 import com.umc.linkyou.support.fixture.LinkuFixture;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -32,8 +34,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Optional;
 
 import static com.umc.linkyou.support.fixture.LinkuFixture.*;
@@ -72,6 +77,17 @@ class LinkuCreateServiceTest {
     @Mock private LinkuUpsertService linkuUpsertService;
     // SSRF 검증용 SafeUrlFetcher - validUrl 필드 계산에만 쓰이고 이 테스트들은 그 값을 검증하지 않으므로 스텁 없이 기본값(false)만 사용
     @Mock private SafeUrlFetcher safeUrlFetcher;
+    // DB 쓰기 구간만 감싸는 프로그래밍 방식 트랜잭션 - 목에서는 콜백을 그대로 실행해주기만 하면 된다.
+    @Mock private TransactionTemplate transactionTemplate;
+
+    @BeforeEach
+    void setUpTransactionTemplate() {
+        lenient().doAnswer(invocation -> {
+                    TransactionCallback<?> callback = invocation.getArgument(0);
+                    return callback.doInTransaction(null);
+                })
+                .when(transactionTemplate).execute(any());
+    }
 
     @Nested
     @DisplayName("신규 링크 등록 - 이미지 저장 분기")
@@ -221,6 +237,59 @@ class LinkuCreateServiceTest {
                         () -> linkuCreateService.createLinku(USER_ID, dto, null));
                 assertEquals(LinkuErrorStatus._LINKU_INVALID_URL, ex.getCode());
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("resolveDomain - 도메인 tail 계층 매칭")
+    class ResolveDomainHierarchy {
+
+        @Test
+        @DisplayName("정확히 일치하는 도메인이 있으면 apex 후보는 조회하지 않고 그대로 사용한다")
+        void 정확히_일치하면_해당_도메인을_우선_사용한다() {
+            Domain exact = Domain.builder().name("네이버 블로그").domainTail("blog.naver.com").build();
+            given(domainRepository.findByDomainTail("blog.naver.com")).willReturn(Optional.of(exact));
+
+            Domain result = linkuCreateService.resolveDomain(List.of("blog.naver.com", "naver.com"));
+
+            assertEquals(exact, result);
+            verify(domainRepository, never()).findByDomainTail("naver.com");
+        }
+
+        @Test
+        @DisplayName("정확히 일치하는 도메인이 없으면 registry-suffix apex 도메인으로 폴백한다")
+        void 정확히_일치하지_않으면_apex_도메인으로_폴백한다() {
+            given(domainRepository.findByDomainTail("someuser.tistory.com")).willReturn(Optional.empty());
+            Domain apex = Domain.builder().name("티스토리").domainTail("tistory.com").build();
+            given(domainRepository.findByDomainTail("tistory.com")).willReturn(Optional.of(apex));
+
+            Domain result = linkuCreateService.resolveDomain(List.of("someuser.tistory.com", "tistory.com"));
+
+            assertEquals(apex, result);
+        }
+
+        @Test
+        @DisplayName("아무 후보도 매칭되지 않으면 기본 도메인으로 폴백한다")
+        void 매칭되는_후보가_없으면_기본_도메인을_사용한다() {
+            given(domainRepository.findByDomainTail(any())).willReturn(Optional.empty());
+            Domain defaultDomain = LinkuFixture.domain();
+            given(domainRepository.findById(1L)).willReturn(Optional.of(defaultDomain));
+
+            Domain result = linkuCreateService.resolveDomain(List.of("unknown.example"));
+
+            assertEquals(defaultDomain, result);
+        }
+
+        @Test
+        @DisplayName("후보 목록이 비어 있으면(호스트 파싱 실패) 기본 도메인으로 폴백한다")
+        void 후보가_비어있으면_기본_도메인을_사용한다() {
+            Domain defaultDomain = LinkuFixture.domain();
+            given(domainRepository.findById(1L)).willReturn(Optional.of(defaultDomain));
+
+            Domain result = linkuCreateService.resolveDomain(List.of());
+
+            assertEquals(defaultDomain, result);
+            verify(domainRepository, never()).findByDomainTail(any());
         }
     }
 

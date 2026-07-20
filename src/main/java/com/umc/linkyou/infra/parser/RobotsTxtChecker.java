@@ -235,12 +235,27 @@ public class RobotsTxtChecker {
     // '*'는 0개 이상의 임의 문자, 패턴 끝의 '$'는 URL의 끝을 의미한다. (Google robots.txt 와일드카드 규칙)
     private static final String REGEX_METACHARACTERS = ".^$|?+()[]{}\\";
 
+    // 패턴 문자열 -> 컴파일된 정규식 캐시. rules 목록 자체는 도메인 단위로 캐시되지만,
+    // isPathAllowed()가 같은 규칙 목록을 URL마다 반복 검사하면서 matches()도 매번 호출되므로,
+    // 여기서 한 번 더 캐싱하지 않으면 동일한 패턴을 URL 검사마다 계속 재컴파일하게 된다.
+    private final Map<String, Pattern> compiledPatternCache = new ConcurrentHashMap<>();
+
     boolean matches(String path, String pattern) {
+        Pattern compiled = compiledPatternCache.computeIfAbsent(pattern, this::compilePattern);
+        if (compiled == null) {
+            return false;
+        }
+        return compiled.matcher(path).lookingAt();
+    }
+
+    // 컴파일 실패(사실상 거의 발생하지 않음 - toRegex()가 메타문자를 전부 이스케이프한다)는
+    // computeIfAbsent 특성상 캐싱되지 않고 다음 호출에서 다시 시도된다.
+    private Pattern compilePattern(String pattern) {
         try {
-            return Pattern.compile(toRegex(pattern)).matcher(path).lookingAt();
+            return Pattern.compile(toRegex(pattern));
         } catch (Exception e) {
             log.warn("[robots.txt] 패턴 변환 실패: {}, 이유: {}", pattern, e.getMessage());
-            return false;
+            return null;
         }
     }
 

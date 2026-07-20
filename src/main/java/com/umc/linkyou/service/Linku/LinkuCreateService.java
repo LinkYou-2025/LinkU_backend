@@ -44,9 +44,11 @@ import com.umc.linkyou.utils.UrlUtils;
 import com.umc.linkyou.utils.UrlValidUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -69,6 +71,9 @@ public class LinkuCreateService {
     private final KeywordService keywordService;
     private final LinkuUpsertService linkuUpsertService;
     private final SafeUrlFetcher safeUrlFetcher;
+    // 크롤링/AI분석/이미지 업로드 등 블로킹 외부 I/O를 @Transactional 메서드 밖에서 수행하기 위해
+    // (커넥션을 그 시간만큼 붙들고 있지 않도록) DB 쓰기 구간만 프로그래밍 방식으로 트랜잭션에 넣는다.
+    private final TransactionTemplate transactionTemplate;
 
     private static final Long DEFAULT_CATEGORY_ID = 16L;
     private static final Long DEFAULT_EMOTION_ID = 2L;
@@ -76,25 +81,73 @@ public class LinkuCreateService {
     private static final Long DEFAULT_SITUATION_ID = 1L;
     private static final int MAX_FALLBACK_TITLE_LENGTH = 50;
 
-    @Transactional
+    // 이 메서드 자체는 @Transactional이 아니다. 크롤링/AI분석/이미지 업로드/URL 접속확인 같은
+    // 블로킹 외부 I/O를 먼저 끝낸 뒤, DB 읽기/쓰기만 짧은 트랜잭션(persistLinku)으로 감싼다.
+    // (예전에는 이 메서드 전체가 @Transactional이라, 외부 HTTP 호출이 몰려있는 동안 DB 커넥션이
+    //  계속 점유되어 있었다 — 크롤링 대상이 느리거나 트래픽이 몰리면 커넥션 풀 고갈로 이어질 수 있었다.)
     public LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
-        // 1) URL 정규화 & 검증
+        // 1) URL 정규화 & 검증 (I/O 없음)
         String normalizedLink = validateAndNormalizeUrl(dto.getLinku());
         String domainTail = UrlValidUtils.extractDomainTail(normalizedLink);
+        List<String> domainTailCandidates = UrlValidUtils.extractDomainTailCandidates(normalizedLink);
 
-        // 2) 기존 Linku 존재 여부 확인-> ai 호출해되 되는지
+        // 2) 신규 링크인지 가볍게 먼저 확인해서, 신규일 때만 크롤링/AI 분석을 수행한다.
+        //    (실제 저장 시점에 한 번 더 확인한다 — 아래 3)에서 외부 I/O를 처리하는 동안
+        //     다른 요청이 같은 링크를 먼저 저장했을 가능성이 있기 때문)
+        boolean isNewLinku = linkuRepository.findByLinku(normalizedLink).isEmpty();
+
+        // 3) 블로킹 외부 I/O는 전부 트랜잭션 밖에서 먼저 끝낸다.
+        NewLinkuAiData aiData = isNewLinku ? prepareNewLinkuAiData(normalizedLink, domainTail) : null;
+        String userImageUrl = uploadUserImage(image);
+        boolean validUrl = safeUrlFetcher.isReachable(normalizedLink);
+
+        // 4) DB 읽기/쓰기만 짧은 트랜잭션 안에서 수행한다.
+        LinkuResponseDTO.LinkuResultDTO resultDto = transactionTemplate.execute(
+                (TransactionCallback<LinkuResponseDTO.LinkuResultDTO>) status ->
+                        persistLinku(userId, dto, normalizedLink, domainTail, domainTailCandidates, aiData, userImageUrl));
+
+        return LinkuResponseDTO.LinkuCreateResult.builder()
+                .data(resultDto)
+                .validUrl(validUrl)
+                .build();
+    }
+
+    // 크롤링(제목/본문/이미지) + AI 분석까지, DB에 쓰지 않는 순수 외부 I/O 단계.
+    private NewLinkuAiData prepareNewLinkuAiData(String normalizedLink, String domainTail) {
+        Optional<LinkuResultDTO> aiResult = geminiLinkuService.analyzeByUrl(
+                normalizedLink, categoryRepository.findAll(), situationRepository.findAll(), emotionRepository.findAll());
+
+        Long aiCategoryId = aiResult.map(LinkuResultDTO::categoryId).orElse(null);
+        String keywords = aiResult.map(LinkuResultDTO::keywords).orElse(null);
+        Long aiEmotionId = aiResult.map(LinkuResultDTO::emotionId).orElse(null);
+        Long aiSituationId = aiResult.map(LinkuResultDTO::situationId).orElse(null);
+        String rawAiTitle = aiResult.map(LinkuResultDTO::title).orElse(null);
+        String crawledImgUrl = linkToImageService.getRelatedImageFromUrl(normalizedLink, rawAiTitle);
+        // 크롤링/AI 둘 다 실패해도 title이 null로 안 나가도록 보장 (linkus.title은 NOT NULL)
+        String aiTitle = resolveTitle(rawAiTitle, domainTail, normalizedLink);
+
+        return new NewLinkuAiData(aiCategoryId, keywords, aiEmotionId, aiSituationId, aiTitle, crawledImgUrl);
+    }
+
+    // prepareNewLinkuAiData()의 결과를 트랜잭션 단계로 넘기기 위한 값 객체.
+    private record NewLinkuAiData(
+            Long aiCategoryId, String keywords, Long aiEmotionId, Long aiSituationId,
+            String aiTitle, String crawledImgUrl) {}
+
+    // DB 읽기/쓰기만 수행하는 트랜잭션 본체. 외부 HTTP 호출을 하지 않는다.
+    private LinkuResponseDTO.LinkuResultDTO persistLinku(
+            Long userId, LinkuRequestDTO.LinkuCreateDTO dto, String normalizedLink, String domainTail,
+            List<String> domainTailCandidates, NewLinkuAiData aiData, String userImageUrl) {
+
+        Domain domain = resolveDomain(domainTailCandidates);
         Optional<Linku> existingLinku = linkuRepository.findByLinku(normalizedLink);
 
         Linku linku;
         Category category;
-        Optional<LinkuResultDTO> aiResult = Optional.empty();
-        String aiTitle = null;
-        Long aiEmotionId = null;
-        Long aiSituationId = null;
-        String keywords = null;
-        Domain domain = resolveDomain(domainTail);
-
-
+        String aiTitle;
+        Long aiEmotionId;
+        Long aiSituationId;
+        String keywords;
 
         if (existingLinku.isPresent()) { //linkus 테이블에서 가져옴
             linku = existingLinku.get();
@@ -106,20 +159,23 @@ public class LinkuCreateService {
                     .map(lk -> lk.getKeyword().getName())
                     .collect(Collectors.joining(", "));
 
-        } else { // ai 요청을 보내 가져옴
-            aiResult = geminiLinkuService.analyzeByUrl(normalizedLink, categoryRepository.findAll(), situationRepository.findAll(), emotionRepository.findAll());
-            category = resolveCategory(aiResult.map(LinkuResultDTO::categoryId).orElse(null));
-            keywords = aiResult.map(LinkuResultDTO::keywords).orElse(null);
-            aiEmotionId = aiResult.map(LinkuResultDTO::emotionId).orElse(null);
-            aiSituationId = aiResult.map(LinkuResultDTO::situationId).orElse(null);
-            String rawAiTitle = aiResult.map(LinkuResultDTO::title).orElse(null);
-            String crawledImgUrl = linkToImageService.getRelatedImageFromUrl(normalizedLink, rawAiTitle);
+        } else { // 신규 저장 - aiData는 createLinku()에서 이미 외부 I/O로 준비해 온 값이다.
+            // 극히 드문 경쟁 상황 방어: createLinku()가 "기존 링크 있음"으로 판단해 aiData를
+            // 준비하지 않았는데(=null), 그 사이 해당 링크가 삭제되어 여기서는 신규로 보이는 경우.
+            // 이때는 AI 분석을 다시 트랜잭션 안에서 수행할 수 없으므로(블로킹 I/O 금지) 폴백 제목만으로 진행한다.
+            if (aiData == null) {
+                aiData = new NewLinkuAiData(null, null, null, null,
+                        resolveTitle(null, domainTail, normalizedLink), null);
+            }
+            category = resolveCategory(aiData.aiCategoryId());
+            keywords = aiData.keywords();
+            aiEmotionId = aiData.aiEmotionId();
+            aiSituationId = aiData.aiSituationId();
+            aiTitle = aiData.aiTitle();
             Emotion aiEmotion = resolveEmotion(null, aiEmotionId); //null이면 기본값으로 대체됨
             Situation aiSituation = resolveSituation(null, aiSituationId);
-            // 크롤링/AI 둘 다 실패해도 title이 null로 안 나가도록 보장 (linkus.title은 NOT NULL)
-            aiTitle = resolveTitle(rawAiTitle, domainTail, normalizedLink);
             // 신규 Linku 저장로직
-            linku = linkuUpsertService.upsert(normalizedLink, category, domain, aiTitle, crawledImgUrl,aiEmotion,aiSituation);;
+            linku = linkuUpsertService.upsert(normalizedLink, category, domain, aiTitle, aiData.crawledImgUrl(), aiEmotion, aiSituation);
             keywordService.saveKeywords(linku, keywords);
         }
 
@@ -130,10 +186,6 @@ public class LinkuCreateService {
         Emotion emotion     = resolveEmotion(userProvidedEmotion ? dto.getEmotionId() : null, aiEmotionId);
         Situation situation = resolveSituation(userProvidedSituation ? dto.getSituationId() : null, aiSituationId);
         String userTitle = userProvidedTitle ? dto.getTitle() : aiTitle;
-
-
-        // 사용자가 보낸 이미지 업로드
-        String userImageUrl = uploadUserImage(image);
 
         // useslinku 처리
         Users user          = findUser(userId);
@@ -149,18 +201,10 @@ public class LinkuCreateService {
         LinkuFolder linkuFolder = LinkuConverter.toLinkuFolder(folder, usersLinku);
         linkuFolderRepository.save(linkuFolder);
 
-
         String domainName = domain != null ? domain.getName() : null;
         String domainImageUrl = domain != null ? domain.getImageUrl() : null;
 
-        // 응답 반환
-        LinkuResponseDTO.LinkuResultDTO resultDto =
-                LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domainName, domainImageUrl, false, keywords, "");
-
-        return LinkuResponseDTO.LinkuCreateResult.builder()
-                .data(resultDto)
-                .validUrl(safeUrlFetcher.isReachable(normalizedLink))
-                .build();
+        return LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domainName, domainImageUrl, false, keywords, "");
     }
 
     // Utility methods - 모두 public으로 선언
@@ -181,13 +225,15 @@ public class LinkuCreateService {
 
 
 
-    public Domain resolveDomain(String domainTail) {
-        return domainTail != null
-                ? domainRepository.findByDomainTail(domainTail)
+    // domainTailCandidates: [정확한 호스트, (있다면) registry-suffix apex 도메인] 순서.
+    // someuser.tistory.com처럼 정확히 일치하는 domains 행이 없으면 apex(tistory.com) 행으로 폴백한다.
+    public Domain resolveDomain(List<String> domainTailCandidates) {
+        return domainTailCandidates.stream()
+                .map(domainRepository::findByDomainTail)
+                .flatMap(Optional::stream)
+                .findFirst()
                 .orElseGet(() -> domainRepository.findById(DEFAULT_DOMAIN_ID)
-                        .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND)))
-                : domainRepository.findById(DEFAULT_DOMAIN_ID)
-                .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND));
+                        .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND)));
     }
 
 
