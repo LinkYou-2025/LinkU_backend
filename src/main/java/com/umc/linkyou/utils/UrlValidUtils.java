@@ -1,13 +1,8 @@
 package com.umc.linkyou.utils;
 
-import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 
-import javax.net.ssl.SSLHandshakeException;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -60,31 +55,8 @@ public class UrlValidUtils {
         }
     }
 
-    /**
-     * 실제 HTTP 연결이 정상인지 확인
-     */
-    public static boolean isURLConnectionOk(String url) {
-        try {
-            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setRequestMethod("GET");
-            connection.setConnectTimeout(3000);
-            connection.setReadTimeout(3000);
-            connection.setInstanceFollowRedirects(true);
-            connection.setRequestProperty(
-                    "User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-                            "AppleWebKit/537.36 (KHTML, like Gecko) " +
-                            "Chrome/115.0 Safari/537.36"
-            );
-
-            int responseCode = connection.getResponseCode();
-            return responseCode >= 200 && responseCode < 400;
-
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
+    // 실제 HTTP 연결이 정상인지 확인하는 로직은 SSRF 검증이 필요해서
+    // com.umc.linkyou.infra.net.SafeUrlFetcher#isReachable(String)로 옮겼다.
 
     /**
      * URL에서 도메인명만 추출 (예: https://blog.naver.com/abc → blog.naver.com)

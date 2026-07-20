@@ -2,13 +2,14 @@ package com.umc.linkyou.infra.parser;
 
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.CrawlStrategy;
+import com.umc.linkyou.infra.net.SafeUrlFetcher;
+import com.umc.linkyou.infra.net.SsrfGuard;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.utils.UrlUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,7 @@ public class WebContentExtractor {
 
     private final DomainRepository domainRepository;
     private final RobotsTxtChecker robotsTxtChecker;
+    private final SafeUrlFetcher safeUrlFetcher;
 
     private final Map<String, ContentExtractorStrategy> crawlerStrategies = new ConcurrentHashMap<>();
 
@@ -55,17 +57,22 @@ public class WebContentExtractor {
         }
     }
 
+    // iframe 안의 실제 본문(blog.naver.com)으로 2차 요청을 보내야 하므로 SafeUrlFetcher를 직접 들고 있는다.
     static class NaverBlogExtractor implements ContentExtractorStrategy {
+        private final SafeUrlFetcher safeUrlFetcher;
+
+        NaverBlogExtractor(SafeUrlFetcher safeUrlFetcher) {
+            this.safeUrlFetcher = safeUrlFetcher;
+        }
+
         @Override
         public String extract(Document doc, String url) throws Exception {
             Elements naverIframe = doc.select("iframe#mainFrame");
             if (!naverIframe.isEmpty()) {
                 String src = naverIframe.attr("src");
                 String iframeUrl = src.startsWith("http") ? src : "https://blog.naver.com" + src;
-                Document iframeDoc = Jsoup.connect(iframeUrl)
-                        .userAgent("Mozilla/5.0")
-                        .timeout(15000)
-                        .get();
+                // 2차 요청도 SafeUrlFetcher를 거쳐야 iframe src가 내부망 주소로 조작된 경우를 막을 수 있다.
+                Document iframeDoc = safeUrlFetcher.fetchDocument(iframeUrl, "Mozilla/5.0", 15000);
 
                 String logNo = null;
                 String[] paramPairs = src.split("&");
@@ -104,7 +111,7 @@ public class WebContentExtractor {
 
         CrawlStrategy strategy = domain.getCrawlStrategy() != null ? domain.getCrawlStrategy() : CrawlStrategy.DEFAULT;
         return switch (strategy) {
-            case IFRAME -> new NaverBlogExtractor();
+            case IFRAME -> new NaverBlogExtractor(safeUrlFetcher);
             case BODY -> new BodyExtractor();
             default -> new DefaultExtractor();
         };
@@ -121,10 +128,7 @@ public class WebContentExtractor {
             String domainTail = extractDomainTail(safeUrl);
             ContentExtractorStrategy strategy = crawlerStrategies.computeIfAbsent(domainTail, this::createStrategy);
 
-            Document doc = Jsoup.connect(safeUrl)
-                    .userAgent("Mozilla/5.0")
-                    .timeout(15000)
-                    .get();
+            Document doc = safeUrlFetcher.fetchDocument(safeUrl, "Mozilla/5.0", 15000);
 
             String extracted = strategy.extract(doc, safeUrl);
 
@@ -137,6 +141,9 @@ public class WebContentExtractor {
 
         } catch (GeneralException e) {
             throw e;
+        } catch (SsrfGuard.BlockedException e) {
+            log.warn("[크롤링 제한] SSRF 정책에 의해 차단된 URL: {}, 이유: {}", url, e.getMessage());
+            throw new GeneralException(AiArticleErrorStatus._CONTENT_EXTRACTION_PROHIBITED);
         } catch (Exception e) {
             log.error("[크롤링 실패] URL: {}, 이유: {}", url, e.getMessage());
             throw new GeneralException(AiArticleErrorStatus._CONTENT_EXTRACTION_FAILED);

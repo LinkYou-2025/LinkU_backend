@@ -1,6 +1,8 @@
 package com.umc.linkyou.infra.parser;
 
 import com.sun.net.httpserver.HttpServer;
+import com.umc.linkyou.infra.net.SafeUrlFetcher;
+import com.umc.linkyou.infra.net.SsrfGuard;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,7 +24,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("RobotsTxtChecker 테스트")
 class RobotsTxtCheckerTest {
 
-    private final RobotsTxtChecker checker = new RobotsTxtChecker();
+    // 로컬 HTTP 서버(127.0.0.1)로 테스트하므로 loopback을 허용한 SafeUrlFetcher를 쓴다.
+    private static SafeUrlFetcher newTestFetcher() {
+        return new SafeUrlFetcher(new SsrfGuard(true));
+    }
+
+    private final RobotsTxtChecker checker = new RobotsTxtChecker(newTestFetcher(), Clock.systemUTC());
 
     private List<RobotsTxtChecker.Rule> parse(String robotsTxt, String userAgent) throws Exception {
         return checker.parseRules(new BufferedReader(new StringReader(robotsTxt)), userAgent);
@@ -367,6 +374,14 @@ class RobotsTxtCheckerTest {
             // RFC 2606에 의해 예약된, 절대 존재할 수 없는 도메인 - DNS 조회 자체가 실패한다.
             assertThat(checker.isAllowed("http://robots-cache-test.invalid/private/x", "Mozilla/5.0")).isTrue();
         }
+
+        @Test
+        @DisplayName("[SSRF] 사설/내부망 주소로는 robots.txt 조회 자체를 막고 기본 거부한다")
+        void SSRF_차단_대상은_기본_거부한다() {
+            // 링크로컬(169.254.169.254 등 AWS 메타데이터 엔드포인트 포함)은 DNS 실패와 달리
+            // 의도적으로 막는 것이므로 fail-open 하지 않고 false를 반환해야 한다.
+            assertThat(checker.isAllowed("http://169.254.169.254/latest/meta-data/", "Mozilla/5.0")).isFalse();
+        }
     }
 
     @Nested
@@ -407,7 +422,7 @@ class RobotsTxtCheckerTest {
                     User-agent: *
                     Disallow: /private/
                     """);
-            RobotsTxtChecker cachingChecker = new RobotsTxtChecker(Clock.systemUTC());
+            RobotsTxtChecker cachingChecker = new RobotsTxtChecker(newTestFetcher(), Clock.systemUTC());
 
             assertThat(cachingChecker.isAllowed(base + "/private/a", "Mozilla/5.0")).isFalse();
             assertThat(cachingChecker.isAllowed(base + "/public/a", "Mozilla/5.0")).isTrue();
@@ -424,7 +439,7 @@ class RobotsTxtCheckerTest {
                     Disallow: /private/
                     """);
             MutableClock clock = new MutableClock(Instant.parse("2026-01-01T00:00:00Z"));
-            RobotsTxtChecker cachingChecker = new RobotsTxtChecker(clock);
+            RobotsTxtChecker cachingChecker = new RobotsTxtChecker(newTestFetcher(), clock);
 
             assertThat(cachingChecker.isAllowed(base + "/public/a", "Mozilla/5.0")).isTrue();
             assertThat(requestCount.get()).isEqualTo(1);

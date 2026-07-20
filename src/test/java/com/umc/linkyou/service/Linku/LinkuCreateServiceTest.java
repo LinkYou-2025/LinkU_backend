@@ -8,6 +8,7 @@ import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
 import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
+import com.umc.linkyou.infra.net.SafeUrlFetcher;
 import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
@@ -69,6 +70,8 @@ class LinkuCreateServiceTest {
 
     // 의존성 주입을 위한 Upsert 서비스 Mock 추가
     @Mock private LinkuUpsertService linkuUpsertService;
+    // SSRF 검증용 SafeUrlFetcher - validUrl 필드 계산에만 쓰이고 이 테스트들은 그 값을 검증하지 않으므로 스텁 없이 기본값(false)만 사용
+    @Mock private SafeUrlFetcher safeUrlFetcher;
 
     @Nested
     @DisplayName("신규 링크 등록 - 이미지 저장 분기")

@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
 import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
+import com.umc.linkyou.infra.net.SafeUrlFetcher;
 import com.umc.linkyou.infra.parser.LinkToImageService;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
@@ -67,6 +68,7 @@ public class LinkuCreateService {
     private final GeminiLinkuService geminiLinkuService;
     private final KeywordService keywordService;
     private final LinkuUpsertService linkuUpsertService;
+    private final SafeUrlFetcher safeUrlFetcher;
 
     private static final Long DEFAULT_CATEGORY_ID = 16L;
     private static final Long DEFAULT_EMOTION_ID = 2L;
@@ -157,7 +159,7 @@ public class LinkuCreateService {
 
         return LinkuResponseDTO.LinkuCreateResult.builder()
                 .data(resultDto)
-                .validUrl(UrlValidUtils.isURLConnectionOk(normalizedLink))
+                .validUrl(safeUrlFetcher.isReachable(normalizedLink))
                 .build();
     }
 

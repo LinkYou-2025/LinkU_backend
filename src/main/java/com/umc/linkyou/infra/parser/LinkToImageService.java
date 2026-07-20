@@ -2,10 +2,10 @@ package com.umc.linkyou.infra.parser;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.infra.net.SafeUrlFetcher;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.domain.classification.Domain;
 import lombok.RequiredArgsConstructor;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -19,6 +19,7 @@ import java.util.List;
 public class LinkToImageService {
 
     private final DomainRepository domainRepository;
+    private final SafeUrlFetcher safeUrlFetcher;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -59,18 +60,12 @@ public class LinkToImageService {
     // 네이버 블로그 iframe 내부 본문 접근 + 대표 이미지 추출
     private String extractFromNaverBlog(String blogUrl) {
         try {
-            Document doc = Jsoup.connect(blogUrl)
-                    .userAgent("Mozilla/5.0")
-                    .timeout(IMAGE_FETCH_TIMEOUT_MS)
-                    .get();
+            Document doc = safeUrlFetcher.fetchDocument(blogUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
             String frameSrc = doc.select("iframe#mainFrame").attr("src");
             if (frameSrc.isEmpty()) return null;
 
             String realUrl = "https://blog.naver.com" + frameSrc;
-            Document realDoc = Jsoup.connect(realUrl)
-                    .userAgent("Mozilla/5.0")
-                    .timeout(IMAGE_FETCH_TIMEOUT_MS)
-                    .get();
+            Document realDoc = safeUrlFetcher.fetchDocument(realUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
 
             String ogImage = realDoc.select("meta[property=og:image]").attr("content");
             if (!ogImage.isEmpty()) return ogImage;
@@ -85,10 +80,7 @@ public class LinkToImageService {
     // 일반 웹페이지 대표 이미지 크롤링
     private String extractRepresentativeImage(String url) {
         try {
-            Document doc = Jsoup.connect(url)
-                    .userAgent("Mozilla/5.0")
-                    .timeout(IMAGE_FETCH_TIMEOUT_MS)
-                    .get();
+            Document doc = safeUrlFetcher.fetchDocument(url, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
 
             String[] selectors = {
                     "meta[property=og:image]",

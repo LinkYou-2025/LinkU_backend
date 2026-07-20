@@ -1,5 +1,7 @@
 package com.umc.linkyou.infra.parser;
 
+import com.umc.linkyou.infra.net.SafeUrlFetcher;
+import com.umc.linkyou.infra.net.SsrfGuard;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +22,7 @@ import java.util.regex.Pattern;
 // title/body 크롤링이 공통으로 사용하는 robots.txt 검사기.
 // Allow/Disallow 둘 다 반영하며, 더 구체적인(긴) 경로 규칙이 우선한다.
 // 도메인(host+userAgent) 단위로 파싱 결과를 캐싱해 같은 호스트에 대한 반복 조회가 매번 네트워크를 타지 않게 한다.
+// robots.txt 자체도 SafeUrlFetcher를 거쳐야 사설/내부망 호스트에 대한 조회 시도가 막힌다.
 @Slf4j
 @Component
 public class RobotsTxtChecker {
@@ -38,14 +41,13 @@ public class RobotsTxtChecker {
 
     // 캐시 키: host(:port)|userAgent
     private final Map<String, CachedRules> ruleCache = new ConcurrentHashMap<>();
+    private final SafeUrlFetcher safeUrlFetcher;
     private final Clock clock;
 
-    public RobotsTxtChecker() {
-        this(Clock.systemUTC());
-    }
-
-    // package-private: 테스트에서 시간을 제어해 TTL 만료를 검증하기 위함
-    RobotsTxtChecker(Clock clock) {
+    // 유일한 생성자: Spring이 자동으로 두 빈을 주입한다(Clock은 ClockConfig에서 등록).
+    // 테스트는 이 생성자에 직접 SafeUrlFetcher/Clock을 넘겨서 시간과 SSRF 정책을 통제한다.
+    public RobotsTxtChecker(SafeUrlFetcher safeUrlFetcher, Clock clock) {
+        this.safeUrlFetcher = safeUrlFetcher;
         this.clock = clock;
     }
 
@@ -73,6 +75,11 @@ public class RobotsTxtChecker {
             }
             return allowed;
 
+        } catch (SsrfGuard.BlockedException e) {
+            // 목적지가 사설/내부망 주소 등으로 판정되어 SSRF 정책에 의해 막힌 경우는
+            // 네트워크 일시 장애와 달리 "의도적으로 막은 것"이므로 fail-open하지 않는다.
+            log.warn("[robots.txt] SSRF 정책에 의해 차단됨: URL {}, 이유: {}", urlStr, e.getMessage());
+            return false;
         } catch (Exception e) {
             log.warn("[robots.txt 검사 실패] URL: {}, 이유: {}", urlStr, e.getMessage());
             // 검사 실패 시 기본 허용
@@ -91,15 +98,13 @@ public class RobotsTxtChecker {
     }
 
     // robots.txt를 실제로 가져와 파싱하고, 성공/실패 여부에 따라 다른 TTL로 캐시에 저장한다.
+    // SsrfGuard.BlockedException은 캐시하지 않고 그대로 위로 던져서 isAllowed()가 fail-closed 처리하게 한다.
     private List<Rule> fetchAndCache(String protocol, String hostPart, String userAgent, String cacheKey) {
         List<Rule> rules;
         Duration ttl;
         try {
             String robotsUrl = protocol + "://" + hostPart + "/robots.txt";
-            HttpURLConnection conn = (HttpURLConnection) new URL(robotsUrl).openConnection();
-            conn.setRequestProperty("User-Agent", userAgent);
-            conn.setConnectTimeout(5000);
-            conn.setReadTimeout(5000);
+            HttpURLConnection conn = safeUrlFetcher.openConnection(robotsUrl, userAgent, 5000, 5000);
 
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
@@ -112,6 +117,8 @@ public class RobotsTxtChecker {
                 }
             }
             ttl = SUCCESS_TTL;
+        } catch (SsrfGuard.BlockedException e) {
+            throw e;
         } catch (Exception e) {
             log.warn("[robots.txt fetch 실패] host: {}, 이유: {}", hostPart, e.getMessage());
             // 검사 실패 시 기본 허용하되, 일시적 문제일 수 있으니 짧게만 캐시한다.
