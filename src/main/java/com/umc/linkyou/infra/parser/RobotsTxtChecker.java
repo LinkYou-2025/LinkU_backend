@@ -8,12 +8,18 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 // title/body 크롤링이 공통으로 사용하는 robots.txt 검사기.
 // Allow/Disallow 둘 다 반영하며, 더 구체적인(긴) 경로 규칙이 우선한다.
+// 도메인(host+userAgent) 단위로 파싱 결과를 캐싱해 같은 호스트에 대한 반복 조회가 매번 네트워크를 타지 않게 한다.
 @Slf4j
 @Component
 public class RobotsTxtChecker {
@@ -21,29 +27,36 @@ public class RobotsTxtChecker {
     // package-private: 테스트에서 parseRules()/isPathAllowed() 반환값을 직접 다루기 위함
     record Rule(String pattern, boolean isAllow) {}
 
+    // 캐시 항목: 파싱된 규칙 + 만료 시각. robots.txt 조회에 성공했든 실패했든 결과를 캐시한다.
+    private record CachedRules(List<Rule> rules, Instant expiresAt) {}
+
+    // robots.txt는 자주 바뀌지 않으므로 정상 응답은 길게 캐시한다.
+    // package-private: 테스트에서 TTL만큼 시간을 이동시켜 만료 동작을 검증하기 위함
+    static final Duration SUCCESS_TTL = Duration.ofHours(24);
+    // 타임아웃 등 일시적 fetch 실패는 짧게 캐시해서 곧 재시도되도록 한다.
+    static final Duration FAILURE_TTL = Duration.ofMinutes(1);
+
+    // 캐시 키: host(:port)|userAgent
+    private final Map<String, CachedRules> ruleCache = new ConcurrentHashMap<>();
+    private final Clock clock;
+
+    public RobotsTxtChecker() {
+        this(Clock.systemUTC());
+    }
+
+    // package-private: 테스트에서 시간을 제어해 TTL 만료를 검증하기 위함
+    RobotsTxtChecker(Clock clock) {
+        this.clock = clock;
+    }
+
     public boolean isAllowed(String urlStr, String userAgent) {
         try {
             URL url = new URL(urlStr);
             // getHost()는 포트를 포함하지 않으므로, 표준 포트(80/443)가 아닌 경우를 위해 명시적으로 붙여준다.
             String hostPart = url.getPort() != -1 ? url.getHost() + ":" + url.getPort() : url.getHost();
-            String robotsUrl = url.getProtocol() + "://" + hostPart + "/robots.txt";
+            String cacheKey = hostPart + "|" + userAgent;
 
-            HttpURLConnection conn = (HttpURLConnection) new URL(robotsUrl).openConnection();
-            conn.setRequestProperty("User-Agent", userAgent);
-            conn.setConnectTimeout(5000);
-            conn.setReadTimeout(5000);
-
-            int responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
-                // robots.txt 없으면 기본 허용
-                return true;
-            }
-
-            List<Rule> rules;
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
-                rules = parseRules(reader, userAgent);
-            }
+            List<Rule> rules = resolveRules(url.getProtocol(), hostPart, userAgent, cacheKey);
 
             String path = url.getPath();
             if (path == null || path.isEmpty()) {
@@ -65,6 +78,49 @@ public class RobotsTxtChecker {
             // 검사 실패 시 기본 허용
             return true;
         }
+    }
+
+    // 캐시에 유효한 항목이 있으면 그대로 쓰고, 없거나 만료됐으면 새로 fetch한다.
+    // 중복 fetch 허용형: 동시에 같은 호스트가 만료 시점을 맞히면 여러 스레드가 각자 fetch할 수 있다(락 없음).
+    private List<Rule> resolveRules(String protocol, String hostPart, String userAgent, String cacheKey) {
+        CachedRules cached = ruleCache.get(cacheKey);
+        if (cached != null && cached.expiresAt().isAfter(clock.instant())) {
+            return cached.rules();
+        }
+        return fetchAndCache(protocol, hostPart, userAgent, cacheKey);
+    }
+
+    // robots.txt를 실제로 가져와 파싱하고, 성공/실패 여부에 따라 다른 TTL로 캐시에 저장한다.
+    private List<Rule> fetchAndCache(String protocol, String hostPart, String userAgent, String cacheKey) {
+        List<Rule> rules;
+        Duration ttl;
+        try {
+            String robotsUrl = protocol + "://" + hostPart + "/robots.txt";
+            HttpURLConnection conn = (HttpURLConnection) new URL(robotsUrl).openConnection();
+            conn.setRequestProperty("User-Agent", userAgent);
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode != 200) {
+                // robots.txt 없으면 기본 허용 - 정상적으로 확인된 상태이므로 길게 캐시한다.
+                rules = List.of();
+            } else {
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                    rules = parseRules(reader, userAgent);
+                }
+            }
+            ttl = SUCCESS_TTL;
+        } catch (Exception e) {
+            log.warn("[robots.txt fetch 실패] host: {}, 이유: {}", hostPart, e.getMessage());
+            // 검사 실패 시 기본 허용하되, 일시적 문제일 수 있으니 짧게만 캐시한다.
+            rules = List.of();
+            ttl = FAILURE_TTL;
+        }
+
+        ruleCache.put(cacheKey, new CachedRules(rules, clock.instant().plus(ttl)));
+        return rules;
     }
 
     // package-private: 네트워크 I/O 없이 순수 파싱 로직만 테스트할 수 있도록 Reader를 직접 받는다.

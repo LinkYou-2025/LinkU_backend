@@ -11,7 +11,11 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -355,6 +359,112 @@ class RobotsTxtCheckerTest {
 
             assertThat(checker.isAllowed(base + "/관리자/설정", "Mozilla/5.0")).isFalse();
             assertThat(checker.isAllowed(base + "/공개", "Mozilla/5.0")).isTrue();
+        }
+
+        @Test
+        @DisplayName("robots.txt 연결이 실패해도 예외 없이 기본 허용한다")
+        void 연결_실패시_기본_허용() {
+            // RFC 2606에 의해 예약된, 절대 존재할 수 없는 도메인 - DNS 조회 자체가 실패한다.
+            assertThat(checker.isAllowed("http://robots-cache-test.invalid/private/x", "Mozilla/5.0")).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("도메인별 캐싱")
+    class Caching {
+
+        private HttpServer server;
+        private AtomicInteger requestCount;
+
+        @AfterEach
+        void tearDown() {
+            if (server != null) {
+                server.stop(0);
+            }
+        }
+
+        // 요청이 들어올 때마다 카운트를 올리는 서버. 캐시가 실제로 네트워크를 타는지 검증하기 위함.
+        private String startCountingServer(String body) throws Exception {
+            requestCount = new AtomicInteger(0);
+            server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+            server.createContext("/robots.txt", exchange -> {
+                requestCount.incrementAndGet();
+                byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().add("Content-Type", "text/plain; charset=UTF-8");
+                exchange.sendResponseHeaders(200, bytes.length);
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(bytes);
+                }
+            });
+            server.start();
+            return "http://localhost:" + server.getAddress().getPort();
+        }
+
+        @Test
+        @DisplayName("같은 호스트를 두 번 조회해도 robots.txt는 한 번만 요청된다")
+        void 같은_호스트_반복조회시_robots_txt는_한번만_요청된다() throws Exception {
+            String base = startCountingServer("""
+                    User-agent: *
+                    Disallow: /private/
+                    """);
+            RobotsTxtChecker cachingChecker = new RobotsTxtChecker(Clock.systemUTC());
+
+            assertThat(cachingChecker.isAllowed(base + "/private/a", "Mozilla/5.0")).isFalse();
+            assertThat(cachingChecker.isAllowed(base + "/public/a", "Mozilla/5.0")).isTrue();
+            assertThat(cachingChecker.isAllowed(base + "/private/b", "Mozilla/5.0")).isFalse();
+
+            assertThat(requestCount.get()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("TTL이 지나면 캐시가 만료되어 robots.txt를 다시 요청하고 새 규칙을 반영한다")
+        void TTL_만료후_재요청하여_새_규칙을_반영한다() throws Exception {
+            String base = startCountingServer("""
+                    User-agent: *
+                    Disallow: /private/
+                    """);
+            MutableClock clock = new MutableClock(Instant.parse("2026-01-01T00:00:00Z"));
+            RobotsTxtChecker cachingChecker = new RobotsTxtChecker(clock);
+
+            assertThat(cachingChecker.isAllowed(base + "/public/a", "Mozilla/5.0")).isTrue();
+            assertThat(requestCount.get()).isEqualTo(1);
+
+            // TTL 이내에는 캐시를 그대로 쓴다 - 요청 수가 늘어나지 않는다.
+            assertThat(cachingChecker.isAllowed(base + "/public/b", "Mozilla/5.0")).isTrue();
+            assertThat(requestCount.get()).isEqualTo(1);
+
+            // SUCCESS_TTL을 넘기면 캐시가 만료되어 다시 요청한다.
+            clock.advance(RobotsTxtChecker.SUCCESS_TTL.plusSeconds(1));
+            assertThat(cachingChecker.isAllowed(base + "/public/c", "Mozilla/5.0")).isTrue();
+            assertThat(requestCount.get()).isEqualTo(2);
+        }
+    }
+
+    // 테스트에서 시간을 임의로 이동시키기 위한 Clock 구현체.
+    private static final class MutableClock extends Clock {
+        private Instant now;
+
+        MutableClock(Instant now) {
+            this.now = now;
+        }
+
+        void advance(java.time.Duration duration) {
+            now = now.plus(duration);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return ZoneId.of("UTC");
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return this;
+        }
+
+        @Override
+        public Instant instant() {
+            return now;
         }
     }
 }
