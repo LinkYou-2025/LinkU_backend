@@ -105,4 +105,32 @@ public interface UserApi {
     @GetMapping("/terms/status")
     ApiResponse<UserResponseDTO.TermsStatusDTO> getTermsStatus(
             @CurrentUser CustomUserDetails userDetails);
+
+
+    // 회원 탈퇴 복구 - 14일 이내
+    @Operation(
+            summary = "회원탈퇴 복구 (계정 활성화)",
+            description = """
+                탈퇴 유예 기간(14일) 내에 있는 사용자의 계정을 다시 활성화합니다.
+                - 상태를 ACTIVE로 변경하고 탈퇴 사유 및 날짜를 초기화합니다.
+                - 유예 기간(14일)이 지난 경우 복구 불가 에러를 반환합니다.
+                """
+    )
+    @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(errorStatus = {ErrorStatus._BAD_REQUEST})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @PostMapping("/recover")
+    ApiResponse<UserResponseDTO.withDrawalResultDTO> recoverMe(
+            @CurrentUser CustomUserDetails userDetails);
+
+    // 마케팅 약관 동의 또는 비동의
+    @Operation(
+            summary = "마케팅 약관 동의 토글",
+            description = "사용자의 마케팅 약관 동의 상태를 토글합니다. 현재 동의 상태가 true이면 false로, false이면 true로 변경됩니다."
+    )
+    @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @PatchMapping("/terms/marketing/toggle")
+    ApiResponse<Object> toggleMarketing(
+            @CurrentUser CustomUserDetails userDetails);
 }
