@@ -30,6 +30,7 @@ import com.umc.linkyou.repository.classification.domainRepository.DomainReposito
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
@@ -60,6 +61,8 @@ public class LinkuService {
     private final AiArticleRepository aiArticleRepository;
     private final CurationLinkuRepository curationLinkuRepository;
     private final LinkuViewService linkuViewService;
+    private final UserRepository userRepository;
+    private final AwsS3Service awsS3Service;
 
 
     @Transactional
@@ -342,9 +345,4 @@ public class LinkuService {
         // 3. UsersLinku 삭제
         usersLinkuRepository.delete(usersLinku);
     }
-
-
-
-
 }
-

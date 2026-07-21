@@ -68,7 +68,7 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
             @Param("userId") Long userId,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
-}
+
     @Query("""
             SELECT ul FROM UsersLinku ul
             JOIN FETCH ul.emotion
