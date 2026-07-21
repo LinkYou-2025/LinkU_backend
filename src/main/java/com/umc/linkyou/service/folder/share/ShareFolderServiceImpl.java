@@ -26,9 +26,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.umc.linkyou.domain.AlarmSetting;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -211,6 +214,29 @@ public class ShareFolderServiceImpl implements ShareFolderService {
                 .permission(PermissionType.OWNER.name())
                 .sharedAt(LocalDateTime.now().toString())
                 .build();
+    }
+
+    // 내가 공유한(소유자인) 폴더 목록 조회
+    @Transactional(readOnly = true)
+    public List<MySharedFolderResponseDTO> getMySharedFolders(Long userId) {
+        List<Folder> folders = usersFolderRepository.findMySharedFolders(userId);
+
+        if (folders.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> folderIds = folders.stream().map(Folder::getFolderId).toList();
+
+        Map<Long, Long> memberCountByFolderId = usersFolderRepository.findAllParticipantsByFolderIdIn(folderIds).stream()
+                .collect(Collectors.groupingBy(uf -> uf.getFolder().getFolderId(), Collectors.counting()));
+
+        return folders.stream()
+                .map(folder -> MySharedFolderResponseDTO.builder()
+                        .folderId(folder.getFolderId())
+                        .folderName(folder.getFolderName())
+                        .memberCount(memberCountByFolderId.getOrDefault(folder.getFolderId(), 0L).intValue())
+                        .build())
+                .toList();
     }
 
     // 폴더 비공개 전환

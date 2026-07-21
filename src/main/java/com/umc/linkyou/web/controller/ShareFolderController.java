@@ -58,5 +58,9 @@ public class ShareFolderController implements ShareFolderApi {
     public ApiResponse<ShareFolderResponseDTO> leaveFolder(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
         return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_OWNERSHIP_TRANSFERRED_OK, shareFolderService.leaveFolder(userDetails.getUserId(), folderId));
     }
+
+    @Override
+    public ApiResponse<List<MySharedFolderResponseDTO>> getMySharedFolders(@CurrentUser CustomUserDetails userDetails) {
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_MY_SHARED_OK, shareFolderService.getMySharedFolders(userDetails.getUserId()));
     }
 }

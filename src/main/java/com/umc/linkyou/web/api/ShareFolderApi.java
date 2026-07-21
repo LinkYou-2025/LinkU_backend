@@ -71,5 +71,10 @@ public interface ShareFolderApi {
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long folderId
     );
+
+    @Operation(summary = "내가 공유한 폴더 목록 조회", description = "내가 소유자이면서 실제로 참여 중인 멤버(뷰어/편집자)가 있는 폴더 목록을 조회합니다. 초대 링크만 활성화되어 있고 아직 아무도 참여하지 않은 폴더는 제외됩니다.")
+    @GetMapping("/my")
+    ApiResponse<List<MySharedFolderResponseDTO>> getMySharedFolders(
+            @CurrentUser CustomUserDetails userDetails
     );
 }

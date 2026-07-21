@@ -27,4 +27,7 @@ public interface ShareFolderService {
 
     // 가장 오래 참여한 멤버에게 소유권 자동 위임 후 폴더 나가기
     ShareFolderResponseDTO leaveFolder(Long ownerId, Long folderId);
+
+    // 내가 공유한(소유자인) 폴더 목록 조회
+    List<MySharedFolderResponseDTO> getMySharedFolders(Long userId);
 }
