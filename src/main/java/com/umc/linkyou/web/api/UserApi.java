@@ -123,6 +123,21 @@ public interface UserApi {
     ApiResponse<UserResponseDTO.withDrawalResultDTO> recoverMe(
             @CurrentUser CustomUserDetails userDetails);
 
+    // 계정 즉시 완전 삭제 (QA/테스트용, 대상은 항상 로그인한 본인 계정)
+    @Operation(
+            summary = "계정 즉시 완전 삭제 (테스트용)",
+            description = """
+                    로그인(authorization)한 사용자 본인 계정을 유예 기간 없이 즉시 완전 삭제합니다.
+                    - 별도의 상태 조건 없이 요청 즉시 삭제되며, 연관 데이터는 DB의 ON DELETE CASCADE로 함께 삭제됩니다.
+                    - 대상은 항상 요청자 본인 계정으로 한정되는 QA/테스트 목적의 엔드포인트입니다.
+                    """
+    )
+    @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @PostMapping("/test/delete-inactive")
+    ApiResponse<UserResponseDTO.withDrawalResultDTO> testDeleteInactive(
+            @CurrentUser CustomUserDetails userDetails);
+
     // 마케팅 약관 동의 또는 비동의
     @Operation(
             summary = "마케팅 약관 동의 토글",
