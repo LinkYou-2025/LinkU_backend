@@ -87,12 +87,18 @@ class UserWithdrawCascadeMigrationIntegrationTest {
                 linkuSearchHistoryRepository.save(LinkuSearchHistory.of(userId, "테스트검색어"));
         Long historyId = history.getId();
 
-        Interests interest = interestRepository.save(Interests.of("IT"));
+        Interests interest =
+                interestRepository
+                        .findByName("IT")
+                        .orElseGet(() -> interestRepository.save(Interests.of("IT")));
         UsersInterest usersInterest =
                 usersInterestRepository.save(UsersInterest.of(user, interest));
         Long usersInterestId = usersInterest.getId();
 
-        Purposes purpose = purposeRepository.save(Purposes.of("STUDY"));
+        Purposes purpose =
+                purposeRepository
+                        .findByName("STUDY")
+                        .orElseGet(() -> purposeRepository.save(Purposes.of("STUDY")));
         UsersPurpose usersPurpose = usersPurposeRepository.save(UsersPurpose.of(user, purpose));
         Long usersPurposeId = usersPurpose.getId();
 

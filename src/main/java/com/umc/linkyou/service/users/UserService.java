@@ -18,8 +18,10 @@ import com.umc.linkyou.domain.classification.Interests;
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.domain.enums.DeviceType;
+import com.umc.linkyou.domain.enums.Interest;
 import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.enums.Provider;
+import com.umc.linkyou.domain.enums.Purpose;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.folder.Folder;
@@ -349,30 +351,38 @@ public class UserService {
         userRepository.save(user);
     }
 
-    // 목적 이름 리스트를 마스터 엔티티로 변환 (없으면 새로 생성 - find or create)
+    // 목적 이름 리스트를 마스터 엔티티로 변환.
+    // Purpose는 domain.enums.Purpose로 값이 고정되어 있고, 카탈로그(purposes 테이블)에는
+    // V9 마이그레이션에서 이미 해당 값들이 시딩되어 있다. 따라서 여기서는 생성하지 않고,
+    // enum에 없는 값은 즉시 거부한 뒤 기존 카탈로그 row만 조회한다.
     private List<Purposes> resolvePurposes(List<String> purposeNames) {
         if (purposeNames == null || purposeNames.isEmpty()) return List.of();
-        return purposeNames.stream()
-                .distinct()
-                .map(
-                        name ->
-                                purposeRepository
-                                        .findByName(name)
-                                        .orElseGet(() -> purposeRepository.save(Purposes.of(name))))
-                .toList();
+        List<String> distinctNames = purposeNames.stream().distinct().toList();
+        for (String name : distinctNames) {
+            try {
+                Purpose.valueOf(name);
+            } catch (IllegalArgumentException e) {
+                throw new UserHandler(UserErrorStatus._INVALID_PURPOSE);
+            }
+        }
+        return purposeRepository.findAllByNameIn(distinctNames);
     }
 
-    // 관심사 이름 리스트를 마스터 엔티티로 변환 (없으면 새로 생성 - find or create)
+    // 관심사 이름 리스트를 마스터 엔티티로 변환.
+    // Interest는 domain.enums.Interest로 값이 고정되어 있고, 카탈로그(interests 테이블)에는
+    // V9 마이그레이션에서 이미 해당 값들이 시딩되어 있다. 따라서 여기서는 생성하지 않고,
+    // enum에 없는 값은 즉시 거부한 뒤 기존 카탈로그 row만 조회한다.
     private List<Interests> resolveInterests(List<String> interestNames) {
         if (interestNames == null || interestNames.isEmpty()) return List.of();
-        return interestNames.stream()
-                .distinct()
-                .map(
-                        name ->
-                                interestRepository
-                                        .findByName(name)
-                                        .orElseGet(() -> interestRepository.save(Interests.of(name))))
-                .toList();
+        List<String> distinctNames = interestNames.stream().distinct().toList();
+        for (String name : distinctNames) {
+            try {
+                Interest.valueOf(name);
+            } catch (IllegalArgumentException e) {
+                throw new UserHandler(UserErrorStatus._INVALID_INTEREST);
+            }
+        }
+        return interestRepository.findAllByNameIn(distinctNames);
     }
 
     /* 공통 메서드 */
