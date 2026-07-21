@@ -91,7 +91,7 @@ public interface LinkuApi {
 
     @Operation(summary = "저번 달 미열람 링크 조회", description = "저번 달에 저장만 하고 한 번도 열어보지 않은 링크 목록을 조회합니다.")
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
-    @GetMapping("/last-month/unread")
+    @GetMapping("/unread")
     ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getLastMonthUnreadLinkus(
             @CurrentUser CustomUserDetails userDetails
     );
