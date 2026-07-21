@@ -2,10 +2,11 @@ package com.umc.linkyou.infra.parser;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.infra.net.SafeUrlFetcher;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.domain.classification.Domain;
 import lombok.RequiredArgsConstructor;
-import org.jsoup.Jsoup;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -14,11 +15,14 @@ import org.springframework.beans.factory.annotation.Value;
 import java.net.URI;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LinkToImageService {
 
     private final DomainRepository domainRepository;
+    private final SafeUrlFetcher safeUrlFetcher;
+    private final RobotsTxtChecker robotsTxtChecker;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -29,21 +33,6 @@ public class LinkToImageService {
     private String apiKey;
     @Value("${custom.search.engine.id}")
     private String searchEngineId;
-
-    public String extractTitle(String url) {
-        try {
-            Document doc = Jsoup.connect(url)
-                    .userAgent("Mozilla/5.0")
-                    .get();
-            String ogTitle = doc.select("meta[property=og:title]").attr("content");
-            if (ogTitle != null && !ogTitle.isEmpty()) {
-                return ogTitle.replaceAll("[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\s]", "");
-            }
-            return doc.title().replaceAll("[^ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\s]", "");
-        } catch (Exception e) {
-            return null;
-        }
-    }
 
     // URL에서 도메인 추출
     private String extractDomainFromUrl(String url) {
@@ -74,18 +63,20 @@ public class LinkToImageService {
     // 네이버 블로그 iframe 내부 본문 접근 + 대표 이미지 추출
     private String extractFromNaverBlog(String blogUrl) {
         try {
-            Document doc = Jsoup.connect(blogUrl)
-                    .userAgent("Mozilla/5.0")
-                    .timeout(IMAGE_FETCH_TIMEOUT_MS)
-                    .get();
+            if (!robotsTxtChecker.isAllowed(blogUrl, "Mozilla/5.0")) {
+                log.warn("[크롤링 제한] robots.txt에 의해 이미지 추출 금지된 URL: {}", blogUrl);
+                return null;
+            }
+            Document doc = safeUrlFetcher.fetchDocument(blogUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
             String frameSrc = doc.select("iframe#mainFrame").attr("src");
             if (frameSrc.isEmpty()) return null;
 
             String realUrl = "https://blog.naver.com" + frameSrc;
-            Document realDoc = Jsoup.connect(realUrl)
-                    .userAgent("Mozilla/5.0")
-                    .timeout(IMAGE_FETCH_TIMEOUT_MS)
-                    .get();
+            if (!robotsTxtChecker.isAllowed(realUrl, "Mozilla/5.0")) {
+                log.warn("[크롤링 제한] robots.txt에 의해 이미지 추출 금지된 URL: {}", realUrl);
+                return null;
+            }
+            Document realDoc = safeUrlFetcher.fetchDocument(realUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
 
             String ogImage = realDoc.select("meta[property=og:image]").attr("content");
             if (!ogImage.isEmpty()) return ogImage;
@@ -100,10 +91,11 @@ public class LinkToImageService {
     // 일반 웹페이지 대표 이미지 크롤링
     private String extractRepresentativeImage(String url) {
         try {
-            Document doc = Jsoup.connect(url)
-                    .userAgent("Mozilla/5.0")
-                    .timeout(IMAGE_FETCH_TIMEOUT_MS)
-                    .get();
+            if (!robotsTxtChecker.isAllowed(url, "Mozilla/5.0")) {
+                log.warn("[크롤링 제한] robots.txt에 의해 이미지 추출 금지된 URL: {}", url);
+                return null;
+            }
+            Document doc = safeUrlFetcher.fetchDocument(url, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
 
             String[] selectors = {
                     "meta[property=og:image]",
@@ -191,10 +183,5 @@ public class LinkToImageService {
         }
 
         return null;
-    }
-
-    public String getRelatedImageFromUrl(String url) {
-        String title = extractTitle(url);
-        return getRelatedImageFromUrl(url, title);
     }
 }

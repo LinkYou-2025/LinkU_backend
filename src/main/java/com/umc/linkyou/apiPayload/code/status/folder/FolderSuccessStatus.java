@@ -28,6 +28,8 @@ public enum FolderSuccessStatus implements BaseSuccessCode {
     FOLDER_UNSHARE_OK(HttpStatus.OK, "FOLDER2013", "폴더를 비공개로 전환했습니다."),
     FOLDER_SHARED_OK(HttpStatus.OK, "FOLDER2014", "공유 받은 폴더 목록 조회에 성공했습니다."),
     FOLDER_LEAVE_OK(HttpStatus.OK, "FOLDER2015", "공유 폴더에서 탈퇴했습니다."),
+    FOLDER_OWNERSHIP_TRANSFERRED_OK(HttpStatus.OK, "FOLDER2018", "소유권을 위임하고 폴더에서 나갔습니다."),
+    FOLDER_MY_SHARED_OK(HttpStatus.OK, "FOLDER2019", "내가 공유한 폴더 목록 조회에 성공했습니다."),
 
     // 초대
     INVITATION_INFO_OK(HttpStatus.OK, "FOLDER2016", "초대장 정보 조회에 성공했습니다."),

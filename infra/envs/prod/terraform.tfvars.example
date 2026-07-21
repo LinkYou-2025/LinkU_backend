@@ -1,0 +1,6 @@
+# 이 파일을 terraform.tfvars로 복사한 뒤 실제 값으로 채울 것
+# terraform.tfvars는 gitignore 대상이므로 비밀번호를 넣어도 커밋되지 않음
+
+ami_id      = "ami-xxxxxxxxxxxxxxxxx" # Ubuntu 24.04 LTS (ap-northeast-2)
+key_name    = "linku-key"
+db_password = "CHANGE_ME"

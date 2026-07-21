@@ -1,16 +1,16 @@
 ---
 name: git-conventions
-description: Use when creating commits, branches, pull requests, or GitHub issues. Covers Conventional Commits format (English only — enforced by commit-msg-check.sh hook), branch naming, PR/issue templates, and merge etiquette. Trigger any time a git/gh command is about to run or when drafting a PR description or branch name.
+description: Use when creating commits, branches, pull requests, or GitHub issues. Covers Conventional Commits format (Korean preferred), branch naming, PR/issue templates, and merge etiquette. Trigger any time a git/gh command is about to run or when drafting a PR description or branch name.
 ---
 
 # Git Conventions
 
 ## 커밋 메시지
 
-**Conventional Commits** 형식, **영문만** 허용 (`commit-msg-check.sh` 훅이 강제).
+**Conventional Commits** 형식, **한글 우선** (한글/영문 모두 허용, `commit-msg-check.sh` 훅이 형식만 강제).
 
 ```
-type(scope): short description
+type: #이슈번호 한글 설명
 ```
 
 ### 타입
@@ -29,25 +29,27 @@ type(scope): short description
 ### 예시
 
 ```
-feat(auth): add Apple OAuth2 login endpoint
-fix(folder): resolve NPE when folder has no links
-refactor(alarm): extract alarm status update logic into service
-test(user): add integration test for user registration flow
-chore(deps): upgrade spring-boot to 3.4.7
-docs: add CLAUDE.md with project conventions
+feat: #12 Apple OAuth2 로그인 구현
+fix: #34 폴더에 링크 없을 때 NPE 수정
+refactor: #56 알람 상태 업데이트 로직 서비스로 분리
+test: #78 마케팅 약관 토글 통합 테스트 추가
+chore: #90 spring-boot 3.4.7로 업그레이드
 ```
 
 ### 금지 패턴
 
 ```
-# 한글 금지
-feat: 폴더 생성 기능 추가  ❌
+# scope 사용 금지
+feat(auth): 로그인 구현  ❌
+
+# 이슈번호 없음 (이슈가 있는 경우)
+feat: 로그인 구현  ❌
 
 # 타입 없음
-add folder creation feature  ❌
+로그인 구현  ❌
 
 # 너무 모호함
-fix: bug fix  ❌
+fix: 버그 수정  ❌
 ```
 
 ---
@@ -76,7 +78,7 @@ docs/short-description       # 문서
 PR 제목은 커밋 메시지와 동일한 Conventional Commits 형식으로:
 
 ```
-feat(auth): add Apple OAuth2 login
+feat: #12 Apple OAuth2 로그인 구현
 ```
 
 PR 본문 구성:

@@ -5,6 +5,7 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -54,7 +55,11 @@ public class FcmConfig {
     @Bean
     @ConditionalOnBean(FirebaseApp.class)
     @ConditionalOnMissingBean(FirebaseMessaging.class)
-    public FirebaseMessaging firebaseMessaging(FirebaseApp firebaseApp) {
+    public FirebaseMessaging firebaseMessaging(ObjectProvider<FirebaseApp> firebaseAppProvider) {
+        FirebaseApp firebaseApp = firebaseAppProvider.getIfAvailable();
+        if (firebaseApp == null) {
+            return null;
+        }
         return FirebaseMessaging.getInstance(firebaseApp);
     }
 }

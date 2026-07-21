@@ -1,6 +1,6 @@
 #!/bin/bash
 # PreToolUse(Bash) 훅: git commit 명령의 커밋 메시지를 Conventional Commits 형식으로 검증.
-# 한글 메시지 또는 형식 위반 시 exit 2로 차단.
+# 형식 위반 시 exit 2로 차단.
 #
 # 차단 이유: 커밋 히스토리 일관성 유지 + CI 자동화 파싱 신뢰도
 
@@ -38,23 +38,9 @@ CONVENTIONAL_PATTERN='^(feat|fix|refactor|test|docs|perf|chore|style|build|ci|re
 if ! echo "$MSG" | grep -Eq "$CONVENTIONAL_PATTERN"; then
     echo "❌ [commit-msg-check] Conventional Commits 형식이 아닙니다." >&2
     echo "   형식: type(scope): description" >&2
-    echo "   예시: feat(auth): add Apple OAuth2 login" >&2
+    echo "   예시: feat(auth): Apple OAuth2 로그인 추가" >&2
     echo "   허용 타입: feat fix refactor test docs perf chore style build ci revert" >&2
     echo "" >&2
-    echo "   입력된 메시지: $MSG" >&2
-    exit 2
-fi
-
-# 한글 포함 여부 검증 (macOS/Linux 호환)
-if python3 -c "
-import sys, re
-msg = sys.stdin.read()
-if re.search(r'[가-힣ㄱ-ㅎㅏ-ㅣ]', msg):
-    sys.exit(1)
-" <<< "$MSG"; then
-    :
-else
-    echo "❌ [commit-msg-check] 커밋 메시지는 영문만 허용합니다." >&2
     echo "   입력된 메시지: $MSG" >&2
     exit 2
 fi

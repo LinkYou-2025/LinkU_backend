@@ -8,6 +8,7 @@ import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
+import com.umc.linkyou.web.dto.folder.share.MySharedFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -61,5 +62,19 @@ public interface ShareFolderApi {
     ApiResponse<ShareFolderResponseDTO> unshareFolder(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long folderId
+    );
+
+    @Operation(summary = "내 폴더 나가기", description = "가장 오래 참여한 멤버에게 폴더 소유권을 자동으로 위임하고 본인은 폴더에서 나갑니다.")
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}, shareFolderErrorStatus = {ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED, ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND, ShareFolderErrorStatus._FOLDER_LEAVE_NO_MEMBER_TO_TRANSFER})
+    @PostMapping("/{folderId}/leave")
+    ApiResponse<ShareFolderResponseDTO> leaveFolder(
+            @CurrentUser CustomUserDetails userDetails,
+            @PathVariable Long folderId
+    );
+
+    @Operation(summary = "내가 공유한 폴더 목록 조회", description = "내가 소유자이면서 실제로 참여 중인 멤버(뷰어/편집자)가 있는 폴더 목록을 조회합니다. 초대 링크만 활성화되어 있고 아직 아무도 참여하지 않은 폴더는 제외됩니다.")
+    @GetMapping("/my")
+    ApiResponse<List<MySharedFolderResponseDTO>> getMySharedFolders(
+            @CurrentUser CustomUserDetails userDetails
     );
 }

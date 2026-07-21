@@ -1,7 +1,9 @@
 package com.umc.linkyou.web.dto.linku;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.springframework.web.multipart.MultipartFile;
 
 public class LinkuRequestDTO {
     @Setter
@@ -32,15 +34,6 @@ public class LinkuRequestDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class LinkuUpdateDTO {
-        @Schema(example = "16", description = "폴더 ID")
-        private Long folderId;
-
-        @Schema(example = "16", description = "카테고리 ID")
-        private Long categoryId;
-
-        @Schema(example = "수정된 링크", description = "수정할 URL 또는 링크 본문")
-        private String linku;
-
         @Schema(example = "수정된 메모", description = "수정할 나만의 메모")
         private String memo;
 
@@ -53,8 +46,25 @@ public class LinkuRequestDTO {
         @Schema(example = "1", description = "도메인(domain) ID")
         private Long domainId;
 
+        @Schema(example = "5", description = "변경할 카테고리 ID. 내 폴더 중 해당 카테고리의 중분류(루트) 폴더로 링크가 이동합니다.")
+        private Long categoryId;
+
         @Schema(example = "수정된 제목", description = "링크의 제목(TITLE)")
         private String title;
+
+        @Schema(description = "수정할 대표 이미지 파일 (미첨부 시 기존 이미지를 그대로 유지)")
+        private MultipartFile image;
+    }
+
+    @Setter
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LinkuFolderUpdateDTO {
+        @NotNull(message = "이동할 폴더 ID는 필수입니다.")
+        @Schema(example = "16", description = "이동할 폴더 ID", requiredMode = Schema.RequiredMode.REQUIRED)
+        private Long folderId;
     }
 
 }

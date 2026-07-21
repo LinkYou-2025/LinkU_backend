@@ -6,7 +6,7 @@ import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.service.keyword.KeywordService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.api.KeywordApi;
-import com.umc.linkyou.web.dto.keyword.KeywordRankResponse;
+import com.umc.linkyou.web.dto.keyword.JobKeywordRankResponse;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.YearMonth;
 import java.util.List;
 
 @ApiV1
@@ -24,12 +25,10 @@ public class KeywordController implements KeywordApi {
     private final KeywordService keywordService;
 
     @Override
-    public ResponseEntity<ApiResponse<List<KeywordRankResponse>>> getMyTopKeywords(@CurrentUser CustomUserDetails userDetails, @RequestParam String month, @RequestParam(defaultValue = "3") @Min(1) @Max(50) int limit) {
-        return ResponseEntity.ok(ApiResponse.onSuccess(keywordService.getMyTopKeywords(userDetails.getUserId(), month, limit)));
-    }
-
-    @Override
-    public ResponseEntity<ApiResponse<List<KeywordRankResponse>>> getJobTopKeywords(@CurrentUser CustomUserDetails userDetails, @RequestParam(defaultValue = "15") @Min(1) @Max(50) int limit) {
-        return ResponseEntity.ok(ApiResponse.onSuccess(keywordService.getJobTopKeywords(userDetails.getUserId(), limit)));
+    public ResponseEntity<ApiResponse<List<JobKeywordRankResponse>>> getJobTopKeywords(
+            @CurrentUser CustomUserDetails userDetails,
+            @RequestParam YearMonth month,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit) {
+        return ResponseEntity.ok(ApiResponse.onSuccess(keywordService.getJobTopKeywords(userDetails.getUserId(), month, limit)));
     }
 }

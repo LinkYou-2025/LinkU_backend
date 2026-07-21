@@ -4,8 +4,6 @@ import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
-import com.umc.linkyou.service.common.KeywordNameResolver;
 import com.umc.linkyou.service.curation.ment.CurationMentMaterializer;
 import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.service.curation.recommend.external.ExternalRecommendMaterializer;
@@ -24,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import com.umc.linkyou.web.dto.curation.CurationListResponse;
-import org.springframework.data.domain.PageRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,8 +42,6 @@ public class CurationServiceImpl implements CurationService {
     private final ExternalRecommendMaterializer externalRecommendMaterializer;
     private final InternalRecommendMaterializer internalRecommendMaterializer;
     private final CurationMentMaterializer curationMentMaterializer;
-    private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
-    private final KeywordNameResolver keywordNameResolver;
 
     // 단일 유저의 특정 월 큐레이션 생성
     @Override
@@ -152,19 +147,9 @@ public class CurationServiceImpl implements CurationService {
             throw new GeneralException(CurationErrorStatus._CURATION_FORBIDDEN);
         }
 
-        String baseMonth = curation.getBaseMonth();
-
-        // 상위 태그 3개 조회
-        List<String> tagNames = keywordMonthlyCountRepository
-                .findTopByUserIdAndBaseMonth(userId, baseMonth, PageRequest.of(0, 3))
-                .stream()
-                .map(kmc -> keywordNameResolver.resolve(kmc.getType(), kmc.getRefId()))
-                .toList();
-
         return CurationDetailResponse.builder()
                 .curationId(curation.getCurationId())
                 .month(curation.getBaseMonth())
-                .topTags(tagNames)
                 .headerMent(curation.getHeaderMent())
                 .footerMent(curation.getFooterMent())
                 .mentReady(curation.getHeaderMent() != null && !curation.getHeaderMent().isBlank()

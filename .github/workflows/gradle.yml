@@ -1,4 +1,4 @@
-name: linkyou
+name: dev-cd
 on:
   push:
     branches: [ "develop" ]
@@ -10,16 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
       - name: Gradle Caching
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -28,18 +28,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: make application.properties
-        run: |
-          mkdir -p src/main/resources
-          echo "$APPLICATION" > src/main/resources/application-secret.properties
-        env:
-          APPLICATION: ${{ secrets.APPLICATION }}
-      - name: create GCP credentials json file
-        run: |
-          echo "${{ secrets.GCP_CREDENTIALS_BASE64 }}" | base64 --decode > src/main/resources/gcp-credentials.json
-      - name: create firebase admin json file
-        run: |
-          echo "${{ secrets.FIREBASE_ADMIN_BASE64 }}" | base64 --decode > src/main/resources/linku-firebase-adminsdk.json
       - name: Create assetlinks.json file
         run: |
           mkdir -p src/main/resources/static/.well-known
@@ -67,14 +55,18 @@ jobs:
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
             mkdir -p /home/ubuntu/linkyou
-            echo "${{ secrets.GCP_KEY_BASE64 }}" | base64 -d > /home/ubuntu/linku-key.json
+            if [ ! -f /home/ubuntu/secrets/application-secret.properties ]; then
+              echo "ERROR: /home/ubuntu/secrets/application-secret.properties not found"
+              exit 1
+            fi
 
             sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
             sudo docker pull ${{ secrets.DOCKER_REPO_NAME }}:latest
-      
+
             cd /home/ubuntu/linkyou
-            sudo docker compose -f docker-compose.remote.yml down
-            sudo docker compose -f docker-compose.remote.yml up -d
+            export DOCKER_REPO_NAME=${{ secrets.DOCKER_REPO_NAME }}
+            sudo -E docker compose -f docker-compose.remote.yml down
+            sudo -E docker compose -f docker-compose.remote.yml up -d
       
             sudo docker image prune -a -f
 
@@ -92,21 +84,3 @@ jobs:
               sleep 5
               RETRIES=$((RETRIES-1))
             done
-
-      - name: Test and restart Nginx safely
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ubuntu
-          key: ${{ secrets.PRIVATE_KEY }}
-          script: |
-            # Nginx 설정 테스트
-            sudo nginx -t
-            # 설정이 문제 없으면 재시작
-            if [ $? -eq 0 ]; then
-              echo "Nginx config OK. Restarting Nginx..."
-              sudo systemctl restart nginx
-            else
-              echo "Nginx config test failed. Not restarting."
-              exit 1
-            fi  
