@@ -41,6 +41,7 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -259,6 +260,61 @@ class UserControllerTest {
                                 .content(objectMapper.writeValueAsString(request))
                                 .with(csrf()))
                         .andExpect(status().isUnauthorized());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("계정 즉시 완전 삭제 엔드포인트 (테스트용)")
+    class TestDeleteInactive {
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("성공 - 로그인한 본인 계정을 즉시 삭제한다")
+            @WithCustomUser(userId = 3L)
+            void test_delete_inactive_success() throws Exception {
+                Users mockUser = Users.builder()
+                        .id(3L)
+                        .nickName("삭제될유저")
+                        .status(UserStatus.INACTIVE)
+                        .build();
+                ReflectionTestUtils.setField(mockUser, "createdAt", LocalDateTime.now());
+
+                given(userWithdrawService.testImmediateDelete(3L)).willReturn(mockUser);
+
+                mockMvc.perform(post("/api/v1/users/test/delete-inactive")
+                                .with(csrf()))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.result.userId").value(3));
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+
+            @Test
+            @DisplayName("실패 - 비인증 사용자가 요청 시 401 에러를 반환한다")
+            void test_delete_inactive_unauthorized() throws Exception {
+                mockMvc.perform(post("/api/v1/users/test/delete-inactive")
+                                .with(csrf()))
+                        .andExpect(status().isUnauthorized());
+            }
+
+            @Test
+            @DisplayName("실패 - 존재하지 않는 유저인 경우 예외를 반환한다")
+            @WithCustomUser(userId = 99L)
+            void test_delete_inactive_user_not_found() throws Exception {
+                given(userWithdrawService.testImmediateDelete(99L))
+                        .willThrow(new UserHandler(UserErrorStatus._USER_NOT_FOUND));
+
+                mockMvc.perform(post("/api/v1/users/test/delete-inactive")
+                                .with(csrf()))
+                        .andExpect(jsonPath("$.isSuccess").value(false));
             }
         }
     }
