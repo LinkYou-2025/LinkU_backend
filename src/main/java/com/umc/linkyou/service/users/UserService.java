@@ -235,9 +235,7 @@ public class UserService {
                         .orElseThrow(() -> new UserHandler(UserErrorStatus._JOB_NOT_SET));
         user.completeSocialProfile(request.getNickName(), request.getGender(), job);
 
-        // Purposes / Interests 설정
-        usersPurposeRepository.deleteAllByUser(user);
-        usersInterestRepository.deleteAllByUser(user);
+        // Purposes / Interests 설정 (TEMP 상태에서만 진입하므로 기존 데이터가 없어 delete 불필요)
         usersPurposeRepository.saveAll(
                 UserConverter.toUsersPurposes(user, resolvePurposes(request.getPurposeList())));
         usersInterestRepository.saveAll(
