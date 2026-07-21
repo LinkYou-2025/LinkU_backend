@@ -54,13 +54,6 @@ public enum AlarmType {
             "일부 기능 이용이 원활하지 않을 수 있어요",
             AlarmSettingType.NOTICE,
             AlarmResponseType.NOTICE
-    ),
-
-    NOTICE(
-            "공지사항",
-            "새로운 공지사항이 있어요",
-            AlarmSettingType.NOTICE,
-            AlarmResponseType.NOTICE
     );
 
     private final String title;
