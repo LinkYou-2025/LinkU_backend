@@ -87,16 +87,20 @@ CREATE TABLE users_purposes
     CONSTRAINT uk_users_purposes_user_purpose UNIQUE (user_id, purpose_id)
 );
 
--- 6. 기존 유저별 선택 데이터를 조인 테이블로 이관
+-- 6. 기존 유저별 선택 데이터를 조인 테이블로 이관 (레거시 중복 대비 GROUP BY + ON CONFLICT)
 INSERT INTO users_interests (user_id, interest_id, selected_at)
-SELECT io.user_id, i.id, io.selected_at
+SELECT io.user_id, i.id, MIN(io.selected_at)
 FROM interests_old io
-         JOIN interests i ON i.name = io.interest;
+         JOIN interests i ON i.name = io.interest
+GROUP BY io.user_id, i.id
+ON CONFLICT (user_id, interest_id) DO NOTHING;
 
 INSERT INTO users_purposes (user_id, purpose_id, selected_at)
-SELECT po.user_id, p.id, po.selected_at
+SELECT po.user_id, p.id, MIN(po.selected_at)
 FROM purposes_old po
-         JOIN purposes p ON p.name = po.purpose;
+         JOIN purposes p ON p.name = po.purpose
+GROUP BY po.user_id, p.id
+ON CONFLICT (user_id, purpose_id) DO NOTHING;
 
 -- 7. 임시 테이블 정리
 DROP TABLE interests_old;

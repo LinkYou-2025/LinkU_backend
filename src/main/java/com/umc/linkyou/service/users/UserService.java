@@ -351,38 +351,46 @@ public class UserService {
         userRepository.save(user);
     }
 
-    // 목적 이름 리스트를 마스터 엔티티로 변환.
-    // Purpose는 domain.enums.Purpose로 값이 고정되어 있고, 카탈로그(purposes 테이블)에는
-    // V9 마이그레이션에서 이미 해당 값들이 시딩되어 있다. 따라서 여기서는 생성하지 않고,
-    // enum에 없는 값은 즉시 거부한 뒤 기존 카탈로그 row만 조회한다.
+    // 목적 이름 리스트를 마스터 엔티티로 변환 (enum에 없는 값은 거부, 카탈로그는 V9에서 시딩됨)
     private List<Purposes> resolvePurposes(List<String> purposeNames) {
         if (purposeNames == null || purposeNames.isEmpty()) return List.of();
         List<String> distinctNames = purposeNames.stream().distinct().toList();
         for (String name : distinctNames) {
+            if (name == null) {
+                throw new UserHandler(UserErrorStatus._INVALID_PURPOSE);
+            }
             try {
                 Purpose.valueOf(name);
             } catch (IllegalArgumentException e) {
                 throw new UserHandler(UserErrorStatus._INVALID_PURPOSE);
             }
         }
-        return purposeRepository.findAllByNameIn(distinctNames);
+        List<Purposes> found = purposeRepository.findAllByNameIn(distinctNames);
+        if (found.size() != distinctNames.size()) {
+            throw new UserHandler(UserErrorStatus._INVALID_PURPOSE);
+        }
+        return found;
     }
 
-    // 관심사 이름 리스트를 마스터 엔티티로 변환.
-    // Interest는 domain.enums.Interest로 값이 고정되어 있고, 카탈로그(interests 테이블)에는
-    // V9 마이그레이션에서 이미 해당 값들이 시딩되어 있다. 따라서 여기서는 생성하지 않고,
-    // enum에 없는 값은 즉시 거부한 뒤 기존 카탈로그 row만 조회한다.
+    // 관심사 이름 리스트를 마스터 엔티티로 변환 (enum에 없는 값은 거부, 카탈로그는 V9에서 시딩됨)
     private List<Interests> resolveInterests(List<String> interestNames) {
         if (interestNames == null || interestNames.isEmpty()) return List.of();
         List<String> distinctNames = interestNames.stream().distinct().toList();
         for (String name : distinctNames) {
+            if (name == null) {
+                throw new UserHandler(UserErrorStatus._INVALID_INTEREST);
+            }
             try {
                 Interest.valueOf(name);
             } catch (IllegalArgumentException e) {
                 throw new UserHandler(UserErrorStatus._INVALID_INTEREST);
             }
         }
-        return interestRepository.findAllByNameIn(distinctNames);
+        List<Interests> found = interestRepository.findAllByNameIn(distinctNames);
+        if (found.size() != distinctNames.size()) {
+            throw new UserHandler(UserErrorStatus._INVALID_INTEREST);
+        }
+        return found;
     }
 
     /* 공통 메서드 */
