@@ -182,10 +182,19 @@ public class LinkuService {
         LocalDateTime start = lastMonth.atDay(1).atStartOfDay();
         LocalDateTime end = lastMonth.plusMonths(1).atDay(1).atStartOfDay();
 
-        return usersLinkuRepository
-                .findUnviewedByUserIdAndCreatedAtBetween(userId, start, end)
-                .stream()
-                .map(LinkuConverter::toLinkuSimpleDTO)
+        List<UsersLinku> unreadList = usersLinkuRepository
+                .findUnviewedByUserIdAndCreatedAtBetween(userId, start, end);
+
+        Map<Long, LinkuFolder> latestFolderByUserLinkuId = fetchLatestLinkuFolders(unreadList);
+
+        return unreadList.stream()
+                .map(ul -> {
+                    Linku linku = ul.getLinku();
+                    boolean aiArticleExists = Boolean.TRUE.equals(ul.getAiExist());
+                    Domain domain = linku.getDomain();
+                    LinkuFolder linkuFolder = latestFolderByUserLinkuId.get(ul.getUserLinkuId());
+                    return toLinkuSimpleDTO(linku, ul, domain, aiArticleExists, linkuFolder);
+                })
                 .collect(Collectors.toList());
     }
 

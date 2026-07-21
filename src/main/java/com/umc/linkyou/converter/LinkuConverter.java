@@ -187,23 +187,5 @@ public class LinkuConverter {
                 .lastViewedAt(usersLinku != null ? usersLinku.getLastViewedAt() : null)
                 .build();
     } //리스트로 반환할때 쓰이는 것
-    public static LinkuResponseDTO.LinkuSimpleDTO toLinkuSimpleDTO(UsersLinku usersLinku) {
-        if (usersLinku == null) return null;
-
-        Linku linku = usersLinku.getLinku();
-        Domain domain = linku.getDomain();
-
-        return LinkuResponseDTO.LinkuSimpleDTO.builder()
-                .userLinkuId(usersLinku.getUserLinkuId())
-                .linkuId(linku.getLinkuId())
-                .categoryId(linku.getCategory() != null ? linku.getCategory().getCategoryId() : null)
-                .memo(usersLinku.getMemo())
-                .emotionId(usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
-                .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
-                .domain(domain != null ? domain.getName() : null)
-                .domainImageUrl(domain != null ? domain.getImageUrl() : null)
-                .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
-                .build();
-    }
 
 }
