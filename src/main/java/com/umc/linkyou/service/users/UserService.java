@@ -354,14 +354,10 @@ public class UserService {
         if (purposeNames == null || purposeNames.isEmpty()) return List.of();
         List<String> distinctNames = purposeNames.stream().distinct().toList();
         for (String name : distinctNames) {
-            if (name == null) {
-                throw new UserHandler(UserErrorStatus._INVALID_PURPOSE);
-            }
-            try {
-                Purpose.valueOf(name);
-            } catch (IllegalArgumentException e) {
-                throw new UserHandler(UserErrorStatus._INVALID_PURPOSE);
-            }
+            Arrays.stream(Purpose.values())
+                    .filter(p -> p.name().equals(name))
+                    .findFirst()
+                    .orElseThrow(() -> new UserHandler(UserErrorStatus._INVALID_PURPOSE));
         }
         List<Purposes> found = purposeRepository.findAllByNameIn(distinctNames);
         if (found.size() != distinctNames.size()) {
@@ -375,14 +371,10 @@ public class UserService {
         if (interestNames == null || interestNames.isEmpty()) return List.of();
         List<String> distinctNames = interestNames.stream().distinct().toList();
         for (String name : distinctNames) {
-            if (name == null) {
-                throw new UserHandler(UserErrorStatus._INVALID_INTEREST);
-            }
-            try {
-                Interest.valueOf(name);
-            } catch (IllegalArgumentException e) {
-                throw new UserHandler(UserErrorStatus._INVALID_INTEREST);
-            }
+            Arrays.stream(Interest.values())
+                    .filter(i -> i.name().equals(name))
+                    .findFirst()
+                    .orElseThrow(() -> new UserHandler(UserErrorStatus._INVALID_INTEREST));
         }
         List<Interests> found = interestRepository.findAllByNameIn(distinctNames);
         if (found.size() != distinctNames.size()) {
