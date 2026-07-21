@@ -241,29 +241,22 @@ public class FolderServiceImpl implements FolderService {
 
     // 자식 폴더 목록 조회
     public List<FolderListResponseDTO> getSubFolders(Long userId, Long parentFolderId) {
-        List<Folder> subFolders = usersFolderRepository.findAllByUserIdAndParentFolderId(userId, parentFolderId);
+        List<UsersFolder> subFolders = usersFolderRepository.findAllByUserIdAndParentFolderId(userId, parentFolderId);
 
         if (subFolders.isEmpty()) return Collections.emptyList();
 
-        List<Long> subFolderIds = subFolders.stream().map(Folder::getFolderId).toList();
-
-        // 해당 하위 폴더들의 북마크 상태만 조회 (전체 조회 대신 최적화)
-        Map<Long, Boolean> bookmarkMap = usersFolderRepository.findAllByUserIdAndFolderIdIn(userId, subFolderIds).stream()
-                .collect(Collectors.toMap(
-                        uf -> uf.getFolder().getFolderId(),
-                        UsersFolder::getIsBookmarked
-                ));
+        List<Long> subFolderIds = subFolders.stream().map(uf -> uf.getFolder().getFolderId()).toList();
 
         // 공유 중인 폴더 ID 일괄 조회 (N+1 제거)
         Set<Long> sharedFolderIds = usersFolderRepository.findAllSharedFolderIdsIn(subFolderIds);
 
         return subFolders.stream()
-                .map(folder -> FolderListResponseDTO.builder()
-                        .folderId(folder.getFolderId())
-                        .folderName(folder.getFolderName())
+                .map(usersFolder -> FolderListResponseDTO.builder()
+                        .folderId(usersFolder.getFolder().getFolderId())
+                        .folderName(usersFolder.getFolder().getFolderName())
                         .parentFolderId(parentFolderId)
-                        .isBookmarked(bookmarkMap.getOrDefault(folder.getFolderId(), Boolean.FALSE))
-                        .isSharing(sharedFolderIds.contains(folder.getFolderId()) ? "share" : "private")
+                        .isBookmarked(usersFolder.getIsBookmarked())
+                        .isSharing(sharedFolderIds.contains(usersFolder.getFolder().getFolderId()) ? "share" : "private")
                         .build())
                 .collect(Collectors.toList());
     }
