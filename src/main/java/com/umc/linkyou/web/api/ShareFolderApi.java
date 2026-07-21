@@ -7,8 +7,8 @@ import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
-import com.umc.linkyou.web.dto.folder.share.FolderLeaveRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
+import com.umc.linkyou.web.dto.folder.share.MySharedFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -64,12 +64,12 @@ public interface ShareFolderApi {
             @PathVariable Long folderId
     );
 
-    @Operation(summary = "내 폴더 나가기", description = "선택한 멤버에게 폴더 소유권을 위임하고 본인은 폴더에서 나갑니다.")
-    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}, shareFolderErrorStatus = {ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED, ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND, ShareFolderErrorStatus._FOLDER_LEAVE_TARGET_INVALID})
+    @Operation(summary = "내 폴더 나가기", description = "가장 오래 참여한 멤버에게 폴더 소유권을 자동으로 위임하고 본인은 폴더에서 나갑니다.")
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}, shareFolderErrorStatus = {ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED, ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND, ShareFolderErrorStatus._FOLDER_LEAVE_NO_MEMBER_TO_TRANSFER})
     @PostMapping("/{folderId}/leave")
     ApiResponse<ShareFolderResponseDTO> leaveFolder(
             @CurrentUser CustomUserDetails userDetails,
-            @PathVariable Long folderId,
-            @Valid @RequestBody FolderLeaveRequestDTO request
+            @PathVariable Long folderId
+    );
     );
 }

@@ -15,8 +15,8 @@ import com.umc.linkyou.repository.FolderShareLinkRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.service.alarm.event.FolderPermissionChangedAlarmEvent;
-import com.umc.linkyou.web.dto.folder.share.FolderLeaveRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
+import com.umc.linkyou.web.dto.folder.share.MySharedFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
 import lombok.RequiredArgsConstructor;
@@ -182,9 +182,9 @@ public class ShareFolderServiceImpl implements ShareFolderService {
                 .build();
     }
 
-    // 소유권 위임 후 폴더 나가기
+    // 가장 오래 참여한 멤버에게 소유권 자동 위임 후 폴더 나가기
     @Override
-    public ShareFolderResponseDTO leaveFolder(Long ownerId, Long folderId, FolderLeaveRequestDTO request) {
+    public ShareFolderResponseDTO leaveFolder(Long ownerId, Long folderId) {
         if (!folderRepository.existsById(folderId)) {
             throw new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND);
         }
@@ -193,20 +193,10 @@ public class ShareFolderServiceImpl implements ShareFolderService {
             throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
-        UsersFolder newOwnerUF = usersFolderRepository.findById(request.getNewOwnerUserFolderId())
-                .orElseThrow(() -> new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND));
-
-        if (!newOwnerUF.getFolder().getFolderId().equals(folderId)) {
-            throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
-        }
-
-        if (newOwnerUF.getUser().getId().equals(ownerId)) {
-            throw new GeneralException(ShareFolderErrorStatus._FOLDER_LEAVE_TARGET_INVALID);
-        }
-
-        if (newOwnerUF.getPermissionType() == PermissionType.NONE) {
-            throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND);
-        }
+        // 참여 시각(createdAt)이 가장 오래된 멤버를 다음 소유자로 선정
+        UsersFolder newOwnerUF = usersFolderRepository.findAllParticipantsByFolderId(folderId).stream()
+                .min(Comparator.comparing(UsersFolder::getCreatedAt))
+                .orElseThrow(() -> new GeneralException(ShareFolderErrorStatus._FOLDER_LEAVE_NO_MEMBER_TO_TRANSFER));
 
         UsersFolder ownerUF = usersFolderRepository.findByUserIdAndFolderId(ownerId, folderId)
                 .orElseThrow(() -> new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND));
