@@ -154,16 +154,17 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
                 .build();
     }
 
-    // 브로드캐스트 알림은 targetId가 곧 alarm의 PK이므로 alarmId로도 함께 내려준다.
     private Message buildTopicMessage(String topic, FcmSendRequestDTO requestDTO) {
-        return Message.builder()
+        Message.Builder builder = Message.builder()
                 .setNotification(buildNotification(requestDTO))
                 .putData("title", requestDTO.getTitle())
                 .putData("body", requestDTO.getMessage())
                 .putData("type", requestDTO.getType().name())
-                .putData("targetId", requestDTO.getTargetId().toString())
-                .putData("alarmId", requestDTO.getTargetId().toString())
-                .setTopic(topic)
+                .putData("targetId", requestDTO.getTargetId().toString());
+        if (requestDTO.getAlarmId() != null) {
+            builder.putData("alarmId", requestDTO.getAlarmId().toString());
+        }
+        return builder.setTopic(topic)
                 .setAndroidConfig(AndroidConfig.builder()
                         .setNotification(AndroidNotification.builder()
                                 .setClickAction(CLICK_ACTION)
