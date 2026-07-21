@@ -8,8 +8,6 @@ import lombok.*;
 @Table(name = "purposes")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
 public class Purposes {
 
     @Id
@@ -18,6 +16,11 @@ public class Purposes {
 
     @Column(name = "name", nullable = false, unique = true, length = 50)
     private String name;
+
+    @Builder(access = AccessLevel.PRIVATE)
+    private Purposes(String name) {
+        this.name = name;
+    }
 
     public static Purposes of(String name) {
         return Purposes.builder().name(name).build();
