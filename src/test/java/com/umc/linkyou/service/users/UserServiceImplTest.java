@@ -21,6 +21,8 @@ import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.InterestRepository;
 import com.umc.linkyou.repository.classification.JobRepository;
 import com.umc.linkyou.repository.classification.PurposeRepository;
+import com.umc.linkyou.repository.classification.UsersInterestRepository;
+import com.umc.linkyou.repository.classification.UsersPurposeRepository;
 import com.umc.linkyou.repository.userRepository.UserQueryRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
@@ -60,6 +62,8 @@ class UserServiceImplTest {
     @Mock private JobRepository jobRepository;
     @Mock private InterestRepository interestRepository;
     @Mock private PurposeRepository purposeRepository;
+    @Mock private UsersInterestRepository usersInterestRepository;
+    @Mock private UsersPurposeRepository usersPurposeRepository;
     @Mock private FolderRepository folderRepository;
     @Mock private CategoryRepository categoryRepository;
     @Mock private UsersFolderRepository usersFolderRepository;

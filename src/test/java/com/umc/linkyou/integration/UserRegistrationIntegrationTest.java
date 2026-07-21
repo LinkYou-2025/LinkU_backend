@@ -8,12 +8,17 @@ import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
+import com.umc.linkyou.domain.classification.Interests;
+import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.oauth2.utils.UserSocialLoginHelper;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
+import com.umc.linkyou.repository.classification.InterestRepository;
 import com.umc.linkyou.repository.classification.JobRepository;
+import com.umc.linkyou.repository.classification.PurposeRepository;
 import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.support.config.TestExternalConfig;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +56,16 @@ public class UserRegistrationIntegrationTest {
     @Autowired private UserSocialLoginHelper socialLoginHelper;
     @Autowired private AuthAccountRepository authAccountRepository;
     @Autowired private JobRepository jobRepository;
+    @Autowired private InterestRepository interestRepository;
+    @Autowired private PurposeRepository purposeRepository;
+
+    // ddl-auto=create-drop + sql.init.mode=never 라 Flyway(V9) 시딩이 적용되지 않는다.
+    // resolvePurposes/resolveInterests가 카탈로그를 조회하므로, 테스트에서 쓰는 값만 직접 시딩한다.
+    @BeforeEach
+    void seedClassificationCatalog() {
+        interestRepository.save(Interests.of("IT"));
+        purposeRepository.save(Purposes.of("STUDY"));
+    }
 
     @Test
     @DisplayName("일반 가입 -> 동일 이메일 소셜 로그인 -> 계정 통합 전체 흐름 검증")

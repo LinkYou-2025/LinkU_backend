@@ -14,10 +14,14 @@ import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.*;
 import com.umc.linkyou.domain.classification.Category;
+import com.umc.linkyou.domain.classification.Interests;
 import com.umc.linkyou.domain.classification.Job;
+import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.domain.enums.DeviceType;
+import com.umc.linkyou.domain.enums.Interest;
 import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.enums.Provider;
+import com.umc.linkyou.domain.enums.Purpose;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.folder.Folder;
@@ -35,6 +39,8 @@ import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.InterestRepository;
 import com.umc.linkyou.repository.classification.JobRepository;
 import com.umc.linkyou.repository.classification.PurposeRepository;
+import com.umc.linkyou.repository.classification.UsersInterestRepository;
+import com.umc.linkyou.repository.classification.UsersPurposeRepository;
 import com.umc.linkyou.repository.userRepository.UserQueryRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
@@ -63,6 +69,10 @@ public class UserService {
     private final InterestRepository interestRepository;
 
     private final PurposeRepository purposeRepository;
+
+    private final UsersInterestRepository usersInterestRepository;
+
+    private final UsersPurposeRepository usersPurposeRepository;
 
     private final FolderRepository folderRepository;
 
@@ -118,12 +128,14 @@ public class UserService {
                                             passwordEncoder.encode(request.password()));
 
                                     Users savedUser = userRepository.save(newUser);
-                                    purposeRepository.saveAll(
-                                            UserConverter.toPurposes(
-                                                    savedUser, request.purposeList()));
-                                    interestRepository.saveAll(
-                                            UserConverter.toInterests(
-                                                    savedUser, request.interestList()));
+                                    usersPurposeRepository.saveAll(
+                                            UserConverter.toUsersPurposes(
+                                                    savedUser,
+                                                    resolvePurposes(request.purposeList())));
+                                    usersInterestRepository.saveAll(
+                                            UserConverter.toUsersInterests(
+                                                    savedUser,
+                                                    resolveInterests(request.interestList())));
                                     termsAgreementService.upsertTerms(
                                             savedUser, request.termsMap());
                                     setupUserAlarmSetting(savedUser);
@@ -223,11 +235,11 @@ public class UserService {
                         .orElseThrow(() -> new UserHandler(UserErrorStatus._JOB_NOT_SET));
         user.completeSocialProfile(request.getNickName(), request.getGender(), job);
 
-        // Purposes / Interests 설정
-        purposeRepository.deleteAllByUser(user);
-        interestRepository.deleteAllByUser(user);
-        purposeRepository.saveAll(UserConverter.toPurposes(user, request.getPurposeList()));
-        interestRepository.saveAll(UserConverter.toInterests(user, request.getInterestList()));
+        // Purposes / Interests 설정 (TEMP 상태에서만 진입하므로 기존 데이터가 없어 delete 불필요)
+        usersPurposeRepository.saveAll(
+                UserConverter.toUsersPurposes(user, resolvePurposes(request.getPurposeList())));
+        usersInterestRepository.saveAll(
+                UserConverter.toUsersInterests(user, resolveInterests(request.getInterestList())));
 
         termsAgreementService.upsertTerms(user, request.getTermsMap());
 
@@ -301,8 +313,8 @@ public class UserService {
                         .findEmailByUserIdAndProvider(userId, Provider.valueOf(loginProvider))
                         .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
-        List<String> purposes = purposeRepository.findAllPurposeNamesByUserId(userId);
-        List<String> interests = interestRepository.findAllInterestNamesByUserId(userId);
+        List<String> purposes = usersPurposeRepository.findAllPurposeNamesByUserId(userId);
+        List<String> interests = usersInterestRepository.findAllInterestNamesByUserId(userId);
 
         return UserConverter.toUserInfoDTO(s, currentEmail, purposes, interests, loginProvider);
     }
@@ -327,12 +339,48 @@ public class UserService {
         }
         user.updateProfile(job, nickName);
 
-        purposeRepository.deleteAllByUser(user);
-        interestRepository.deleteAllByUser(user);
-        purposeRepository.saveAll(UserConverter.toPurposes(user, request.getPurposes()));
-        interestRepository.saveAll(UserConverter.toInterests(user, request.getInterests()));
+        usersPurposeRepository.deleteAllByUser(user);
+        usersInterestRepository.deleteAllByUser(user);
+        usersPurposeRepository.saveAll(
+                UserConverter.toUsersPurposes(user, resolvePurposes(request.getPurposes())));
+        usersInterestRepository.saveAll(
+                UserConverter.toUsersInterests(user, resolveInterests(request.getInterests())));
 
         userRepository.save(user);
+    }
+
+    // 목적 이름 리스트를 마스터 엔티티로 변환 (enum에 없는 값은 거부, 카탈로그는 V9에서 시딩됨)
+    private List<Purposes> resolvePurposes(List<String> purposeNames) {
+        if (purposeNames == null || purposeNames.isEmpty()) return List.of();
+        List<String> distinctNames = purposeNames.stream().distinct().toList();
+        for (String name : distinctNames) {
+            Arrays.stream(Purpose.values())
+                    .filter(p -> p.name().equals(name))
+                    .findFirst()
+                    .orElseThrow(() -> new UserHandler(UserErrorStatus._INVALID_PURPOSE));
+        }
+        List<Purposes> found = purposeRepository.findAllByNameIn(distinctNames);
+        if (found.size() != distinctNames.size()) {
+            throw new UserHandler(UserErrorStatus._INVALID_PURPOSE);
+        }
+        return found;
+    }
+
+    // 관심사 이름 리스트를 마스터 엔티티로 변환 (enum에 없는 값은 거부, 카탈로그는 V9에서 시딩됨)
+    private List<Interests> resolveInterests(List<String> interestNames) {
+        if (interestNames == null || interestNames.isEmpty()) return List.of();
+        List<String> distinctNames = interestNames.stream().distinct().toList();
+        for (String name : distinctNames) {
+            Arrays.stream(Interest.values())
+                    .filter(i -> i.name().equals(name))
+                    .findFirst()
+                    .orElseThrow(() -> new UserHandler(UserErrorStatus._INVALID_INTEREST));
+        }
+        List<Interests> found = interestRepository.findAllByNameIn(distinctNames);
+        if (found.size() != distinctNames.size()) {
+            throw new UserHandler(UserErrorStatus._INVALID_INTEREST);
+        }
+        return found;
     }
 
     /* 공통 메서드 */
