@@ -22,7 +22,9 @@ public final class AlarmRequestDTO {
 
     public record TestAlarmSendDTO(
             @NotBlank(message = "fcmToken은 필수입니다.")
-            String fcmToken
+            String fcmToken,
+            @NotNull(message = "type은 필수입니다.")
+            AlarmType type
     ) {
     }
 
