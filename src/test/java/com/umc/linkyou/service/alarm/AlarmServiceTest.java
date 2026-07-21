@@ -468,6 +468,19 @@ class AlarmServiceTest {
 
             verify(eventPublisher, times(2)).publishEvent((Object) any());
         }
+
+        @Test
+        @DisplayName("NOTICE 타입으로도 알림이 저장되고 브로드캐스트 이벤트 2개가 발행된다")
+        void NOTICE_타입_브로드캐스트_알림등록_성공() {
+            Alarm savedAlarm = mock(Alarm.class);
+            given(savedAlarm.getId()).willReturn(ALARM_ID);
+            given(alarmRepository.save(any())).willReturn(savedAlarm);
+
+            alarmService.registerAdminAlarm(new AlarmRequestDTO.AdminAlarmSendRequestDTO(
+                    AlarmType.NOTICE, "공지 내용"));
+
+            verify(eventPublisher, times(2)).publishEvent((Object) any());
+        }
     }
 
     @Nested
