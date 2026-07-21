@@ -16,6 +16,7 @@ import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.service.alarm.event.FolderPermissionChangedAlarmEvent;
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
+import com.umc.linkyou.web.dto.folder.share.MySharedFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
 import lombok.RequiredArgsConstructor;
@@ -25,9 +26,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.umc.linkyou.domain.AlarmSetting;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -179,6 +183,60 @@ public class ShareFolderServiceImpl implements ShareFolderService {
                 .permission(permission.name())
                 .sharedAt(usersFolder.getUpdatedAt().toString())
                 .build();
+    }
+
+    // 가장 오래 참여한 멤버에게 소유권 자동 위임 후 폴더 나가기
+    @Override
+    public ShareFolderResponseDTO leaveFolder(Long ownerId, Long folderId) {
+        if (!folderRepository.existsById(folderId)) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND);
+        }
+
+        if (!usersFolderRepository.existsFolderOwner(ownerId, folderId)) {
+            throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
+        }
+
+        // 참여 시각(createdAt)이 가장 오래된 멤버를 다음 소유자로 선정
+        UsersFolder newOwnerUF = usersFolderRepository.findAllParticipantsByFolderId(folderId).stream()
+                .min(Comparator.comparing(UsersFolder::getCreatedAt))
+                .orElseThrow(() -> new GeneralException(ShareFolderErrorStatus._FOLDER_LEAVE_NO_MEMBER_TO_TRANSFER));
+
+        UsersFolder ownerUF = usersFolderRepository.findByUserIdAndFolderId(ownerId, folderId)
+                .orElseThrow(() -> new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND));
+
+        newOwnerUF.updatePermission(PermissionType.OWNER);
+        ownerUF.updatePermission(PermissionType.NONE);
+        usersFolderRepository.saveAll(List.of(newOwnerUF, ownerUF));
+
+        return ShareFolderResponseDTO.builder()
+                .folderId(folderId)
+                .userId(newOwnerUF.getUser().getId())
+                .permission(PermissionType.OWNER.name())
+                .sharedAt(LocalDateTime.now().toString())
+                .build();
+    }
+
+    // 내가 공유한(소유자인) 폴더 목록 조회
+    @Transactional(readOnly = true)
+    public List<MySharedFolderResponseDTO> getMySharedFolders(Long userId) {
+        List<Folder> folders = usersFolderRepository.findMySharedFolders(userId);
+
+        if (folders.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> folderIds = folders.stream().map(Folder::getFolderId).toList();
+
+        Map<Long, Long> memberCountByFolderId = usersFolderRepository.findAllParticipantsByFolderIdIn(folderIds).stream()
+                .collect(Collectors.groupingBy(uf -> uf.getFolder().getFolderId(), Collectors.counting()));
+
+        return folders.stream()
+                .map(folder -> MySharedFolderResponseDTO.builder()
+                        .folderId(folder.getFolderId())
+                        .folderName(folder.getFolderName())
+                        .memberCount(memberCountByFolderId.getOrDefault(folder.getFolderId(), 0L).intValue())
+                        .build())
+                .toList();
     }
 
     // 폴더 비공개 전환
