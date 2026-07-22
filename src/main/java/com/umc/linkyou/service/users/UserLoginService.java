@@ -34,50 +34,22 @@ public class UserLoginService {
     ) {
         userStatusValidator.validateLoginAllowed(user);
 
-        if (user.getStatus() == UserStatus.TEMP) {
-            return MobileLoginResponse.builder()
-                    .userId(user.getId())
-                    .accessToken(issueTempAccessToken(user, resolvedEmail, provider))
-                    .refreshToken(null)
-                    .status(UserStatus.TEMP)
-                    .build();
-        }
-
         TokenIssueService.IssuedTokenPair tokenPair =
-                issueActiveTokenPair(user, resolvedEmail, provider, deviceId, deviceType);
+                tokenIssueService.issueForStatus(
+                        user.getId(),
+                        resolvedEmail,
+                        provider.name(),
+                        user.getRole(),
+                        user.getStatus(),
+                        deviceId,
+                        deviceType
+                );
 
         return MobileLoginResponse.builder()
                 .userId(user.getId())
                 .accessToken(tokenPair.accessToken())
                 .refreshToken(tokenPair.refreshToken())
-                .status(UserStatus.ACTIVE)
+                .status(user.getStatus())
                 .build();
-    }
-
-
-    private String issueTempAccessToken(Users user, String resolvedEmail, Provider provider) {
-        return tokenIssueService.issueAccessToken(
-                user.getId(),
-                resolvedEmail,
-                provider.name(),
-                user.getRole()
-        );
-    }
-
-    private TokenIssueService.IssuedTokenPair issueActiveTokenPair(
-            Users user,
-            String resolvedEmail,
-            Provider provider,
-            String deviceId,
-            DeviceType deviceType
-    ) {
-        return tokenIssueService.issueTokenPair(
-                user.getId(),
-                resolvedEmail,
-                provider.name(),
-                user.getRole(),
-                deviceId,
-                deviceType
-        );
     }
 }

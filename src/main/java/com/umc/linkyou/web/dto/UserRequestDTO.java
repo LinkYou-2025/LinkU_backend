@@ -111,6 +111,14 @@ public class UserRequestDTO {
         @Schema(description = "약관 동의 맵", example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}")
         @NotEmpty(message = "약관 동의 정보는 필수입니다.")
         private  Map<TermsType, Boolean> termsMap;
+
+        @Schema(example = "ios-iphone-16-pro")
+        @NotBlank(message = "deviceId는 필수입니다.")
+        private String deviceId;
+
+        @Schema(example = "PHONE")
+        @NotNull(message = "deviceType은 필수입니다.")
+        private DeviceType deviceType;
     }
 
     /**

@@ -33,13 +33,6 @@ public class UserConverter {
                 .build();
     }
 
-    public static UserResponseDTO.JoinResultDTO toJoinResultDTO(Users users) {
-        return UserResponseDTO.JoinResultDTO.builder()
-                .userId(users.getId())
-                .createdAt(users.getCreatedAt())
-                .build();
-    }
-
     public static UserResponseDTO.JoinResultDTO toJoinResultDTO(
             Users users, String accessToken, String refreshToken) {
         return UserResponseDTO.JoinResultDTO.builder()
