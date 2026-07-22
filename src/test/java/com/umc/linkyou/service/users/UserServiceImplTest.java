@@ -150,7 +150,7 @@ class UserServiceImplTest {
         class Success {
 
             @Test
-            @DisplayName("성공 - TEMP 상태 유저가 프로필 완성 시 ACTIVE 상태로 변경된다")
+            @DisplayName("성공 - TEMP 상태 유저가 프로필 완성 시 ACTIVE 상태로 변경되고 정식 토큰이 발급된다")
             void social_complete_success() {
                 // given
                 Users tempUser = Users.builder().id(1L).status(UserStatus.TEMP).build();
@@ -162,7 +162,9 @@ class UserServiceImplTest {
                                 1L,
                                 new ArrayList<>(),
                                 new ArrayList<>(),
-                                Collections.emptyMap());
+                                Collections.emptyMap(),
+                                "test-device",
+                                DeviceType.PHONE);
 
                 when(userRepository.findById(eq(tempUser.getId())))
                         .thenReturn(Optional.of(tempUser));
@@ -174,13 +176,29 @@ class UserServiceImplTest {
                 when(categoryRepository.findAll()).thenReturn(new ArrayList<>());
                 when(usersCategoryColorRepository.saveAll(anyList()))
                         .thenAnswer(invocation -> invocation.getArgument(0));
+                when(authAccountRepository.findEmailByUserIdAndProvider(eq(1L), eq(Provider.KAKAO)))
+                        .thenReturn(Optional.of("kakao@example.com"));
+                when(tokenIssueService.issueForStatus(
+                                eq(1L),
+                                eq("kakao@example.com"),
+                                eq("KAKAO"),
+                                any(),
+                                eq(UserStatus.ACTIVE),
+                                eq("test-device"),
+                                eq(DeviceType.PHONE)))
+                        .thenReturn(
+                                new TokenIssueService.IssuedTokenPair(
+                                        "accessToken", "refreshToken"));
 
                 // when
-                Users result = userService.socialCompleteProfile(tempUser.getId(), request);
+                UserResponseDTO.JoinResultDTO result =
+                        userService.socialCompleteProfile(tempUser.getId(), "KAKAO", request);
 
                 // then
-                assertEquals(UserStatus.ACTIVE, result.getStatus());
-                assertEquals("완성닉네임", result.getNickName());
+                assertEquals(UserStatus.ACTIVE, tempUser.getStatus());
+                assertEquals("완성닉네임", tempUser.getNickName());
+                assertEquals("accessToken", result.getTokenResponse().getAccessToken());
+                assertEquals("refreshToken", result.getTokenResponse().getRefreshToken());
                 verify(termsAgreementService).upsertTerms(any(Users.class), any());
             }
         }

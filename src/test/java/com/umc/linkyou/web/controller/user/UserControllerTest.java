@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.domain.enums.UserStatus;
@@ -97,16 +98,18 @@ class UserControllerTest {
                         1L,
                         List.of("STUDY"),
                         List.of("DESIGN"),
-                        Map.of(TermsType.TERMS_OF_USE, true)
+                        Map.of(TermsType.TERMS_OF_USE, true),
+                        "ios-iphone-16-pro",
+                        DeviceType.PHONE
                 );
 
-                Users mockUser = Users.builder()
-                        .id(2L)
-                        .status(UserStatus.ACTIVE)
+                UserResponseDTO.JoinResultDTO mockResult = UserResponseDTO.JoinResultDTO.builder()
+                        .userId(2L)
+                        .createdAt(LocalDateTime.now())
+                        .tokenResponse(new UserResponseDTO.TokenPair("mockAccess", "mockRefresh"))
                         .build();
-                ReflectionTestUtils.setField(mockUser, "createdAt", LocalDateTime.now());
 
-                given(userService.socialCompleteProfile(any(), any())).willReturn(mockUser);
+                given(userService.socialCompleteProfile(any(), any(), any())).willReturn(mockResult);
 
                 mockMvc.perform(patch("/api/v1/users/social/complete")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -130,7 +133,9 @@ class UserControllerTest {
                         1L,
                         List.of("STUDY"),
                         List.of("DESIGN"),
-                        Map.of(TermsType.MARKETING, true)
+                        Map.of(TermsType.MARKETING, true),
+                        "ios-iphone-16-pro",
+                        DeviceType.PHONE
                 );
 
                 mockMvc.perform(patch("/api/v1/users/social/complete")

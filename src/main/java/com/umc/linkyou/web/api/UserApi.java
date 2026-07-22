@@ -72,7 +72,8 @@ public interface UserApi {
             summary = "소셜 프로필 완성",
             description = """
                     소셜 로그인 직후 TEMP 상태인 사용자의 필수 추가 정보를 입력받습니다.
-                    - 닉네임, 성별, 직업, 목적, 관심사를 입력받아 계정을 ACTIVE 상태로 전환합니다.
+                    - 닉네임, 성별, 직업, 목적, 관심사, deviceId, deviceType을 입력받아 계정을 ACTIVE 상태로 전환합니다.
+                    - 완료 시 정식 액세스/리프레시 토큰을 발급합니다.
                     - 최초 1회만 호출 가능하며, 이미 ACTIVE인 경우 에러를 반환합니다.
                     """
     )

@@ -49,8 +49,9 @@ public class UserController implements UserApi {
 
     @Override
     public ApiResponse<UserResponseDTO.JoinResultDTO> completeSocialProfile(UserRequestDTO.SocialCompleteDTO request, @CurrentUser CustomUserDetails userDetails) {
-        Users updatedUser = userService.socialCompleteProfile(userDetails.getUserId(), request);
-        return ApiResponse.onSuccess(UserSuccessStatus.SOCIAL_PROFILE_COMPLETED, UserConverter.toJoinResultDTO(updatedUser));
+        UserResponseDTO.JoinResultDTO result =
+                userService.socialCompleteProfile(userDetails.getUserId(), userDetails.getProvider(), request);
+        return ApiResponse.onSuccess(UserSuccessStatus.SOCIAL_PROFILE_COMPLETED, result);
     }
 
     @Override
