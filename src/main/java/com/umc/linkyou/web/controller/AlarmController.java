@@ -6,7 +6,6 @@ import com.umc.linkyou.apiPayload.code.status.alarm.AlarmSuccessStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.domain.enums.AlarmSettingType;
-import com.umc.linkyou.domain.enums.AlarmType;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.service.alarm.AlarmService;
 import com.umc.linkyou.service.alarm.FcmPushSender;
@@ -59,7 +58,7 @@ public class AlarmController implements AlarmApi {
     ) {
         fcmPushSender.sendToToken(
                 request.fcmToken(),
-                FcmSendRequestDTO.of(AlarmType.ANNOUNCEMENT_UPDATE, userDetails.getUserId())
+                FcmSendRequestDTO.of(request.type(), userDetails.getUserId())
         );
         return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_TEST_SENT);
     }

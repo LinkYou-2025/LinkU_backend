@@ -168,7 +168,7 @@ public class AlarmService {
         userAlarmRepository.save(UserAlarm.create(user, alarm));
 
         eventPublisher.publishEvent(
-                PersonalAlarmEvent.withPayload(userId, alarmType, requestDTO.targetId(), payload));
+                PersonalAlarmEvent.withPayload(userId, alarmType, requestDTO.targetId(), alarm.getId(), payload));
     }
 
     // 다수 유저에게 동일 본문으로 일괄 발송
@@ -198,7 +198,8 @@ public class AlarmService {
         userAlarmRepository.saveAll(userAlarms);
 
         enabledUserIds.forEach(uid ->
-                eventPublisher.publishEvent(PersonalAlarmEvent.withPayload(uid, alarmType, targetId, payload)));
+                eventPublisher.publishEvent(
+                        PersonalAlarmEvent.withPayload(uid, alarmType, targetId, alarm.getId(), payload)));
     }
 
     // 관리자 브로드캐스트 알림 등록, content 직접 입력

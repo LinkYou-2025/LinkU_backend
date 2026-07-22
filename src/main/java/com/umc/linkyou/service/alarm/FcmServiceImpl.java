@@ -120,14 +120,17 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
     }
 
     private MulticastMessage buildMulticastMessage(List<String> tokens, FcmSendRequestDTO requestDTO) {
-        return MulticastMessage.builder()
+        MulticastMessage.Builder builder = MulticastMessage.builder()
                 .addAllTokens(tokens)
                 .setNotification(buildNotification(requestDTO))
                 .putData("title", requestDTO.getTitle())
                 .putData("body", requestDTO.getMessage())
                 .putData("type", requestDTO.getType().name())
-                .putData("targetId", requestDTO.getTargetId().toString())
-                .setAndroidConfig(AndroidConfig.builder()
+                .putData("targetId", requestDTO.getTargetId().toString());
+        if (requestDTO.getAlarmId() != null) {
+            builder.putData("alarmId", requestDTO.getAlarmId().toString());
+        }
+        return builder.setAndroidConfig(AndroidConfig.builder()
                         .setNotification(AndroidNotification.builder()
                                 .setClickAction(CLICK_ACTION)
                                 .build())
@@ -152,13 +155,16 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
     }
 
     private Message buildTopicMessage(String topic, FcmSendRequestDTO requestDTO) {
-        return Message.builder()
+        Message.Builder builder = Message.builder()
                 .setNotification(buildNotification(requestDTO))
                 .putData("title", requestDTO.getTitle())
                 .putData("body", requestDTO.getMessage())
                 .putData("type", requestDTO.getType().name())
-                .putData("targetId", requestDTO.getTargetId().toString())
-                .setTopic(topic)
+                .putData("targetId", requestDTO.getTargetId().toString());
+        if (requestDTO.getAlarmId() != null) {
+            builder.putData("alarmId", requestDTO.getAlarmId().toString());
+        }
+        return builder.setTopic(topic)
                 .setAndroidConfig(AndroidConfig.builder()
                         .setNotification(AndroidNotification.builder()
                                 .setClickAction(CLICK_ACTION)
