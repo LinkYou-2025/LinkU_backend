@@ -97,7 +97,7 @@ public class UserService {
 
     // 일반로그인 & 회원가입
     @Transactional
-    public Users joinUser(UserRequestDTO.JoinDTO request) {
+    public UserResponseDTO.JoinResultDTO joinUser(UserRequestDTO.JoinDTO request) {
         // 1. 닉네임 중복 체크
         validateNickNameNotDuplicate(request.nickName());
 
@@ -165,7 +165,18 @@ public class UserService {
             user.activate();
         }
 
-        return user;
+        // 7. 회원가입 후 토큰 발급
+        TokenIssueService.IssuedTokenPair tokenPair =
+                tokenIssueService.issueTokenPair(
+                        user.getId(),
+                        request.email(),
+                        Provider.GENERAL.name(),
+                        user.getRole(),
+                        request.deviceId(),
+                        request.deviceType());
+
+        return UserConverter.toJoinResultDTO(
+                user, tokenPair.accessToken(), tokenPair.refreshToken());
     }
 
     // 일반 회원 로그인

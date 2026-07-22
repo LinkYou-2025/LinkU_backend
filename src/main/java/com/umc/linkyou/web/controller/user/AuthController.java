@@ -10,12 +10,9 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthSuccessStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.jwt.JwtTokenProvider;
-import com.umc.linkyou.jwt.TokenIssueService;
 import com.umc.linkyou.service.email.EmailVerificationService;
 import com.umc.linkyou.service.email.PasswordResetService;
 import com.umc.linkyou.service.users.UserService;
@@ -33,36 +30,13 @@ import lombok.RequiredArgsConstructor;
 public class AuthController implements AuthApi {
 
     private final UserService userService;
-    private final TokenIssueService tokenIssueService;
     private final EmailVerificationService emailVerificationService;
     private final PasswordResetService passwordResetService;
 
     @Override
     public ApiResponse<UserResponseDTO.JoinResultDTO> join(
             @RequestBody @Valid UserRequestDTO.JoinDTO request) {
-        Users user = userService.joinUser(request);
-
-        // 회원가입 후 토큰 발급
-        TokenIssueService.IssuedTokenPair issued =
-                tokenIssueService.issueTokenPair(
-                        user.getId(),
-                        request.email(),
-                        Provider.GENERAL.name(),
-                        user.getRole(),
-                        request.deviceId(),
-                        request.deviceType());
-
-        // 응답 생성
-        UserResponseDTO.JoinResultDTO result =
-                UserResponseDTO.JoinResultDTO.builder()
-                        .userId(user.getId())
-                        .createdAt(user.getCreatedAt())
-                        .tokenResponse(
-                                new UserResponseDTO.TokenPair(
-                                        issued.accessToken(), issued.refreshToken()))
-                        .build();
-
-        return ApiResponse.onSuccess(AuthSuccessStatus.JOIN_SUCCESS, result);
+        return ApiResponse.onSuccess(AuthSuccessStatus.JOIN_SUCCESS, userService.joinUser(request));
     }
 
     @Override
