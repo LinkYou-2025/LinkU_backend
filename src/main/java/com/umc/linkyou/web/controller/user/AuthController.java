@@ -1,11 +1,15 @@
 package com.umc.linkyou.web.controller.user;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthSuccessStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.converter.UserConverter;
-import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.jwt.JwtTokenProvider;
@@ -18,12 +22,8 @@ import com.umc.linkyou.web.dto.EmailRequestDTO;
 import com.umc.linkyou.web.dto.PasswordResetRequestDTO;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
-import io.swagger.v3.oas.annotations.Hidden;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @ApiV1
 @RequiredArgsConstructor
@@ -34,33 +34,36 @@ public class AuthController implements AuthApi {
     private final PasswordResetService passwordResetService;
 
     @Override
-    public ApiResponse<UserResponseDTO.JoinResultDTO> join(@RequestBody @Valid UserRequestDTO.JoinDTO request) {
-        Users user = userService.joinUser(request);
-        return ApiResponse.onSuccess(AuthSuccessStatus.JOIN_SUCCESS, UserConverter.toJoinResultDTO(user));
+    public ApiResponse<UserResponseDTO.JoinResultDTO> join(
+            @RequestBody @Valid UserRequestDTO.JoinDTO request) {
+        return ApiResponse.onSuccess(AuthSuccessStatus.JOIN_SUCCESS, userService.joinUser(request));
     }
 
     @Override
-    public ApiResponse<UserResponseDTO.LoginResultDTO> login(@RequestBody @Valid UserRequestDTO.LoginRequestDTO request) {
-        return ApiResponse.onSuccess(AuthSuccessStatus.LOGIN_SUCCESS, userService.loginUser(request));
+    public ApiResponse<UserResponseDTO.LoginResultDTO> login(
+            @RequestBody @Valid UserRequestDTO.LoginRequestDTO request) {
+        return ApiResponse.onSuccess(
+                AuthSuccessStatus.LOGIN_SUCCESS, userService.loginUser(request));
     }
 
     @Override
-    public ApiResponse<UserResponseDTO.TokenPair> reissueToken(@RequestBody @Valid UserRequestDTO.TokenReissueRequestDTO request) {
-        return ApiResponse.onSuccess(AuthSuccessStatus.TOKEN_REISSUE_SUCCESS, userService.reissueRefreshToken(request));
+    public ApiResponse<UserResponseDTO.TokenPair> reissueToken(
+            @RequestBody @Valid UserRequestDTO.TokenReissueRequestDTO request) {
+        return ApiResponse.onSuccess(
+                AuthSuccessStatus.TOKEN_REISSUE_SUCCESS, userService.reissueRefreshToken(request));
     }
 
     @Override
     public ApiResponse<Object> sendCode(@RequestBody @Valid EmailRequestDTO.CodeSendDTO request) {
         emailVerificationService.sendCode(request.email());
-        return ApiResponse.onSuccess(
-                AuthSuccessStatus.SEND_VERIFICATION_CODE);
+        return ApiResponse.onSuccess(AuthSuccessStatus.SEND_VERIFICATION_CODE);
     }
 
     @Override
-    public ApiResponse<Object> verifyCode(@RequestBody @Valid EmailRequestDTO.CodeVerifyDTO request) {
+    public ApiResponse<Object> verifyCode(
+            @RequestBody @Valid EmailRequestDTO.CodeVerifyDTO request) {
         emailVerificationService.verifyCode(request.email(), request.code());
-        return ApiResponse.onSuccess(
-                AuthSuccessStatus.EMAIL_VERIFICATION_SUCCESS);
+        return ApiResponse.onSuccess(AuthSuccessStatus.EMAIL_VERIFICATION_SUCCESS);
     }
 
     @Override
@@ -70,14 +73,24 @@ public class AuthController implements AuthApi {
     }
 
     @Override
-    public ApiResponse<Object> sendPasswordResetLink(@RequestBody @Valid EmailRequestDTO.ResetLinkDTO request) {
+    public ApiResponse<UserResponseDTO.NicknameDTO> getNickname(
+            @CurrentUser CustomUserDetails userDetails) {
+        return ApiResponse.onSuccess(
+                AuthSuccessStatus.NICKNAME_INQUIRY_SUCCESS,
+                userService.getNickname(userDetails.getUserId()));
+    }
+
+    @Override
+    public ApiResponse<Object> sendPasswordResetLink(
+            @RequestBody @Valid EmailRequestDTO.ResetLinkDTO request) {
         passwordResetService.sendResetLink(request.email());
         return ApiResponse.onSuccess(AuthSuccessStatus.PASSWORD_RESET_LINK_SENT);
     }
 
     @Override
     public ApiResponse<Object> resetPassword(@RequestBody @Valid PasswordResetRequestDTO request) {
-        passwordResetService.resetPassword(request.getToken(), request.getNewPassword(), request.getConfirmPassword());
+        passwordResetService.resetPassword(
+                request.getToken(), request.getNewPassword(), request.getConfirmPassword());
         return ApiResponse.onSuccess(AuthSuccessStatus.PASSWORD_RESET_SUCCESS);
     }
 
@@ -85,8 +98,7 @@ public class AuthController implements AuthApi {
     public ApiResponse<Object> logout(
             @CurrentUser CustomUserDetails userDetails,
             @RequestParam String deviceId,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         String accessToken = JwtTokenProvider.resolveToken(request);
         if (accessToken == null) {
             throw new GeneralException(AuthErrorStatus.UNAUTHORIZED);

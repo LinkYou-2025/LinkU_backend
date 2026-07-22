@@ -17,5 +17,6 @@ public class FolderTreeResponseDTO {
     private Long categoryId;
     private Boolean isBookmarked;
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    @Builder.Default
     private List<FolderTreeResponseDTO> children = new ArrayList<>();
 }

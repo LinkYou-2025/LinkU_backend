@@ -44,19 +44,15 @@ public class DomainServiceImpl implements DomainService{
                 .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND));
         // null 아닌 필드만 업데이트
         if (dto.getName() != null) {
-            domain.setName(dto.getName());
+            domain.updateName(dto.getName());
         }
         if (dto.getDomainTail() != null) {
-            domain.setDomainTail(dto.getDomainTail());
+            domain.updateDomainTail(dto.getDomainTail());
         }
         if (image != null && !image.isEmpty()) {
-            // 기존 이미지가 있을 경우 S3에서 삭제
-            if (domain.getImageUrl() != null) {
-                awsS3Service.deleteFileByUrl(domain.getImageUrl());  // URL에서 파일명 추출 후 삭제 실행
-            }
-            // 새 이미지 업로드 후 URL 세팅
-            String imageUrl = awsS3Service.uploadFile(image, "domain");
-            domain.setImageUrl(imageUrl);
+            // 기존 이미지가 있으면 S3에서 먼저 삭제한 뒤 새 이미지를 업로드하고 URL을 교체한다.
+            String imageUrl = awsS3Service.replaceFile(domain.getImageUrl(), image, "domain");
+            domain.updateImageUrl(imageUrl);
         }
 
         domainRepository.save(domain);

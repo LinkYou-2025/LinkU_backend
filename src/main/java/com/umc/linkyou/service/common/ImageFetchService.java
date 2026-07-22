@@ -14,10 +14,10 @@ public class ImageFetchService {
     private final LinkToImageService linkToImageService;
 
     @Async("defaultTaskExecutor")
-    public CompletableFuture<String> fetchAsync(String url) {
+    public CompletableFuture<String> fetchAsync(String url, String title) {
         try {
             return CompletableFuture.completedFuture(
-                    linkToImageService.getRelatedImageFromUrl(url));
+                    linkToImageService.getRelatedImageFromUrl(url, title));
         } catch (Exception e) {
             return CompletableFuture.completedFuture(null);
         }

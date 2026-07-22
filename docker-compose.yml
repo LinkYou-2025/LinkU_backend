@@ -1,19 +1,18 @@
 version: "3.8"
 
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: linkU-mysql
+  postgres:
+    image: postgres:16
+    container_name: linkU-postgres
     ports:
-      - "3306:3306"
+      - "5432:5432"
     environment:
-      MYSQL_DATABASE: linkUDB
-      MYSQL_USER: linkU
-      MYSQL_PASSWORD: linkU1234
-      MYSQL_ROOT_PASSWORD: linkU1234
+      POSTGRES_DB: linkUDB
+      POSTGRES_USER: linkU
+      POSTGRES_PASSWORD: linkU1234
       TZ: Asia/Seoul
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
   redis:
@@ -25,18 +24,6 @@ services:
     volumes:
       - redis_data:/data
     restart: unless-stopped
-  h2:
-    image: oscarfonts/h2
-    container_name: local-h2
-    ports:
-      - "1521:1521"   # TCP
-      - "8082:81"     # H2 Console
-    environment:
-      H2_OPTIONS: -ifNotExists
-    volumes:
-      - h2_data:/opt/h2-data
-    restart: unless-stopped
 volumes:
-  mysql_data:
+  postgres_data:
   redis_data:
-  h2_data:

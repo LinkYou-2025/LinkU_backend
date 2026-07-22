@@ -43,3 +43,10 @@ out/
 
 **/linku-firebase-adminsdk.json
 **/gcp-credentials.json
+
+# Claude Code worktrees
+.claude/worktrees/
+
+/infra/envs/prod/terraform.tfvars
+/infra/envs/dev/terraform.tfvars
+.DS_Store

@@ -24,7 +24,6 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final FcolorRepository fcolorRepository;
     private final UsersCategoryColorRepository usersCategoryColorRepository;
-    private final CategoryConverter categoryConverter;
 
     // 카테고리-기본 컬러 목록 조회
     public List<CategoryListResponseDTO> getCategories(Long userId) {
@@ -59,9 +58,9 @@ public class CategoryServiceImpl implements CategoryService {
         UsersCategoryColor ucc = usersCategoryColorRepository.searchCategoryColor(userId, categoryId);
 
         Fcolor fcolor = fcolorRepository.searchColorCode(request.getFcolorId());
-        
-        ucc.setFcolor(fcolor);
 
-        return categoryConverter.toUserCategoryColorResponseDTO(ucc);
+        ucc.updateFcolor(fcolor);
+
+        return CategoryConverter.toUserCategoryColorResponseDTO(ucc);
     }
 }

@@ -8,10 +8,15 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - /home/ubuntu/linku-key.json:/app/linku-key.json:ro
+      - /home/ubuntu/secrets/application-secret.properties:/app/config/application-secret.properties:ro
     environment:
-      GOOGLE_APPLICATION_CREDENTIALS: /app/linku-key.json
+      SPRING_PROFILES_ACTIVE: dev
       TZ: Asia/Seoul
+      # DB (같은 compose 네트워크의 postgres 컨테이너로 접속)
+      DB_DRIVER: org.postgresql.Driver
+      DB_URL: jdbc:postgresql://postgres:5432/linkUDB
+      DB_USERNAME: linkU
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_URL: redis://redis:6379
@@ -19,17 +24,39 @@ services:
       JWT_REDIS_HOST: redis
       JWT_REDIS_PORT: 6379
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16
+    container_name: linku-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: linkUDB
+      POSTGRES_USER: linkU
+      POSTGRES_PASSWORD: linkU1234
+      TZ: Asia/Seoul
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U linkU -d linkUDB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7
     container_name: linku-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--timeout", "300"]
-    ports:
-      - "6379:6379"
+    # 포트 미노출 — app 컨테이너가 내부 네트워크(redis:6379)로만 접속
     volumes:
       - redis_data:/data
 
 volumes:
   redis_data:
+  postgres_data:

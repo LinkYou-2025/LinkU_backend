@@ -5,11 +5,13 @@ import com.umc.linkyou.domain.enums.TermsType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "terms_agreement",
+        name = "terms_agreements",
         uniqueConstraints={
                 @UniqueConstraint(
                         name = "uk_terms_agreements_user_type",
@@ -18,10 +20,9 @@ import java.time.LocalDateTime;
         }
 )
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Getter
-@Setter
 public class TermsAgreement extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,6 +31,7 @@ public class TermsAgreement extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Users user;
 
     @Enumerated(EnumType.STRING)
@@ -50,4 +52,9 @@ public class TermsAgreement extends BaseEntity {
     @NotNull
     @Builder.Default
     private Boolean isAgreed = true;
+
+    public void updateAgreement(boolean isAgreed, LocalDateTime agreedAt) {
+        this.isAgreed = isAgreed;
+        this.agreedAt = agreedAt;
+    }
 }

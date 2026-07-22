@@ -40,7 +40,7 @@ public class UserQueryRepository {
                         aiLinkCountSub
                 ))
                 .from(u)
-                .leftJoin(u.authAccounts, authAccount)
+                .leftJoin(authAccount).on(authAccount.user.eq(u))
                 .where(u.id.eq(userId))
                 .fetchFirst();
     }

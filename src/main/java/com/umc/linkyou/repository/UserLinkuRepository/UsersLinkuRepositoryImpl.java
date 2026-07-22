@@ -20,7 +20,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
     public List<UsersLinku> fetchAiArticlesByCategoryId(Long userId, Long categoryId) {
         QUsersLinku usersLinku = QUsersLinku.usersLinku;
         QAiArticle aiArticle = QAiArticle.aiArticle;
-        QLinku linku = QLinku.linku1;
+        QLinku linku = QLinku.linku;
 
         return queryFactory
                 .selectFrom(usersLinku)
@@ -55,13 +55,17 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
     @Override
     public List<UsersLinku> fetchAiArticlesByCategoryIdWithCursor(Long userId, Long categoryId, Long cursorId, int limit) {
         QUsersLinku usersLinku = QUsersLinku.usersLinku;
-        QLinku linku = QLinku.linku1;
+        QLinku linku = QLinku.linku;
         QAiArticle aiArticle = QAiArticle.aiArticle;
 
         return queryFactory
                 .selectFrom(usersLinku)
                 .join(usersLinku.linku, linku).fetchJoin()
                 .leftJoin(linku.aiArticle, aiArticle).fetchJoin()
+                // 서비스단(getMyAiArticlesByCategory)에서 ul.getEmotion()/l.getDomain()을 사용하므로
+                // 추가 쿼리(N+1)를 막기 위해 emotion/domain도 함께 페치 조인한다. 둘 다 not-null 연관관계.
+                .join(usersLinku.emotion).fetchJoin()
+                .join(linku.domain).fetchJoin()
                 .where(
                         usersLinku.user.id.eq(userId),
                         linku.category.categoryId.eq(categoryId),

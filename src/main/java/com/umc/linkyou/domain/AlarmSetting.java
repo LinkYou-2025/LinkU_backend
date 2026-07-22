@@ -4,35 +4,38 @@ package com.umc.linkyou.domain;
 import com.umc.linkyou.domain.enums.AlarmSettingType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
-@Table(name = "alarm_setting")
+@Table(name = "alarm_settings")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AlarmSetting {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "alarm_setting_id")
+    @Column(name = "user_id")
     private Long id;
 
+    @MapsId
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Users user;
 
-    @Column(nullable = false)
+    @Column(name = "alarm_all_enabled", nullable = false)
     private boolean alarmAllEnabled;
 
-    @Column(nullable = false)
+    @Column(name = "notice_enabled", nullable = false)
     private boolean noticeEnabled;
 
-    @Column(nullable = false)
+    @Column(name = "link_enabled", nullable = false)
     private boolean linkEnabled;
 
-    @Column(nullable = false)
+    @Column(name = "curation_enabled", nullable = false)
     private boolean curationEnabled;
 
-    @Column(nullable = false)
+    @Column(name = "folder_enabled", nullable = false)
     private boolean folderEnabled;
 
     @Builder(access = AccessLevel.PRIVATE)
@@ -85,6 +88,10 @@ public class AlarmSetting {
 
     public void updateFolder(boolean enabled) {
         this.folderEnabled = enabled;
+    }
+
+    public void updateAlarmAllEnabled(boolean enabled) {
+        this.alarmAllEnabled = enabled;
     }
 
     public boolean isNoticeActive() {

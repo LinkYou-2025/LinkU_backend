@@ -2,81 +2,36 @@ package com.umc.linkyou.converter;
 
 import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.Linku;
-import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Emotion;
-import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.infra.ai.dto.AiArticleResultDTO;
-import com.umc.linkyou.web.dto.AiArticleResponsetDTO;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import com.umc.linkyou.web.dto.AiArticleResponseDTO;
 
-@RequiredArgsConstructor
-@Component
 public class AiArticleConverter {
-    // 엔티티 생성 메서드
-    public static AiArticle toEntity(AiArticleResultDTO result,
-                                     Situation selectedSituation,
-                                     Emotion selectedEmotion,
-                                     Category selectedCategory,
-                                     Linku linku,
-                                     String imageUrl)
-    {
+
+    public static AiArticle toEntity(AiArticleResultDTO result, Linku linku) {
         return AiArticle.builder()
                 .linku(linku)
-                .situation(selectedSituation)
-                .title(result.title())
-                .aiFeelingId(selectedEmotion.getEmotionId())
-                .aiCategoryId(selectedCategory.getCategoryId())
+                .title(linku.getTitle())
                 .summary(result.summary())
-                .imgUrl(imageUrl)
-                .keyword(result.keywords())
                 .build();
     }
 
-    // DTO 생성 메서드
-    public static AiArticleResponsetDTO.AiArticleResultDTO toDto(
+    public static AiArticleResponseDTO.AiArticleResultDTO toDto(
             AiArticle entity,
             Linku linku,
-            UsersLinku usersLinku,
-            Situation selectedSituation,
-            Emotion selectedEmotion,
-            Category selectedCategory
+            UsersLinku usersLinku
     ) {
-        return AiArticleResponsetDTO.AiArticleResultDTO.builder()
-                .id(entity.getId())
-                .linkuId(linku.getLinkuId())
-                .situationId(selectedSituation != null ? selectedSituation.getId() : null)
-                .situationName(selectedSituation != null ? selectedSituation.getName() : null)
-                .emotionId(selectedEmotion != null ? selectedEmotion.getEmotionId() : null)
-                .emotionName(selectedEmotion != null ? selectedEmotion.getName() : null)
-                .title(entity.getTitle())
-                .aiFeelingName(selectedEmotion != null ? selectedEmotion.getName() : null)
-                .aiFeelingId(entity.getAiFeelingId())
-                .aiCategoryId(entity.getAiCategoryId())
-                .categoryName(selectedCategory != null ? selectedCategory.getCategoryName() : null)
-                .summary(entity.getSummary())
-                .imgUrl(entity.getImgUrl())
-                .memo(usersLinku != null ? usersLinku.getMemo() : null)
-                .keyword(entity.getKeyword())
-                .build();
-    }
-    public static AiArticle toEntityKeywordOnly(
-            String keyword,
-            Linku linku,
-            Situation defaultSituation,
-            Category defaultCategory,
-            Emotion defaultEmotion
-    ) {
-        return AiArticle.builder()
-                .linku(linku)
-                .situation(defaultSituation)           // nullable=false
-                .title("")                             // nullable=false
-                .aiFeelingId(defaultEmotion.getEmotionId())
-                .aiCategoryId(defaultCategory.getCategoryId())
-                .summary("")                           // nullable=false
-                .imgUrl(null)
-                .keyword(keyword)                      // 실제로 넣고 싶은 값
-                .build();
+        Emotion emotion = usersLinku != null ? usersLinku.getEmotion() : null;
+        return new AiArticleResponseDTO.AiArticleResultDTO(
+                entity.getId(),
+                linku.getLinkuId(),
+                emotion != null ? emotion.getEmotionId() : null,
+                emotion != null ? emotion.getName() : null,
+                linku.getCategory() != null ? linku.getCategory().getCategoryName() : null,
+                entity.getSummary(),
+                linku.getImgUrl(),
+                usersLinku != null ? usersLinku.getMemo() : null
+        );
     }
 }

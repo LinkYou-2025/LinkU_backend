@@ -5,11 +5,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "domain")
+@Table(name = "domains")
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Domain {
 
@@ -30,4 +29,16 @@ public class Domain {
     @Enumerated(EnumType.STRING)
     @Column(name = "crawl_strategy", length = 50)
     private CrawlStrategy crawlStrategy;
+
+    public void updateName(String name) {
+        this.name = name;
+    }
+
+    public void updateDomainTail(String domainTail) {
+        this.domainTail = domainTail;
+    }
+
+    public void updateImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
 }

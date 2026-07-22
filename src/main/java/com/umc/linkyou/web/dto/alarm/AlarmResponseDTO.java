@@ -31,4 +31,9 @@ public record AlarmResponseDTO(
             Long nextCursor,
             boolean hasNext
     ){}
+
+    public record UnreadAlarmExistsDTO(
+            @Schema(description = "읽지 않은 알림 존재 여부")
+            boolean hasUnread
+    ){}
 }

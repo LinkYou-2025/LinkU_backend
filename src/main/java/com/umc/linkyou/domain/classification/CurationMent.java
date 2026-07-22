@@ -7,23 +7,24 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "curation_ment")
+@Table(name = "curation_ments")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class CurationMent {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "curation_ment_id")
     private Long curationMentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "emotion_id", nullable = false)
     private Emotion emotion;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(name = "header_text", columnDefinition = "TEXT", nullable = false)
     private String headerText;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(name = "footer_text", columnDefinition = "TEXT", nullable = false)
     private String footerText;
 }

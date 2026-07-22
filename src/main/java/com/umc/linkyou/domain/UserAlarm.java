@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Id;
@@ -15,6 +16,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
@@ -22,10 +25,15 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
-        name = "user_alarm",
+        name = "user_alarms",
         uniqueConstraints = @UniqueConstraint(
                 name = "uq_user_alarm_user_alarm",
                 columnNames = {"user_id", "alarm_id"}
+        ),
+        // 미읽음 알림 존재 여부 조회용 인덱스
+        indexes = @Index(
+                name = "idx_user_alarms_unread",
+                columnList = "user_id, is_read, created_at"
         )
 )
 public class UserAlarm extends BaseEntity {
@@ -37,6 +45,7 @@ public class UserAlarm extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Users user;
 
     @ManyToOne(fetch = FetchType.LAZY)

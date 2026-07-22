@@ -2,7 +2,6 @@ package com.umc.linkyou.repository.keywordRepository;
 
 import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.domain.log.KeywordMonthlyCount;
-import com.umc.linkyou.service.keyword.KeywordStatRow;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -14,12 +13,16 @@ import java.util.List;
 
 public interface KeywordMonthlyCountRepository extends JpaRepository<KeywordMonthlyCount, Long> {
 
+    // 운영 DB는 PostgreSQL이라 MySQL 전용 ON DUPLICATE KEY UPDATE 문법을 못 쓴다.
+    // 테이블명도 실제 스키마(keyword_monthly_counts, V1__init.sql)와 맞춰 복수형으로 수정.
+    // 충돌 기준 컬럼은 uq_keyword_monthly 유니크 제약(user_id, type, ref_id, base_month)과 동일.
     @Transactional
     @Modifying(clearAutomatically = true)
     @Query(value = """
-            INSERT INTO keyword_monthly_count (user_id, type, ref_id, base_month, count)
+            INSERT INTO keyword_monthly_counts (user_id, type, ref_id, base_month, count)
             VALUES (:userId, :type, :refId, :baseMonth, 1)
-            ON DUPLICATE KEY UPDATE count = count + 1
+            ON CONFLICT (user_id, type, ref_id, base_month)
+            DO UPDATE SET count = keyword_monthly_counts.count + 1
             """, nativeQuery = true)
     void upsertCount(
             @Param("userId") Long userId,
@@ -40,7 +43,7 @@ public interface KeywordMonthlyCountRepository extends JpaRepository<KeywordMont
             @Param("baseMonth") String baseMonth,
             Pageable pageable);
 
-    // 큐레이션 상세: 해당 월 top 감정
+    // 큐레이션 상세: 해당 월 top 감정 or 상황
     @Query("""
             SELECT k
             FROM KeywordMonthlyCount k
@@ -55,15 +58,4 @@ public interface KeywordMonthlyCountRepository extends JpaRepository<KeywordMont
             @Param("type") KeywordType type,
             Pageable pageable);
 
-    // 같은 직업 유저들의 키워드 합산 상위 N건
-    @Query("""
-            SELECT new com.umc.linkyou.service.keyword.KeywordStatRow(k.type, k.refId, SUM(k.count))
-            FROM KeywordMonthlyCount k
-            WHERE k.user.job.id = :jobId
-            GROUP BY k.type, k.refId
-            ORDER BY SUM(k.count) DESC
-            """)
-    List<KeywordStatRow> findTopKeywordByJobId(
-            @Param("jobId") Long jobId,
-            Pageable pageable);
 }

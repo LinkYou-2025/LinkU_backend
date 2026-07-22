@@ -11,16 +11,20 @@ import com.umc.linkyou.service.Linku.LinkuSearchService;
 import com.umc.linkyou.service.Linku.LinkuService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.api.LinkuApi;
+import com.umc.linkyou.web.dto.linku.LinkuQuickSearchResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
-import com.umc.linkyou.web.dto.linku.LinkuSearchSuggestionResponse;
+import com.umc.linkyou.web.dto.linku.LinkuSearchResponseDTO;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 @ApiV1
+@Validated
 @RequiredArgsConstructor
 public class LinkuController implements LinkuApi {
 
@@ -30,8 +34,8 @@ public class LinkuController implements LinkuApi {
     private final LinkuRecommendService linkuRecommendService;
 
     @Override
-    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> createLinku(@CurrentUser CustomUserDetails userDetails, @RequestParam String linku, @RequestParam(required = false) String memo, @RequestParam(required = false) Long emotionId, @RequestParam(required = false) MultipartFile image) {
-        LinkuRequestDTO.LinkuCreateDTO linkuCreateDTO = LinkuConverter.toLinkuCreateDTO(linku, memo, emotionId);
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> createLinku(@CurrentUser CustomUserDetails userDetails, @RequestParam String linku, @RequestParam(required = false) String memo, @RequestParam(required = false) Long emotionId, @RequestParam(required = false) Long situationId, @RequestParam(required = false) String title, @RequestParam(required = false) MultipartFile image) {
+        LinkuRequestDTO.LinkuCreateDTO linkuCreateDTO = LinkuConverter.toLinkuCreateDTO(linku, memo, emotionId, situationId, title);
         LinkuResponseDTO.LinkuCreateResult serviceResult = linkuCreateService.createLinku(userDetails.getUserId(), linkuCreateDTO, image);
         if (serviceResult.isValidUrl()) {
             return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_CREATED, serviceResult.getData());
@@ -61,8 +65,29 @@ public class LinkuController implements LinkuApi {
     }
 
     @Override
-    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(@CurrentUser CustomUserDetails userDetails, @PathVariable Long linkuId, @RequestBody LinkuRequestDTO.LinkuUpdateDTO updateDTO) {
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(@CurrentUser CustomUserDetails userDetails, @PathVariable Long linkuId,
+            @RequestParam(required = false) String memo,
+            @RequestParam(required = false) Long emotionId,
+            @RequestParam(required = false) Long situationId,
+            @RequestParam(required = false) Long domainId,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) MultipartFile image) {
+        LinkuRequestDTO.LinkuUpdateDTO updateDTO = LinkuRequestDTO.LinkuUpdateDTO.builder()
+                .memo(memo)
+                .emotionId(emotionId)
+                .situationId(situationId)
+                .domainId(domainId)
+                .categoryId(categoryId)
+                .title(title)
+                .image(image)
+                .build();
         return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_UPDATED, linkuService.updateLinku(userDetails.getUserId(), linkuId, updateDTO));
+    }
+
+    @Override
+    public ApiResponse<LinkuResponseDTO.LinkuFolderChangeResultDTO> updateLinkuFolder(@CurrentUser CustomUserDetails userDetails, @PathVariable Long linkuId, @Valid @RequestBody LinkuRequestDTO.LinkuFolderUpdateDTO updateDTO) {
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_FOLDER_UPDATED, linkuService.updateLinkuFolder(userDetails.getUserId(), linkuId, updateDTO));
     }
 
     @Override
@@ -71,8 +96,13 @@ public class LinkuController implements LinkuApi {
     }
 
     @Override
-    public ApiResponse<List<LinkuSearchSuggestionResponse>> quickSearch(@CurrentUser CustomUserDetails userDetails, @RequestParam String keyword) {
-        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_SEARCH_OK, linkuSearchService.suggest(userDetails.getUserId(), keyword));
+    public ApiResponse<LinkuSearchResponseDTO.LinkuSearchCursorPageResponse> searchLinku(@CurrentUser CustomUserDetails userDetails, @RequestParam String searchQuery, @RequestParam(defaultValue = "0") Long cursor, @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_SEARCH_OK, linkuSearchService.search(userDetails.getUserId(), searchQuery, cursor, size));
+    }
+
+    @Override
+    public ApiResponse<List<LinkuQuickSearchResponseDTO>> quickSearch(@CurrentUser CustomUserDetails userDetails, @RequestParam String searchQuery) {
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_QUICK_SEARCH_OK, linkuSearchService.quickSearch(userDetails.getUserId(), searchQuery));
     }
 
     @Override

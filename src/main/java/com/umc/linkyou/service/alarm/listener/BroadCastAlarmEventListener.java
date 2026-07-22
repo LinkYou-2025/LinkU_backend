@@ -19,8 +19,9 @@ public class BroadCastAlarmEventListener {
     @Async("fcmTaskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(BroadCastAlarmEvent event) throws FirebaseMessagingException {
+        // 브로드캐스트 알림은 targetId가 곧 저장된 Alarm의 PK이므로 alarmId로도 그대로 전달
         fcmPushSender.sendToTopic(
-                FcmSendRequestDTO.of(event.alarmType(), event.targetId())
+                FcmSendRequestDTO.of(event.alarmType(), event.targetId(), event.targetId())
         );
     }
 }

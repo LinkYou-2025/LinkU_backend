@@ -19,14 +19,13 @@ public class Alarm extends BaseEntity {
     @Column(name = "alarm_id")
     private Long id;
 
-    @Column(length = 100, nullable = false)
+    @Column(name = "title", length = 100, nullable = false)
     private String title;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(name = "body", columnDefinition = "TEXT", nullable = false)
     private String body;
 
-    @Column(length = 100, nullable = false)
+    @Column(name = "alarm_type", length = 100, nullable = false)
     @Enumerated(EnumType.STRING)
     private AlarmType alarmType;
 

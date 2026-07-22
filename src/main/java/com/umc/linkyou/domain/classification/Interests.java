@@ -1,44 +1,28 @@
 package com.umc.linkyou.domain.classification;
 
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.enums.Interest;
 import jakarta.persistence.*;
+import lombok.*;
 
-import java.time.LocalDateTime;
-
+// 관심사 마스터(카탈로그) 엔티티. Users 와는 UsersInterest 조인 엔티티를 통해 다대다로 연결된다.
 @Entity
+@Table(name = "interests")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Interests {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String interest;
+    @Column(name = "name", nullable = false, unique = true, length = 50)
+    private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false) // 외래키 설정
-    private Users user;
-
-    @Column(nullable = false)
-    private LocalDateTime selectedAt;
-
-    public Interests() {
-
+    @Builder(access = AccessLevel.PRIVATE)
+    private Interests(String name) {
+        this.name = name;
     }
 
-    public Interests(String enumInterest, Users newUser) {
-        this.interest = enumInterest;
-        this.user = newUser;
-        this.selectedAt = LocalDateTime.now();
-        user.getInterests().add(this);
+    public static Interests of(String name) {
+        return Interests.builder().name(name).build();
     }
-
-    @PrePersist
-    public void prePersist() {
-        if (this.selectedAt == null) {
-            this.selectedAt = LocalDateTime.now();
-        }
-    }
-
 }

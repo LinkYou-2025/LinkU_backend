@@ -7,10 +7,13 @@ import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.validation.annotation.ApiV2;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.format.FormatterRegistry;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.time.YearMonth;
 import java.util.List;
 
 @Configuration
@@ -22,6 +25,16 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(currentUserArgumentResolver);
+    }
+
+    @Override
+    public void addFormatters(FormatterRegistry registry) {
+        registry.addConverter(new Converter<String, YearMonth>() {
+            @Override
+            public YearMonth convert(String source) {
+                return YearMonth.parse(source);
+            }
+        });
     }
 
     @Override

@@ -3,9 +3,7 @@ package com.umc.linkyou.repository.userRepository;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.*;
-import com.umc.linkyou.domain.classification.QInterests;
 import com.umc.linkyou.domain.classification.QJob;
-import com.umc.linkyou.domain.classification.QPurposes;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.domain.folder.QFolder;
 import com.umc.linkyou.domain.mapping.QUsersLinku;
@@ -28,7 +26,7 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
     private final QUsersLinku usersLinku = QUsersLinku.usersLinku;
     private final QUsersFolder usersFolder = QUsersFolder.usersFolder;
     private final QAuthAccount authAccount = QAuthAccount.authAccount;
-//    private final QLinku linku = QLinku.linku1;
+//    private final QLinku linku = QLinku.linku;
 //    private final QAiArticle aiArticle = QAiArticle.aiArticle;
 //    private final QFolder folder = QFolder.folder;
 //    private final QJob job = QJob.job;

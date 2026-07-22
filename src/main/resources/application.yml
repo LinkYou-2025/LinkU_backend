@@ -1,6 +1,6 @@
 spring:
-  config:
-    import: optional:classpath:application-secret.properties
+  profiles:
+    active: local
 
   application:
     name: linkyou
@@ -12,19 +12,22 @@ spring:
     password: ${DB_PASSWORD}
 
   jpa:
-    show-sql: true
     hibernate:
-      ddl-auto: update
-    defer-datasource-initialization: true
+      ddl-auto: validate
+    defer-datasource-initialization: false
     properties:
       hibernate:
-        format_sql: true
         jdbc:
           time_zone: Asia/Seoul
 
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    baseline-version: 1
+
   sql:
     init:
-      mode: always
+      mode: never
 
   jackson:
     time-zone: Asia/Seoul
@@ -45,6 +48,7 @@ spring:
     gcp:
       project-id: linku-server
       location: us-central1
+
   security:
     oauth2:
       client:
@@ -86,16 +90,6 @@ management:
   endpoint:
     health:
       show-details: always
-
-logging:
-  level:
-    root: INFO
-    com.umc.linkyou: DEBUG
-    org.springframework.web: INFO
-    org.hibernate: INFO
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 jwt:
   redis:
@@ -142,8 +136,6 @@ custom:
 gemini:
   model:
     name: gemini-2.5-flash-lite
-  credentials:
-    path: classpath:gcp-credentials.json
 
 app:
   deeplink:

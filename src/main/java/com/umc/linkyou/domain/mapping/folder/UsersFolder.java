@@ -6,12 +6,14 @@ import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.Folder;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
-@Table(name = "users_folder")
+@Table(name = "users_folders")
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class UsersFolder extends BaseEntity {
     @Id
@@ -19,19 +21,28 @@ public class UsersFolder extends BaseEntity {
     @Column(name = "users_folder_id")
     private Long userFolderId;
 
-    @Setter
     @Enumerated(EnumType.STRING)
     @Column(name = "permission_type", nullable = false)
     private PermissionType permissionType;
 
-    @Setter
+    @Column(name = "is_bookmarked")
+    @Builder.Default
     private Boolean isBookmarked = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Users user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "folder_id", nullable = false)
     private Folder folder;
+
+    public void updatePermission(PermissionType permissionType) {
+        this.permissionType = permissionType;
+    }
+
+    public void updateBookmark(Boolean isBookmarked) {
+        this.isBookmarked = isBookmarked;
+    }
 }

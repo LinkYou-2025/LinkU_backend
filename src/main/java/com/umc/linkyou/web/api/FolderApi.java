@@ -2,6 +2,7 @@ package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
@@ -14,12 +15,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "folder-controller", description = "폴더 관련 API")
+@Tag(name = "폴더 API", description = "폴더와 관련 된 API 입니다")
 @RequestMapping("/folders")
 public interface FolderApi {
 
     @Operation(summary = "소분류 폴더 생성", description = "중분류 폴더 하위에 소분류 폴더를 생성합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._FOLDER_NOT_FOUND, ErrorStatus._FOLDER_CREATE_FORBIDDEN, ErrorStatus._FOLDER_CREATE_DUPLICATE})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_PARENT_NOT_FOUND, FolderErrorStatus._FOLDER_CREATE_FORBIDDEN, FolderErrorStatus._FOLDER_NAME_CONFLICT, FolderErrorStatus._FOLDER_CREATE_DUPLICATE})
     @PostMapping("/{parentFolderId}/subfolders")
     ApiResponse<FolderResponseDTO> createFolder(
             @CurrentUser CustomUserDetails userDetails,
@@ -28,7 +29,7 @@ public interface FolderApi {
     );
 
     @Operation(summary = "소분류 폴더 수정", description = "기존 소분류 폴더의 정보를 수정합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._FOLDER_NOT_FOUND, ErrorStatus._FOLDER_UPDATE_FORBIDDEN})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_UPDATE_FORBIDDEN, FolderErrorStatus._FOLDER_PARENT_NOT_FOUND, FolderErrorStatus._FOLDER_NAME_CONFLICT, FolderErrorStatus._FOLDER_CREATE_DUPLICATE})
     @PutMapping("/subfolders/{folderId}")
     ApiResponse<FolderResponseDTO> updateFolder(
             @CurrentUser CustomUserDetails userDetails,
@@ -37,7 +38,7 @@ public interface FolderApi {
     );
 
     @Operation(summary = "소분류 폴더 삭제", description = "소분류 폴더를 삭제합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._FOLDER_NOT_FOUND, ErrorStatus._FOLDER_DELETE_FORBIDDEN})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_DELETE_FORBIDDEN})
     @DeleteMapping("/subfolders/{folderId}")
     ApiResponse<Object> deleteFolder(
             @CurrentUser CustomUserDetails userDetails,
@@ -58,7 +59,7 @@ public interface FolderApi {
     );
 
     @Operation(summary = "중분류 내부의 하위 폴더 조회", description = "특정 중분류 폴더의 하위 소분류 폴더 목록을 조회합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._FOLDER_NOT_FOUND, ErrorStatus._FOLDER_ACCESS_FORBIDDEN})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN})
     @GetMapping("/{parentFolderId}/subfolders")
     ApiResponse<List<FolderListResponseDTO>> getSubFolderList(
             @CurrentUser CustomUserDetails userDetails,
@@ -66,7 +67,7 @@ public interface FolderApi {
     );
 
     @Operation(summary = "북마크 설정/해제", description = "폴더의 북마크 상태를 설정하거나 해제합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._FOLDER_NOT_FOUND, ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}, errorStatus = {ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND})
     @PatchMapping("/{folderId}/bookmark")
     ApiResponse<BookmarkUpdateResponseDTO> updateBookmark(
             @CurrentUser CustomUserDetails userDetails,
@@ -75,7 +76,7 @@ public interface FolderApi {
     );
 
     @Operation(summary = "폴더 내부 링크, 폴더 목록 조회", description = "특정 폴더 내부의 링크와 하위 폴더 목록을 조회합니다. 커서 기반 페이지네이션을 지원합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._FOLDER_NOT_FOUND, ErrorStatus._FOLDER_ACCESS_FORBIDDEN, ErrorStatus._FOLDER_INVALID_CURSOR})
+    @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN, FolderErrorStatus._FOLDER_INVALID_CURSOR})
     @GetMapping("/{folderId}/linkus")
     ApiResponse<FolderLinkusResponseDTO> getFolderLinkus(
             @CurrentUser CustomUserDetails userDetails,

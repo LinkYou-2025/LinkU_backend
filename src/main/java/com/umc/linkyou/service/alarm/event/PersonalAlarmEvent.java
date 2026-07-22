@@ -1,20 +1,22 @@
 package com.umc.linkyou.service.alarm.event;
 
+import com.umc.linkyou.domain.AlarmPayload;
 import com.umc.linkyou.domain.enums.AlarmType;
 
 public record PersonalAlarmEvent(
         Long userId,
         AlarmType alarmType,
         Long targetId,
-        String nickname  // nullable, CURATION 알림 시에만 사용
+        Long alarmId,   // 저장된 Alarm 엔티티의 PK
+        AlarmPayload payload   // placeholder 치환값. 값 없는 알림은 AlarmPayload.Empty
 ) {
-    // nickname 없는 경우 (LINK, FOLDER 등)
-    public static PersonalAlarmEvent of(Long userId, AlarmType alarmType, Long targetId) {
-        return new PersonalAlarmEvent(userId, alarmType, targetId, null);
+    // placeholder 없는 경우
+    public static PersonalAlarmEvent of(Long userId, AlarmType alarmType, Long targetId, Long alarmId) {
+        return new PersonalAlarmEvent(userId, alarmType, targetId, alarmId, new AlarmPayload.Empty());
     }
 
-    // nickname 있는 경우 (CURATION)
-    public static PersonalAlarmEvent ofWithNickname(Long userId, AlarmType alarmType, Long targetId, String nickname) {
-        return new PersonalAlarmEvent(userId, alarmType, targetId, nickname);
+    // placeholder 있는 경우
+    public static PersonalAlarmEvent withPayload(Long userId, AlarmType alarmType, Long targetId, Long alarmId, AlarmPayload payload) {
+        return new PersonalAlarmEvent(userId, alarmType, targetId, alarmId, payload);
     }
 }

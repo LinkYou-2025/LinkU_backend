@@ -6,7 +6,6 @@ import com.umc.linkyou.apiPayload.code.status.alarm.AlarmSuccessStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.domain.enums.AlarmSettingType;
-import com.umc.linkyou.domain.enums.AlarmType;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.service.alarm.AlarmService;
 import com.umc.linkyou.service.alarm.FcmPushSender;
@@ -57,10 +56,9 @@ public class AlarmController implements AlarmApi {
             @CurrentUser CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.TestAlarmSendDTO request
     ) {
-        validateAdmin(userDetails);
         fcmPushSender.sendToToken(
                 request.fcmToken(),
-                FcmSendRequestDTO.of(AlarmType.ANNOUNCEMENT_UPDATE, userDetails.getUserId())
+                FcmSendRequestDTO.of(request.type(), userDetails.getUserId())
         );
         return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_TEST_SENT);
     }
@@ -73,12 +71,12 @@ public class AlarmController implements AlarmApi {
     }
 
     @Override
-    public ApiResponse<Boolean> updateAlarmSetting(
+    public ApiResponse<AlarmSettingResponseDTO> updateAlarmSetting(
             @CurrentUser CustomUserDetails userDetails,
             @Valid @RequestBody AlarmRequestDTO.AlarmSettingUpdateDTO request
     ) {
-        boolean isEnabled = alarmService.updateNoticeAlarmSetting(userDetails.getUserId(), request.alarmType());
-        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_SETTING_UPDATED, isEnabled);
+        AlarmSettingResponseDTO result = alarmService.updateNoticeAlarmSetting(userDetails.getUserId(), request.alarmType());
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_SETTING_UPDATED, result);
     }
 
     @Override
@@ -89,6 +87,13 @@ public class AlarmController implements AlarmApi {
             @RequestParam(defaultValue = "20") int size
     ) {
         return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_LIST_OK, alarmService.viewAlarmList(userDetails.getUserId(), alarmType, cursor, size));
+    }
+
+    @Override
+    public ApiResponse<AlarmResponseDTO.UnreadAlarmExistsDTO> hasUnreadAlarm(
+            @CurrentUser CustomUserDetails userDetails
+    ) {
+        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_UNREAD_EXISTS_OK, alarmService.hasUnreadAlarm(userDetails.getUserId()));
     }
 
     @Override
