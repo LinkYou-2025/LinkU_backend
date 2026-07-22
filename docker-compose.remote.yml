@@ -9,6 +9,7 @@ services:
       - "8080:8080"
     volumes:
       - /home/ubuntu/secrets/application-secret.properties:/app/config/application-secret.properties:ro
+      - /home/ubuntu/secrets/linku-firebase-adminsdk.json:/app/config/linku-firebase-adminsdk.json:ro
     environment:
       SPRING_PROFILES_ACTIVE: dev
       TZ: Asia/Seoul
