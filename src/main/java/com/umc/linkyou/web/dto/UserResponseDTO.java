@@ -1,33 +1,34 @@
 package com.umc.linkyou.web.dto;
 
-import com.umc.linkyou.domain.classification.Job;
-import com.umc.linkyou.domain.enums.Gender;
-import com.umc.linkyou.domain.enums.TermsType;
-import com.umc.linkyou.domain.enums.UserStatus;
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
-
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import com.umc.linkyou.domain.classification.Job;
+import com.umc.linkyou.domain.enums.Gender;
+import com.umc.linkyou.domain.enums.TermsType;
+import com.umc.linkyou.domain.enums.UserStatus;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.*;
 
 public class UserResponseDTO {
     @Builder
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class JoinResultDTO{
+    public static class JoinResultDTO {
         Long userId;
-
         LocalDateTime createdAt;
+        TokenPair tokenResponse;
     }
 
     @Builder
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class LoginResultDTO{
+    public static class LoginResultDTO {
         Long userId;
         String accessToken;
         String refreshToken; // 리프레시 토큰
@@ -36,7 +37,8 @@ public class UserResponseDTO {
     }
 
     // 리프레시 토큰 로테이션
-    @Getter @AllArgsConstructor
+    @Getter
+    @AllArgsConstructor
     public static class TokenPair {
         private final String accessToken;
         private final String refreshToken;
@@ -46,7 +48,7 @@ public class UserResponseDTO {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class UserInfoDTO{
+    public static class UserInfoDTO {
         String nickName;
 
         String email;
@@ -61,19 +63,20 @@ public class UserResponseDTO {
 
         // 내가 만든 ai 링크
         Boolean myAiLinku;
-
     }
+
     @Builder
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class withDrawalResultDTO{
+    public static class withDrawalResultDTO {
         Long userId;
         String nickname;
         LocalDateTime createdAt;
         UserStatus status;
         LocalDateTime inactiveDate;
     }
+
     @Getter
     @AllArgsConstructor
     @Builder
@@ -89,9 +92,16 @@ public class UserResponseDTO {
         private String loginProvider;
         private List<String> purposes;
         private List<String> interests;
-        //QueryDSL 7개 파라미터용 생성자
-        public UserProfileSummaryDto(String nickName, String email, Gender gender, Job job,
-                                     Long myLinku, Long myFolder, Long myAiLinku) {
+
+        // QueryDSL 7개 파라미터용 생성자
+        public UserProfileSummaryDto(
+                String nickName,
+                String email,
+                Gender gender,
+                Job job,
+                Long myLinku,
+                Long myFolder,
+                Long myAiLinku) {
             this.nickName = nickName;
             this.email = email;
             this.gender = gender;
@@ -105,24 +115,22 @@ public class UserResponseDTO {
         }
     }
 
-
     @Schema(description = "닉네임 조회 응답")
-    public record NicknameDTO(
-            @Schema(description = "사용자 닉네임", example = "링큐유저")
-            String nickname
-    ) {
-    }
+    public record NicknameDTO(@Schema(description = "사용자 닉네임", example = "링큐유저") String nickname) {}
 
-    @Getter @Setter
+    @Getter
+    @Setter
     @Builder
-    @NoArgsConstructor @AllArgsConstructor
+    @NoArgsConstructor
+    @AllArgsConstructor
     @Schema(description = "약관 동의 상태 응답 (키-값 형태)")
     public static class TermsStatusDTO {
 
         @Schema(description = "사용자 ID", example = "123")
         private Long userId;
 
-        @Schema(description = "약관별 동의 상태 맵",
+        @Schema(
+                description = "약관별 동의 상태 맵",
                 example = "{\"TERMS_OF_USE\":true,\"MARKETING\":true,\"PRIVACY_POLICY\":false}")
         private Map<TermsType, Boolean> termsStatus;
 
@@ -130,8 +138,11 @@ public class UserResponseDTO {
         private boolean allRequiredAgreed;
     }
 
-    @Getter @Setter @Builder
-    @NoArgsConstructor @AllArgsConstructor
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     @Schema(description = "개별 약관 동의 정보")
     public static class TermsAgreementDTO {
 

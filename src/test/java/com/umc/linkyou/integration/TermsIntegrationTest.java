@@ -7,6 +7,7 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Interests;
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.classification.Purposes;
+import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.enums.TermsType;
@@ -90,7 +91,9 @@ class TermsIntegrationTest {
                     job.getId(),
                     List.of("CAREER"),
                     List.of("IT"),
-                    Map.of(TermsType.TERMS_OF_USE, true)
+                    Map.of(TermsType.TERMS_OF_USE, true),
+                    "ios-iphone-16-pro",
+                    DeviceType.PHONE
             );
 
             mockMvc.perform(post("/api/v1/auth/signup")

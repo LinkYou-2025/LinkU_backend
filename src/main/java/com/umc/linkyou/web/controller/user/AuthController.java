@@ -10,8 +10,6 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthSuccessStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.converter.UserConverter;
-import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.jwt.JwtTokenProvider;
@@ -38,9 +36,7 @@ public class AuthController implements AuthApi {
     @Override
     public ApiResponse<UserResponseDTO.JoinResultDTO> join(
             @RequestBody @Valid UserRequestDTO.JoinDTO request) {
-        Users user = userService.joinUser(request);
-        return ApiResponse.onSuccess(
-                AuthSuccessStatus.JOIN_SUCCESS, UserConverter.toJoinResultDTO(user));
+        return ApiResponse.onSuccess(AuthSuccessStatus.JOIN_SUCCESS, userService.joinUser(request));
     }
 
     @Override

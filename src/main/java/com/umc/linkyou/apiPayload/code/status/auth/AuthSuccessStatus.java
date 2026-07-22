@@ -11,7 +11,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum AuthSuccessStatus implements BaseSuccessCode {
-    JOIN_SUCCESS(HttpStatus.CREATED, "AUTH201", "회원가입이 완료되었습니다."),
+    JOIN_SUCCESS(HttpStatus.CREATED, "AUTH201", "회원가입 및 로그인 완료되었습니다."),
     LOGIN_SUCCESS(HttpStatus.OK, "AUTH2001", "로그인 성공"),
     LOGOUT_SUCCESS(HttpStatus.NO_CONTENT, "AUTH204", "로그아웃 성공"),
     TOKEN_REISSUE_SUCCESS(HttpStatus.OK, "AUTH2002", "토큰이 재발급되었습니다."),

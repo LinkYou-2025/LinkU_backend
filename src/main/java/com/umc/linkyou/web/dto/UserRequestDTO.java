@@ -25,7 +25,9 @@ public class UserRequestDTO {
             @Schema(example = "1") @NotNull Long jobId,
             @Schema(example = "[\"CAREER\", \"STUDY\"]") @NotEmpty(message = "목적 리스트는 최소 1개 이상 선택해야 합니다") List<String> purposeList,
             @Schema(example = "[\"IT\", \"DESIGN\"]") @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다") List<String> interestList,
-            @Schema(description = "약관 동의 맵", example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}")  Map<TermsType, Boolean> termsMap
+            @Schema(description = "약관 동의 맵", example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}")  Map<TermsType, Boolean> termsMap,
+            @Schema(example = "ios-iphone-16-pro") @NotBlank(message = "deviceId는 필수입니다.") String deviceId,
+            @Schema(example = "PHONE") @NotNull(message = "deviceType은 필수입니다.") DeviceType deviceType
     ) {}
 
     public record LoginRequestDTO(
