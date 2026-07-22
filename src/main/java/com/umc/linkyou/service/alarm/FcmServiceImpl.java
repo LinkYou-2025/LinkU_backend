@@ -125,7 +125,7 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
                 .setNotification(buildNotification(requestDTO))
                 .putData("title", requestDTO.getTitle())
                 .putData("body", requestDTO.getMessage())
-                .putData("type", requestDTO.getType().name())
+                .putData("type", requestDTO.getType().getResponseType().name())
                 .putData("targetId", requestDTO.getTargetId().toString());
         if (requestDTO.getAlarmId() != null) {
             builder.putData("alarmId", requestDTO.getAlarmId().toString());
@@ -143,7 +143,7 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
                 .setNotification(buildNotification(requestDTO))
                 .putData("title", requestDTO.getTitle())
                 .putData("body", requestDTO.getMessage())
-                .putData("type", requestDTO.getType().name())
+                .putData("type", requestDTO.getType().getResponseType().name())
                 .putData("targetId", requestDTO.getTargetId().toString())
                 .setToken(token)
                 .setAndroidConfig(AndroidConfig.builder()
@@ -159,7 +159,7 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
                 .setNotification(buildNotification(requestDTO))
                 .putData("title", requestDTO.getTitle())
                 .putData("body", requestDTO.getMessage())
-                .putData("type", requestDTO.getType().name())
+                .putData("type", requestDTO.getType().getResponseType().name())
                 .putData("targetId", requestDTO.getTargetId().toString());
         if (requestDTO.getAlarmId() != null) {
             builder.putData("alarmId", requestDTO.getAlarmId().toString());
