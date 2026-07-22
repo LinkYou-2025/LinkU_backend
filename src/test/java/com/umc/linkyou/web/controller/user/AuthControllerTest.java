@@ -1,8 +1,28 @@
 package com.umc.linkyou.web.controller.user;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.config.common.WebConfig;
-import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.TermsType;
@@ -18,64 +38,33 @@ import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.service.users.UserWithdrawService;
 import com.umc.linkyou.support.security.TestSecurityConfig;
 import com.umc.linkyou.web.dto.UserRequestDTO;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.umc.linkyou.web.dto.UserResponseDTO;
 
 @WebMvcTest(AuthController.class)
 @Import({WebConfig.class, CurrentUserArgumentResolver.class, TestSecurityConfig.class})
 class AuthControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @MockitoBean
-    private UserService userService;
+    @MockitoBean private UserService userService;
 
-    @MockitoBean
-    private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean private JwtTokenProvider jwtTokenProvider;
 
-    @MockitoBean
-    private AccessTokenBlackListManager accessTokenBlackListManager;
+    @MockitoBean private AccessTokenBlackListManager accessTokenBlackListManager;
 
-    @MockitoBean
-    private TermsAgreementService termsAgreementService;
+    @MockitoBean private TermsAgreementService termsAgreementService;
 
-    @MockitoBean
-    private EmailVerificationService emailVerificationService;
+    @MockitoBean private EmailVerificationService emailVerificationService;
 
-    @MockitoBean
-    private PasswordResetService passwordResetService;
+    @MockitoBean private PasswordResetService passwordResetService;
 
-    @MockitoBean
-    private UserWithdrawService userWithdrawService;
+    @MockitoBean private UserWithdrawService userWithdrawService;
 
-    @MockitoBean
-    private SecurityErrorResponseWriter securityErrorResponseWriter;
+    @MockitoBean private SecurityErrorResponseWriter securityErrorResponseWriter;
 
-    @MockitoBean
-    private TokenIssueService tokenIssueService;
+    @MockitoBean private TokenIssueService tokenIssueService;
 
     @Nested
     @DisplayName("회원가입 엔드포인트")
@@ -84,35 +73,36 @@ class AuthControllerTest {
         @Test
         @DisplayName("성공 - 회원가입 요청을 처리하고 생성 결과를 반환한다")
         void join_user_docs() throws Exception {
-            UserRequestDTO.JoinDTO request = new UserRequestDTO.JoinDTO(
-                    "링큐유저",
-                    "test@example.com",
-                    "password123",
-                    Gender.MALE,
-                    1L,
-                    List.of("CAREER"),
-                    List.of("IT"),
-                    Map.of(
-                            TermsType.PRIVACY_POLICY, true,
-                            TermsType.TERMS_OF_USE, true
-                    ),
-                    "ios-iphone-16-pro",
-                    DeviceType.PHONE
-            );
+            UserRequestDTO.JoinDTO request =
+                    new UserRequestDTO.JoinDTO(
+                            "링큐유저",
+                            "test@example.com",
+                            "password123",
+                            Gender.MALE,
+                            1L,
+                            List.of("CAREER"),
+                            List.of("IT"),
+                            Map.of(
+                                    TermsType.PRIVACY_POLICY, true,
+                                    TermsType.TERMS_OF_USE, true),
+                            "ios-iphone-16-pro",
+                            DeviceType.PHONE);
 
-            Users mockUser = Users.builder()
-                    .id(1L)
-                    .build();
-            ReflectionTestUtils.setField(mockUser, "createdAt", LocalDateTime.now());
+            UserResponseDTO.JoinResultDTO mockResult =
+                    UserResponseDTO.JoinResultDTO.builder()
+                            .userId(1L)
+                            .createdAt(LocalDateTime.now())
+                            .tokenResponse(
+                                    new UserResponseDTO.TokenPair("mockAccess", "mockRefresh"))
+                            .build();
 
-            given(userService.joinUser(any())).willReturn(mockUser);
-            given(tokenIssueService.issueTokenPair(any(), any(), any(), any(), any(), any()))
-                    .willReturn(new TokenIssueService.IssuedTokenPair("mockAccess", "mockRefresh"));
+            given(userService.joinUser(any())).willReturn(mockResult);
 
-            mockMvc.perform(post("/api/v1/auth/signup")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request))
-                            .with(csrf()))
+            mockMvc.perform(
+                            post("/api/v1/auth/signup")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request))
+                                    .with(csrf()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.isSuccess").value(true));
         }
