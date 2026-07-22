@@ -95,6 +95,7 @@ public class UserService {
     @Value("${jwt.hmac-secret}")
     private String hmacSecret;
 
+    // 일반로그인 & 회원가입
     @Transactional
     public Users joinUser(UserRequestDTO.JoinDTO request) {
         // 1. 닉네임 중복 체크

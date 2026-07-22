@@ -21,6 +21,8 @@ public class UserResponseDTO {
         Long userId;
 
         LocalDateTime createdAt;
+
+        TokenPair tokenResponse;
     }
 
     @Builder
