@@ -3,12 +3,14 @@ package com.umc.linkyou.web.controller.user;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Gender;
 import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
+import com.umc.linkyou.jwt.TokenIssueService;
 import com.umc.linkyou.service.email.EmailVerificationService;
 import com.umc.linkyou.service.email.PasswordResetService;
 import com.umc.linkyou.service.users.TermsAgreementService;
@@ -72,6 +74,9 @@ class AuthControllerTest {
     @MockitoBean
     private SecurityErrorResponseWriter securityErrorResponseWriter;
 
+    @MockitoBean
+    private TokenIssueService tokenIssueService;
+
     @Nested
     @DisplayName("회원가입 엔드포인트")
     class Join {
@@ -90,7 +95,9 @@ class AuthControllerTest {
                     Map.of(
                             TermsType.PRIVACY_POLICY, true,
                             TermsType.TERMS_OF_USE, true
-                    )
+                    ),
+                    "ios-iphone-16-pro",
+                    DeviceType.PHONE
             );
 
             Users mockUser = Users.builder()
@@ -99,6 +106,8 @@ class AuthControllerTest {
             ReflectionTestUtils.setField(mockUser, "createdAt", LocalDateTime.now());
 
             given(userService.joinUser(any())).willReturn(mockUser);
+            given(tokenIssueService.issueTokenPair(any(), any(), any(), any(), any(), any()))
+                    .willReturn(new TokenIssueService.IssuedTokenPair("mockAccess", "mockRefresh"));
 
             mockMvc.perform(post("/api/v1/auth/signup")
                             .contentType(MediaType.APPLICATION_JSON)
