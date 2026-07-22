@@ -21,6 +21,7 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -87,8 +88,8 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     private ResponseEntity<Object> handleExceptionInternal(Exception e, ErrorReasonDTO reason,
                                                            HttpHeaders headers, HttpServletRequest request) {
 
-        ApiResponse<Object> body = ApiResponse.onFailure(reason.getCode(),reason.getMessage(),null);
-        
+        ApiResponse<Object> body = ApiResponse.onFailure(reason.getCode(), reason.getMessage(), Collections.emptyMap());
+
         if (request != null) {
             log.error("[API Error] URI: {}, Method: {}, Code: {}, Message: {}", 
                     request.getRequestURI(), 
@@ -147,7 +148,7 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     private ResponseEntity<Object> handleExceptionInternalConstraint(Exception e, BaseErrorCode errorCommonStatus,
                                                                      HttpHeaders headers, WebRequest request) {
         var reason = errorCommonStatus.getReasonHttpStatus();
-        ApiResponse<Object> body = ApiResponse.onFailure(reason.getCode(), reason.getMessage(), null);
+        ApiResponse<Object> body = ApiResponse.onFailure(reason.getCode(), reason.getMessage(), Collections.emptyMap());
 
         if (request instanceof ServletWebRequest servletRequest) {
             log.error("[API Constraint Error] URI: {}, Method: {}, Code: {}, Message: {}",
