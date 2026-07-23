@@ -25,6 +25,10 @@ spring:
     baseline-on-migrate: false
     baseline-version: 1
 
+  batch:
+    job:
+      enabled: false
+
   sql:
     init:
       mode: never
