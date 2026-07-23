@@ -67,4 +67,22 @@ public class AsyncConfig {
         ex.initialize();
         return ex;
     }
+
+
+    /**
+     * 외부 추천 큐레이션 이미지 fetch 전용
+     * default와 같이 사용하면 해당 스레드에서 이 결과를 join으로 기다리기 때문에,
+     * 데드락 발생 가능성 있으므로 별도 풀로 분리
+     */
+    @Bean(name = "imageFetchTaskExecutor")
+    public Executor imageFetchTaskExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(8);
+        ex.setMaxPoolSize(15);
+        ex.setQueueCapacity(100);
+        ex.setThreadNamePrefix("image-fetch-");
+        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        ex.initialize();
+        return ex;
+    }
 }
