@@ -12,7 +12,6 @@ public class AiArticleConverter {
     public static AiArticle toEntity(AiArticleResultDTO result, Linku linku) {
         return AiArticle.builder()
                 .linku(linku)
-                .title(linku.getTitle())
                 .summary(result.summary())
                 .build();
     }

@@ -109,7 +109,6 @@ public final class LinkuFixture {
         return AiArticle.builder()
                 .id(1L)
                 .linku(linku)
-                .title("테스트 AI 제목")
                 .summary(summary)
                 .build();
     }

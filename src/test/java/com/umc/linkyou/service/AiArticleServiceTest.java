@@ -341,7 +341,6 @@ class AiArticleServiceTest {
                 AiArticle articleWithNullSummary = AiArticle.builder()
                         .id(1L)
                         .linku(linku)
-                        .title("테스트 제목")
                         .summary(null)
                         .build();
                 AiArticleResultDTO result = new AiArticleResultDTO(SUMMARY);
