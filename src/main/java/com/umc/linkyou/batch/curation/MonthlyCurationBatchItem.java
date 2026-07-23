@@ -7,7 +7,6 @@ import com.umc.linkyou.domain.Users;
  */
 public record MonthlyCurationBatchItem(
         Users user,
-        String month,
-        String thumbnailUrl
+        String baseMonth
 ) {
 }
