@@ -14,27 +14,36 @@
 
 ## 현재 상태
 
-- 큐레이션 배치는 `RepositoryItemReader`를 상속한 `CurationItemReader`로 분리했다
-- 비활성 사용자 배치는 `QuerydslPagingItemReader`를 상속하는 `InactiveUserItemReader`로 유지한다
+- 큐레이션 배치와 비활성 사용자 배치 모두 `QuerydslPagingItemReader`를 상속하는 reader로 관리한다
 
-### 큐레이션 Repository reader 설정
+### 큐레이션 Querydsl reader 설정
 
 ```java
 @Component("curationItemReader")
-public class CurationItemReader extends RepositoryItemReader<Users> {
+public class CurationItemReader extends QuerydslPagingItemReader<Users> {
 
-    public CurationItemReader(UserRepository userRepository) {
-        setName("curationItemReader");
-        setRepository(userRepository);
-        setMethodName("findAll");
-        setArguments(Collections.emptyList());
-        setPageSize(100);
-        setSort(Collections.singletonMap("id", Sort.Direction.ASC));
+    public CurationItemReader(EntityManagerFactory entityManagerFactory) {
+        super("curationItemReader", 100, entityManagerFactory);
+    }
+
+    @Override
+    protected List<Users> fetchQuery(Long lastId, int pageSize) {
+        QUsers users = QUsers.users;
+        return queryFactory.selectFrom(users)
+                .where(users.id.gt(lastId))
+                .orderBy(users.id.asc())
+                .limit(pageSize)
+                .fetch();
+    }
+
+    @Override
+    protected Long getLastId(Users item) {
+        return item.getId();
     }
 }
 ```
 
-- `findAll`을 page 단위로 호출하면서 `id ASC` 순서로 사용자를 순회한다
+- 페이지 번호가 아니라 마지막으로 읽은 ID(`lastId`)를 기준으로 다음 페이지를 조회하는 no-offset cursor 방식이다
 - 설정 클래스 안의 익명 객체가 아니라 별도 reader 클래스로 관리한다
 
 ## 후속 작업 기준
