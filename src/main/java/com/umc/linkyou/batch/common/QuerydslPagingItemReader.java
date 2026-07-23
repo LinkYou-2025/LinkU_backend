@@ -4,6 +4,8 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.item.ExecutionContext;
+import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.database.AbstractPagingItemReader;
 
 import java.util.List;
@@ -28,6 +30,19 @@ public abstract class QuerydslPagingItemReader<T> extends AbstractPagingItemRead
         this.entityManagerFactory = entityManagerFactory;
         setName(name);
         setPageSize(pageSize);
+    }
+
+    @Override
+    public void open(ExecutionContext executionContext) throws ItemStreamException {
+        String key = getExecutionContextKey("lastId");
+        lastId = executionContext.containsKey(key) ? executionContext.getLong(key) : 0L;
+        super.open(executionContext);
+    }
+
+    @Override
+    public void update(ExecutionContext executionContext) throws ItemStreamException {
+        super.update(executionContext);
+        executionContext.putLong(getExecutionContextKey("lastId"), lastId);
     }
 
     @Override
