@@ -4,6 +4,7 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.JPAExpressions;
 import com.umc.linkyou.batch.common.QuerydslPagingItemReader;
 import com.umc.linkyou.domain.QAlarm;
+import com.umc.linkyou.domain.QAlarmSetting;
 import com.umc.linkyou.domain.QCuration;
 import com.umc.linkyou.domain.QUsers;
 import com.umc.linkyou.domain.enums.AlarmType;
@@ -11,6 +12,7 @@ import jakarta.persistence.EntityManagerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
 
 /**
@@ -32,7 +34,8 @@ public class CurationAlarmItemReader extends QuerydslPagingItemReader<CurationAl
         QCuration curation = QCuration.curation;
         QUsers users = QUsers.users;
         QAlarm alarm = QAlarm.alarm;
-        String baseMonth = YearMonth.now().minusMonths(1).toString();
+        QAlarmSetting alarmSetting = QAlarmSetting.alarmSetting;
+        String baseMonth = YearMonth.now(ZoneId.of("Asia/Seoul")).minusMonths(1).toString();
 
         return queryFactory
                 .select(Projections.constructor(
@@ -42,9 +45,12 @@ public class CurationAlarmItemReader extends QuerydslPagingItemReader<CurationAl
                         users.nickName))
                 .from(curation)
                 .join(curation.user, users)
+                .join(alarmSetting).on(alarmSetting.user.eq(users))
                 .where(
                         curation.curationId.gt(lastId),
                         curation.baseMonth.eq(baseMonth),
+                        alarmSetting.alarmAllEnabled.isTrue(),
+                        alarmSetting.curationEnabled.isTrue(),
                         JPAExpressions.selectOne()
                                 .from(alarm)
                                 .where(

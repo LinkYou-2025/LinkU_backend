@@ -14,6 +14,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +27,7 @@ import java.util.Optional;
  */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CurationBatchService {
 
     private final CurationRepository curationRepository;
@@ -33,18 +35,8 @@ public class CurationBatchService {
     private final InternalRecommendMaterializer internalRecommendMaterializer;
     private final ExternalRecommendMaterializer externalRecommendMaterializer;
 
-    /**
-     * 사용자가 이번 월간 큐레이션 생성 대상인지 판단하고,
-     * 대상이면 writer로 넘길 배치 아이템을 생성
-     */
-    @Transactional(readOnly = true)
     public Optional<MonthlyCurationBatchItem> toBatchItem(Users user) {
-        String baseMonth = YearMonth.now().minusMonths(1).toString();
-
-        if (curationRepository.existsByUserAndBaseMonth(user, baseMonth)) {
-            return Optional.empty();
-        }
-
+        String baseMonth = YearMonth.now(ZoneId.of("Asia/Seoul")).minusMonths(1).toString();
         return Optional.of(new MonthlyCurationBatchItem(user, baseMonth));
     }
 
