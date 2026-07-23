@@ -30,6 +30,7 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CurationAlarmBatchService {
 
     private final AlarmRepository alarmRepository;
