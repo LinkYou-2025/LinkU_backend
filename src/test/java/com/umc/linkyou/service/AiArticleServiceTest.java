@@ -182,8 +182,10 @@ class AiArticleServiceTest {
             }
 
             @Test
-            @DisplayName("동일 (user, linku)로 저장된 UsersLinku가 여러 건이면 가장 최근 것을 사용한다")
-            void UsersLinku가_여러건이면_가장_최근_것을_사용한다() {
+            @DisplayName("동일 (user, linku)로 저장된 UsersLinku가 여러 건이면 전부 aiExist가 true로 표시된다")
+            void UsersLinku가_여러건이면_전부_aiExist가_true로_표시된다() {
+                // 같은 링크를 두 번 저장한 상황(1번째 저장, 2번째 저장) - 요약은 linku 단위로 한 번만
+                // 생성되므로, 몇 번째 저장 건에 대해 요청했든 이 링크를 저장한 모든 건에 표시가 남아야 한다.
                 Linku linku = LinkuFixture.linku(null);
                 Users user = LinkuFixture.user();
                 UsersLinku older = UsersLinku.builder()
@@ -210,7 +212,6 @@ class AiArticleServiceTest {
 
                 given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                // DB에 중복 저장된 상황(실제로 발생했던 버그)을 재현: 여러 건을 반환
                 given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of(older, newer));
                 given(aiArticleAnalyzer.analyzeByUrl(any())).willReturn(result);
                 given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.empty());
@@ -219,7 +220,7 @@ class AiArticleServiceTest {
                 aiArticleService.saveAiArticle(LINKU_ID, USER_ID);
 
                 assertTrue(newer.getAiExist());
-                assertFalse(older.getAiExist()); // 더 오래된 UsersLinku는 건드리지 않음
+                assertTrue(older.getAiExist());
             }
         }
 

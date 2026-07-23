@@ -50,8 +50,11 @@ public class AiArticleService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
         userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
-        // 동일 (user, linku) 조합으로 저장된 UsersLinku가 여러 건일 수 있어 최신 1건을 사용한다.
-        UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId).stream()
+        // 동일 (user, linku) 조합으로 저장된 UsersLinku가 여러 건일 수 있다. 응답/알림에는 최신 1건을
+        // 대표로 쓰지만, "AI 요약 있음" 표시는 같은 링크를 여러 번 저장한 모든 건에 동일하게 남아야 한다
+        // (요약은 linku 단위로 한 번만 생성되므로, 그 link를 저장한 기록이라면 몇 번째 저장이든 동일하게 적용된다).
+        List<UsersLinku> usersLinkus = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId);
+        UsersLinku usersLinku = usersLinkus.stream()
                 .max(Comparator.comparing(UsersLinku::getCreatedAt))
                 .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
 
@@ -66,7 +69,7 @@ public class AiArticleService {
                         AiArticleConverter.toEntity(result, linku)
                 ));
 
-        usersLinku.markAiExist(true);
+        usersLinkus.forEach(ul -> ul.markAiExist(true));
 
         // 요약 완료 시 링크 요약 알림 발송. 설정 필터링은 sendAlarm 내부에서 처리한다.
         String linkTitle = usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle();
