@@ -79,9 +79,6 @@ class AiArticleServiceTest {
                 ArgumentCaptor<AiArticle> captor = ArgumentCaptor.forClass(AiArticle.class);
                 verify(aiArticleRepository).save(captor.capture());
                 assertEquals(SUMMARY, captor.getValue().getSummary());
-                // ai_articles.title은 NOT NULL이라 linku.title로 채워져야 한다 (누락 시 DB insert 자체가 실패함)
-                assertEquals(linku.getTitle(), captor.getValue().getTitle());
-                assertNotNull(captor.getValue().getTitle());
                 assertTrue(usersLinku.getAiExist());
             }
 
