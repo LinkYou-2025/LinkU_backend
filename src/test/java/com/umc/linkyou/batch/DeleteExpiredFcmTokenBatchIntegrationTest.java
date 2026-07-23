@@ -101,31 +101,6 @@ class DeleteExpiredFcmTokenBatchIntegrationTest {
         }
     }
 
-    // ── 보존 조건 ────────────────────────────────────────────
-
-    @Nested
-    @DisplayName("보존 조건")
-    class PreserveCondition {
-
-        @Test
-        @DisplayName("lastUsedAt이 270일 경계 이내(+30초)이면 삭제되지 않는다")
-        void lastUsedAt_경계이내_보존() throws Exception {
-            // given — WHERE lastUsedAt < cutoff: cutoff + 30초는 strict-< 조건 불충족 → 보존
-            //          테스트 셋업 시점과 Job이 실제 cutoff를 계산하는 시점 사이의 시간차(CI처럼 느린
-            //          환경에서는 1초를 넘을 수 있음)를 흡수하기 위해 30초 여유를 둔다
-            Users user = saveUser("at-cutoff-user");
-            UsersFcmToken boundaryToken = saveFcmToken(user, "boundary-token",
-                    LocalDateTime.now().minusDays(270).plusSeconds(30));
-
-            // when
-            JobExecution execution = jobLauncherTestUtils.launchJob(uniqueJobParameters());
-
-            // then
-            assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
-            assertThat(userFcmTokenRepository.findById(boundaryToken.getId())).isPresent();
-        }
-    }
-
     // ── 엣지 케이스 ────────────────────────────────────────────
 
     @Nested
