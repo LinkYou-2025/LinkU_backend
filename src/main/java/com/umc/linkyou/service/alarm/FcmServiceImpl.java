@@ -6,6 +6,7 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.UsersFcmToken;
 import com.umc.linkyou.domain.enums.AlarmSettingType;
 import com.umc.linkyou.repository.UserFcmTokenRepository;
+import com.umc.linkyou.web.dto.alarm.FcmBulkTarget;
 import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
@@ -15,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 
@@ -24,6 +27,8 @@ import static java.util.Collections.singletonList;
 public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
 
     private static final String CLICK_ACTION = "notice_icon_click";
+    // FCM sendEach 배치 호출당 최대 메시지 수 제한
+    private static final int FCM_BATCH_LIMIT = 500;
 
     private final FirebaseMessaging firebaseMessaging;
     private final UserFcmTokenRepository userFcmTokenRepository;
@@ -76,6 +81,39 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
             firebaseMessaging.send(buildTopicMessage(resolveTopic(requestDTO), requestDTO));
         } catch (FirebaseMessagingException e) {
             throw new GeneralException(AlarmErrorStatus.ALARM_SEND_FAILED);
+        }
+    }
+
+    // 유저별로 본문이 다른 개인화 알림을 청크(최대 100건) 단위로 모아 sendEach 한 번에 전송
+    @Override
+    @Transactional
+    public void sendBulkPersonalized(List<FcmBulkTarget> targets) {
+        if (firebaseMessaging == null || targets == null || targets.isEmpty()) return;
+
+        List<Long> userIds = targets.stream().map(FcmBulkTarget::userId).distinct().toList();
+        Map<Long, List<UsersFcmToken>> tokensByUser = userFcmTokenRepository
+                .findAllActiveAndNotExpiredByUserIdIn(userIds, LocalDateTime.now())
+                .stream()
+                .collect(Collectors.groupingBy(token -> token.getUser().getId()));
+
+        List<Message> messages = new ArrayList<>();
+        List<UsersFcmToken> messageTokens = new ArrayList<>();
+        for (FcmBulkTarget target : targets) {
+            for (UsersFcmToken token : tokensByUser.getOrDefault(target.userId(), List.of())) {
+                messages.add(buildMessage(token.getFcmToken(), target.requestDTO()));
+                messageTokens.add(token);
+            }
+        }
+        if (messages.isEmpty()) return;
+
+        for (int from = 0; from < messages.size(); from += FCM_BATCH_LIMIT) {
+            int to = Math.min(from + FCM_BATCH_LIMIT, messages.size());
+            try {
+                BatchResponse response = firebaseMessaging.sendEach(messages.subList(from, to));
+                handleBatchResponse(response, messageTokens.subList(from, to));
+            } catch (FirebaseMessagingException e) {
+                log.error("FCM 벌크 개인화 전송 실패 - errorCode: {}, message: {}", e.getMessagingErrorCode(), e.getMessage(), e);
+            }
         }
     }
 

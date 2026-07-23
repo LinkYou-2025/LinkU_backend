@@ -15,6 +15,9 @@ public interface UserFcmTokenRepository extends JpaRepository<UsersFcmToken, Lon
     @Query("SELECT t FROM UsersFcmToken t WHERE t.user.id = :userId AND t.isActive = true AND (t.expiresAt IS NULL OR t.expiresAt > :now)")
     List<UsersFcmToken> findAllActiveAndNotExpiredByUserId(@Param("userId") Long userId, @Param("now") LocalDateTime now);
 
+    @Query("SELECT t FROM UsersFcmToken t WHERE t.user.id IN :userIds AND t.isActive = true AND (t.expiresAt IS NULL OR t.expiresAt > :now)")
+    List<UsersFcmToken> findAllActiveAndNotExpiredByUserIdIn(@Param("userIds") List<Long> userIds, @Param("now") LocalDateTime now);
+
     @Query("SELECT t FROM UsersFcmToken t WHERE t.isActive = true AND (t.expiresAt IS NULL OR t.expiresAt > :now)")
     List<UsersFcmToken> findAllActiveAndNotExpired(@Param("now") LocalDateTime now);
 
