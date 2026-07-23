@@ -84,6 +84,9 @@ public class LinkuRecommendService {
         situationRepository.findById(situationId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
 
+        if (user.getJob() == null) {
+            throw new GeneralException(UserErrorStatus._JOB_NOT_SET);
+        }
         Long jobId = user.getJob().getId();
         SituationJob situationJob = situationJobRepository.findBySituation_IdAndJob_Id(situationId, jobId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));

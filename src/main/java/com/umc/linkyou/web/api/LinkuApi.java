@@ -136,7 +136,10 @@ public interface LinkuApi {
     );
 
     @Operation(summary = "링크 추천", description = "상황(situation)과 감정(emotion)을 기반으로 링크를 추천합니다. 페이지네이션을 지원합니다.")
-    @ApiErrorCode(errorStatus = {ErrorStatus._SITUATION_NOT_FOUND, ErrorStatus._EMOTION_NOT_FOUND, ErrorStatus._RECOMMEND_LINKU_NOT_ENOUGH_LINKS, ErrorStatus._RECOMMEND_LINKU_NO_RECOMMENDATION, ErrorStatus._RECOMMEND_LINKU_NEW_USER})
+    @ApiErrorCode(
+            errorStatus = {ErrorStatus._SITUATION_NOT_FOUND, ErrorStatus._EMOTION_NOT_FOUND, ErrorStatus._RECOMMEND_LINKU_NOT_ENOUGH_LINKS, ErrorStatus._RECOMMEND_LINKU_NO_RECOMMENDATION, ErrorStatus._RECOMMEND_LINKU_NEW_USER},
+            userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus._JOB_NOT_SET}
+    )
     @GetMapping("/recommend")
     ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
             @CurrentUser CustomUserDetails userDetails,
