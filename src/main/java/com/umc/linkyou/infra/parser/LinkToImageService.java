@@ -8,8 +8,9 @@ import com.umc.linkyou.domain.classification.Domain;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.net.URI;
@@ -23,11 +24,24 @@ public class LinkToImageService {
     private final DomainRepository domainRepository;
     private final SafeUrlFetcher safeUrlFetcher;
     private final RobotsTxtChecker robotsTxtChecker;
-    private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final int MAX_IMAGE_SEARCH_TRY = 5;
     private static final int IMAGE_FETCH_TIMEOUT_MS = 5000;
+    private static final int HTTP_CONNECT_TIMEOUT_MS = 3000;
+    private static final int HTTP_READ_TIMEOUT_MS = 5000;
+
+    private final RestClient restClient = RestClient.builder()
+            .requestFactory(createTimeoutRequestFactory())
+            .build();
+
+    // 타임아웃을 설정한 RestClient용 RequestFactory 생성,
+    private static SimpleClientHttpRequestFactory createTimeoutRequestFactory() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(HTTP_CONNECT_TIMEOUT_MS);
+        factory.setReadTimeout(HTTP_READ_TIMEOUT_MS);
+        return factory;
+    }
 
     @Value("${custom.search.api.key}")
     private String apiKey;
@@ -133,7 +147,7 @@ public class LinkToImageService {
                     + "&searchType=image"
                     + "&q=" + java.net.URLEncoder.encode(query, "UTF-8");
 
-            String response = restTemplate.getForObject(url, String.class);
+            String response = restClient.get().uri(url).retrieve().body(String.class);
 
             JsonNode root = objectMapper.readTree(response);
             JsonNode items = root.get("items");
