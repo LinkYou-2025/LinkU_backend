@@ -32,6 +32,19 @@ public class UserLoginService {
             String deviceId,
             DeviceType deviceType
     ) {
+        if (userStatusValidator.isWithinWithdrawGracePeriod(user)) {
+            // 탈퇴 유예중인 사용자는 복구 토큰만 발급하고, refresh token은 발급하지 않음
+            String recoveryToken =
+                    tokenIssueService.issueRecoveryToken(
+                            user.getId(), resolvedEmail, provider.name(), user.getRole());
+            return MobileLoginResponse.builder()
+                    .userId(user.getId())
+                    .accessToken(recoveryToken)
+                    .refreshToken(null)
+                    .status(user.getStatus())
+                    .inactiveDate(user.getInactiveDate())
+                    .build();
+        }
         userStatusValidator.validateLoginAllowed(user);
 
         TokenIssueService.IssuedTokenPair tokenPair =
