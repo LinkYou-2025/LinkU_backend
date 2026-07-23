@@ -18,7 +18,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.time.LocalDateTime;
 
 /**
- * 90일 이상된 알람과 사용자 알람을 삭제하는 배치 작업 설정
+ * 30일 이상된 알람과 사용자 알람을 삭제하는 배치 작업 설정
  * - Tasklet 기반으로 구현하여 간단한 삭제 작업 수행
  */
 @Configuration
@@ -30,6 +30,7 @@ public class DeleteOldAlarmJobConfig {
     private final AlarmRepository alarmRepository;
     private final UserAlarmRepository userAlarmRepository;
 
+    // 오래된 알림 삭제 잡
     @Bean
     public Job deleteOldAlarmJob() {
         return new JobBuilder("deleteOldAlarmJob", jobRepository)
@@ -37,6 +38,7 @@ public class DeleteOldAlarmJobConfig {
                 .build();
     }
 
+    // 오래된 알림 삭제 스텝
     @Bean
     public Step deleteOldAlarmStep() {
         return new StepBuilder("deleteOldAlarmStep", jobRepository)
@@ -44,12 +46,13 @@ public class DeleteOldAlarmJobConfig {
                 .build();
     }
 
+    // Tasklet 기반 간단한 삭제 작업 수행
     @Bean
     public Tasklet deleteOldAlarmTasklet() {
         return (contribution, chunkContext) -> {
-            // 90일 이전의 알람과 사용자 알람 삭제
-            LocalDateTime threshold = LocalDateTime.now().minusDays(90);
-            userAlarmRepository.deleteOrderThanBefore(threshold);
+            // 30일 이전의 알람과 사용자 알림 삭제
+            LocalDateTime threshold = LocalDateTime.now().minusDays(30);
+            userAlarmRepository.deleteByCreatedAtBefore(threshold);
             alarmRepository.deleteByCreatedAtBefore(threshold);
             return RepeatStatus.FINISHED;
         };

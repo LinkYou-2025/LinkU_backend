@@ -21,4 +21,6 @@ public interface UserFcmTokenRepository extends JpaRepository<UsersFcmToken, Lon
     @Query("SELECT t FROM UsersFcmToken t WHERE t.isActive = true AND (t.expiresAt IS NULL OR t.expiresAt > :now)")
     List<UsersFcmToken> findAllActiveAndNotExpired(@Param("now") LocalDateTime now);
 
+    void deleteByLastUsedAtBefore(LocalDateTime cutoff);
+
 }
