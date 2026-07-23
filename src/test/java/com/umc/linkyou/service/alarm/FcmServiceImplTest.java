@@ -18,6 +18,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 
 import java.util.List;
 import java.util.Map;
@@ -34,6 +36,8 @@ class FcmServiceImplTest {
 
     @Mock private FirebaseMessaging firebaseMessaging;
     @Mock private UserFcmTokenRepository userFcmTokenRepository;
+    @Mock private PlatformTransactionManager transactionManager;
+    @Mock private TransactionStatus transactionStatus;
 
     private FcmServiceImpl fcmServiceImpl;
 
@@ -42,7 +46,8 @@ class FcmServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        fcmServiceImpl = new FcmServiceImpl(firebaseMessaging, userFcmTokenRepository);
+        lenient().when(transactionManager.getTransaction(any())).thenReturn(transactionStatus);
+        fcmServiceImpl = new FcmServiceImpl(firebaseMessaging, userFcmTokenRepository, transactionManager);
     }
 
     private FcmBulkTarget target(Long userId, String nickname) {

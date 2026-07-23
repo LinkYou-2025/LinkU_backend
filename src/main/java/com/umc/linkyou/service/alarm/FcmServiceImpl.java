@@ -11,7 +11,9 @@ import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,11 +34,14 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
 
     private final FirebaseMessaging firebaseMessaging;
     private final UserFcmTokenRepository userFcmTokenRepository;
+    private final TransactionTemplate transactionTemplate;
 
     public FcmServiceImpl(@Nullable FirebaseMessaging firebaseMessaging,
-                          UserFcmTokenRepository userFcmTokenRepository) {
+                          UserFcmTokenRepository userFcmTokenRepository,
+                          PlatformTransactionManager transactionManager) {
         this.firebaseMessaging = firebaseMessaging;
         this.userFcmTokenRepository = userFcmTokenRepository;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     // 사용자 전체 기기에 멀티캐스트 전송
@@ -86,7 +91,6 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
 
     // 유저별로 본문이 다른 개인화 알림을 청크(최대 100건) 단위로 모아 sendEach 한 번에 전송
     @Override
-    @Transactional
     public void sendBulkPersonalized(List<FcmBulkTarget> targets) {
         if (firebaseMessaging == null || targets == null || targets.isEmpty()) return;
 
@@ -110,7 +114,11 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
             int to = Math.min(from + FCM_BATCH_LIMIT, messages.size());
             try {
                 BatchResponse response = firebaseMessaging.sendEach(messages.subList(from, to));
-                handleBatchResponse(response, messageTokens.subList(from, to));
+                List<UsersFcmToken> batchTokens = messageTokens.subList(from, to);
+                transactionTemplate.executeWithoutResult(status -> {
+                    handleBatchResponse(response, batchTokens);
+                    userFcmTokenRepository.saveAll(batchTokens);
+                });
             } catch (FirebaseMessagingException e) {
                 log.error("FCM 벌크 개인화 전송 실패 - errorCode: {}, message: {}", e.getMessagingErrorCode(), e.getMessage(), e);
             }
