@@ -1,11 +1,15 @@
 package com.umc.linkyou.repository.UserLinkuRepository;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.QAiArticle;
 import com.umc.linkyou.domain.QLinku;
 import com.umc.linkyou.domain.mapping.QUsersLinku;
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.utils.EmotionSimilarityUtil;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
@@ -83,5 +87,60 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
             return null;
         }
         return QUsersLinku.usersLinku.userLinkuId.lt(cursorId);
+    }
+
+    @Override
+    public List<UsersLinku> findHomeRecommendCandidates(
+            Long userId, Long selectedEmotionId, List<Long> mappedCategoryIds, int offset, int limit) {
+        QUsersLinku usersLinku = QUsersLinku.usersLinku;
+        QLinku linku = QLinku.linku;
+
+        NumberExpression<Integer> totalScore = emotionScoreExpression(usersLinku, selectedEmotionId)
+                .add(situationScoreExpression(linku, mappedCategoryIds));
+
+        return queryFactory
+                .selectFrom(usersLinku)
+                // 감정/링크/카테고리/도메인을 한 번에 fetch join 해서 N+1을 없앤다.
+                .join(usersLinku.linku, linku).fetchJoin()
+                .join(usersLinku.emotion).fetchJoin()
+                .join(linku.category).fetchJoin()
+                .join(linku.domain).fetchJoin()
+                .where(usersLinku.user.id.eq(userId))
+                // 점수/정렬/페이징을 전부 DB에서 처리 (애플리케이션 메모리로 전체 로드하지 않음)
+                .orderBy(totalScore.desc(), usersLinku.createdAt.desc())
+                .offset(offset)
+                .limit(limit)
+                .fetch();
+    }
+
+    // 감정 유사도 점수를 CASE WHEN 식으로 변환한다.
+    // EmotionSimilarityUtil의 (선택 감정, 후보 감정) 매핑을 그대로 SQL로 옮긴 것으로,
+    // 실제 점수 값의 출처는 여전히 EmotionSimilarityUtil 하나다.
+    private NumberExpression<Integer> emotionScoreExpression(QUsersLinku usersLinku, Long selectedEmotionId) {
+        CaseBuilder.Cases<Integer, NumberExpression<Integer>> chain = null;
+
+        for (long candidateEmotionId = 1; candidateEmotionId <= 6; candidateEmotionId++) {
+            int score = EmotionSimilarityUtil.getSimilarityScore(selectedEmotionId, candidateEmotionId);
+            if (score == 0) {
+                continue;
+            }
+            BooleanExpression condition = usersLinku.emotion.emotionId.eq(candidateEmotionId);
+            chain = (chain == null)
+                    ? new CaseBuilder().when(condition).then(score)
+                    : chain.when(condition).then(score);
+        }
+
+        return chain != null ? chain.otherwise(0) : Expressions.asNumber(0);
+    }
+
+    // 상황(situation)에 매핑된 카테고리에 속하면 40점, 아니면 0점.
+    private NumberExpression<Integer> situationScoreExpression(QLinku linku, List<Long> mappedCategoryIds) {
+        if (mappedCategoryIds == null || mappedCategoryIds.isEmpty()) {
+            return Expressions.asNumber(0);
+        }
+        return new CaseBuilder()
+                .when(linku.category.categoryId.in(mappedCategoryIds))
+                .then(40)
+                .otherwise(0);
     }
 }
