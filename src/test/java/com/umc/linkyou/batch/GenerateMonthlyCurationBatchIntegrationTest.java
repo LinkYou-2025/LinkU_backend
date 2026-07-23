@@ -10,10 +10,13 @@ import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.JobRepositoryTestUtils;
+import com.umc.linkyou.support.config.TestExternalConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -26,15 +29,11 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
+@ActiveProfiles("test")
+@Import(TestExternalConfig.class)
 @TestPropertySource(properties = {
-        "spring.datasource.url=jdbc:h2:mem:curation-batch-test;MODE=MySQL;DB_CLOSE_DELAY=-1",
-        "spring.datasource.driver-class-name=org.h2.Driver",
-        "spring.datasource.username=sa",
-        "spring.datasource.password=",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.batch.jdbc.initialize-schema=always",
-        "spring.batch.job.enabled=false",
-        "spring.sql.init.mode=never"
+        "spring.batch.job.enabled=false"
 })
 @DisplayName("GenerateMonthlyCurationJob 통합 테스트")
 class GenerateMonthlyCurationBatchIntegrationTest {
@@ -72,7 +71,7 @@ class GenerateMonthlyCurationBatchIntegrationTest {
 
     @Nested
     @DisplayName("정상 처리")
-    class 정상처리 {
+    class NormalCase {
 
         @Test
         @DisplayName("전체 사용자 수만큼 Processor가 호출되고 Writer까지 전달된다")
@@ -124,7 +123,7 @@ class GenerateMonthlyCurationBatchIntegrationTest {
 
     @Nested
     @DisplayName("엣지 케이스")
-    class 엣지케이스 {
+    class EdgeCase {
 
         @Test
         @DisplayName("사용자가 없으면 Writer가 호출되지 않고 잡이 정상 완료된다")
@@ -149,7 +148,7 @@ class GenerateMonthlyCurationBatchIntegrationTest {
     }
 
     private MonthlyCurationBatchItem mockBatchItem() {
-        return new MonthlyCurationBatchItem(null, "2025-05", "http://thumbnail.url");
+        return new MonthlyCurationBatchItem(null, "2025-05");
     }
 
     private JobParameters uniqueJobParameters() {

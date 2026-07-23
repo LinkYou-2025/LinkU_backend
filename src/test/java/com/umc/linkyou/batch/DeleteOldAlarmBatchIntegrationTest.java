@@ -13,10 +13,13 @@ import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.JobRepositoryTestUtils;
+import com.umc.linkyou.support.config.TestExternalConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.LocalDateTime;
@@ -24,15 +27,11 @@ import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
+@ActiveProfiles("test")
+@Import(TestExternalConfig.class)
 @TestPropertySource(properties = {
-        "spring.datasource.url=jdbc:h2:mem:alarm-batch-test;MODE=MySQL;DB_CLOSE_DELAY=-1",
-        "spring.datasource.driver-class-name=org.h2.Driver",
-        "spring.datasource.username=sa",
-        "spring.datasource.password=",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.batch.jdbc.initialize-schema=always",
-        "spring.batch.job.enabled=false",
-        "spring.sql.init.mode=never"
+        "spring.batch.job.enabled=false"
 })
 @DisplayName("DeleteOldAlarmJob 통합 테스트")
 class DeleteOldAlarmBatchIntegrationTest {
@@ -62,7 +61,7 @@ class DeleteOldAlarmBatchIntegrationTest {
 
     @AfterEach
     void tearDown() {
-        jdbcTemplate.execute("DELETE FROM user_alarm");
+        jdbcTemplate.execute("DELETE FROM user_alarms");
         jdbcTemplate.execute("DELETE FROM alarms");
         jdbcTemplate.execute("DELETE FROM users");
     }
@@ -71,15 +70,15 @@ class DeleteOldAlarmBatchIntegrationTest {
 
     @Nested
     @DisplayName("삭제 조건")
-    class 삭제조건 {
+    class DeleteCondition {
 
         @Test
-        @DisplayName("90일 초과 알람과 연결된 사용자 알람이 함께 삭제된다")
-        void 90일초과_알람_UserAlarm_함께_삭제() throws Exception {
+        @DisplayName("30일 초과 알람과 연결된 사용자 알람이 함께 삭제된다")
+        void 알람_30일초과_UserAlarm_함께_삭제() throws Exception {
             // given
             Users user = saveUser("alarm-test-user");
-            Alarm oldAlarm    = saveAlarm(AlarmType.CURATION_UPDATED, 1L, LocalDateTime.now().minusDays(91));
-            Alarm recentAlarm = saveAlarm(AlarmType.CURATION_UPDATED, 2L, LocalDateTime.now().minusDays(30));
+            Alarm oldAlarm    = saveAlarm(AlarmType.CURATION_UPDATED, 1L, LocalDateTime.now().minusDays(31));
+            Alarm recentAlarm = saveAlarm(AlarmType.CURATION_UPDATED, 2L, LocalDateTime.now().minusDays(10));
             userAlarmRepository.save(UserAlarm.create(user, oldAlarm));
             userAlarmRepository.save(UserAlarm.create(user, recentAlarm));
 
@@ -97,14 +96,14 @@ class DeleteOldAlarmBatchIntegrationTest {
 
     @Nested
     @DisplayName("보존 조건")
-    class 보존조건 {
+    class PreserveCondition {
 
         @Test
-        @DisplayName("90일 이내 알람은 삭제되지 않는다")
-        void 90일이내_알람_보존() throws Exception {
+        @DisplayName("30일 이내 알람은 삭제되지 않는다")
+        void 알람_30일이내_보존() throws Exception {
             // given
             Users user = saveUser("recent-alarm-user");
-            Alarm recentAlarm = saveAlarm(AlarmType.CURATION_UPDATED, 3L, LocalDateTime.now().minusDays(89));
+            Alarm recentAlarm = saveAlarm(AlarmType.CURATION_UPDATED, 3L, LocalDateTime.now().minusDays(29));
             userAlarmRepository.save(UserAlarm.create(user, recentAlarm));
 
             // when
@@ -120,7 +119,7 @@ class DeleteOldAlarmBatchIntegrationTest {
 
     @Nested
     @DisplayName("엣지 케이스")
-    class 엣지케이스 {
+    class EdgeCase {
 
         @Test
         @DisplayName("삭제 대상이 없으면 잡이 정상 완료된다")

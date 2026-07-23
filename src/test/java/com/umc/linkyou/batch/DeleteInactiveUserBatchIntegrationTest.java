@@ -11,9 +11,12 @@ import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.JobRepositoryTestUtils;
+import com.umc.linkyou.support.config.TestExternalConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -24,15 +27,11 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 
 @SpringBootTest
+@ActiveProfiles("test")
+@Import(TestExternalConfig.class)
 @TestPropertySource(properties = {
-        "spring.datasource.url=jdbc:h2:mem:inactive-user-batch-test;MODE=MySQL;DB_CLOSE_DELAY=-1",
-        "spring.datasource.driver-class-name=org.h2.Driver",
-        "spring.datasource.username=sa",
-        "spring.datasource.password=",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.batch.jdbc.initialize-schema=always",
-        "spring.batch.job.enabled=false",
-        "spring.sql.init.mode=never"
+        "spring.batch.job.enabled=false"
 })
 @DisplayName("DeleteInactiveUserJob 통합 테스트")
 class DeleteInactiveUserBatchIntegrationTest {
@@ -70,7 +69,7 @@ class DeleteInactiveUserBatchIntegrationTest {
 
     @Nested
     @DisplayName("삭제 조건")
-    class 삭제조건 {
+    class DeleteCondition {
 
         @Test
         @DisplayName("INACTIVE 상태이고 inactiveDate가 14일 초과된 사용자는 삭제되고, 미만이거나 ACTIVE인 사용자는 보존된다")
@@ -110,7 +109,7 @@ class DeleteInactiveUserBatchIntegrationTest {
 
     @Nested
     @DisplayName("보존 조건")
-    class 보존조건 {
+    class PreserveCondition {
 
         @Test
         @DisplayName("inactiveDate가 13일 전이면 유예기간 내이므로 삭제되지 않는다")
@@ -146,7 +145,7 @@ class DeleteInactiveUserBatchIntegrationTest {
 
     @Nested
     @DisplayName("엣지 케이스")
-    class 엣지케이스 {
+    class EdgeCase {
 
         @Test
         @DisplayName("삭제 대상이 없으면 잡이 정상 완료된다")
