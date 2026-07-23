@@ -69,6 +69,7 @@ public class LinkuCreateService {
     private final KeywordService keywordService;
     private final LinkuUpsertService linkuUpsertService;
     private final SafeUrlFetcher safeUrlFetcher;
+    private final AiArticleRepository aiArticleRepository;
     // 크롤링/AI분석/이미지 업로드 등 블로킹 외부 I/O를 @Transactional 메서드 밖에서 수행하기 위해
     // (커넥션을 그 시간만큼 붙들고 있지 않도록) DB 쓰기 구간만 프로그래밍 방식으로 트랜잭션에 넣는다.
     private final TransactionTemplate transactionTemplate;
@@ -327,6 +328,12 @@ public class LinkuCreateService {
                                        String memo, String imageUrl, String title,
                                        boolean emotionAi, boolean situationAi) {
         UsersLinku usersLinku = LinkuConverter.toUsersLinku(user, linku, emotion, situation, memo, imageUrl, title, emotionAi, situationAi);
+        // 이미 이 링크(linku)에 대한 AI 요약이 존재한다면(과거에 본인 또는 다른 유저가 요청해 만들어졌을 수 있음),
+        // 새로 생기는 저장 건도 처음부터 "AI 요약 있음"으로 표시한다. 그렇지 않으면 동일 링크를 재저장할 때마다
+        // 새 UsersLinku 행은 기본값(false)으로 생성되어, 이미 요약이 있는데도 "요약 없음"으로 보이는 문제가 생긴다.
+        if (aiArticleRepository.findByLinku(linku).isPresent()) {
+            usersLinku.markAiExist(true);
+        }
         return usersLinkuRepository.save(usersLinku);
     }
 

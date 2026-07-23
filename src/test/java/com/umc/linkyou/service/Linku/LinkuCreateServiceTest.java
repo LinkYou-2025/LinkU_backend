@@ -241,6 +241,43 @@ class LinkuCreateServiceTest {
     }
 
     @Nested
+    @DisplayName("createUsersLinku - AI 요약 존재 여부 상속")
+    class CreateUsersLinkuAiExistInheritance {
+
+        @Test
+        @DisplayName("이미_AI_요약이_존재하는_링크를_재저장하면_새_UsersLinku도_aiExist가_true로_생성된다")
+        void 이미_AI_요약이_존재하는_링크를_재저장하면_새_UsersLinku도_aiExist가_true로_생성된다() {
+            Linku linku = LinkuFixture.linku(null);
+            com.umc.linkyou.domain.AiArticle existingArticle = com.umc.linkyou.domain.AiArticle.builder()
+                    .id(1L).linku(linku).summary("이미 존재하는 요약").build();
+
+            given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.of(existingArticle));
+            given(usersLinkuRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+            UsersLinku result = linkuCreateService.createUsersLinku(
+                    LinkuFixture.user(), linku, LinkuFixture.emotion(), LinkuFixture.situation(),
+                    null, null, "2번째 저장", true, true);
+
+            assertTrue(result.getAiExist());
+        }
+
+        @Test
+        @DisplayName("아직_AI_요약이_없는_링크를_저장하면_UsersLinku는_aiExist가_false로_생성된다")
+        void 아직_AI_요약이_없는_링크를_저장하면_UsersLinku는_aiExist가_false로_생성된다() {
+            Linku linku = LinkuFixture.linku(null);
+
+            given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.empty());
+            given(usersLinkuRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+            UsersLinku result = linkuCreateService.createUsersLinku(
+                    LinkuFixture.user(), linku, LinkuFixture.emotion(), LinkuFixture.situation(),
+                    null, null, "1번째 저장", true, true);
+
+            assertFalse(result.getAiExist());
+        }
+    }
+
+    @Nested
     @DisplayName("resolveDomain - 도메인 tail 계층 매칭")
     class ResolveDomainHierarchy {
 

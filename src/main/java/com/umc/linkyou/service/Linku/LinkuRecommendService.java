@@ -7,178 +7,116 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
-import com.umc.linkyou.domain.classification.Situation;
-import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.SituationJob;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
-import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
-import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.utils.EmotionSimilarityUtil;
-import com.umc.linkyou.web.dto.linku.LinkuInternalDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.YearMonth;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 홈화면 링크 추천.
+ * 큐레이션 내부/외부 추천(service.curation.recommend.*)과는 별개의 독립된 로직이다.
+ *
+ * 점수 계산·정렬·페이징을 전부 DB(QueryDSL)에서 처리한다.
+ * - 감정 유사도 / 상황-카테고리 매칭 점수: UsersLinkuRepositoryImpl#findHomeRecommendCandidates 의 CASE WHEN 식
+ * - 정렬 + LIMIT/OFFSET: 같은 쿼리에서 처리 (애플리케이션 메모리로 전체 링크를 올리지 않음)
+ */
 @Service
 @RequiredArgsConstructor
-public class LinkuRecommendService{
+public class LinkuRecommendService {
 
     private final EmotionRepository emotionRepository;
     private final UsersLinkuRepository usersLinkuRepository;
     private final UserRepository userRepository;
     private final SituationRepository situationRepository;
     private final SituationJobRepository situationJobRepository;
-    private final AiArticleRepository aiArticleRepository;
-    private final KeywordMonthlyCountRepository keywordMonthlyCountRepository;
     private final LinkuViewService linkuViewService;
     private final LinkuFolderRepository linkuFolderRepository;
-
-
     private final SituationCategoryService situationCategoryService;
-
 
     @Transactional(readOnly = true)
     public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
             Long userId, Long situationId, Long emotionId, int page, int size) {
 
-        // 1. 필수 엔티티 조회 및 검사
-        EntitiesContext context = validateAndFetchEntities(userId, situationId, emotionId);
+        // 1. 필수 엔티티 조회 및 검사 (링크 목록은 이 단계에서 로드하지 않는다)
+        Emotion selectedEmotion = validateAndFetchContext(userId, situationId, emotionId);
 
-        // 2. 점수 계산 및 정렬
-        List<LinkuInternalDTO.ScoredLinkuDTO> scoredList = calculateScoresAndSort(context.userLinkus, context.mappedCategories, context.selectedEmotion);
+        // 2. 상황에 매핑된 카테고리 조회
+        List<Long> mappedCategories = situationCategoryService.getCategoryIdsBySituation(situationId);
 
-        // 3. 페이징 처리
-        List<LinkuInternalDTO.ScoredLinkuDTO> pagedList = paginate(scoredList, page, size);
+        // 3. DB에서 점수 계산 + 정렬 + 페이징까지 마친 후보 조회
+        List<UsersLinku> candidates = usersLinkuRepository.findHomeRecommendCandidates(
+                userId, selectedEmotion.getEmotionId(), mappedCategories, page * size, size);
 
-        // 4. 추천 링크 없으면 빈 리스트 반환
-        if (pagedList.isEmpty()) {
+        if (candidates.isEmpty()) {
             return ApiResponse.onSuccess(Collections.emptyList());
         }
 
-        // 5. AI 아티클 존재 여부 일괄 조회 및 DTO 변환
-        List<LinkuResponseDTO.LinkuSimpleDTO> result = mapPagedListToDto(pagedList, userId);
+        // 4. DTO 변환
+        List<LinkuResponseDTO.LinkuSimpleDTO> result = mapCandidatesToDto(candidates);
 
-        // 6. keyword count 집계
+        // 5. keyword count 집계
         linkuViewService.recordRecommendKeywordCount(userId, emotionId, situationId);
-        // 7. 결과 반환
+
         return ApiResponse.onSuccess(result);
     }
 
-    // 컨텍스트 저장용 레코드
-    private record EntitiesContext(List<UsersLinku> userLinkus, List<Long> mappedCategories, Emotion selectedEmotion) {}
-
-    // 1. 필수 엔티티 조회 및 입력 검증
-    private EntitiesContext validateAndFetchEntities(Long userId, Long situationId, Long emotionId) {
+    // 1. 필수 엔티티 조회 및 입력 검증 (링크 개수는 count 쿼리로만 확인, 전체 로드하지 않음)
+    private Emotion validateAndFetchContext(Long userId, Long situationId, Long emotionId) {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         Emotion selectedEmotion = emotionRepository.findById(emotionId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._EMOTION_NOT_FOUND));
-        Situation selectedSituation = situationRepository.findById(situationId)
+        situationRepository.findById(situationId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
 
+        if (user.getJob() == null) {
+            throw new GeneralException(UserErrorStatus._JOB_NOT_SET);
+        }
         Long jobId = user.getJob().getId();
         SituationJob situationJob = situationJobRepository.findBySituation_IdAndJob_Id(situationId, jobId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
 
-        List<UsersLinku> userLinkus = usersLinkuRepository.findByUser_Id(userId);
-        if (userLinkus.isEmpty())
+        long savedLinkuCount = usersLinkuRepository.countByUser_Id(userId);
+        if (savedLinkuCount == 0)
             throw new GeneralException(ErrorStatus._RECOMMEND_LINKU_NEW_USER);
-        if (userLinkus.size() < 3)
+        if (savedLinkuCount < 3)
             throw new GeneralException(ErrorStatus._RECOMMEND_LINKU_NOT_ENOUGH_LINKS);
 
-        List<Long> mappedCategories = situationCategoryService.getCategoryIdsBySituation(situationId);
-
-        return new EntitiesContext(userLinkus, mappedCategories, selectedEmotion);
+        return selectedEmotion;
     }
 
-    // 2. 점수 계산과 정렬
-    private List<LinkuInternalDTO.ScoredLinkuDTO> calculateScoresAndSort(
-            List<UsersLinku> userLinkus,
-            List<Long> mappedCategories,
-            Emotion selectedEmotion) {
-
-        return userLinkus.stream()
-                .map(linku -> {
-                    int emotionScore = EmotionSimilarityUtil.getSimilarityScore(
-                            selectedEmotion.getEmotionId(),
-                            linku.getEmotion().getEmotionId());
-
-                    Long categoryId = (linku.getLinku() != null && linku.getLinku().getCategory() != null)
-                            ? linku.getLinku().getCategory().getCategoryId()
-                            : null;
-
-                    int situationScore = (categoryId != null && mappedCategories.contains(categoryId)) ? 40 : 0;
-
-                    int totalScore = emotionScore + situationScore;
-
-                    return LinkuInternalDTO.ScoredLinkuDTO.builder()
-                            .userLinku(linku)
-                            .emotionScore(emotionScore)
-                            .situationScore(situationScore)
-                            .totalScore(totalScore)
-                            .build();
-                })
-                .sorted(Comparator.<LinkuInternalDTO.ScoredLinkuDTO>comparingInt(dto -> dto.getTotalScore() == 0 ? Integer.MIN_VALUE : dto.getTotalScore())
-                        .reversed()
-                        .thenComparing(dto -> dto.getUserLinku().getCreatedAt(), Comparator.reverseOrder()))
-                .collect(Collectors.toList());
-    }
-
-    // 3. 페이징 처리
-    private List<LinkuInternalDTO.ScoredLinkuDTO> paginate(List<LinkuInternalDTO.ScoredLinkuDTO> scoredList, int page, int size) {
-        int fromIndex = page * size;
-        int toIndex = Math.min(fromIndex + size, scoredList.size());
-        if (fromIndex > scoredList.size()) {
-            return Collections.emptyList();
-        }
-        return scoredList.subList(fromIndex, toIndex);
-    }
-
-    // 4. AI 아티클 존재 여부 조회 및 DTO 변환
-    private List<LinkuResponseDTO.LinkuSimpleDTO> mapPagedListToDto(List<LinkuInternalDTO.ScoredLinkuDTO> pagedList, Long userId) {
-        List<Long> linkuIds = pagedList.stream()
-                .map(scored -> scored.getUserLinku().getLinku().getLinkuId())
-                .collect(Collectors.toList());
-
-        // 한 번에 AiArticle 조회 및 title 유효성 체크 후 존재 여부 Map 생성
-        Map<Long, Boolean> aiArticleExistsMap = aiArticleRepository.existsAiArticleByLinkuIds(linkuIds);
-
-        // 한 번에 LinkuFolder(실제 폴더) 조회 (리스트 응답에서 N+1 방지)
-        List<Long> userLinkuIds = pagedList.stream()
-                .map(scored -> scored.getUserLinku().getUserLinkuId())
+    // 2. DTO 변환 (AiArticle 존재 여부는 UsersLinku.aiExist 플래그를 그대로 사용 — 별도 조회 없음)
+    private List<LinkuResponseDTO.LinkuSimpleDTO> mapCandidatesToDto(List<UsersLinku> candidates) {
+        List<Long> userLinkuIds = candidates.stream()
+                .map(UsersLinku::getUserLinkuId)
                 .collect(Collectors.toList());
         Map<Long, LinkuFolder> latestFolderByUserLinkuId = fetchLatestLinkuFolders(userLinkuIds);
 
-        return pagedList.stream()
-                .map(scored -> {
-                    UsersLinku userLinku = scored.getUserLinku();
+        return candidates.stream()
+                .map(userLinku -> {
                     Linku linku = userLinku.getLinku();
-                    Domain domain = linku.getDomain();
-
                     boolean aiArticleExists = Boolean.TRUE.equals(userLinku.getAiExist());
                     LinkuFolder linkuFolder = latestFolderByUserLinkuId.get(userLinku.getUserLinkuId());
 
                     return LinkuConverter.toLinkuSimpleDTO(
                             linku,
                             userLinku,
-                            domain,
+                            linku.getDomain(),
                             aiArticleExists,
                             linkuFolder
                     );
