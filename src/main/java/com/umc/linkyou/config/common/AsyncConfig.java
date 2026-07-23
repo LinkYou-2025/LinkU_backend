@@ -81,6 +81,8 @@ public class AsyncConfig {
         ex.setMaxPoolSize(15);
         ex.setQueueCapacity(100);
         ex.setThreadNamePrefix("image-fetch-");
+        ex.setWaitForTasksToCompleteOnShutdown(true);
+        ex.setAwaitTerminationSeconds(30);
         ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         ex.initialize();
         return ex;
