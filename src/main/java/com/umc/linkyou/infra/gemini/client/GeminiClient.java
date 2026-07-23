@@ -4,6 +4,7 @@ import com.google.genai.Client;
 import com.google.genai.types.*;
 import com.umc.linkyou.apiPayload.code.status.gemini.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -68,7 +69,8 @@ public class GeminiClient {
         GenerateContentConfig.Builder builder = GenerateContentConfig.builder()
                 .systemInstruction(Content.fromParts(Part.fromText(systemInstruction)))
                 .maxOutputTokens(maxTokens)
-                .temperature(temp);
+                .temperature(temp)
+                .httpOptions(HttpOptions.builder().timeout(GEMINI_TIMEOUT_SECONDS * 1000).build());
 
         if (tool != null) {
             builder.tools(Collections.singletonList(tool));
@@ -109,6 +111,19 @@ public class GeminiClient {
                     "[GEMINI] call={} executor상태({}) active={} poolSize={} queue={} completed={}",
                     callId, when, pool.getActiveCount(), pool.getPoolSize(),
                     pool.getQueue().size(), pool.getCompletedTaskCount());
+        }
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        geminiCallExecutor.shutdown();
+        try {
+            if (!geminiCallExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                geminiCallExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            geminiCallExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
         }
     }
 }
