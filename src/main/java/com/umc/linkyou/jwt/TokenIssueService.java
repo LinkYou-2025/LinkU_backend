@@ -23,6 +23,11 @@ public class TokenIssueService {
         return jwtTokenProvider.createAccessToken(userId, email, provider, role);
     }
 
+    // 탈퇴 유예 기간 복구 전용 토큰, TTL 10분으로 일반 로그인에는 사용 불가능
+    public String issueRecoveryToken(Long userId, String email, String provider, Role role) {
+        return jwtTokenProvider.createRecoveryToken(userId, email, provider, role);
+    }
+
     // 리프레시 토큰은 DB에 저장되어야 하므로, 발급 시 DB에 저장하는 로직을 포함
     public IssuedTokenPair issueTokenPair(
             Long userId,
