@@ -2,6 +2,8 @@ package com.umc.linkyou.service.users;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -273,6 +275,154 @@ class UserServiceImplTest {
                                 eq(Role.USER),
                                 eq(request.deviceId()),
                                 eq(request.deviceType()));
+            }
+
+            @Test
+            @DisplayName("성공 - 탈퇴 유예 기간 이내인 유저는 복구 전용 토큰만 발급받는다")
+            void 탈퇴_유예_기간_이내인_유저는_복구_전용_토큰만_발급받는다() {
+                // given
+                UserRequestDTO.LoginRequestDTO request =
+                        new UserRequestDTO.LoginRequestDTO(
+                                "inactive@example.com",
+                                "password123",
+                                "ios-iphone-16-pro",
+                                DeviceType.PHONE);
+
+                Users user =
+                        Users.builder()
+                                .id(2L)
+                                .role(Role.USER)
+                                .status(UserStatus.INACTIVE)
+                                .password("encodedPassword")
+                                .build();
+                user.withdraw("테스트 탈퇴", java.time.LocalDateTime.now().minusDays(3));
+
+                AuthAccount authAccount =
+                        AuthAccount.builder().user(user).email("inactive@example.com").build();
+
+                when(authAccountRepository.findUserByEmailAndProvider(
+                                eq(request.email()), eq(Provider.GENERAL)))
+                        .thenReturn(Optional.of(user));
+                when(authAccountRepository.existsByUserIdAndProvider(
+                                anyLong(), eq(Provider.GENERAL)))
+                        .thenReturn(true);
+                when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
+                when(authAccountRepository.findByUserIdAndProvider(anyLong(), eq(Provider.GENERAL)))
+                        .thenReturn(Optional.of(authAccount));
+                when(userStatusValidator.isWithinWithdrawGracePeriod(user)).thenReturn(true);
+                when(tokenIssueService.issueRecoveryToken(
+                                eq(user.getId()),
+                                eq("inactive@example.com"),
+                                eq(Provider.GENERAL.name()),
+                                eq(Role.USER)))
+                        .thenReturn("recoveryToken");
+
+                // when
+                UserResponseDTO.LoginResultDTO result = userService.loginUser(request);
+
+                // then
+                assertEquals("recoveryToken", result.getAccessToken());
+                assertNull(result.getRefreshToken());
+                assertEquals(UserStatus.INACTIVE, result.getStatus());
+                verify(tokenIssueService, never())
+                        .issueTokenPair(any(), any(), any(), any(), any(), any());
+                verify(userStatusValidator, never()).validateLoginAllowed(any());
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+
+            @Test
+            @DisplayName("실패 - 탈퇴 유예 기간이어도 비밀번호가 틀리면 로그인에 실패한다")
+            void 유예_기간이어도_비밀번호가_틀리면_로그인에_실패한다() {
+                // given
+                UserRequestDTO.LoginRequestDTO request =
+                        new UserRequestDTO.LoginRequestDTO(
+                                "inactive@example.com",
+                                "wrongPassword",
+                                "ios-iphone-16-pro",
+                                DeviceType.PHONE);
+
+                Users user =
+                        Users.builder()
+                                .id(2L)
+                                .role(Role.USER)
+                                .status(UserStatus.INACTIVE)
+                                .password("encodedPassword")
+                                .build();
+                user.withdraw("테스트 탈퇴", java.time.LocalDateTime.now().minusDays(3));
+
+                when(authAccountRepository.findUserByEmailAndProvider(
+                                eq(request.email()), eq(Provider.GENERAL)))
+                        .thenReturn(Optional.of(user));
+                when(authAccountRepository.existsByUserIdAndProvider(
+                                anyLong(), eq(Provider.GENERAL)))
+                        .thenReturn(true);
+                when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+
+                // when & then
+                com.umc.linkyou.apiPayload.exception.handler.UserHandler ex =
+                        assertThrows(
+                                com.umc.linkyou.apiPayload.exception.handler.UserHandler.class,
+                                () -> userService.loginUser(request));
+                assertEquals(
+                        com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus._LOGIN_FAILED,
+                        ex.getCode());
+                verify(userStatusValidator, never()).isWithinWithdrawGracePeriod(any());
+                verify(tokenIssueService, never())
+                        .issueRecoveryToken(any(), any(), any(), any());
+            }
+
+            @Test
+            @DisplayName("실패 - 탈퇴 유예 기간이 지난 유저는 로그인이 차단된다")
+            void 유예_기간이_지난_유저는_로그인이_차단된다() {
+                // given
+                UserRequestDTO.LoginRequestDTO request =
+                        new UserRequestDTO.LoginRequestDTO(
+                                "inactive@example.com",
+                                "password123",
+                                "ios-iphone-16-pro",
+                                DeviceType.PHONE);
+
+                Users user =
+                        Users.builder()
+                                .id(2L)
+                                .role(Role.USER)
+                                .status(UserStatus.INACTIVE)
+                                .password("encodedPassword")
+                                .build();
+                user.withdraw("테스트 탈퇴", java.time.LocalDateTime.now().minusDays(20));
+
+                AuthAccount authAccount =
+                        AuthAccount.builder().user(user).email("inactive@example.com").build();
+
+                when(authAccountRepository.findUserByEmailAndProvider(
+                                eq(request.email()), eq(Provider.GENERAL)))
+                        .thenReturn(Optional.of(user));
+                when(authAccountRepository.existsByUserIdAndProvider(
+                                anyLong(), eq(Provider.GENERAL)))
+                        .thenReturn(true);
+                when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
+                when(authAccountRepository.findByUserIdAndProvider(anyLong(), eq(Provider.GENERAL)))
+                        .thenReturn(Optional.of(authAccount));
+                when(userStatusValidator.isWithinWithdrawGracePeriod(user)).thenReturn(false);
+                doThrow(
+                                new com.umc.linkyou.apiPayload.exception.GeneralException(
+                                        com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus
+                                                ._USER_INACTIVE))
+                        .when(userStatusValidator)
+                        .validateLoginAllowed(user);
+
+                // when & then
+                com.umc.linkyou.apiPayload.exception.GeneralException ex =
+                        assertThrows(
+                                com.umc.linkyou.apiPayload.exception.GeneralException.class,
+                                () -> userService.loginUser(request));
+                assertEquals(
+                        com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus._USER_INACTIVE,
+                        ex.getCode());
             }
         }
     }
