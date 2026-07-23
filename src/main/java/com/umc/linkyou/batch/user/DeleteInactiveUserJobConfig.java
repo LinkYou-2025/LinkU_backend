@@ -28,7 +28,6 @@ public class DeleteInactiveUserJobConfig {
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final InactiveUserItemReader inactiveUserItemReader;
-    private final InactiveUserItemProcessor inactiveUserItemProcessor;
     private final InactiveUserItemWriter inactiveUserItemWriter;
 
     @Bean
@@ -43,7 +42,6 @@ public class DeleteInactiveUserJobConfig {
         return new StepBuilder("deleteInactiveUserStep", jobRepository)
                 .<Users, Users>chunk(CHUNK_SIZE, transactionManager)
                 .reader(inactiveUserItemReader)
-                .processor(inactiveUserItemProcessor)
                 .writer(inactiveUserItemWriter)
                 .build();
     }
