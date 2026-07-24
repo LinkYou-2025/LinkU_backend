@@ -19,6 +19,7 @@ import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
+import com.umc.linkyou.repository.recommend.UserProfileRefreshQueueRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.service.folder.FolderService;
@@ -72,6 +73,7 @@ class LinkuCreateServiceTest {
     @Mock private FolderService folderService;
     @Mock private KeywordService keywordService;
     @Mock private UsersFolderRepository usersFolderRepository;
+    @Mock private UserProfileRefreshQueueRepository userProfileRefreshQueueRepository;
 
     // 의존성 주입을 위한 Upsert 서비스 Mock 추가
     @Mock private LinkuUpsertService linkuUpsertService;
