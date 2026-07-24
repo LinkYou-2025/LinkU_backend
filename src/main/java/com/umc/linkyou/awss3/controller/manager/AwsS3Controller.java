@@ -1,8 +1,10 @@
 package com.umc.linkyou.awss3.controller.manager;
 
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.validation.annotation.ApiManager;
 import com.umc.linkyou.validation.annotation.ApiV1;
+import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,7 @@ public class AwsS3Controller {
     private final AwsS3Service awsS3Service;
 
     // 파일 삭제
+    @ApiErrorCode(errorStatus = {ErrorStatus._S3_EXTRACT_URL_FAILED, ErrorStatus._S3_DELETE_FAILED})
     @DeleteMapping("/delete")
     public ResponseEntity<String> deleteFile(@RequestParam String linkuImageUrl) {
         awsS3Service.deleteFileByUrl(linkuImageUrl);
@@ -31,6 +34,7 @@ public class AwsS3Controller {
         return ResponseEntity.ok(fileUrl);
     }
 
+    @ApiErrorCode(errorStatus = {ErrorStatus._S3_FILE_EMPTY, ErrorStatus._S3_INVALID_IMAGE, ErrorStatus._S3_UPLOAD_FAILED})
     @PostMapping(value = "/upload/{folder}", consumes = "multipart/form-data")
     public ResponseEntity<String> uploadFile(
             @PathVariable String folder,
