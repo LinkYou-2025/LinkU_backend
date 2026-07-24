@@ -93,6 +93,7 @@ public class AiArticleService {
         }
     }
 
+    @Transactional(readOnly = true)
     public AiArticleResponseDTO.AiArticleResultDTO showAiArticle(Long linkuId, Long userId) {
         Linku linku = linkuRepository.findById(linkuId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
@@ -101,9 +102,11 @@ public class AiArticleService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         // 동일 (user, linku) 조합으로 저장된 UsersLinku가 여러 건일 수 있어 최신 1건을 사용한다.
+        // 요청 유저가 이 linku를 저장한 적이 없으면(=UsersLinku 없음) 소유권이 없는 것이므로 예외를 던진다.
+        // (다른 유저가 먼저 요약을 만들어둔 linkuId를 알기만 하면 조회되는 것을 막기 위함)
         UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId).stream()
                 .max(Comparator.comparing(UsersLinku::getCreatedAt))
-                .orElse(null);
+                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
 
         return AiArticleConverter.toDto(article, linku, usersLinku);
     }
