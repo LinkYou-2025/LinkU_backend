@@ -12,22 +12,6 @@ import java.util.Map;
 
 public class FolderConverter {
 
-    public static FolderResponseDTO toFolderResponseDTO(Folder folder) {
-        if (folder == null) {
-            return null;
-        }
-        Category category = folder.getCategory();
-        return FolderResponseDTO.builder()
-                .folderId(folder.getFolderId())
-                .folderName(folder.getFolderName())
-                .categoryId(category != null ? category.getCategoryId() : null)
-                .categoryName(category != null ? category.getCategoryName() : null)
-                .parentFolderId(folder.getParentFolder() != null ? folder.getParentFolder().getFolderId() : null)
-                .createdAt(folder.getCreatedAt())
-                .updatedAt(folder.getUpdatedAt())
-                .build();
-    }
-
     public static FolderResponseDTO toFolderResponseDTO(Folder folder, Boolean isBookmarked) {
         if (folder == null) {
             return null;
@@ -63,11 +47,11 @@ public class FolderConverter {
                 .build();
     }
 
-    public static UsersFolder toUsersFolder(Users user, Folder folder) {
+    public static UsersFolder toUsersFolder(Users user, Folder folder, PermissionType permissionType) {
         return UsersFolder.builder()
                 .user(user)
                 .folder(folder)
-                .permissionType(PermissionType.OWNER)
+                .permissionType(permissionType)
                 .isBookmarked(false)
                 .build();
     }
