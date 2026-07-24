@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
+import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.*;
 import com.umc.linkyou.domain.classification.Category;
@@ -26,7 +27,6 @@ import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
-import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.RefreshTokenManager;
@@ -445,13 +445,7 @@ public class UserService {
 
         for (Category category : categories) {
             // 중분류 폴더 생성
-            Folder subFolder =
-                    folderRepository.save(
-                            Folder.builder()
-                                    .folderName(category.getCategoryName())
-                                    .category(category)
-                                    .parentFolder(null)
-                                    .build());
+            Folder subFolder = folderRepository.save(FolderConverter.toFolder(category));
 
             // 기본 카테고리 색상 설정
             Fcolor defaultColor = category.getFcolor();
@@ -463,13 +457,7 @@ public class UserService {
                             .build());
 
             // UsersFolder 매핑
-            usersFolderRepository.save(
-                    UsersFolder.builder()
-                            .user(user)
-                            .folder(subFolder)
-                            .permissionType(PermissionType.OWNER)
-                            .isBookmarked(false)
-                            .build());
+            usersFolderRepository.save(FolderConverter.toUsersFolder(user, subFolder, PermissionType.OWNER));
         }
         usersCategoryColorRepository.saveAll(userColors);
     }

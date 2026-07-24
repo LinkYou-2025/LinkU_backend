@@ -91,16 +91,7 @@ public class FolderServiceImpl implements FolderService {
                 .isBookmarked(false)
                 .build());
 
-        return FolderResponseDTO.builder()
-                .folderId(folder.getFolderId())
-                .folderName(folder.getFolderName())
-                .isBookmarked(false)
-                .categoryId(parent.getCategory().getCategoryId())
-                .categoryName(parent.getCategory().getCategoryName())
-                .parentFolderId(parent.getFolderId())
-                .createdAt(folder.getCreatedAt())
-                .updatedAt(folder.getUpdatedAt())
-                .build();
+        return FolderConverter.toFolderResponseDTO(folder, false);
     }
 
     // 폴더 이름 수정
@@ -206,14 +197,9 @@ public class FolderServiceImpl implements FolderService {
                         .collect(Collectors.toList())
                 : null;
 
-        Category category = folder.getCategory();
-        return FolderTreeResponseDTO.builder()
-                .folderId(folder.getFolderId())
-                .folderName(folder.getFolderName())
-                .isBookmarked(bookmarkMap.getOrDefault(folder.getFolderId(), false))
-                .categoryId(category != null ? category.getCategoryId() : null)
-                .children(childDTOs)
-                .build();
+        FolderTreeResponseDTO dto = FolderConverter.toFolderTreeDTO(folder, bookmarkMap);
+        dto.setChildren(childDTOs);
+        return dto;
     }
 
     // 중분류 폴더 목록 조회

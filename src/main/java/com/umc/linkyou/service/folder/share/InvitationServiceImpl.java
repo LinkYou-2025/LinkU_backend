@@ -3,11 +3,12 @@ package com.umc.linkyou.service.folder.share;
 import com.umc.linkyou.apiPayload.code.status.folder.InvitationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.converter.FolderConverter;
+import com.umc.linkyou.converter.InvitationConverter;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.FolderShareLink;
-import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.FolderShareLinkRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
@@ -34,10 +35,7 @@ public class InvitationServiceImpl implements InvitationService {
             throw new GeneralException(InvitationErrorStatus.INVITATION_EXPIRED);
         }
 
-        return InvitationInfoResponseDTO.builder()
-                .folderName(link.getFolder().getFolderName())
-                .ownerName(link.getCreator().getNickName())
-                .build();
+        return InvitationConverter.toInvitationInfoResponseDTO(link);
     }
 
     // 초대 수락
@@ -67,14 +65,7 @@ public class InvitationServiceImpl implements InvitationService {
         }
 
         // 멤버 추가
-        UsersFolder newMember = UsersFolder.builder()
-                .user(user)
-                .folder(folder)
-                .permissionType(PermissionType.VIEWER)
-                .isBookmarked(false)
-                .build();
-
-        usersFolderRepository.save(newMember);
+        usersFolderRepository.save(FolderConverter.toUsersFolder(user, folder, PermissionType.VIEWER));
 
         return folder.getFolderId();
     }
