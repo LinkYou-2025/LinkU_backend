@@ -6,7 +6,6 @@ import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Linku;
-import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
@@ -51,6 +50,11 @@ public class FolderServiceImpl implements FolderService {
         // 부모 폴더 존재 확인
         if (parent == null) {
             throw new GeneralException(FolderErrorStatus._FOLDER_PARENT_NOT_FOUND);
+        }
+
+        // 폴더는 중분류-소분류 2단계까지만 허용 (부모가 이미 소분류면 생성 불가)
+        if (parent.getParentFolder() != null) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_MAX_DEPTH_EXCEEDED);
         }
 
         // 부모 폴더에 대한 생성 권한 확인 (소유자 또는 편집자만 가능)
@@ -265,6 +269,11 @@ public class FolderServiceImpl implements FolderService {
     @Transactional
     public BookmarkUpdateResponseDTO updateBookmark(Long userId, Long folderId, Boolean isBookmarked) {
         UsersFolder usersFolder = usersFolderRepository.findByUserIdAndFolderId(userId, folderId).orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND));
+
+        // 공유 해제 등으로 권한이 회수(NONE)된 관계는 존재하지 않는 것과 동일하게 처리
+        if (usersFolder.getPermissionType() == PermissionType.NONE) {
+            throw new GeneralException(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND);
+        }
 
         usersFolder.updateBookmark(isBookmarked);
 
