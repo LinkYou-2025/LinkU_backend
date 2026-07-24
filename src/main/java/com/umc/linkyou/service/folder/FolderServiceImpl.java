@@ -52,6 +52,11 @@ public class FolderServiceImpl implements FolderService {
             throw new GeneralException(FolderErrorStatus._FOLDER_PARENT_NOT_FOUND);
         }
 
+        // 부모 폴더에 대한 생성 권한 확인
+        if (!usersFolderRepository.existsFolderOwnerOrWriter(userId, parentFolderId)) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_CREATE_FORBIDDEN);
+        }
+
         // 폴더는 중분류-소분류 2단계까지만 허용 (부모가 이미 소분류면 생성 불가)
         if (parent.getParentFolder() != null) {
             throw new GeneralException(FolderErrorStatus._FOLDER_MAX_DEPTH_EXCEEDED);
