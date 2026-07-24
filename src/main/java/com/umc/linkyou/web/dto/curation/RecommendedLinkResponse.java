@@ -1,7 +1,9 @@
 package com.umc.linkyou.web.dto.curation;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
@@ -9,6 +11,8 @@ import java.util.List;
 @Getter
 @Setter
 @Builder(toBuilder = true)
+@AllArgsConstructor
+@NoArgsConstructor
 public class RecommendedLinkResponse {
     private Long userLinkuId;
     private String title;

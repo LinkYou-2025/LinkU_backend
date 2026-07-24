@@ -4,12 +4,16 @@ import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Curation;
+import com.umc.linkyou.domain.CurationSectionInfo;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.repository.curationRepository.CurationRepository;
+import com.umc.linkyou.repository.curationRepository.CurationSectionInfoRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.web.dto.curation.CurationDetailResponse;
+import com.umc.linkyou.web.dto.curation.CurationLatestResponse;
 import com.umc.linkyou.web.dto.curation.CurationListResponse;
+import com.umc.linkyou.web.dto.curation.CurationSectionResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -37,6 +41,7 @@ class CurationServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private CurationRepository curationRepository;
+    @Mock private CurationSectionInfoRepository curationSectionInfoRepository;
     @Mock private ThumbnailUrlProvider thumbnailUrlProvider;
 
     @Nested
@@ -184,6 +189,73 @@ class CurationServiceTest {
             List<CurationListResponse> result = curationService.getCurationList(USER_ID, 2026);
 
             assertThat(result).hasSize(12);
+        }
+    }
+
+    @Nested
+    @DisplayName("가장 최근 큐레이션 조회(getLatestCuration)")
+    class GetLatestCuration {
+        @Test
+        @DisplayName("최근 큐레이션이 있으면 정보를 채워 반환한다")
+        void 최근큐레이션존재_반환() {
+            Users user = user();
+            Curation curation = Curation.builder().curationId(CURATION_ID).user(user).baseMonth(MONTH).build();
+
+            given(curationRepository.findLatestByUserId(USER_ID)).willReturn(Optional.of(curation));
+            given(thumbnailUrlProvider.getUrlForMonth(MONTH)).willReturn("url");
+
+            Optional<CurationLatestResponse> result = curationService.getLatestCuration(USER_ID);
+
+            assertThat(result).isPresent();
+            assertThat(result.get().getCurationId()).isEqualTo(CURATION_ID);
+            assertThat(result.get().getMonth()).isEqualTo(MONTH);
+            assertThat(result.get().getThumbnailUrl()).isEqualTo("url");
+        }
+
+        @Test
+        @DisplayName("최근 큐레이션이 없으면 빈 Optional을 반환한다")
+        void 최근큐레이션없음_빈값반환() {
+            given(curationRepository.findLatestByUserId(USER_ID)).willReturn(Optional.empty());
+
+            Optional<CurationLatestResponse> result = curationService.getLatestCuration(USER_ID);
+
+            assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("월별 섹션 정보 조회(getCurationSections)")
+    class GetCurationSections {
+        @Test
+        @DisplayName("섹션 정보가 있으면 순서대로 매핑하여 반환한다")
+        void 섹션정보존재_매핑반환() {
+            CurationSectionInfo section = CurationSectionInfo.builder()
+                    .month(MONTH)
+                    .sectionNumber(1)
+                    .title("제목")
+                    .description("설명")
+                    .imageUrl("image-url")
+                    .build();
+
+            given(curationSectionInfoRepository.findAllByMonth(MONTH)).willReturn(List.of(section));
+
+            List<CurationSectionResponse> result = curationService.getCurationSections(MONTH);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).getSection()).isEqualTo(1);
+            assertThat(result.get(0).getTitle()).isEqualTo("제목");
+            assertThat(result.get(0).getDescription()).isEqualTo("설명");
+            assertThat(result.get(0).getImageUrl()).isEqualTo("image-url");
+        }
+
+        @Test
+        @DisplayName("섹션 정보가 없으면 빈 리스트를 반환한다")
+        void 섹션정보없음_빈리스트반환() {
+            given(curationSectionInfoRepository.findAllByMonth(MONTH)).willReturn(List.of());
+
+            List<CurationSectionResponse> result = curationService.getCurationSections(MONTH);
+
+            assertThat(result).isEmpty();
         }
     }
 }
