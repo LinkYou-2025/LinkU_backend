@@ -11,4 +11,8 @@ public interface UsersLinkuRepositoryCustom {
     List<UsersLinku> fetchAiArticlesByCategoryId(Long userId, Long categoryId);
     List<UsersLinku> findRecentLinkCandidatesByUser(Long userId, int limit);
     List<UsersLinku> fetchAiArticlesByCategoryIdWithCursor(Long userId, Long categoryId, Long cursorId, int limit);
+
+    // 홈화면 링크 추천: 감정 유사도 + 상황 매칭 점수를 DB에서 계산해 정렬/페이징까지 마친 후보를 반환한다.
+    List<UsersLinku> findHomeRecommendCandidates(
+            Long userId, Long selectedEmotionId, List<Long> mappedCategoryIds, int offset, int limit);
 }

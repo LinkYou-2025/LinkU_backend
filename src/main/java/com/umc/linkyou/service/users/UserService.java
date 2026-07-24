@@ -188,7 +188,6 @@ public class UserService {
                         .orElseThrow(() -> new UserHandler(UserErrorStatus._LOGIN_FAILED));
 
         Long userId = user.getId();
-        userStatusValidator.validateLoginAllowed(user);
         // 소셜 전용 계정 차단 (GENERAL AuthAccount 없음)
         boolean hasGeneralAccount =
                 authAccountRepository.existsByUserIdAndProvider(user.getId(), Provider.GENERAL);
@@ -208,6 +207,15 @@ public class UserService {
                         .map(AuthAccount::getEmail)
                         .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
+        // 비밀번호 검증을 통과한 뒤에만 탈퇴 유예 상태를 판단(무자격 상태 노출 방지)
+        if (userStatusValidator.isWithinWithdrawGracePeriod(user)) {
+            String recoveryToken =
+                    tokenIssueService.issueRecoveryToken(
+                            user.getId(), email, Provider.GENERAL.name(), user.getRole());
+            return UserConverter.toLoginResultDTO(user, recoveryToken, null);
+        }
+        userStatusValidator.validateLoginAllowed(user);
+
         Authentication authentication =
                 new UsernamePasswordAuthenticationToken(
                         email, null, Collections.singleton(() -> user.getRole().name()));
@@ -225,7 +233,8 @@ public class UserService {
     }
 
     @Transactional
-    public Users socialCompleteProfile(Long userId, UserRequestDTO.SocialCompleteDTO request) {
+    public UserResponseDTO.JoinResultDTO socialCompleteProfile(
+            Long userId, String providerStr, UserRequestDTO.SocialCompleteDTO request) {
         Users user =
                 userRepository
                         .findById(userId)
@@ -262,7 +271,25 @@ public class UserService {
         Users savedUser = userRepository.save(user);
         initUserFolders(savedUser);
 
-        return savedUser;
+        // 6. ACTIVE 전환 완료 시점에 정식 토큰 쌍 발급
+        Provider provider = Provider.valueOf(providerStr);
+        String email =
+                authAccountRepository
+                        .findEmailByUserIdAndProvider(savedUser.getId(), provider)
+                        .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
+
+        TokenIssueService.IssuedTokenPair tokenPair =
+                tokenIssueService.issueForStatus(
+                        savedUser.getId(),
+                        email,
+                        providerStr,
+                        savedUser.getRole(),
+                        savedUser.getStatus(),
+                        request.getDeviceId(),
+                        request.getDeviceType());
+
+        return UserConverter.toJoinResultDTO(
+                savedUser, tokenPair.accessToken(), tokenPair.refreshToken());
     }
 
     public UserResponseDTO.TokenPair reissueRefreshToken(

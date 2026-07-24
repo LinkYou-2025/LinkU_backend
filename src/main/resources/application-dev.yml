@@ -12,6 +12,10 @@ spring:
       - classpath:db/migration
       - classpath:db/seed
 
+fcm:
+  credentials:
+    path: file:/app/config/linku-firebase-adminsdk.json
+
 logging:
   level:
     root: INFO

@@ -20,6 +20,8 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
 
     List<UsersLinku> findByUser_Id(Long userId);
 
+    long countByUser_Id(Long userId);
+
     @Query("""
             SELECT ul FROM UsersLinku ul
             JOIN FETCH ul.emotion

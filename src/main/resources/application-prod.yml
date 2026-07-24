@@ -8,6 +8,10 @@ spring:
     locations:
       - classpath:db/migration
 
+fcm:
+  credentials:
+    path: file:/app/config/linku-firebase-adminsdk.json
+
 springdoc:
   api-docs:
     enabled: false

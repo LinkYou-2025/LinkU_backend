@@ -18,7 +18,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import java.time.temporal.ChronoUnit;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -30,6 +29,7 @@ public class UserWithdrawService{
     private final UserRepository userRepository;
     private final RefreshTokenManager refreshTokenManager;
     private final AuthAccountRepository authAccountRepository;
+    private final UserStatusValidator userStatusValidator;
 
     // 탈퇴 유예 기간
     private static final int GRACE_PERIOD_DAYS = 14;
@@ -57,9 +57,8 @@ public class UserWithdrawService{
         if (user.getStatus() != UserStatus.INACTIVE) {
             throw new GeneralException(ErrorStatus._BAD_REQUEST); // 이미 활성 상태인 경우
         }
-        // 2. inactiveDate가 null이거나 14일이 경과했는지 확인
-        LocalDateTime inactiveDate = user.getInactiveDate();
-        if (inactiveDate == null || ChronoUnit.DAYS.between(inactiveDate, LocalDateTime.now()) > GRACE_PERIOD_DAYS) {
+        // 2. 유예 기간(14일) 이내인지 확인
+        if (!userStatusValidator.isWithinWithdrawGracePeriod(user)) {
             throw new GeneralException(ErrorStatus._BAD_REQUEST);
         }
         // 상태 및 탈퇴 관련 필드 초기화

@@ -8,6 +8,7 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.service.users.UserStatusValidator;
 import com.umc.linkyou.service.users.UserWithdrawService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,6 +35,7 @@ public class UserWithdrawServiceTest {
     private UserRepository userRepository;
     @Mock private RefreshTokenManager refreshTokenManager;
     @Mock private AuthAccountRepository authAccountRepository;
+    @Mock private UserStatusValidator userStatusValidator;
 
     @InjectMocks
     private UserWithdrawService userWithdrawService;
@@ -55,6 +57,7 @@ public class UserWithdrawServiceTest {
 
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userRepository.save(user)).willReturn(user);
+            given(userStatusValidator.isWithinWithdrawGracePeriod(user)).willReturn(true);
 
             // when
             Users result = userWithdrawService.recoverUser(userId);
@@ -78,6 +81,7 @@ public class UserWithdrawServiceTest {
 
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userRepository.save(user)).willReturn(user);
+            given(userStatusValidator.isWithinWithdrawGracePeriod(user)).willReturn(true);
 
             // when
             Users result = userWithdrawService.recoverUser(userId);
@@ -99,6 +103,7 @@ public class UserWithdrawServiceTest {
 
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userRepository.save(user)).willReturn(user);
+            given(userStatusValidator.isWithinWithdrawGracePeriod(user)).willReturn(true);
 
             // when
             Users result = userWithdrawService.recoverUser(userId);
@@ -138,6 +143,29 @@ public class UserWithdrawServiceTest {
                     .build();
 
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+            // when & then
+            assertThatThrownBy(() -> userWithdrawService.recoverUser(userId))
+                    .isInstanceOf(GeneralException.class)
+                    .satisfies(e -> {
+                        GeneralException ex = (GeneralException) e;
+                        assertThat(ex.getCode()).isEqualTo(ErrorStatus._BAD_REQUEST);
+                    });
+        }
+
+        @Test
+        @DisplayName("탈퇴 유예 기간(14일)이 지난 경우 BAD_REQUEST 예외가 발생한다")
+        void 유예기간_경과_예외() {
+            // given
+            Long userId = 4L;
+            Users user = Users.builder()
+                    .id(userId)
+                    .status(UserStatus.INACTIVE)
+                    .build();
+            user.withdraw("테스트 탈퇴", LocalDateTime.now().minusDays(15));
+
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(userStatusValidator.isWithinWithdrawGracePeriod(user)).willReturn(false);
 
             // when & then
             assertThatThrownBy(() -> userWithdrawService.recoverUser(userId))

@@ -32,52 +32,37 @@ public class UserLoginService {
             String deviceId,
             DeviceType deviceType
     ) {
-        userStatusValidator.validateLoginAllowed(user);
-
-        if (user.getStatus() == UserStatus.TEMP) {
+        if (userStatusValidator.isWithinWithdrawGracePeriod(user)) {
+            // 탈퇴 유예중인 사용자는 복구 토큰만 발급하고, refresh token은 발급하지 않음
+            String recoveryToken =
+                    tokenIssueService.issueRecoveryToken(
+                            user.getId(), resolvedEmail, provider.name(), user.getRole());
             return MobileLoginResponse.builder()
                     .userId(user.getId())
-                    .accessToken(issueTempAccessToken(user, resolvedEmail, provider))
+                    .accessToken(recoveryToken)
                     .refreshToken(null)
-                    .status(UserStatus.TEMP)
+                    .status(user.getStatus())
+                    .inactiveDate(user.getInactiveDate())
                     .build();
         }
+        userStatusValidator.validateLoginAllowed(user);
 
         TokenIssueService.IssuedTokenPair tokenPair =
-                issueActiveTokenPair(user, resolvedEmail, provider, deviceId, deviceType);
+                tokenIssueService.issueForStatus(
+                        user.getId(),
+                        resolvedEmail,
+                        provider.name(),
+                        user.getRole(),
+                        user.getStatus(),
+                        deviceId,
+                        deviceType
+                );
 
         return MobileLoginResponse.builder()
                 .userId(user.getId())
                 .accessToken(tokenPair.accessToken())
                 .refreshToken(tokenPair.refreshToken())
-                .status(UserStatus.ACTIVE)
+                .status(user.getStatus())
                 .build();
-    }
-
-
-    private String issueTempAccessToken(Users user, String resolvedEmail, Provider provider) {
-        return tokenIssueService.issueAccessToken(
-                user.getId(),
-                resolvedEmail,
-                provider.name(),
-                user.getRole()
-        );
-    }
-
-    private TokenIssueService.IssuedTokenPair issueActiveTokenPair(
-            Users user,
-            String resolvedEmail,
-            Provider provider,
-            String deviceId,
-            DeviceType deviceType
-    ) {
-        return tokenIssueService.issueTokenPair(
-                user.getId(),
-                resolvedEmail,
-                provider.name(),
-                user.getRole(),
-                deviceId,
-                deviceType
-        );
     }
 }

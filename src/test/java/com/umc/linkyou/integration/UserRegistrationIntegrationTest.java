@@ -142,13 +142,16 @@ public class UserRegistrationIntegrationTest {
                         testJob.getId(),
                         List.of("WORK"),
                         List.of("ART"),
-                        Collections.emptyMap());
+                        Collections.emptyMap(),
+                        "test-device-2",
+                        DeviceType.PHONE);
 
         // 3. 예외 발생 검증
         com.umc.linkyou.apiPayload.exception.handler.UserHandler exception =
                 assertThrows(
                         com.umc.linkyou.apiPayload.exception.handler.UserHandler.class,
-                        () -> userService.socialCompleteProfile(activeUser.getId(), completeReq));
+                        () -> userService.socialCompleteProfile(
+                                activeUser.getId(), "GENERAL", completeReq));
 
         // getCode() 메서드를 통해 에러 코드 검증
         assertEquals(UserErrorStatus._DUPLICATE_JOIN_REQUEST, exception.getCode());
