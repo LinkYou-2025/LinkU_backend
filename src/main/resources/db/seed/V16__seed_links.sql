@@ -5,20 +5,6 @@
 -- emotion/situation은 실제 유저가 고른 값이 아니라 콘텐츠를 보고 유추해 넣은 것이므로 emotion_ai/situation_ai=true로 표시한다.
 -- domain은 별도 매핑 없이 전부 DEFAULT_DOMAIN_ID(=1, LinkuCreateService 기준)를 사용한다.
 
--- ============ 1. 테스트 계정 13개 ============
-INSERT INTO users (user_id, nick_name, password, role, status, job_id, created_at, updated_at) VALUES (101, 'seed_lang_learner', '$2b$12$auCAmviSO58zXW2roqtSj.ASzpINp7F5GyaOtL9ZauTIYEQwEhHFK', 'USER', 'ACTIVE', 2, now(), now()) ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO users (user_id, nick_name, password, role, status, job_id, created_at, updated_at) VALUES (102, 'seed_studymethod', '$2b$12$auCAmviSO58zXW2roqtSj.ASzpINp7F5GyaOtL9ZauTIYEQwEhHFK', 'USER', 'ACTIVE', 1, now(), now()) ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO users (user_id, nick_name, password, role, status, job_id, created_at, updated_at) VALUES (103, 'seed_it_dev', '$2b$12$auCAmviSO58zXW2roqtSj.ASzpINp7F5GyaOtL9ZauTIYEQwEhHFK', 'USER', 'ACTIVE', 3, now(), now()) ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO users (user_id, nick_name, password, role, status, job_id, created_at, updated_at) VALUES (104, 'seed_selfdev', '$2b$12$auCAmviSO58zXW2roqtSj.ASzpINp7F5GyaOtL9ZauTIYEQwEhHFK', 'USER', 'ACTIVE', 3, now(), now()) ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO users (user_id, nick_name, password, role, status, job_id, created_at, updated_at) VALUES (105, 'seed_career', '$2b$12$auCAmviSO58zXW2roqtSj.ASzpINp7F5GyaOtL9ZauTIYEQwEhHFK', 'USER', 'ACTIVE', 6, now(), now()) ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO users (user_id, nick_name, password, role, status, job_id, created_at, updated_at) VALUES (106, 'seed_biz_insight', '$2b$12$auCAmviSO58zXW2roqtSj.ASzpINp7F5GyaOtL9ZauTIYEQwEhHFK', 'USER', 'ACTIVE', 3, now(), now()) ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO users (user_id, nick_name, password, role, status, job_id, created_at, updated_at) VALUES (107, 'seed_lifestyle', '$2b$12$auCAmviSO58zXW2roqtSj.ASzpINp7F5GyaOtL9ZauTIYEQwEhHFK', 'USER', 'ACTIVE', 5, now(), now()) ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO users (user_id, nick_name, password, role, status, job_id, created_at, updated_at) VALUES (108, 'seed_psych', '$2b$12$auCAmviSO58zXW2roqtSj.ASzpINp7F5GyaOtL9ZauTIYEQwEhHFK', 'USER', 'ACTIVE', 6, now(), now()) ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO users (user_id, nick_name, password, role, status, job_id, created_at, updated_at) VALUES (109, 'seed_essay_column', '$2b$12$auCAmviSO58zXW2roqtSj.ASzpINp7F5GyaOtL9ZauTIYEQwEhHFK', 'USER', 'ACTIVE', 5, now(), now()) ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO users (user_id, nick_name, password, role, status, job_id, created_at, updated_at) VALUES (110, 'seed_trend', '$2b$12$auCAmviSO58zXW2roqtSj.ASzpINp7F5GyaOtL9ZauTIYEQwEhHFK', 'USER', 'ACTIVE', 3, now(), now()) ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO users (user_id, nick_name, password, role, status, job_id, created_at, updated_at) VALUES (111, 'seed_travel_food', '$2b$12$auCAmviSO58zXW2roqtSj.ASzpINp7F5GyaOtL9ZauTIYEQwEhHFK', 'USER', 'ACTIVE', 4, now(), now()) ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO users (user_id, nick_name, password, role, status, job_id, created_at, updated_at) VALUES (112, 'seed_etc', '$2b$12$auCAmviSO58zXW2roqtSj.ASzpINp7F5GyaOtL9ZauTIYEQwEhHFK', 'USER', 'ACTIVE', 3, now(), now()) ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO users (user_id, nick_name, password, role, status, job_id, created_at, updated_at) VALUES (113, 'seed_media_culture', '$2b$12$auCAmviSO58zXW2roqtSj.ASzpINp7F5GyaOtL9ZauTIYEQwEhHFK', 'USER', 'ACTIVE', 3, now(), now()) ON CONFLICT (user_id) DO NOTHING;
 
 -- ============ 2. linku / ai_articles / users_linkus ============
 -- #2 (어학) -> seed_lang_learner | blog.naver.com
