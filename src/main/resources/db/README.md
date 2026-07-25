@@ -26,12 +26,20 @@ src/
 │     ├── V1__init.sql    # 초기 테이블 생성
 │     └── ...             # 스키마 추가 및 수정
 │
-└── seed/
-│     └──V2__seed_master_data.sql # 시드 데이터
-├── local/
-│     └── ...  # 샘플 데이터 추가 및 수정
-└── dev/
-└── ...  # 샘플 데이터 추가 및 수정
+├── seed/
+│     └── V2__seed_master_data.sql # 공통 마스터 데이터 (categories/emotions/situations/jobs 등) — 모든 환경(local/dev/prod)에 적용
+│
+└── local/
+└── V14__... # 로컬 전용 테스트 계정/데이터 — application-local.yml에서만 flyway locations에 포함, prod/dev엔 미적용
+
+> `db/local`은 실서비스 콘텐츠가 아닌 개발자 개인 테스트 데이터(테스트 계정, 임의로 채워넣는 저장 링크 등)를
+> 위한 폴더다. `db/seed`(공통 마스터 데이터)와 절대 섞지 말 것 — 섞으면 테스트 데이터가 운영 DB에도 들어간다.
+> `db/dev`(팀 공유 dev 서버용 픽스처)는 필요해지면 같은 패턴으로 추가하고 `application-dev.yml`에도
+> `classpath:db/dev`를 등록한다.
+>
+> (2026.07 기준: `application-prod.yml`에 `db/seed`가 누락돼 있던 걸 발견해서 추가했다 — 마스터 데이터는
+> 운영에도 반드시 필요하므로. `db/local`은 이번에 처음 실제로 만들어졌다 — 그 전까진 이 다이어그램에만
+> 있고 실제 폴더는 없었다.)
 
 참고) https://ywoosang.tistory.com/18
 참고) https://dev.gmarket.com/76

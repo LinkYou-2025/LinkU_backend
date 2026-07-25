@@ -15,6 +15,7 @@ spring:
     locations:
       - classpath:db/migration
       - classpath:db/seed
+      - classpath:db/local
 
 logging:
   level:
