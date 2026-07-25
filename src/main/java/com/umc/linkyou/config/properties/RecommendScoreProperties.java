@@ -20,7 +20,7 @@ public record RecommendScoreProperties(
      * 나오므로, 초기값은 작게 잡고 실측 후 튜닝한다.
      */
     public record Weight(double emotion, double situation, double engagement, double popularity,
-                          double text, double keyword) {}
+                          double text, double keyword, double category) {}
 
     /** 0~1 정규화에 쓰이는 캡/half-life 값 */
     public record Normalization(int viewCountCap, int recencyHalfLifeDays, int popularityViewCountCap,

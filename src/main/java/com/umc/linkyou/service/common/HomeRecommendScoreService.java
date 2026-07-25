@@ -23,11 +23,11 @@ import java.util.Collection;
  * 홈화면 링크 추천 스코어링.
  *
  * score = w^T x : 가중치 벡터 w 와 0~1로 정규화된 feature 벡터
- * x = [EmotionMatch, SituationMatch, PersonalEngagement, Popularity, TextMatch, KeywordMatch]의 내적.
+ * x = [EmotionMatch, SituationMatch, PersonalEngagement, Popularity, TextMatch, KeywordMatch, CategoryMatch]의 내적.
  *
  * - EmotionMatch   : EmotionSimilarityUtil(0~60점) / 60
- * - SituationMatch : 저장 당시 situation이 요청 situationId와 직접 일치하면 1.0,
- *                    직접 일치는 아니어도 situation→category 매핑(SituationCategoryService)에 걸리면 0.6, 둘 다 아니면 0
+ * - SituationMatch : 저장 당시 situation이 요청 situationId와 직접 일치하면 1.0, 아니면 0.
+ *                    situation→category 매핑은 별도 축(CategoryMatch)으로 분리돼 있다.
  * - PersonalEngagement : viewCount(재방문 빈도)와 lastViewedAt(최신성) 정규화 값의 평균
  * - Popularity     : Linku.totalViewCount의 로그 정규화 (전역 인기도, 약하게만 반영)
  * - TextMatch      : 후보의 title+summary와 UserContentProfile(사전계산된 유저 프로필)의 Postgres FTS
@@ -36,6 +36,9 @@ import java.util.Collection;
  *                    가중치 합을 정규화한 값 — "이 유저가 평소 저장하는 키워드와 얼마나 겹치는가"라는
  *                    intra-user 신호. 협업 필터링(inter-user)용으로 keyword를 쓸 때는 이 신호를 건드리지
  *                    않고 별도 feature를 추가한다 (service/common/README.md 참고).
+ * - CategoryMatch  : 후보 Linku.category가 situation→category 매핑(SituationCategoryService)에 걸리면 1.0,
+ *                    아니면 0. SituationMatch(저장 당시 태깅)와 달리 순수 콘텐츠 속성(Linku.category)만 보므로
+ *                    emotionAi/situationAi 같은 신뢰도 감쇠를 적용하지 않는다.
  *
  * TextMatch/KeywordMatch는 UserProfileRefreshWorker가 비동기로 미리 계산해둔 값을 읽기만 한다 —
  * 요청마다 후보 링크 텍스트를 직접 비교/토큰화하지 않는다.
@@ -51,11 +54,6 @@ import java.util.Collection;
 public class HomeRecommendScoreService {
 
     private static final int EMOTION_MAX_SCORE = 60;
-    /** situation 직접 일치 점수 (정규화 전 raw 값, 분모는 SITUATION_MAX_SCORE) */
-    private static final int SITUATION_DIRECT_MATCH_SCORE = 100;
-    /** situation→category 매핑만 일치할 때의 점수 (정규화 전) */
-    private static final int SITUATION_CATEGORY_MATCH_SCORE = 60;
-    private static final int SITUATION_MAX_SCORE = 100;
     /** ts_rank_cd가 0(정확히 겹치는 단어 없음)일 때 pg_trgm similarity() fallback에 곱하는 감쇠 계수 */
     private static final double TRGM_FALLBACK_DAMPENING = 0.7;
 
@@ -69,12 +67,12 @@ public class HomeRecommendScoreService {
     public double score(FeatureVector features) {
         RecommendScoreProperties.Weight w = properties.weight();
         double[] weightVector = {
-                w.emotion(), w.situation(), w.engagement(), w.popularity(), w.text(), w.keyword()
+                w.emotion(), w.situation(), w.engagement(), w.popularity(), w.text(), w.keyword(), w.category()
         };
         double[] featureVector = {
                 features.emotionMatch(), features.situationMatch(),
                 features.personalEngagement(), features.popularity(),
-                features.textMatch(), features.keywordMatch()
+                features.textMatch(), features.keywordMatch(), features.categoryMatch()
         };
         return dot(weightVector, featureVector);
     }
@@ -98,20 +96,29 @@ public class HomeRecommendScoreService {
     }
 
     /**
-     * situation 매칭 (0 / 0.6 / 1.0, AI 추론이면 감쇠). 직접 일치를 category 매핑보다 우선한다.
+     * situation 직접 일치 매칭 (0 / 1.0, AI 추론이면 감쇠).
      * candidateSituationIsAi가 true(=AI가 추론한 situation)면 confidence.aiSituationDiscount를 곱한다.
+     * situation→category 매핑 신호는 categoryMatch()가 별도로 담당한다.
      */
     public double situationMatch(Long candidateSituationId, Long targetSituationId,
-                                  Long candidateCategoryId, Collection<Long> mappedCategoryIds,
                                   boolean candidateSituationIsAi) {
+        if (candidateSituationId == null || !candidateSituationId.equals(targetSituationId)) {
+            return 0.0;
+        }
         double discount = candidateSituationIsAi ? properties.confidence().aiSituationDiscount() : 1.0;
-        if (candidateSituationId != null && candidateSituationId.equals(targetSituationId)) {
-            return (SITUATION_DIRECT_MATCH_SCORE / (double) SITUATION_MAX_SCORE) * discount;
+        return discount;
+    }
+
+    /**
+     * situation→category 매핑 (0 / 1.0). 후보 Linku.category가 요청 situationId에 매핑된 category
+     * 목록(SituationCategoryService)에 포함되면 1.0, 아니면 0. 저장 당시 태깅이 아닌 콘텐츠 자체의
+     * 속성(category)만 보는 신호라 emotionAi/situationAi 신뢰도 감쇠를 적용하지 않는다.
+     */
+    public double categoryMatch(Long candidateCategoryId, Collection<Long> mappedCategoryIds) {
+        if (candidateCategoryId == null || mappedCategoryIds == null) {
+            return 0.0;
         }
-        if (candidateCategoryId != null && mappedCategoryIds != null && mappedCategoryIds.contains(candidateCategoryId)) {
-            return (SITUATION_CATEGORY_MATCH_SCORE / (double) SITUATION_MAX_SCORE) * discount;
-        }
-        return 0.0;
+        return mappedCategoryIds.contains(candidateCategoryId) ? 1.0 : 0.0;
     }
 
     /** 개인 재방문 빈도(viewCount) + 최신성(lastViewedAt) 정규화 값의 평균 (0~1). */
@@ -146,7 +153,7 @@ public class HomeRecommendScoreService {
      */
     public record FeatureVector(double emotionMatch, double situationMatch,
                                  double personalEngagement, double popularity,
-                                 double textMatch, double keywordMatch) {}
+                                 double textMatch, double keywordMatch, double categoryMatch) {}
 
     // =====================================================================
     // QueryDSL 표현식 (홈화면 추천 - DB에서 정렬/페이징까지 한 번에 처리)
@@ -174,11 +181,12 @@ public class HomeRecommendScoreService {
         RecommendScoreProperties.Weight w = properties.weight();
 
         return emotionMatchExpression(usersLinku, targetEmotionId).multiply(w.emotion())
-                .add(situationMatchExpression(usersLinku, linku, targetSituationId, mappedCategoryIds).multiply(w.situation()))
+                .add(situationMatchExpression(usersLinku, targetSituationId).multiply(w.situation()))
                 .add(personalEngagementExpression(usersLinku, now).multiply(w.engagement()))
                 .add(popularityExpression(linku).multiply(w.popularity()))
                 .add(textMatchExpression(linku, aiArticle, profileTsqueryText, profileText).multiply(w.text()))
-                .add(keywordMatchExpression(linku, userId).multiply(w.keyword()));
+                .add(keywordMatchExpression(linku, userId).multiply(w.keyword()))
+                .add(categoryMatchExpression(linku, mappedCategoryIds).multiply(w.category()));
     }
 
     /**
@@ -214,30 +222,36 @@ public class HomeRecommendScoreService {
     }
 
     /**
-     * situation 매칭 점수를 CASE WHEN 식으로 변환한 뒤 0~1로 정규화한다.
-     * 직접 일치(저장 당시 situation == 요청 situationId)를 category 매핑보다 먼저, 더 높은 점수로 평가한다.
+     * situation 직접 일치 점수를 CASE WHEN 식으로 변환한다 (0 또는 1.0).
      * usersLinku.situationAi가 true(AI 추론)면 confidence.aiSituationDiscount를 곱하고,
-     * false(유저 직접 선택)면 감쇠 없이 그대로 쓴다.
+     * false(유저 직접 선택)면 감쇠 없이 그대로 쓴다. situation→category 매핑은
+     * categoryMatchExpression()이 별도로 담당한다.
      */
-    public NumberExpression<Double> situationMatchExpression(
-            QUsersLinku usersLinku, QLinku linku, Long targetSituationId, Collection<Long> mappedCategoryIds) {
+    public NumberExpression<Double> situationMatchExpression(QUsersLinku usersLinku, Long targetSituationId) {
+        NumberExpression<Double> directMatch = new CaseBuilder()
+                .when(usersLinku.situation.id.eq(targetSituationId)).then(1.0)
+                .otherwise(0.0);
 
-        CaseBuilder.Cases<Integer, NumberExpression<Integer>> chain = new CaseBuilder()
-                .when(usersLinku.situation.id.eq(targetSituationId))
-                .then(SITUATION_DIRECT_MATCH_SCORE);
-
-        if (mappedCategoryIds != null && !mappedCategoryIds.isEmpty()) {
-            chain = chain.when(linku.category.categoryId.in(mappedCategoryIds)).then(SITUATION_CATEGORY_MATCH_SCORE);
-        }
-
-        NumberExpression<Double> normalized = chain.otherwise(0).doubleValue().divide((double) SITUATION_MAX_SCORE);
         double aiDiscount = properties.confidence().aiSituationDiscount();
-
         NumberExpression<Double> discountFactor = new CaseBuilder()
                 .when(usersLinku.situationAi.isTrue()).then(aiDiscount)
                 .otherwise(1.0);
 
-        return normalized.multiply(discountFactor);
+        return directMatch.multiply(discountFactor);
+    }
+
+    /**
+     * situation→category 매핑 점수를 CASE WHEN 식으로 변환한다 (0 또는 1.0).
+     * 후보 Linku.category가 요청 situationId에 매핑된 category 목록에 포함되면 1.0, 아니면 0.
+     * 저장 당시 태깅이 아닌 콘텐츠 속성(category)만 보는 신호라 신뢰도 감쇠를 적용하지 않는다.
+     */
+    public NumberExpression<Double> categoryMatchExpression(QLinku linku, Collection<Long> mappedCategoryIds) {
+        if (mappedCategoryIds == null || mappedCategoryIds.isEmpty()) {
+            return Expressions.asNumber(0.0);
+        }
+        return new CaseBuilder()
+                .when(linku.category.categoryId.in(mappedCategoryIds)).then(1.0)
+                .otherwise(0.0);
     }
 
     /** viewCount(빈도) + lastViewedAt(최신성) 정규화 값의 평균. */

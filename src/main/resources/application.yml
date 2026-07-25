@@ -148,11 +148,12 @@ recommend:
     score:
       weight:
         emotion: 0.35
-        situation: 0.25
+        situation: 0.15
         engagement: 0.15
         popularity: 0.1
         text: 0.1
         keyword: 0.05
+        category: 0.1
       normalization:
         view-count-cap: 20
         recency-half-life-days: 14

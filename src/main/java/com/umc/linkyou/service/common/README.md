@@ -29,28 +29,38 @@ feature 하나를 더 추가하는 형태로 확장 가능하게 설계해두는
 | # | Feature | 원본 컬럼 | 계산 위치 | 상태 |
 |---|---|---|---|---|
 | 1 | EmotionMatch | `UsersLinku.emotion` | 실시간 SQL (CASE WHEN, `EmotionSimilarityUtil` 재사용) | ✅ 구현 완료 |
-| 2 | SituationMatch | `UsersLinku.situation`, `Linku.category` | 실시간 SQL (직접 일치 1.0 우선, situation→category 매핑 0.6 보조) | ✅ 구현 완료 |
+| 2 | SituationMatch | `UsersLinku.situation` | 실시간 SQL (저장 당시 situation == 요청 situationId면 1.0, 아니면 0) | ✅ 구현 완료 |
 | 3 | PersonalEngagement | `UsersLinku.viewCount`, `lastViewedAt` | 실시간 SQL (viewCount 캡 정규화 + lastViewedAt 지수감쇠 평균) | ✅ 구현 완료 |
 | 4 | Popularity | `Linku.totalViewCount` | 실시간 SQL (로그 정규화 + 캡) | ✅ 구현 완료 |
 | 5 | TextMatch | `Linku.title`, `AiArticle.summary` | 사전계산된 유저 프로필과 Postgres FTS 매칭 (trgm fallback) | ✅ 구현 완료 |
 | 6 | KeywordMatch | `LinkuKeyword`/`Keyword` | 사전계산된 유저 키워드 프로필과 스칼라 서브쿼리 매칭 | ✅ 구현 완료 |
-| 7 | DomainDiversity | `Linku.domain` | 가중합이 아닌 결과 재정렬(post-process) | ⏸ 보류 |
-| 8 | Collaborative(교차 유저) | (미정 — 다른 유저의 저장/키워드 데이터) | 미정 | ⏸ 향후 확장 축, 설계 전 |
+| 7 | CategoryMatch | `Linku.category` | 실시간 SQL (situation→category 매핑(`SituationCategoryService`)에 걸리면 1.0, 아니면 0) | ✅ 구현 완료 |
+| 8 | DomainDiversity | `Linku.domain` | 가중합이 아닌 결과 재정렬(post-process) | ⏸ 보류 |
+| 9 | Collaborative(교차 유저) | (미정 — 다른 유저의 저장/키워드 데이터) | 미정 | ⏸ 향후 확장 축, 설계 전 |
 
-1~4는 전부 이미 있는 스칼라 컬럼이라 새 테이블 없이 구현됐다. 5~6은 "비교 대상(유저 프로필)"이 필요해서
-사전계산 인프라(마이그레이션 + 워커)까지 포함해 구현했다. 7, 8은 이번 스코프에서 의도적으로 제외했다.
+1~4, 7은 전부 이미 있는 스칼라 컬럼이라 새 테이블 없이 구현됐다. 5~6은 "비교 대상(유저 프로필)"이 필요해서
+사전계산 인프라(마이그레이션 + 워커)까지 포함해 구현했다. 8, 9는 이번 스코프에서 의도적으로 제외했다.
+
+> **변경 이력**: 원래 SituationMatch 하나가 "직접일치 1.0 / situation→category 매핑 0.6"을 함께 담당했으나,
+> (1) situation은 48종이라 direct match가 오히려 드문 케이스라 매핑 fallback이 사실상 주력 신호였고,
+> (2) situationAi 신뢰도 감쇠가 "저장 당시 태깅"과 무관한 category 신호에도 함께 곱해지는 개념적 불일치가
+> 있어서, CategoryMatch를 완전히 독립된 7번째 axis로 분리했다. SituationMatch는 이제 직접 일치만 보고
+> (0/1.0, situationAi 감쇠 적용), CategoryMatch는 콘텐츠 속성(Linku.category)만 보는 순수 신호라 감쇠를
+> 적용하지 않는다. 가중치는 기존 situation 0.25를 situation 0.15 + category 0.10으로 나눴다(둘 다 시작값,
+> 실측 튜닝 필요).
 
 ## 구현된 것
 
-- `config/properties/RecommendScoreProperties.java` — 가중치(emotion/situation/engagement/popularity/text/keyword) +
+- `config/properties/RecommendScoreProperties.java` — 가중치(emotion/situation/engagement/popularity/text/keyword/category) +
   정규화 상수(viewCountCap, recencyHalfLifeDays, popularityViewCountCap, keywordWeightCap) +
   신뢰도 상수(`Confidence.aiEmotionDiscount`/`aiSituationDiscount`).
 - `application.yml`의 `recommend.home.score.*` — 시작값일 뿐 실측 튜닝 필요.
 - `service/common/HomeRecommendScoreService.java` — Java 메모리용(`score`, `FeatureVector`)과 QueryDSL
-  표현식용(`scoreExpression` 등) 두 형태로 동일한 공식을 제공. feature 벡터는 6차원
-  (EmotionMatch/SituationMatch/PersonalEngagement/Popularity/TextMatch/KeywordMatch). 감정 유사도 공식은
-  여전히 `EmotionSimilarityUtil` 하나가 진실 공급원. EmotionMatch/SituationMatch는 `UsersLinku.emotionAi`/
+  표현식용(`scoreExpression` 등) 두 형태로 동일한 공식을 제공. feature 벡터는 7차원
+  (EmotionMatch/SituationMatch/PersonalEngagement/Popularity/TextMatch/KeywordMatch/CategoryMatch). 감정 유사도
+  공식은 여전히 `EmotionSimilarityUtil` 하나가 진실 공급원. EmotionMatch/SituationMatch는 `UsersLinku.emotionAi`/
   `situationAi`(AI 추론 여부)에 따라 신뢰도 감쇠가 추가로 곱해진다(아래 "AI vs 유저 직접 분류 신뢰도 가중치" 참고).
+  CategoryMatch는 저장 당시 태깅이 아닌 콘텐츠 속성(`Linku.category`)만 보는 신호라 이 감쇠를 적용하지 않는다.
 - `domain/recommend/` — `UserContentProfile`(TextMatch용, PK=user_id), `UserProfileKeyword`(KeywordMatch용,
   synthetic PK + `(user_id, keyword_id)` unique), `UserProfileRefreshQueue`(dirty queue, PK=user_id) 엔티티.
 - `repository/recommend/` — 위 3개 엔티티의 리포지토리. upsert는 전부 Postgres `ON CONFLICT` native 쿼리로
@@ -113,13 +123,16 @@ textMatch = ftsRank > 0 ? ftsRank : trgmSimilarity * 0.7
 
 ```
 emotionMatch    = base(EmotionSimilarityUtil) / 60 * (emotionAi   ? aiEmotionDiscount   : 1.0)
-situationMatch  = base(직접일치 1.0 / category매핑 0.6)  * (situationAi ? aiSituationDiscount : 1.0)
+situationMatch  = (직접일치 ? 1.0 : 0.0)                * (situationAi ? aiSituationDiscount : 1.0)
+categoryMatch   = (situation→category 매핑 일치 ? 1.0 : 0.0)   # 감쇠 없음 — 콘텐츠 속성 신호라 AI/유저 태깅과 무관
 ```
 
 Java 메모리 버전(`emotionMatch`/`situationMatch`)은 `candidateEmotionIsAi`/`candidateSituationIsAi` boolean
 파라미터를 추가로 받고, QueryDSL 버전(`emotionMatchExpression`/`situationMatchExpression`)은 정규화된 점수에
 `CASE WHEN usersLinku.emotionAi = true THEN :discount ELSE 1.0 END` 형태의 감쇠 factor를 곱해서 처리한다 —
-둘 다 별도 컬럼/조인 추가 없이 이미 존재하는 `emotionAi`/`situationAi` 컬럼만 읽는다.
+둘 다 별도 컬럼/조인 추가 없이 이미 존재하는 `emotionAi`/`situationAi` 컬럼만 읽는다. `categoryMatch`/
+`categoryMatchExpression`은 이 감쇠 로직 자체가 없다 — `Linku.category`는 저장 시점 유저/AI 태깅과 무관한
+콘텐츠 고유 속성이라서.
 
 **보류: 요청 시점 실시간 날씨/시간대 신호.** 유저가 함께 제안한 "추천 시점의 날씨/시각을 체크"하는 아이디어는
 지금 반영하지 않았다. 이유는 두 가지다. (1) 동기 요청 경로에서 외부 날씨 API를 직접 호출하면 블로킹 I/O가
@@ -133,13 +146,15 @@ SQL 식(`EXTRACT(DOW/HOUR FROM now())`)으로 저렴하게 넣을 수 있어 날
 ## 테스트
 
 - `src/test/.../service/common/HomeRecommendScoreServiceTest.java` — Java 메모리 스코어링 단위 테스트
-  (emotionMatch/situationMatch/personalEngagement/popularity 각각의 경계값 + score() 가중합 검증). Spring
-  컨텍스트 없이 `RecommendScoreProperties`를 직접 생성해 순수 POJO로 테스트한다. emotionMatch/situationMatch는
-  AI 추론(`candidateEmotionIsAi`/`candidateSituationIsAi` = true) 시 `aiEmotionDiscount`/`aiSituationDiscount`
-  (0.8)만큼 정확히 감쇠되는지도 검증한다.
+  (emotionMatch/situationMatch/categoryMatch/personalEngagement/popularity 각각의 경계값 + score() 가중합
+  검증). Spring 컨텍스트 없이 `RecommendScoreProperties`를 직접 생성해 순수 POJO로 테스트한다. emotionMatch/
+  situationMatch는 AI 추론(`candidateEmotionIsAi`/`candidateSituationIsAi` = true) 시
+  `aiEmotionDiscount`/`aiSituationDiscount`(0.8)만큼 정확히 감쇠되는지도 검증한다. categoryMatch는 감쇠가
+  없다는 것 자체가 검증 포인트라 별도 nested class로 분리해뒀다.
 - `src/test/.../repository/UserLinkuRepository/UsersLinkuRepositoryImplTest.java` — `findHomeRecommendCandidates`
-  통합 테스트(Testcontainers Postgres). SituationMatch 직접일치>category매핑>매칭없음 순서, situation=null인
-  후보가 결과에서 빠지지 않는지(LEFT JOIN 회귀 검증), PersonalEngagement/Popularity가 높을수록 상위로 오는지를
+  통합 테스트(Testcontainers Postgres). SituationMatch 직접일치(situation 0.15) > CategoryMatch만 일치(category
+  0.10) > 매칭 없음(0) 순서, situation=null인 후보가 결과에서 빠지지 않는지(LEFT JOIN 회귀 검증),
+  PersonalEngagement/Popularity가 높을수록 상위로 오는지를
   검증한다. profileTsqueryText/profileText는 둘 다 null로 넘겨서 pg_trgm/FTS 함수 호출 자체가 생략되게 했다
   (textMatchExpression의 null 체크가 Java 레벨이라 SQL에 similarity()/ts_rank_cd가 아예 안 들어감).
   **EmotionMatch는 이 통합 테스트에서 검증하지 않는다** — 아래 "발견된 이슈" 참고.
@@ -173,9 +188,9 @@ EmotionMatch가 항상 0이 되어버려서, 통합 테스트로는 EmotionMatch
 
 ## 의도적으로 보류한 것
 
-- **DomainDiversity(#7)** — 가중합에 넣지 않고, DB에서 넉넉히(top 20~30) 뽑은 뒤 애플리케이션 레이어에서
+- **DomainDiversity(#8)** — 가중합에 넣지 않고, DB에서 넉넉히(top 20~30) 뽑은 뒤 애플리케이션 레이어에서
   "같은 도메인 연속 노출 제한" 같은 규칙으로 재정렬하는 post-process 단계로 나중에 추가한다.
-- **Collaborative(#8)** — 후보군 생성 자체가 지금은 항상 `WHERE user.id = :userId`로 그 유저 본인의 저장
+- **Collaborative(#9)** — 후보군 생성 자체가 지금은 항상 `WHERE user.id = :userId`로 그 유저 본인의 저장
   링크에 한정돼 있어서, 다른 유저의 데이터를 랭킹에 반영하려면 후보군 생성 로직부터 바꿔야 한다. 이건
   스코어링 튜닝보다 큰 결정(다른 유저가 저장한 링크를 서로에게 노출할지 등 제품 결정 포함)이라 별도 트랙.
 - **임베딩(cosine similarity) 기반 semantic 매칭** — pgvector + 임베딩 API 호출이 필요한 무거운 인프라라
@@ -191,7 +206,8 @@ EmotionMatch가 항상 0이 되어버려서, 통합 테스트로는 EmotionMatch
    걸린 환경에서 동작 확인.
 4. "발견된 이슈"(EmotionMatch 하드코딩된 ID 1~6 가정)를 어떻게 할지 결정 — 시드 데이터로 고정할지,
    `Emotion` 개수만큼 동적으로 순회하도록 `EmotionSimilarityUtil`/`emotionMatchExpression`을 고칠지.
-5. 가중치(`recommend.home.score.weight.*`) 실측 기반 튜닝 — 지금 값(0.35/0.25/0.15/0.1/0.1/0.05)은 시작값일 뿐.
+5. 가중치(`recommend.home.score.weight.*`) 실측 기반 튜닝 — 지금 값(emotion 0.35 / situation 0.15 /
+   engagement 0.15 / popularity 0.1 / text 0.1 / keyword 0.05 / category 0.1)은 시작값일 뿐.
    `confidence.ai-emotion-discount`/`ai-situation-discount`(0.8)도 마찬가지로 실측 전 임의값이다.
 6. 이후: DomainDiversity 재정렬, Collaborative 축 별도 설계, day-of-week/time-of-day 실시간 신호(저비용·가설
    검증 필요) 및 그 다음 단계로서의 날씨 신호(비동기 캐싱 인프라 + 콘텐츠 태그 체계 선행 필요) 검토.

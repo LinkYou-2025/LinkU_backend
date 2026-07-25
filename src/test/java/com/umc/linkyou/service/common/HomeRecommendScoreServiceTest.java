@@ -30,7 +30,7 @@ class HomeRecommendScoreServiceTest {
     private static final long CATEGORY_UNMATCHED = 200L;
 
     private final RecommendScoreProperties properties = new RecommendScoreProperties(
-            new RecommendScoreProperties.Weight(0.35, 0.25, 0.15, 0.1, 0.1, 0.05),
+            new RecommendScoreProperties.Weight(0.35, 0.15, 0.15, 0.1, 0.1, 0.05, 0.1),
             new RecommendScoreProperties.Normalization(20, 14, 1000, 20),
             new RecommendScoreProperties.Confidence(0.8, 0.8));
 
@@ -74,38 +74,57 @@ class HomeRecommendScoreServiceTest {
 
         @Test
         @DisplayName("저장 당시 situation이 요청 situationId와 직접 일치하면 1.0이다 (유저 직접 선택)")
-        void directMatchTakesPriority() {
-            double result = service.situationMatch(SITUATION_A, SITUATION_A, CATEGORY_UNMATCHED, List.of(CATEGORY_MATCHED), false);
+        void directMatch() {
+            double result = service.situationMatch(SITUATION_A, SITUATION_A, false);
             assertThat(result).isEqualTo(1.0);
         }
 
         @Test
-        @DisplayName("직접 일치가 아니어도 category가 매핑되면 0.6이다 (유저 직접 선택)")
-        void categoryMatchIsWeakerThanDirect() {
-            double result = service.situationMatch(SITUATION_B, SITUATION_A, CATEGORY_MATCHED, List.of(CATEGORY_MATCHED), false);
-            assertThat(result).isEqualTo(0.6);
-        }
-
-        @Test
-        @DisplayName("둘 다 아니면 0이다")
+        @DisplayName("일치하지 않으면 0이다")
         void noMatch() {
-            double result = service.situationMatch(SITUATION_B, SITUATION_A, CATEGORY_UNMATCHED, List.of(CATEGORY_MATCHED), false);
+            double result = service.situationMatch(SITUATION_B, SITUATION_A, false);
             assertThat(result).isEqualTo(0.0);
         }
 
         @Test
-        @DisplayName("candidateSituationId가 null이어도 예외 없이 category 매칭으로 폴백한다")
-        void nullCandidateSituationFallsBackToCategory() {
-            double result = service.situationMatch(null, SITUATION_A, CATEGORY_MATCHED, List.of(CATEGORY_MATCHED), false);
-            assertThat(result).isEqualTo(0.6);
+        @DisplayName("candidateSituationId가 null이어도 예외 없이 0이다")
+        void nullCandidateSituationIsZero() {
+            double result = service.situationMatch(null, SITUATION_A, false);
+            assertThat(result).isEqualTo(0.0);
         }
 
         @Test
         @DisplayName("AI가 추론한 situation이면 aiSituationDiscount(0.8)만큼 감쇠된다")
         void aiInferredIsDiscounted() {
-            double userChosen = service.situationMatch(SITUATION_A, SITUATION_A, CATEGORY_UNMATCHED, List.of(CATEGORY_MATCHED), false);
-            double aiInferred = service.situationMatch(SITUATION_A, SITUATION_A, CATEGORY_UNMATCHED, List.of(CATEGORY_MATCHED), true);
+            double userChosen = service.situationMatch(SITUATION_A, SITUATION_A, false);
+            double aiInferred = service.situationMatch(SITUATION_A, SITUATION_A, true);
             assertThat(aiInferred).isCloseTo(userChosen * 0.8, within(1e-9));
+        }
+    }
+
+    @Nested
+    @DisplayName("categoryMatch")
+    class CategoryMatchTest {
+
+        @Test
+        @DisplayName("후보 category가 매핑 목록에 있으면 1.0이다")
+        void mappedCategoryIsOne() {
+            double result = service.categoryMatch(CATEGORY_MATCHED, List.of(CATEGORY_MATCHED));
+            assertThat(result).isEqualTo(1.0);
+        }
+
+        @Test
+        @DisplayName("후보 category가 매핑 목록에 없으면 0이다")
+        void unmappedCategoryIsZero() {
+            double result = service.categoryMatch(CATEGORY_UNMATCHED, List.of(CATEGORY_MATCHED));
+            assertThat(result).isEqualTo(0.0);
+        }
+
+        @Test
+        @DisplayName("candidateCategoryId 또는 mappedCategoryIds가 null이어도 예외 없이 0이다")
+        void nullInputsAreZero() {
+            assertThat(service.categoryMatch(null, List.of(CATEGORY_MATCHED))).isEqualTo(0.0);
+            assertThat(service.categoryMatch(CATEGORY_MATCHED, null)).isEqualTo(0.0);
         }
     }
 
@@ -167,9 +186,9 @@ class HomeRecommendScoreServiceTest {
         @DisplayName("각 feature * 가중치의 합과 정확히 같다")
         void isWeightedSumOfFeatures() {
             HomeRecommendScoreService.FeatureVector features =
-                    new HomeRecommendScoreService.FeatureVector(1.0, 0.6, 0.5, 0.2, 0.3, 0.1);
+                    new HomeRecommendScoreService.FeatureVector(1.0, 1.0, 0.5, 0.2, 0.3, 0.1, 1.0);
 
-            double expected = 1.0 * 0.35 + 0.6 * 0.25 + 0.5 * 0.15 + 0.2 * 0.1 + 0.3 * 0.1 + 0.1 * 0.05;
+            double expected = 1.0 * 0.35 + 1.0 * 0.15 + 0.5 * 0.15 + 0.2 * 0.1 + 0.3 * 0.1 + 0.1 * 0.05 + 1.0 * 0.1;
 
             assertThat(service.score(features)).isCloseTo(expected, within(1e-9));
         }
@@ -178,7 +197,7 @@ class HomeRecommendScoreServiceTest {
         @DisplayName("모든 feature가 0이면 최종 점수도 0이다")
         void allZeroFeaturesGiveZeroScore() {
             HomeRecommendScoreService.FeatureVector features =
-                    new HomeRecommendScoreService.FeatureVector(0, 0, 0, 0, 0, 0);
+                    new HomeRecommendScoreService.FeatureVector(0, 0, 0, 0, 0, 0, 0);
             assertThat(service.score(features)).isEqualTo(0.0);
         }
     }
