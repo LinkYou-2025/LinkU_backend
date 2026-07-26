@@ -1,5 +1,6 @@
 package com.umc.linkyou.repository.mapping.linkuFolderRepository;
 
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Category;
@@ -206,7 +207,7 @@ class LinkuFolderRepositoryTest {
         Domain domain = domainRepository.save(Domain.builder()
                 .domainTail("example.com")
                 .name("example")
-                .imageUrl("https://image.com/a.png")
+                .image(Image.ofS3("/a.png"))
                 .build());
         Emotion emotion = emotionRepository.save(Emotion.builder().name("기쁨").build());
         Situation situation = situationRepository.save(Situation.builder().name("일상").build());

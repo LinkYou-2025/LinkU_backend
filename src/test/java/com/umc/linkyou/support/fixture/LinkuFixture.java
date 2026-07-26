@@ -1,6 +1,7 @@
 package com.umc.linkyou.support.fixture;
 
 import com.umc.linkyou.domain.AiArticle;
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.LinkuSearchHistory;
 import com.umc.linkyou.domain.Users;
@@ -23,7 +24,7 @@ public final class LinkuFixture {
     public static final Long SITUATION_ID = 1L;
     public static final String TEST_URL = "https://example.com/article";
     public static final String CRAWLED_IMAGE_URL = "https://crawled.com/image.jpg";
-    public static final String S3_IMAGE_URL = "https://s3.amazonaws.com/bucket/user-upload.jpg";
+    public static final String S3_IMAGE_URL = "/linkucreate/user-upload.jpg";
 
     private LinkuFixture() {}
 
@@ -80,7 +81,7 @@ public final class LinkuFixture {
                 .title("테스트 제목")
                 .category(category())
                 .domain(domain())
-                .imgUrl(imgUrl)
+                .image(imgUrl != null ? Image.ofExternal(imgUrl) : null)
                 .build();
     }
 

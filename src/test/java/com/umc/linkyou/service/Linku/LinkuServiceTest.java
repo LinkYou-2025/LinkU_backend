@@ -6,6 +6,7 @@ import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awss3.AwsS3Service;
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
@@ -424,12 +425,12 @@ class LinkuServiceTest {
             void 기존_이미지가_있으면_삭제_후_새_이미지로_교체한다() {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku();
-                usersLinku.updateImageUrl("https://cdn.example.com/old.jpg");
+                usersLinku.updateImage(Image.ofS3("/linkucreate/old.jpg"));
 
                 MultipartFile image = mock(MultipartFile.class);
                 given(image.isEmpty()).willReturn(false);
-                given(awsS3Service.replaceFile("https://cdn.example.com/old.jpg", image, "linkucreate"))
-                        .willReturn("https://cdn.example.com/new.jpg");
+                given(awsS3Service.replaceFile("/linkucreate/old.jpg", image, "linkucreate"))
+                        .willReturn("/linkucreate/new.jpg");
 
                 given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
                         .willReturn(List.of(usersLinku));
@@ -441,9 +442,9 @@ class LinkuServiceTest {
                 linkuService.updateLinku(USER_ID, 100L,
                         LinkuRequestDTO.LinkuUpdateDTO.builder().image(image).build());
 
-                // then: 기존 imageUrl을 넘겨서 replaceFile 호출(삭제+업로드는 AwsS3Service 내부 책임), 새 URL로 교체
-                verify(awsS3Service).replaceFile("https://cdn.example.com/old.jpg", image, "linkucreate");
-                assertEquals("https://cdn.example.com/new.jpg", usersLinku.getImageUrl());
+                // then: 기존 이미지 key를 넘겨서 replaceFile 호출(삭제+업로드는 AwsS3Service 내부 책임), 새 key로 교체
+                verify(awsS3Service).replaceFile("/linkucreate/old.jpg", image, "linkucreate");
+                assertEquals("/linkucreate/new.jpg", usersLinku.getImage().getLocation());
                 verify(usersLinkuRepository).save(usersLinku);
             }
 
@@ -451,12 +452,12 @@ class LinkuServiceTest {
             @DisplayName("기존 이미지가 없으면 oldFileUrl=null로 replaceFile을 호출한다")
             void 기존_이미지가_없으면_null을_넘겨_replaceFile을_호출한다() {
                 // given
-                UsersLinku usersLinku = createDefaultUsersLinku(); // imageUrl == null
+                UsersLinku usersLinku = createDefaultUsersLinku(); // image == null
 
                 MultipartFile image = mock(MultipartFile.class);
                 given(image.isEmpty()).willReturn(false);
                 given(awsS3Service.replaceFile(null, image, "linkucreate"))
-                        .willReturn("https://cdn.example.com/new.jpg");
+                        .willReturn("/linkucreate/new.jpg");
 
                 given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
                         .willReturn(List.of(usersLinku));
@@ -469,7 +470,7 @@ class LinkuServiceTest {
                         LinkuRequestDTO.LinkuUpdateDTO.builder().image(image).build());
 
                 // then
-                assertEquals("https://cdn.example.com/new.jpg", usersLinku.getImageUrl());
+                assertEquals("/linkucreate/new.jpg", usersLinku.getImage().getLocation());
             }
 
             @Test
@@ -477,7 +478,7 @@ class LinkuServiceTest {
             void 이미지_미첨부_시_imageUrl_변경없고_S3_호출없다() {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku();
-                usersLinku.updateImageUrl("https://cdn.example.com/old.jpg");
+                usersLinku.updateImage(Image.ofS3("/linkucreate/old.jpg"));
                 given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
                         .willReturn(List.of(usersLinku));
                 given(linkuFolderRepository
@@ -489,7 +490,7 @@ class LinkuServiceTest {
                         LinkuRequestDTO.LinkuUpdateDTO.builder().memo("메모만 변경").build());
 
                 // then
-                assertEquals("https://cdn.example.com/old.jpg", usersLinku.getImageUrl());
+                assertEquals("/linkucreate/old.jpg", usersLinku.getImage().getLocation());
                 verify(awsS3Service, never()).replaceFile(any(), any(), any());
             }
         }

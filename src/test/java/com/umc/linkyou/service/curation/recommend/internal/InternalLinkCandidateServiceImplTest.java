@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.curation.recommend.internal;
 
 import com.umc.linkyou.domain.Curation;
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
@@ -62,7 +63,7 @@ class InternalLinkCandidateServiceImplTest {
     }
 
     private UsersLinku makeLink(Long userLinkuId, Long emotionId, Long categoryId, LocalDateTime createdAt) {
-        Domain domain = Domain.builder().name("example.com").imageUrl("https://img.example.com").build();
+        Domain domain = Domain.builder().name("example.com").image(Image.ofExternal("https://img.example.com")).build();
         Category category = categoryId != null
                 ? Category.builder().categoryId(categoryId).build()
                 : null;

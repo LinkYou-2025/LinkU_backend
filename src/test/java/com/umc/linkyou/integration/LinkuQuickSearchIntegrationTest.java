@@ -2,6 +2,7 @@ package com.umc.linkyou.integration;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.Keyword;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
@@ -99,7 +100,7 @@ class LinkuQuickSearchIntegrationTest {
         domain = domainRepository.save(Domain.builder()
                 .domainTail("youtube.com")
                 .name("유튜브")
-                .imageUrl("https://image.com/youtube.png")
+                .image(Image.ofS3("/youtube.png"))
                 .build());
 
         Fcolor fcolor = fcolorRepository.save(Fcolor.builder()
@@ -142,7 +143,7 @@ class LinkuQuickSearchIntegrationTest {
                 .andExpect(jsonPath("$.result.items.length()").value(1))
                 .andExpect(jsonPath("$.result.items[0].title").value("스프링 부트 강의 모음"))
                 .andExpect(jsonPath("$.result.items[0].domainName").value("유튜브"))
-                .andExpect(jsonPath("$.result.items[0].domainImageUrl").value("https://image.com/youtube.png"))
+                .andExpect(jsonPath("$.result.items[0].domainImageUrl").value("test.cloudfront.net/youtube.png"))
                 .andExpect(jsonPath("$.result.items[0].tags.length()").value(0))
                 .andExpect(jsonPath("$.result.hasNext").value(false));
     }
@@ -300,7 +301,7 @@ class LinkuQuickSearchIntegrationTest {
                 .andExpect(jsonPath("$.code").value("LINKU2008"))
                 .andExpect(jsonPath("$.result.length()").value(1))
                 .andExpect(jsonPath("$.result[0].title").value("스프링 부트 강의"))
-                .andExpect(jsonPath("$.result[0].domainImageUrl").value("https://image.com/youtube.png"))
+                .andExpect(jsonPath("$.result[0].domainImageUrl").value("test.cloudfront.net/youtube.png"))
                 .andExpect(jsonPath("$.result[0].userLinkuId").isNumber());
     }
 

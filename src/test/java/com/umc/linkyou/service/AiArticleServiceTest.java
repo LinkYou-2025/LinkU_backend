@@ -1,6 +1,7 @@
 package com.umc.linkyou.service;
 
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.AlarmPayload;
 import com.umc.linkyou.domain.Linku;
@@ -46,6 +47,7 @@ class AiArticleServiceTest {
     @Mock private UsersLinkuRepository usersLinkuRepository;
     @Mock private AiArticleAnalyzer aiArticleAnalyzer;
     @Mock private AlarmService alarmService;
+    @Mock private AwsS3Service awsS3Service;
 
     private static final Long LINKU_ID = 100L;
     private static final Long USER_ID = 1L;

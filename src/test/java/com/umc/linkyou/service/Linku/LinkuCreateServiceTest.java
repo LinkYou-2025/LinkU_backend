@@ -116,7 +116,7 @@ class LinkuCreateServiceTest {
 
                 ArgumentCaptor<UsersLinku> usersLinkuCaptor = ArgumentCaptor.forClass(UsersLinku.class);
                 verify(usersLinkuRepository).save(usersLinkuCaptor.capture());
-                assertEquals(S3_IMAGE_URL, usersLinkuCaptor.getValue().getImageUrl());
+                assertEquals(S3_IMAGE_URL, usersLinkuCaptor.getValue().getImage().getLocation());
                 assertNotNull(usersLinkuCaptor.getValue().getEmotion());
             }
 
@@ -134,7 +134,7 @@ class LinkuCreateServiceTest {
 
                 ArgumentCaptor<UsersLinku> usersLinkuCaptor = ArgumentCaptor.forClass(UsersLinku.class);
                 verify(usersLinkuRepository).save(usersLinkuCaptor.capture());
-                assertNull(usersLinkuCaptor.getValue().getImageUrl());
+                assertNull(usersLinkuCaptor.getValue().getImage());
                 assertNotNull(usersLinkuCaptor.getValue().getEmotion());
             }
 
@@ -180,7 +180,7 @@ class LinkuCreateServiceTest {
 
                 ArgumentCaptor<UsersLinku> captor = ArgumentCaptor.forClass(UsersLinku.class);
                 verify(usersLinkuRepository).save(captor.capture());
-                assertEquals(S3_IMAGE_URL, captor.getValue().getImageUrl());
+                assertEquals(S3_IMAGE_URL, captor.getValue().getImage().getLocation());
                 assertNotNull(captor.getValue().getEmotion());
             }
 
@@ -195,7 +195,7 @@ class LinkuCreateServiceTest {
 
                 ArgumentCaptor<UsersLinku> captor = ArgumentCaptor.forClass(UsersLinku.class);
                 verify(usersLinkuRepository).save(captor.capture());
-                assertNull(captor.getValue().getImageUrl());
+                assertNull(captor.getValue().getImage());
                 assertNotNull(captor.getValue().getEmotion());
 
                 // 기존 링크가 존재하면 upsert 로직이 수행되지 않아야 함

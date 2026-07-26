@@ -2,6 +2,7 @@ package com.umc.linkyou.service.folder;
 
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
@@ -37,6 +38,7 @@ class FolderServiceTest {
     @Mock private FolderRepository folderRepository;
     @Mock private UsersFolderRepository usersFolderRepository;
     @Mock private ApplicationEventPublisher eventPublisher;
+    @Mock private AwsS3Service awsS3Service;
 
     @Nested
     @DisplayName("폴더 삭제")

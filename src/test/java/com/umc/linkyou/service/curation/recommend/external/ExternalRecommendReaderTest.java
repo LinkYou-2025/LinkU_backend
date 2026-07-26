@@ -1,6 +1,8 @@
 package com.umc.linkyou.service.curation.recommend.external;
 
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.domain.Curation;
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
 import com.umc.linkyou.domain.mapping.CurationLinku;
@@ -35,6 +37,7 @@ class ExternalRecommendReaderTest {
 
     @Mock private CurationLinkuRepository curationLinkuRepository;
     @Mock private DomainRepositoryCustom domainRepository;
+    @Mock private AwsS3Service awsS3Service;
 
     private static final Long CURATION_ID = 1L;
 
@@ -71,8 +74,9 @@ class ExternalRecommendReaderTest {
                     .willReturn(List.of(externalItem(url)));
 
             // DB에는 someuser.tistory.com 정확 매칭 행은 없고 apex인 tistory.com만 있는 상황을 재현.
-            Domain apex = Domain.builder().name("티스토리").domainTail("tistory.com").imageUrl("tistory-icon.png").build();
+            Domain apex = Domain.builder().name("티스토리").domainTail("tistory.com").image(Image.ofS3("tistory-icon.png")).build();
             given(domainRepository.findByDomainTailIn(any())).willReturn(List.of(apex));
+            given(awsS3Service.resolveUrl(apex.getImage())).willReturn("tistory-icon.png");
 
             List<RecommendedLinkResponse> result = externalRecommendReader.read(CURATION_ID);
 

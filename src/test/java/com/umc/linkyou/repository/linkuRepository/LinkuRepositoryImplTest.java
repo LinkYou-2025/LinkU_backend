@@ -1,5 +1,6 @@
 package com.umc.linkyou.repository.linkuRepository;
 
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Category;
@@ -79,7 +80,7 @@ class LinkuRepositoryImplTest {
                 Users otherUser = userRepository.save(createUser("user2"));
 
                 Domain domain = domainRepository.save(
-                        createDomain("google.com", "구글", "https://image.com/a.png")
+                        createDomain("google.com", "구글", "/a.png")
                 );
 
                 Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -125,7 +126,7 @@ class LinkuRepositoryImplTest {
         @DisplayName("제목에 키워드가 포함된 후보를 최대 3개 반환한다")
         void returnsAtMostThree() {
             Users user = userRepository.save(createUser("autocomplete_u1"));
-            Domain domain = domainRepository.save(createDomain("google.com", "구글", "https://img.com/a.png"));
+            Domain domain = domainRepository.save(createDomain("google.com", "구글", "/a.png"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
             Category category = categoryRepository.save(createCategory("개발", fcolor));
             Emotion emotion = emotionRepository.save(createEmotion());
@@ -145,7 +146,7 @@ class LinkuRepositoryImplTest {
         @DisplayName("사용자 지정 제목(ul.title)으로 자동완성이 동작한다")
         void matchesCustomTitle() {
             Users user = userRepository.save(createUser("autocomplete_u2"));
-            Domain domain = domainRepository.save(createDomain("google.com", "구글", "https://img.com/b.png"));
+            Domain domain = domainRepository.save(createDomain("google.com", "구글", "/b.png"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
             Category category = categoryRepository.save(createCategory("개발", fcolor));
             Emotion emotion = emotionRepository.save(createEmotion());
@@ -165,7 +166,7 @@ class LinkuRepositoryImplTest {
         void excludesOtherUsersLinks() {
             Users user = userRepository.save(createUser("autocomplete_u3"));
             Users other = userRepository.save(createUser("autocomplete_u4"));
-            Domain domain = domainRepository.save(createDomain("google.com", "구글", "https://img.com/c.png"));
+            Domain domain = domainRepository.save(createDomain("google.com", "구글", "/c.png"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
             Category category = categoryRepository.save(createCategory("개발", fcolor));
             Emotion emotion = emotionRepository.save(createEmotion());
@@ -192,7 +193,7 @@ class LinkuRepositoryImplTest {
             @DisplayName("linku 값으로 정상 조회된다")
             void success() {
                 Domain domain = domainRepository.save(
-                        createDomain("google.com", "구글", "https://image.com/a.png")
+                        createDomain("google.com", "구글", "/a.png")
                 );
 
                 Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -233,7 +234,7 @@ class LinkuRepositoryImplTest {
     @DisplayName("findByLinku 조회 후 domain 정보 접근이 가능하다")
     void findByLinku_fetchesDomainSafely() {
         Domain domain = domainRepository.save(
-                createDomain("google.com", "구글", "https://image.com/a.png")
+                createDomain("google.com", "구글", "/a.png")
         );
 
         Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -255,7 +256,7 @@ class LinkuRepositoryImplTest {
         assertThat(result.get().getTitle()).isEqualTo("Java Guide");
         assertThat(result.get().getDomain()).isNotNull();
         assertThat(result.get().getDomain().getName()).isEqualTo("구글");
-        assertThat(result.get().getDomain().getImageUrl()).isEqualTo("https://image.com/a.png");
+        assertThat(result.get().getDomain().getImage().getLocation()).isEqualTo("/a.png");
     }
 
     private Users createUser(String nickName) {
@@ -270,7 +271,7 @@ class LinkuRepositoryImplTest {
         return Domain.builder()
                 .domainTail(domainTail)
                 .name(name)
-                .imageUrl(imageUrl)
+                .image(imageUrl != null ? Image.ofS3(imageUrl) : null)
                 .build();
     }
 
