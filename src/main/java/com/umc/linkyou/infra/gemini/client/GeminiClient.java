@@ -35,8 +35,11 @@ public class GeminiClient implements AiClient {
 
     private final ObjectProvider<Client> clientProvider;
 
-    // 실제 Gemini 호출에 타임아웃을 강제하기 위한 전용 executor
-    private final ExecutorService geminiCallExecutor = Executors.newFixedThreadPool(10);
+    // 링크 생성/아티클 요약(completion) 전용 - 사용자 요청 경로라 큐레이션 배치 폭주에 영향받지 않도록 분리
+    private final ExecutorService geminiLinkExecutor = Executors.newFixedThreadPool(6);
+    // 큐레이션 멘트/외부추천(completionCreative, completionWithSearch) 전용
+    // mentLimiter(3) + externalRecoLimiter(3) = 최대 동시 호출 6개 기준으로 크기를 맞춤
+    private final ExecutorService geminiCurationExecutor = Executors.newFixedThreadPool(6);
     private final AtomicLong callSeq = new AtomicLong();
 
     @Value("${gemini.model.name}")
@@ -50,7 +53,7 @@ public class GeminiClient implements AiClient {
     @CircuitBreaker(name = "gemini", fallbackMethod = "fallback")
     public String completion(String systemInstruction, String userPrompt)
     {
-        return generate(systemInstruction, userPrompt, null, 1024, 0.3f, GEMINI_TIMEOUT_SECONDS);
+        return generate(systemInstruction, userPrompt, null, 1024, 0.3f, GEMINI_TIMEOUT_SECONDS, geminiLinkExecutor);
     }
 
     // 창의적인 응답 생성
@@ -58,7 +61,7 @@ public class GeminiClient implements AiClient {
     @CircuitBreaker(name = "gemini", fallbackMethod = "fallback")
     public String completionCreative(String systemInstruction, String userPrompt)
     {
-        return generate(systemInstruction, userPrompt, null, 1024, 0.9f, GEMINI_TIMEOUT_SECONDS);
+        return generate(systemInstruction, userPrompt, null, 1024, 0.9f, GEMINI_TIMEOUT_SECONDS, geminiCurationExecutor);
     }
 
     // Google Search로 실시간 정보 반영
@@ -66,10 +69,19 @@ public class GeminiClient implements AiClient {
     @CircuitBreaker(name = "gemini", fallbackMethod = "fallback")
     public String completionWithSearch(String systemInstruction, String userPrompt)
     {
-        return generate(systemInstruction, userPrompt, GOOGLE_SEARCH_TOOL, 2048, 0.3f, GEMINI_SEARCH_TIMEOUT_SECONDS);
+        return generate(
+                systemInstruction, userPrompt, GOOGLE_SEARCH_TOOL, 2048, 0.3f,
+                GEMINI_SEARCH_TIMEOUT_SECONDS, geminiCurationExecutor);
     }
 
-    // completion/completionCreative/completionWithSearch가 시그니처(String, String)로 동일해 fallback 하나를 공유
+    /**
+     * completion/completionCreative/completionWithSearch 공통 fallback
+     * 서킷 OPEN이거나 generate()가 실패했을 때 Resilience4j가 원본 메서드 대신 이 메서드
+     * @param systemInstruction 원본 호출의 시스템 지시문 (시그니처 일치 목적으로만 받고 실제 로직에서는 쓰지 않음)
+     * @param userPrompt 원본 호출의 사용자 프롬프트 (시그니처 일치 목적으로만 받고 실제 로직에서는 쓰지 않음)
+     * @param t 서킷 OPEN이면 {@link CallNotPermittedException}, 그 외에는 generate()가 던진 예외
+     * @return 반환값은 없고 항상 상황에 맞는 {@link GeneralException}을 던짐
+     */
     private String fallback(String systemInstruction, String userPrompt, Throwable t) {
         if (t instanceof CallNotPermittedException) {
             log.warn("[GEMINI] 서킷 OPEN 상태로 요청 거부");
@@ -82,8 +94,20 @@ public class GeminiClient implements AiClient {
         throw new GeneralException(GeminiErrorStatus.GEMINI_API_ERROR);
     }
 
+    /**
+     * executor를 분리하여 동시 호출 제한, 큐 길이 제한, 타임아웃 등을 제어
+     * @param systemInstruction 시스템 지시문
+     * @param userPrompt 사용자 입력
+     * @param tool 도구 (검색 등)
+     * @param maxTokens 최대 토큰 수
+     * @param temp 온도 (0.0~1.0, 낮을수록 결정적, 높을수록 창의적)
+     * @param timeoutSeconds 타임아웃 (초)
+     * @param executor 호출 전용 스레드풀
+     * @return 생성된 텍스트
+     */
     private String generate(
-            String systemInstruction, String userPrompt, Tool tool, int maxTokens, float temp, int timeoutSeconds)
+            String systemInstruction, String userPrompt, Tool tool, int maxTokens, float temp,
+            int timeoutSeconds, ExecutorService executor)
     {
         Client client = clientProvider.getIfAvailable();
         if (client == null) {
@@ -104,10 +128,10 @@ public class GeminiClient implements AiClient {
 
         long callId = callSeq.incrementAndGet();
         long submittedAt = System.currentTimeMillis();
-        logExecutorStats(callId, "제출 전");
+        logExecutorStats(callId, "제출 전", executor);
 
         // 타임아웃 없이 동기 블로킹이라 응답이 오지 않으면 세마포어 영구고갈 가능 -> 별도 스레드로 던지고 정해진 시간만 대기 후 포기하도록 강제
-        Future<String> future = geminiCallExecutor.submit(
+        Future<String> future = executor.submit(
                 () -> client.models.generateContent(modelName, userPrompt, config).text());
         log.info("[GEMINI] call={} 제출 완료 thread={}", callId, Thread.currentThread().getName());
 
@@ -120,7 +144,7 @@ public class GeminiClient implements AiClient {
             log.error(
                     "[GEMINI] call={} {}초 초과 (cancel 결과={}), elapsed={}ms",
                     callId, timeoutSeconds, cancelled, System.currentTimeMillis() - submittedAt);
-            logExecutorStats(callId, "타임아웃 직후");
+            logExecutorStats(callId, "타임아웃 직후", executor);
             throw new GeneralException(GeminiErrorStatus.GEMINI_TIMEOUT);
         } catch (Exception e) {
             log.error(
@@ -130,8 +154,15 @@ public class GeminiClient implements AiClient {
         }
     }
 
-    private void logExecutorStats(long callId, String when) {
-        if (geminiCallExecutor instanceof ThreadPoolExecutor pool) {
+    /**
+     * executor 상태 로깅. 큐가 쌓이거나 active 스레드가 poolSize에 계속 붙어 있으면
+     * 실제 API 문제가 아니라 풀 용량 부족으로 타임아웃/큐잉이 발생했다는 신호로 볼 수 있음
+     * @param callId generate() 호출마다 부여되는 일련번호 (로그 추적용)
+     * @param when 로깅 시점 구분 문자열
+     * @param executor 상태를 조회할 대상 풀 (geminiLinkExecutor 또는 geminiCurationExecutor)
+     */
+    private void logExecutorStats(long callId, String when, ExecutorService executor) {
+        if (executor instanceof ThreadPoolExecutor pool) {
             log.info(
                     "[GEMINI] call={} executor상태({}) active={} poolSize={} queue={} completed={}",
                     callId, when, pool.getActiveCount(), pool.getPoolSize(),
@@ -141,13 +172,18 @@ public class GeminiClient implements AiClient {
 
     @PreDestroy
     public void shutdown() {
-        geminiCallExecutor.shutdown();
+        shutdownExecutor(geminiLinkExecutor);
+        shutdownExecutor(geminiCurationExecutor);
+    }
+
+    private void shutdownExecutor(ExecutorService executor) {
+        executor.shutdown();
         try {
-            if (!geminiCallExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
-                geminiCallExecutor.shutdownNow();
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
             }
         } catch (InterruptedException e) {
-            geminiCallExecutor.shutdownNow();
+            executor.shutdownNow();
             Thread.currentThread().interrupt();
         }
     }
