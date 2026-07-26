@@ -77,7 +77,7 @@ public class AiArticleService {
         alarmService.sendAlarm(userId, new AlarmRequestDTO.AlarmSendRequestDTO(
                 AlarmType.LINK_SUMMARY_COMPLETE, linkuId, new AlarmPayload.LinkTitle(linkTitle)));
 
-        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku), linkTitle);
+        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku), linkTitle, resolveImageUrl(linku, usersLinku));
     }
 
     @Transactional
@@ -109,7 +109,7 @@ public class AiArticleService {
                 .max(Comparator.comparing(UsersLinku::getCreatedAt))
                 .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
 
-        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku), resolveTitle(linku, usersLinku));
+        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku), resolveTitle(linku, usersLinku), resolveImageUrl(linku, usersLinku));
     }
 
     // AI 요약 호출과 별개로, 링크 저장 시 이미 분류되어 저장된 키워드를 그대로 태그로 사용한다
@@ -124,6 +124,14 @@ public class AiArticleService {
         return (usersLinku != null && usersLinku.getTitle() != null)
                 ? usersLinku.getTitle()
                 : linku.getTitle();
+    }
+
+    // usersLinku에 사용자가 업로드한 이미지가 있으면 그걸 우선 쓰고, 없으면 linku에 캐싱된
+    // 크롤링 썸네일로 폴백한다 (LinkuConverter의 linkuImageUrl 처리와 동일한 패턴).
+    private String resolveImageUrl(Linku linku, UsersLinku usersLinku) {
+        return (usersLinku != null && usersLinku.getImageUrl() != null)
+                ? usersLinku.getImageUrl()
+                : linku.getImgUrl();
     }
 
     @Transactional(readOnly = true)
