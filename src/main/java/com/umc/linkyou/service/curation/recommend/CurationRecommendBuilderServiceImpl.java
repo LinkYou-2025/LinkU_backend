@@ -2,6 +2,7 @@ package com.umc.linkyou.service.curation.recommend;
 
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.converter.CurationConverter;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
@@ -36,6 +37,7 @@ public class CurationRecommendBuilderServiceImpl implements CurationRecommendBui
     private final ExternalRecommendReader externalRecommendReader;
     private final InternalRecommendMaterializer internalRecommendMaterializer;
     private final ExternalRecommendMaterializer externalRecommendMaterializer;
+    private final AwsS3Service awsS3Service;
 
     @Override
     public List<RecommendedLinkResponse> buildRecommendedLinks(Long userId, Long curationId) {
@@ -49,7 +51,7 @@ public class CurationRecommendBuilderServiceImpl implements CurationRecommendBui
         List<RecommendedLinkResponse> internal = curationLinkuRepository
                 .findWithDomainByCurationIdAndType(curationId, CurationLinkuType.INTERNAL)
                 .stream()
-                .map(CurationConverter::toRecommendedLinkResponse)
+                .map(entity -> CurationConverter.toRecommendedLinkResponse(entity, awsS3Service))
                 .limit(INTERNAL_LIMIT)
                 .toList();
 

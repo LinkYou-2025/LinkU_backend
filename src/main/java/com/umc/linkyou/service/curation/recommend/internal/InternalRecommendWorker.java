@@ -2,6 +2,7 @@ package com.umc.linkyou.service.curation.recommend.internal;
 
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
@@ -24,6 +25,7 @@ public class InternalRecommendWorker {
     private final CurationRepository curationRepository;
     private final CurationLinkuRepository curationLinkuRepository;
     private final InternalLinkCandidateService internalLinkCandidateService;
+    private final AwsS3Service awsS3Service;
 
     @Transactional
     public void generateInternal(Long curationId) {
@@ -39,7 +41,7 @@ public class InternalRecommendWorker {
         curationLinkuRepository.deleteAllByCurationIdAndType(curationId, CurationLinkuType.INTERNAL);
 
         List<CurationLinku> toSave = candidates.stream()
-                .map(item -> CurationLinku.ofInternal(curation, item, item.getImageUrl()))
+                .map(item -> CurationLinku.ofInternal(curation, item, awsS3Service.resolveUrl(item.getImage())))
                 .toList();
         curationLinkuRepository.saveAll(toSave);
 
