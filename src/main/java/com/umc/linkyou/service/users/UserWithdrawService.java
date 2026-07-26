@@ -3,6 +3,8 @@ package com.umc.linkyou.service.users;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.jwt.AccessTokenBlackListManager;
+import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.RefreshTokenManager;
 import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
@@ -30,19 +32,48 @@ public class UserWithdrawService{
     private final RefreshTokenManager refreshTokenManager;
     private final AuthAccountRepository authAccountRepository;
     private final UserStatusValidator userStatusValidator;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final AccessTokenBlackListManager accessTokenBlackListManager;
 
     // 탈퇴 유예 기간
     private static final int GRACE_PERIOD_DAYS = 14;
 
+    /**
+     * 회원 탈퇴 (accessToken 미지정)
+     * 웹훅 등 현재 요청의 accessToken을 알 수 없는 내부 호출용.
+     */
     @Transactional
     public Users withdrawUser(Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO) {
+        return withdrawUser(userId, deleteReasonDTO, null);
+    }
+
+    /**
+     * 회원 탈퇴
+     * - Refresh Token 전체 삭제
+     * - 현재 요청의 Access Token을 블랙리스트에 등록하여 탈퇴 즉시 로그아웃 처리
+     */
+    @Transactional
+    public Users withdrawUser(
+            Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO, String accessToken) {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
-        // 1. 토큰 즉시 무효화
+        // 1. 리프레시 토큰 즉시 무효화
         refreshTokenManager.deleteAllTokens(userId);
+        // 2. 현재 액세스 토큰 즉시 블랙리스트 등록 (탈퇴 즉시 로그아웃)
+        blacklistAccessToken(accessToken);
         user.withdraw(deleteReasonDTO.getReason(), LocalDateTime.now());
         userRepository.save(user);
         return user;
+    }
+
+    private void blacklistAccessToken(String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            return;
+        }
+        long ttlMs = jwtTokenProvider.getRemainingExpiryMs(accessToken);
+        if (ttlMs > 0) {
+            accessTokenBlackListManager.addToBlacklist(accessToken, ttlMs);
+        }
     }
 
     /**
