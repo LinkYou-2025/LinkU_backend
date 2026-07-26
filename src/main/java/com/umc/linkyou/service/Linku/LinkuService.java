@@ -10,6 +10,7 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.AiArticle;
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
@@ -116,7 +117,7 @@ public class LinkuService {
         String summary = null;
 
         String domainName = domain != null ? domain.getName() : null;
-        String domainImageUrl = domain != null ? domain.getImageUrl() : null;
+        String domainImageUrl = domain != null ? awsS3Service.resolveUrl(domain.getImage()) : null;
 
         if (aiArticleExists && aiArticle != null) {
             keyword = linku.getLinkuKeywords().stream()
@@ -126,7 +127,7 @@ public class LinkuService {
         }
 
         LinkuResponseDTO.LinkuResultDTO dto = LinkuConverter.toLinkuResultDTO(
-                userId, linku, usersLinku, linkuFolder, category, domainName, domainImageUrl,  aiArticleExists, keyword, summary
+                userId, linku, usersLinku, linkuFolder, category, domainName, domainImageUrl,  aiArticleExists, keyword, summary, awsS3Service
         );
 
         //조회수 증가
@@ -153,7 +154,7 @@ public class LinkuService {
                     boolean aiArticleExists = Boolean.TRUE.equals(ul.getAiExist());
                     Domain domain = linku.getDomain();
                     LinkuFolder linkuFolder = latestFolderByUserLinkuId.get(ul.getUserLinkuId());
-                    return toLinkuSimpleDTO(linku, ul, domain, aiArticleExists, linkuFolder);
+                    return toLinkuSimpleDTO(linku, ul, domain, aiArticleExists, linkuFolder, awsS3Service);
                 })
                 .collect(Collectors.toList());
     }
@@ -193,7 +194,7 @@ public class LinkuService {
                     boolean aiArticleExists = Boolean.TRUE.equals(ul.getAiExist());
                     Domain domain = linku.getDomain();
                     LinkuFolder linkuFolder = latestFolderByUserLinkuId.get(ul.getUserLinkuId());
-                    return toLinkuSimpleDTO(linku, ul, domain, aiArticleExists, linkuFolder);
+                    return toLinkuSimpleDTO(linku, ul, domain, aiArticleExists, linkuFolder, awsS3Service);
                 })
                 .collect(Collectors.toList());
     }
@@ -270,11 +271,16 @@ public class LinkuService {
             usersLinkuModified = true;
         }
 
-        // 6-1. 대표 이미지 변경 (개인화: 이 유저의 UsersLinku.imageUrl만 변경)
+        // 6-1. 대표 이미지 변경 (개인화: 이 유저의 UsersLinku.image만 변경)
         //      기존 이미지가 있으면 S3에서 먼저 삭제한 뒤 새 이미지를 업로드한다.
         if (dto.getImage() != null && !dto.getImage().isEmpty()) {
-            String newImageUrl = awsS3Service.replaceFile(usersLinku.getImageUrl(), dto.getImage(), "linkucreate");
-            usersLinku.updateImageUrl(newImageUrl);
+            String oldKey = usersLinku.getImage() != null ? usersLinku.getImage().getLocation() : null;
+            String newKey = awsS3Service.replaceFile(oldKey, dto.getImage(), "linkucreate");
+            if (usersLinku.getImage() != null) {
+                usersLinku.getImage().updateLocation(newKey);
+            } else {
+                usersLinku.updateImage(Image.ofS3(newKey));
+            }
             usersLinkuModified = true;
         }
 
@@ -290,7 +296,7 @@ public class LinkuService {
         Domain domain = linku.getDomain();
 
         // 9. DTO 변환해 반환 (모든 정보 최신상태로 응답)
-        return LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain, null);
+        return LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domain, null, awsS3Service);
     } //링크 수정 (폴더/카테고리 변경은 updateLinkuFolder로 분리됨)
 
     /**

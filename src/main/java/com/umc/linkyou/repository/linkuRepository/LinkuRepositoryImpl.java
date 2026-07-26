@@ -1,11 +1,13 @@
 package com.umc.linkyou.repository.linkuRepository;
 
 import com.querydsl.core.Tuple;
-import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.*;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.umc.linkyou.awss3.AwsS3Service;
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.Linku;
+import com.umc.linkyou.domain.QImage;
 import com.umc.linkyou.domain.QKeyword;
 import com.umc.linkyou.domain.QLinku;
 import com.umc.linkyou.domain.classification.QDomain;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
+    private final AwsS3Service awsS3Service;
 
     // 링크 검색 (커서 페이징) - 제목/태그 매칭, 최신 저장 순
     @Override
@@ -33,10 +36,12 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
         QDomain d = QDomain.domain;
         QLinkuKeyword lk = QLinkuKeyword.linkuKeyword;
         QKeyword k = QKeyword.keyword;
+        QImage ui = new QImage("ui"); // UsersLinku 이미지
+        QImage li = new QImage("li"); // Linku(크롤링) 이미지
+        QImage di = new QImage("di"); // Domain 이미지
 
-        // 화면에 노출되는 제목/이미지는 사용자 지정 값 우선, 없으면 원본 값
+        // 화면에 노출되는 제목은 사용자 지정 값 우선, 없으면 원본 값
         StringExpression displayTitle = ul.title.coalesce(l.title);
-        StringExpression displayImage = ul.imageUrl.coalesce(l.imgUrl);
 
         BooleanExpression titleMatches = displayTitle.containsIgnoreCase(keyword);
 
@@ -49,10 +54,13 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
 
         // hasNext 판단용으로 size+1개 조회
         List<Tuple> rows = queryFactory
-                .select(ul.userLinkuId, l.linkuId, displayTitle, displayImage, d.imageUrl, d.name)
+                .select(ul.userLinkuId, l.linkuId, displayTitle, ui, li, d.name, di)
                 .from(ul)
                 .join(ul.linku, l)
                 .leftJoin(l.domain, d)
+                .leftJoin(ul.image, ui)
+                .leftJoin(l.image, li)
+                .leftJoin(d.image, di)
                 .where(
                         ul.user.id.eq(userId),
                         titleMatches.or(tagMatches),
@@ -82,15 +90,19 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
                 ));
 
         return rows.stream()
-                .map(r -> new LinkuSearchResponseDTO.LinkuSearchItemDTO(
-                        r.get(ul.userLinkuId),
-                        r.get(l.linkuId),
-                        r.get(displayTitle),
-                        r.get(displayImage),
-                        tagsByLinkuId.getOrDefault(r.get(l.linkuId), List.of()),
-                        r.get(d.imageUrl),
-                        r.get(d.name)
-                ))
+                .map(r -> {
+                    // 화면에 노출되는 이미지는 사용자 지정 값 우선, 없으면 원본(크롤링) 값
+                    Image displayImage = r.get(ui) != null ? r.get(ui) : r.get(li);
+                    return new LinkuSearchResponseDTO.LinkuSearchItemDTO(
+                            r.get(ul.userLinkuId),
+                            r.get(l.linkuId),
+                            r.get(displayTitle),
+                            awsS3Service.resolveUrl(displayImage),
+                            tagsByLinkuId.getOrDefault(r.get(l.linkuId), List.of()),
+                            awsS3Service.resolveUrl(r.get(di)),
+                            r.get(d.name)
+                    );
+                })
                 .toList();
     }
 
@@ -101,6 +113,7 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
         QLinku l = QLinku.linku;
         QDomain d = QDomain.domain;
         QLinkuKeyword lk = QLinkuKeyword.linkuKeyword;
+        QImage di = new QImage("di");
 
         StringExpression displayTitle = ul.title.coalesce(l.title);
 
@@ -111,16 +124,12 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
                 .where(lk.linku.eq(l), lk.keyword.name.containsIgnoreCase(keyword))
                 .exists();
 
-        return queryFactory
-                .select(Projections.constructor(
-                        LinkuQuickSearchResponseDTO.class,
-                        displayTitle,
-                        d.imageUrl,
-                        ul.userLinkuId
-                ))
+        List<Tuple> rows = queryFactory
+                .select(displayTitle, di, ul.userLinkuId)
                 .from(ul)
                 .join(ul.linku, l)
                 .leftJoin(l.domain, d)
+                .leftJoin(d.image, di)
                 .where(
                         ul.user.id.eq(userId),
                         titleMatches.or(tagMatches)
@@ -128,6 +137,14 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
                 .orderBy(ul.userLinkuId.desc())
                 .limit(3)
                 .fetch();
+
+        return rows.stream()
+                .map(r -> new LinkuQuickSearchResponseDTO(
+                        r.get(displayTitle),
+                        awsS3Service.resolveUrl(r.get(di)),
+                        r.get(ul.userLinkuId)
+                ))
+                .toList();
     }
 
     @Override

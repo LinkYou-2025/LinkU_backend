@@ -1,5 +1,6 @@
 package com.umc.linkyou.converter;
 
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.domain.*;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
@@ -35,7 +36,8 @@ public class LinkuConverter {
             String domainImageUrl,
             Boolean aiArticleExists,
             String keyword,
-            String summary
+            String summary,
+            AwsS3Service awsS3Service
     ) {
         return LinkuResponseDTO.LinkuResultDTO.builder()
                 .userId(userId)
@@ -52,7 +54,7 @@ public class LinkuConverter {
                 .domain(domainName)
                 .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
                 .domainImageUrl(domainImageUrl)
-                .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
+                .linkuImageUrl(resolveLinkuImageUrl(usersLinku, linku, awsS3Service))
                 .aiArticleExists(aiArticleExists != null ? aiArticleExists : false)
                 .createdAt(linku.getCreatedAt())
                 .updatedAt(linku.getUpdatedAt())
@@ -69,7 +71,8 @@ public class LinkuConverter {
             LinkuFolder linkuFolder,
             Category category,
             Domain domain,
-            Boolean aiArticleExists
+            Boolean aiArticleExists,
+            AwsS3Service awsS3Service
     ) {
         return LinkuResponseDTO.LinkuResultDTO.builder()
                 .userId(userId)
@@ -84,12 +87,18 @@ public class LinkuConverter {
                 .isSituationAi(usersLinku.getSituationAi())
                 .domain(domain != null ? domain.getName() : null)
                 .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
-                .domainImageUrl(domain != null ? domain.getImageUrl() : null)
-                .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
+                .domainImageUrl(domain != null ? awsS3Service.resolveUrl(domain.getImage()) : null)
+                .linkuImageUrl(resolveLinkuImageUrl(usersLinku, linku, awsS3Service))
                 .aiArticleExists(aiArticleExists != null ? aiArticleExists : false)
                 .createdAt(linku.getCreatedAt())
                 .updatedAt(linku.getUpdatedAt())
                 .build();
+    }
+
+    // 화면에 노출되는 링크 이미지는 사용자 지정 이미지 우선, 없으면 크롤링한 원본 이미지
+    private static String resolveLinkuImageUrl(UsersLinku usersLinku, Linku linku, AwsS3Service awsS3Service) {
+        Image image = usersLinku.getImage() != null ? usersLinku.getImage() : linku.getImage();
+        return awsS3Service.resolveUrl(image);
     }
 
 
@@ -133,7 +142,7 @@ public class LinkuConverter {
                 .updatedAt(usersLinku.getLinku().getUpdatedAt())
                 .build();
     }
-    // UsersLinku 생성
+    // UsersLinku 생성 (imageUrl은 S3에 업로드된 이미지의 object key, "/"로 시작)
     public static UsersLinku toUsersLinku(Users user, Linku linku, Emotion emotion, Situation situation,
                                           String memo, String imageUrl, String title,
                                           boolean emotionAi, boolean situationAi) {
@@ -143,7 +152,7 @@ public class LinkuConverter {
                 .emotion(emotion)
                 .situation(situation)
                 .memo(memo)
-                .imageUrl(imageUrl)
+                .image(imageUrl != null ? Image.ofS3(imageUrl) : null)
                 .title(title)
                 .emotionAi(emotionAi)
                 .situationAi(situationAi)
@@ -158,7 +167,7 @@ public class LinkuConverter {
                 .build();
     }
 
-    // Linku 생성
+    // Linku 생성 (imgUrl은 크롤링으로 얻은 외부 이미지의 전체 URL)
     public static Linku toLinku(String linkuUrl, Category category, Domain domain, String title, String imgUrl, Emotion emotion, Situation situation) {
         return Linku.builder()
                 .linkuUrl(linkuUrl)
@@ -167,10 +176,11 @@ public class LinkuConverter {
                 .emotion(emotion)
                 .situation(situation)
                 .title(title != null ? title : "")
-                .imgUrl(imgUrl)
+                .image(imgUrl != null ? Image.ofExternal(imgUrl) : null)
                 .build();
     }
-    public static LinkuResponseDTO.LinkuSimpleDTO toLinkuSimpleDTO(Linku linku, UsersLinku usersLinku, Domain domain, boolean aiArticleExists, LinkuFolder linkuFolder) {
+    public static LinkuResponseDTO.LinkuSimpleDTO toLinkuSimpleDTO(Linku linku, UsersLinku usersLinku, Domain domain, boolean aiArticleExists, LinkuFolder linkuFolder, AwsS3Service awsS3Service) {
+        Image linkuImage = usersLinku != null && usersLinku.getImage() != null ? usersLinku.getImage() : linku.getImage();
         return LinkuResponseDTO.LinkuSimpleDTO.builder()
                 .userLinkuId(usersLinku != null ? usersLinku.getUserLinkuId() : null)
                 .linkuId(linku.getLinkuId())
@@ -181,8 +191,8 @@ public class LinkuConverter {
                 .emotionId(usersLinku != null && usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
                 .title(usersLinku != null && usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
                 .domain(domain != null ? domain.getName() : null)
-                .domainImageUrl(domain != null ? domain.getImageUrl() : null)
-                .linkuImageUrl(usersLinku != null ? (usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl()) : linku.getImgUrl())
+                .domainImageUrl(domain != null ? awsS3Service.resolveUrl(domain.getImage()) : null)
+                .linkuImageUrl(awsS3Service.resolveUrl(linkuImage))
                 .aiArticleExists(aiArticleExists)
                 .lastViewedAt(usersLinku != null ? usersLinku.getLastViewedAt() : null)
                 .build();

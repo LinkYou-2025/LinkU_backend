@@ -232,9 +232,9 @@ public class LinkuCreateService {
         linkuFolderRepository.save(linkuFolder);
 
         String domainName = domain != null ? domain.getName() : null;
-        String domainImageUrl = domain != null ? domain.getImageUrl() : null;
+        String domainImageUrl = domain != null ? awsS3Service.resolveUrl(domain.getImage()) : null;
 
-        return LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domainName, domainImageUrl, false, keywords, "");
+        return LinkuConverter.toLinkuResultDTO(userId, linku, usersLinku, linkuFolder, category, domainName, domainImageUrl, false, keywords, "", awsS3Service);
     }
 
     // Utility methods - 모두 public으로 선언
