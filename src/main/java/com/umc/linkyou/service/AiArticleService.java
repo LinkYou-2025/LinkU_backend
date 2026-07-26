@@ -6,10 +6,10 @@ import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.AiArticleConverter;
+import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.AlarmPayload;
 import com.umc.linkyou.domain.Linku;
-import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.AlarmType;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.infra.ai.AiArticleAnalyzer;
@@ -77,7 +77,7 @@ public class AiArticleService {
         alarmService.sendAlarm(userId, new AlarmRequestDTO.AlarmSendRequestDTO(
                 AlarmType.LINK_SUMMARY_COMPLETE, linkuId, new AlarmPayload.LinkTitle(linkTitle)));
 
-        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku), linkTitle, resolveImageUrl(linku, usersLinku));
+        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku));
     }
 
     @Transactional
@@ -94,7 +94,7 @@ public class AiArticleService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AiArticleResponseDTO.AiArticleResultDTO showAiArticle(Long linkuId, Long userId) {
         Linku linku = linkuRepository.findById(linkuId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
@@ -102,14 +102,21 @@ public class AiArticleService {
                 .orElseThrow(() -> new GeneralException(AiArticleErrorStatus._AI_ARTICLE_NOT_FOUND));
         userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
-        // 동일 (user, linku) 조합으로 저장된 UsersLinku가 여러 건일 수 있어 최신 1건을 사용한다.
+        // 동일 (user, linku) 조합으로 저장된 UsersLinku가 여러 건일 수 있다. 응답에는 최신 1건을 대표로
+        // 쓰되, "AI 요약 있음" 표시는 본인이 저장한 모든 건에 동일하게 남긴다 (saveAiArticle과 동일한 패턴).
         // 요청 유저가 이 linku를 저장한 적이 없으면(=UsersLinku 없음) 소유권이 없는 것이므로 예외를 던진다.
         // (다른 유저가 먼저 요약을 만들어둔 linkuId를 알기만 하면 조회되는 것을 막기 위함)
-        UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId).stream()
+        List<UsersLinku> usersLinkus = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId);
+        UsersLinku usersLinku = usersLinkus.stream()
                 .max(Comparator.comparing(UsersLinku::getCreatedAt))
                 .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
 
-        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku), resolveTitle(linku, usersLinku), resolveImageUrl(linku, usersLinku));
+        // 다른 유저가 먼저 만들어둔 요약이라도, 본인이 직접 조회한 시점부터는 본인 소유 UsersLinku에도
+        // "AI 요약 있음"으로 남긴다 (본인이 요청/조회한 적 없는데 true로 보이는 문제를 막기 위해 저장
+        // 시점에는 더 이상 자동으로 표시하지 않으므로, 대신 실제 조회 시점에 표시한다).
+        usersLinkus.forEach(ul -> ul.markAiExist(true));
+
+        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku));
     }
 
     // AI 요약 호출과 별개로, 링크 저장 시 이미 분류되어 저장된 키워드를 그대로 태그로 사용한다
@@ -120,18 +127,12 @@ public class AiArticleService {
                 .collect(Collectors.joining(", "));
     }
 
+    // 알림 페이로드에 넣을 제목 계산용. DTO의 title은 AiArticleConverter.toDto가 동일한
+    // 우선순위(usersLinku 우선, 없으면 linku)로 자체 계산하므로 여기서는 알림 발송에만 쓰인다.
     private String resolveTitle(Linku linku, UsersLinku usersLinku) {
         return (usersLinku != null && usersLinku.getTitle() != null)
                 ? usersLinku.getTitle()
                 : linku.getTitle();
-    }
-
-    // usersLinku에 사용자가 업로드한 이미지가 있으면 그걸 우선 쓰고, 없으면 linku에 캐싱된
-    // 크롤링 썸네일로 폴백한다 (LinkuConverter의 linkuImageUrl 처리와 동일한 패턴).
-    private String resolveImageUrl(Linku linku, UsersLinku usersLinku) {
-        return (usersLinku != null && usersLinku.getImageUrl() != null)
-                ? usersLinku.getImageUrl()
-                : linku.getImgUrl();
     }
 
     @Transactional(readOnly = true)
@@ -146,19 +147,7 @@ public class AiArticleService {
                 : null;
 
         List<LinkuResponseDTO.AiArticleSummaryDTO> linkuResultDTOs = resultList.stream()
-                .map(ul -> {
-                    Linku l = ul.getLinku();
-                    Domain domain = l.getDomain();
-                    return LinkuResponseDTO.AiArticleSummaryDTO.builder()
-                            .linkuId(l.getLinkuId())
-                            .linku(l.getLinkuUrl())
-                            .emotionId(ul.getEmotion() != null ? ul.getEmotion().getEmotionId() : null)
-                            .domain(domain != null ? domain.getName() : null)
-                            .domainImageUrl(domain != null ? domain.getImageUrl() : null)
-                            .title(ul.getTitle() != null ? ul.getTitle() : l.getTitle())
-                            .linkuImageUrl(ul.getImageUrl() != null ? ul.getImageUrl() : l.getImgUrl())
-                            .build();
-                })
+                .map(LinkuConverter::toAiArticleSummaryDTO)
                 .collect(Collectors.toList());
 
         return LinkuResponseDTO.LinkuSliceResultDTO.builder()
