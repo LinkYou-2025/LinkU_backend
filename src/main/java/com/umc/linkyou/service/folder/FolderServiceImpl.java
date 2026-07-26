@@ -5,6 +5,8 @@ import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.awss3.AwsS3Service;
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
@@ -41,6 +43,7 @@ public class FolderServiceImpl implements FolderService {
     private final UsersFolderRepository usersFolderRepository;
     private final LinkuFolderRepository linkuFolderRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final AwsS3Service awsS3Service;
 
     // 하위 폴더 생성
     @Transactional
@@ -358,7 +361,8 @@ public class FolderServiceImpl implements FolderService {
                     .map(lk -> lk.getKeyword().getName())
                     .collect(Collectors.joining(", "));
             dto.setKeyword(kw.isEmpty() ? null : kw);
-            dto.setLinkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : link.getImgUrl());
+            Image displayImage = usersLinku.getImage() != null ? usersLinku.getImage() : link.getImage();
+            dto.setLinkuImageUrl(awsS3Service.resolveUrl(displayImage));
             dto.setCreatedAt(link.getCreatedAt().toString());
             return dto;
         }).toList();
