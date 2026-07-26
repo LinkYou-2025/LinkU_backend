@@ -9,6 +9,8 @@ public class AiArticleResponseDTO {
             String categoryName,
             String summary,
             String imgUrl,
-            String memo
+            String memo,
+            String tags,
+            String title
     ) {}
 }

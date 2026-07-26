@@ -71,12 +71,13 @@ public class AiArticleService {
 
         usersLinkus.forEach(ul -> ul.markAiExist(true));
 
+        String linkTitle = resolveTitle(linku, usersLinku);
+
         // 요약 완료 시 링크 요약 알림 발송. 설정 필터링은 sendAlarm 내부에서 처리한다.
-        String linkTitle = usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle();
         alarmService.sendAlarm(userId, new AlarmRequestDTO.AlarmSendRequestDTO(
                 AlarmType.LINK_SUMMARY_COMPLETE, linkuId, new AlarmPayload.LinkTitle(linkTitle)));
 
-        return AiArticleConverter.toDto(article, linku, usersLinku);
+        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku), linkTitle);
     }
 
     @Transactional
@@ -93,6 +94,7 @@ public class AiArticleService {
         }
     }
 
+    @Transactional(readOnly = true)
     public AiArticleResponseDTO.AiArticleResultDTO showAiArticle(Long linkuId, Long userId) {
         Linku linku = linkuRepository.findById(linkuId)
                 .orElseThrow(() -> new GeneralException(ErrorStatus._BAD_REQUEST));
@@ -101,11 +103,27 @@ public class AiArticleService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         // 동일 (user, linku) 조합으로 저장된 UsersLinku가 여러 건일 수 있어 최신 1건을 사용한다.
+        // 요청 유저가 이 linku를 저장한 적이 없으면(=UsersLinku 없음) 소유권이 없는 것이므로 예외를 던진다.
+        // (다른 유저가 먼저 요약을 만들어둔 linkuId를 알기만 하면 조회되는 것을 막기 위함)
         UsersLinku usersLinku = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId).stream()
                 .max(Comparator.comparing(UsersLinku::getCreatedAt))
-                .orElse(null);
+                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
 
-        return AiArticleConverter.toDto(article, linku, usersLinku);
+        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku), resolveTitle(linku, usersLinku));
+    }
+
+    // AI 요약 호출과 별개로, 링크 저장 시 이미 분류되어 저장된 키워드를 그대로 태그로 사용한다
+    // (요약할 때마다 태그를 다시 생성하지 않음 - linku 단위로 한 번 분류된 키워드는 항상 동일해야 함).
+    private String resolveTags(Linku linku) {
+        return linku.getLinkuKeywords().stream()
+                .map(lk -> lk.getKeyword().getName())
+                .collect(Collectors.joining(", "));
+    }
+
+    private String resolveTitle(Linku linku, UsersLinku usersLinku) {
+        return (usersLinku != null && usersLinku.getTitle() != null)
+                ? usersLinku.getTitle()
+                : linku.getTitle();
     }
 
     @Transactional(readOnly = true)

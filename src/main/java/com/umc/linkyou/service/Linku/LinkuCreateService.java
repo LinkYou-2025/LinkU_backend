@@ -38,6 +38,7 @@ import com.umc.linkyou.repository.classification.domainRepository.DomainReposito
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
+import com.umc.linkyou.repository.recommend.UserProfileRefreshQueueRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.utils.UrlValidUtils;
 import lombok.RequiredArgsConstructor;
@@ -70,6 +71,7 @@ public class LinkuCreateService {
     private final LinkuUpsertService linkuUpsertService;
     private final SafeUrlFetcher safeUrlFetcher;
     private final AiArticleRepository aiArticleRepository;
+    private final UserProfileRefreshQueueRepository userProfileRefreshQueueRepository;
     // 크롤링/AI분석/이미지 업로드 등 블로킹 외부 I/O를 @Transactional 메서드 밖에서 수행하기 위해
     // (커넥션을 그 시간만큼 붙들고 있지 않도록) DB 쓰기 구간만 프로그래밍 방식으로 트랜잭션에 넣는다.
     private final TransactionTemplate transactionTemplate;
@@ -334,7 +336,14 @@ public class LinkuCreateService {
         if (aiArticleRepository.findByLinku(linku).isPresent()) {
             usersLinku.markAiExist(true);
         }
-        return usersLinkuRepository.save(usersLinku);
+        UsersLinku saved = usersLinkuRepository.save(usersLinku);
+
+        // 홈화면 추천 TextMatch/KeywordMatch용 유저 콘텐츠 프로필이 이 유저의 저장 링크 목록 변경을
+        // 반영하도록 재계산 대상으로 표시해둔다. 전체 유저 스캔 없이 UserProfileRefreshWorker가
+        // 이 큐만 chunk 단위로 드레인한다 (service/common/README.md 참고).
+        userProfileRefreshQueueRepository.enqueue(user.getId());
+
+        return saved;
     }
 
 }

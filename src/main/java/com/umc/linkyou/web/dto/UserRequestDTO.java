@@ -66,9 +66,22 @@ public class UserRequestDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UpdateProfileDTO {
+        @Schema(description = "변경할 닉네임 (생략 시 변경하지 않음)", example = "새로운별명")
         private String nickname;
+
+        @Schema(description = "변경할 직업 ID (생략 시 변경하지 않음, /users/me 응답의 job.id 참고)", example = "1")
         private Long jobId;                         // 현재 하고 있는 일
+
+        @Schema(description = "변경할 링크 활용 목적 리스트 (생략 시 변경하지 않음, 필드를 보내면 전체 대체됨)",
+                example = "[\"CAREER\", \"STUDY\"]",
+                allowableValues = {"CAREER", "STUDY", "WORK", "SIDE_PROJECT", "SELF_DEVELOPMENT",
+                        "LATER_READING", "INSIGHTS", "CREATION_REFERENCE", "OTHERS"})
         private List<String> purposes;              // 링크 활용 목적
+
+        @Schema(description = "변경할 관심 콘텐츠 리스트 (생략 시 변경하지 않음, 필드를 보내면 전체 대체됨)",
+                example = "[\"IT\", \"DESIGN\"]",
+                allowableValues = {"BUSINESS", "IT", "DESIGN", "PSYCHOLOGY", "CAREER",
+                        "CURRENT_EVENTS", "STUDY", "STARTUP", "SOCIETY", "WRITING", "INSIGHTS", "COLLECT"})
         private List<String> interests;             // 관심 콘텐츠
     }
 
