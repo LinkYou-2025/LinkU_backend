@@ -2,6 +2,9 @@
 -- V15/V16이 users/users_linkus까지는 채워뒀지만 auth_accounts(GENERAL)가 없어서
 -- POST /api/v1/auth/login으로 실제 로그인할 방법이 없었다(email 기준으로 auth_accounts를 조회하기 때문).
 --
+-- password는 V15에 이미 저장된 것과 동일한 bcrypt 해시를 그대로 쓰므로 아래 계정으로 바로
+-- 로그인 가능하다 (평문 비밀번호는 보안상 커밋에 남기지 않음 — 팀 내부 문서 참고).
+--
 -- seed_it_dev(103)만 우선 연결해둔다 — IT·개발 카테고리 링크가 12개 저장돼 있어
 -- GET /api/v1/linku/recommend 테스트 조건(job 설정됨, 저장 링크 3개 이상)을 이미 만족한다.
 -- 다른 카테고리로 테스트하고 싶으면 동일 패턴으로 user_id만 바꿔 추가하면 된다

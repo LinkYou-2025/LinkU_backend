@@ -67,7 +67,8 @@ public class UserProfileRefreshWorker {
             Long userId = item.getUserId();
             try {
                 refreshOne(userId);
-                refreshQueueRepository.deleteById(userId);
+                // requestedAt까지 일치할 때만 삭제 — 처리 도중 재enqueue된 최신 요청을 지우지 않는다.
+                refreshQueueRepository.deleteByUserIdAndRequestedAt(userId, item.getRequestedAt());
                 success++;
             } catch (Exception e) {
                 // 실패한 유저는 큐에서 지우지 않고 다음 드레인 때 재시도한다.
