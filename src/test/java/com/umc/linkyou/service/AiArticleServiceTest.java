@@ -395,7 +395,11 @@ class AiArticleServiceTest {
                 Linku linku = LinkuFixture.linku(null);
                 Users user = LinkuFixture.user();
                 UsersLinku older = buildUsersLinku(linku, user);
+                org.springframework.test.util.ReflectionTestUtils.setField(
+                        older, "createdAt", java.time.LocalDateTime.now().minusDays(1));
                 UsersLinku newer = buildUsersLinku(linku, user);
+                org.springframework.test.util.ReflectionTestUtils.setField(
+                        newer, "createdAt", java.time.LocalDateTime.now());
                 AiArticle existingArticle = LinkuFixture.aiArticle(linku, SUMMARY);
 
                 given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
