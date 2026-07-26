@@ -3,7 +3,7 @@ package com.umc.linkyou.awss3;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.properties.AwsProperties;
-import lombok.RequiredArgsConstructor;
+import com.umc.linkyou.domain.Image;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Service;
@@ -25,11 +25,22 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AwsS3Service {
 
     private final AwsProperties awsProperties;
     private final S3Client s3Client;  // SDK v2
+    private final String cloudFrontDomain;
+
+    public AwsS3Service(AwsProperties awsProperties, S3Client s3Client) {
+        this.awsProperties = awsProperties;
+        this.s3Client = s3Client;
+        this.cloudFrontDomain = normalizeDomain(awsProperties.cloudfront().domain());
+    }
+
+    private static String normalizeDomain(String domain) {
+        String trimmed = domain.trim();
+        return trimmed.endsWith("/") ? trimmed.substring(0, trimmed.length() - 1) : trimmed;
+    }
 
     public String uploadFile(MultipartFile multipartFile) {
         if (multipartFile == null || multipartFile.isEmpty()) {
@@ -63,7 +74,7 @@ public class AwsS3Service {
             throw new GeneralException(ErrorStatus._S3_UPLOAD_FAILED);
         }
 
-        return getFileUrl(fileName);
+        return "/" + fileName;
     }
 
     public String uploadFile(MultipartFile multipartFile, String folder) {
@@ -98,7 +109,7 @@ public class AwsS3Service {
             throw new GeneralException(ErrorStatus._S3_UPLOAD_FAILED);
         }
 
-        return getFileUrl(fileName);
+        return "/" + fileName;
     }
 
     /**
@@ -106,29 +117,56 @@ public class AwsS3Service {
      * 새 이미지를 먼저 업로드해 성공을 확인한 뒤 기존 이미지를 삭제한다. (업로드 실패 시 기존 이미지를 보존하기 위함)
      * 기존 이미지 삭제가 실패해도 새 이미지는 이미 정상 반영된 상태이므로 예외를 전파하지 않고 로그만 남긴다.
      * "이미지 수정" 성격의 도메인(예: Domain, UsersLinku)에서 공통으로 사용한다.
+     *
+     * @param oldKey 기존 이미지의 object key ("/"로 시작하는 상대 경로, 없으면 null)
+     * @return 새로 업로드된 이미지의 object key ("/"로 시작하는 상대 경로)
      */
-    public String replaceFile(String oldFileUrl, MultipartFile newFile, String folder) {
-        String newFileUrl = uploadFile(newFile, folder);
-        if (oldFileUrl != null) {
+    public String replaceFile(String oldKey, MultipartFile newFile, String folder) {
+        String newKey = uploadFile(newFile, folder);
+        if (oldKey != null) {
             try {
-                deleteFileByUrl(oldFileUrl);
+                deleteFile(oldKey);
             } catch (GeneralException e) {
-                log.error("기존 이미지 삭제 실패 (새 이미지는 정상 반영됨): {}", oldFileUrl, e);
+                log.error("기존 이미지 삭제 실패 (새 이미지는 정상 반영됨): {}", oldKey, e);
             }
         }
-        return newFileUrl;
+        return newKey;
+    }
+
+    /**
+     * 이미지 엔티티가 가리키는 실제 파일을 S3에서 삭제한다. (Image row 자체는 지우지 않는다)
+     */
+    public void deleteFile(Image image) {
+        if (image == null || !image.isS3()) return;
+        deleteFile(image.getLocation());
     }
 
     public void deleteFile(String fileName) {
+        String key = stripLeadingSlash(fileName);
         try {
             DeleteObjectRequest request = DeleteObjectRequest.builder()
                     .bucket(awsProperties.s3().bucket())
-                    .key(fileName)
+                    .key(key)
                     .build();
             s3Client.deleteObject(request);
         } catch (SdkException e) {
             throw new GeneralException(ErrorStatus._S3_DELETE_FAILED);
         }
+    }
+
+    /**
+     * Image를 화면에 표시 가능한 URL로 변환한다.
+     * S3 출처는 CloudFront 도메인을 붙여 URL을 만들고, EXTERNAL 출처는 저장된 값을 그대로 반환한다.
+     * (서명된 URL/만료 시간 발급은 아직 도입 전이며, 추후 별도 작업으로 대체될 지점이다.)
+     */
+    public String resolveUrl(Image image) {
+        if (image == null) return null;
+        return image.isS3() ? getFileUrl(image.getLocation()) : image.getLocation();
+    }
+
+    private String stripLeadingSlash(String key) {
+        if (key == null) return null;
+        return key.startsWith("/") ? key.substring(1) : key;
     }
 
     public void deleteFileByUrl(String fileUrl) {
@@ -145,18 +183,14 @@ public class AwsS3Service {
     }
 
     public String getFileUrl(String fileName) {
-        String domain = awsProperties.cloudfront().domain().trim();
-        domain = domain.endsWith("/") ? domain.substring(0, domain.length() - 1) : domain;
         String key = fileName.startsWith("/") ? fileName.substring(1) : fileName;
-        return domain + "/" + key;
+        return cloudFrontDomain + "/" + key;
     }
 
     public String extractFileNameFromUrl(String url) {
         try {
             String decodedUrl = URLDecoder.decode(url, StandardCharsets.UTF_8);
-            String domainSuffix = awsProperties.cloudfront().domain().endsWith("/")
-                    ? awsProperties.cloudfront().domain()
-                    : awsProperties.cloudfront().domain() + "/";
+            String domainSuffix = cloudFrontDomain + "/";
             if (decodedUrl.startsWith(domainSuffix)) {
                 return decodedUrl.substring(domainSuffix.length());
             }
