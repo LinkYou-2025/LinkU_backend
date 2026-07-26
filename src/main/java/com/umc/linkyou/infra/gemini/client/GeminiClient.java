@@ -4,6 +4,7 @@ import com.google.genai.Client;
 import com.google.genai.types.*;
 import com.umc.linkyou.apiPayload.code.status.gemini.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.infra.ai.AiClient;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class GeminiClient {
+public class GeminiClient implements AiClient {
 
     // 검색 도구 없는 순수 생성 호출용
     private static final int GEMINI_TIMEOUT_SECONDS = 15;
@@ -43,18 +44,21 @@ public class GeminiClient {
             .googleSearch(GoogleSearch.builder().build())
             .build();
 
+    @Override
     public String completion(String systemInstruction, String userPrompt)
     {
         return generate(systemInstruction, userPrompt, null, 1024, 0.3f, GEMINI_TIMEOUT_SECONDS);
     }
 
     // 창의적인 응답 생성
+    @Override
     public String completionCreative(String systemInstruction, String userPrompt)
     {
         return generate(systemInstruction, userPrompt, null, 1024, 0.9f, GEMINI_TIMEOUT_SECONDS);
     }
 
     // Google Search로 실시간 정보 반영
+    @Override
     public String completionWithSearch(String systemInstruction, String userPrompt)
     {
         return generate(systemInstruction, userPrompt, GOOGLE_SEARCH_TOOL, 2048, 0.3f, GEMINI_SEARCH_TIMEOUT_SECONDS);
