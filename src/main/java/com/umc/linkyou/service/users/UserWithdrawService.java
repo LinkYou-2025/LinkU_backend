@@ -70,9 +70,15 @@ public class UserWithdrawService{
         if (accessToken == null || accessToken.isBlank()) {
             return;
         }
-        long ttlMs = jwtTokenProvider.getRemainingExpiryMs(accessToken);
-        if (ttlMs > 0) {
-            accessTokenBlackListManager.addToBlacklist(accessToken, ttlMs);
+        // 만료/위조 등으로 파싱이 실패해도 탈퇴 자체는 계속 진행되어야 하므로
+        // 블랙리스트 등록 실패는 로그만 남기고 흐름을 막지 않는다.
+        try {
+            long ttlMs = jwtTokenProvider.getRemainingExpiryMs(accessToken);
+            if (ttlMs > 0) {
+                accessTokenBlackListManager.addToBlacklist(accessToken, ttlMs);
+            }
+        } catch (Exception e) {
+            log.warn("탈퇴 처리 중 액세스 토큰 블랙리스트 등록 실패 (탈퇴는 계속 진행됨)", e);
         }
     }
 

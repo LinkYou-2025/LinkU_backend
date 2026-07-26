@@ -38,7 +38,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -265,6 +267,85 @@ class UserControllerTest {
                                 .content(objectMapper.writeValueAsString(request))
                                 .with(csrf()))
                         .andExpect(status().isUnauthorized());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("회원 탈퇴 엔드포인트")
+    class WithdrawMe {
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("성공 - Authorization 헤더의 액세스 토큰을 추출해 서비스로 전달하고, 탈퇴 즉시 로그아웃 처리된다")
+            @WithCustomUser(userId = 4L)
+            void withdraw_me_success_blacklists_current_access_token() throws Exception {
+                UserRequestDTO.DeleteReasonDTO request = new UserRequestDTO.DeleteReasonDTO();
+                request.setReason("더 이상 사용하지 않음");
+
+                Users mockUser = Users.builder()
+                        .id(4L)
+                        .nickName("탈퇴할유저")
+                        .status(UserStatus.INACTIVE)
+                        .build();
+                ReflectionTestUtils.setField(mockUser, "createdAt", LocalDateTime.now());
+
+                String accessToken = "mock-access-token";
+
+                given(userWithdrawService.withdrawUser(eq(4L), any(), eq(accessToken)))
+                        .willReturn(mockUser);
+
+                mockMvc.perform(post("/api/v1/users/inactive")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                                .with(csrf()))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.result.userId").value(4));
+
+                // 컨트롤러가 헤더에서 추출한 액세스 토큰을 그대로 서비스에 넘겨
+                // withdrawUser 내부에서 즉시 블랙리스트 등록되도록 하는지 검증
+                verify(userWithdrawService).withdrawUser(eq(4L), any(), eq(accessToken));
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+
+            @Test
+            @DisplayName("실패 - 비인증 사용자가 요청 시 401 에러를 반환한다")
+            void withdraw_me_unauthorized() throws Exception {
+                UserRequestDTO.DeleteReasonDTO request = new UserRequestDTO.DeleteReasonDTO();
+                request.setReason("사유");
+
+                mockMvc.perform(post("/api/v1/users/inactive")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                                .with(csrf()))
+                        .andExpect(status().isUnauthorized());
+            }
+
+            @Test
+            @DisplayName("실패 - 존재하지 않는 유저인 경우 예외를 반환한다")
+            @WithCustomUser(userId = 98L)
+            void withdraw_me_user_not_found() throws Exception {
+                UserRequestDTO.DeleteReasonDTO request = new UserRequestDTO.DeleteReasonDTO();
+                request.setReason("사유");
+
+                given(userWithdrawService.withdrawUser(eq(98L), any(), any()))
+                        .willThrow(new UserHandler(UserErrorStatus._USER_NOT_FOUND));
+
+                mockMvc.perform(post("/api/v1/users/inactive")
+                                .header("Authorization", "Bearer some-token")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                                .with(csrf()))
+                        .andExpect(jsonPath("$.isSuccess").value(false));
             }
         }
     }
