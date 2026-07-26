@@ -13,7 +13,6 @@ import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,13 +23,10 @@ public class ShareFolderController implements ShareFolderApi {
 
     private final ShareFolderService shareFolderService;
 
-    @Value("${app.deeplink.base-url}")
-    private String deeplinkBaseUrl;
-
     @Override
     public ApiResponse<String> createInviteLink(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
         String token = shareFolderService.createInviteLink(userDetails.getUserId(), folderId);
-        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_INVITE_LINK_CREATED, deeplinkBaseUrl + "/open?action=share&folderId=" + token);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_INVITE_LINK_CREATED, token);
     }
 
     @Override
