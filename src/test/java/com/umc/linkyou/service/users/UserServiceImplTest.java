@@ -426,4 +426,121 @@ class UserServiceImplTest {
             }
         }
     }
+
+    @Nested
+    @DisplayName("마이페이지 수정 (updateUserProfile)")
+    class UpdateUserProfile {
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("성공 - jobId만 보내면 직업만 변경되고 목적/관심사는 유지된다")
+            void jobId만_보내면_직업만_변경되고_목적_관심사는_유지된다() {
+                // given
+                Job oldJob = Job.builder().id(1L).build();
+                Job newJob = Job.builder().id(2L).build();
+                Users user =
+                        Users.builder().id(1L).nickName("기존닉네임").job(oldJob).build();
+
+                UserRequestDTO.UpdateProfileDTO request =
+                        new UserRequestDTO.UpdateProfileDTO(null, 2L, null, null);
+
+                when(userRepository.findById(eq(1L))).thenReturn(Optional.of(user));
+                when(jobRepository.findById(eq(2L))).thenReturn(Optional.of(newJob));
+                when(userRepository.save(any(Users.class)))
+                        .thenAnswer(invocation -> invocation.getArgument(0));
+
+                // when
+                userService.updateUserProfile(1L, request);
+
+                // then
+                assertEquals(newJob, user.getJob());
+                assertEquals("기존닉네임", user.getNickName());
+                verify(userRepository, never()).findByNickName(any());
+                verify(usersPurposeRepository, never()).deleteAllByUser(any());
+                verify(usersInterestRepository, never()).deleteAllByUser(any());
+            }
+
+            @Test
+            @DisplayName("성공 - nickname만 보내면 닉네임만 변경되고 직업은 유지된다")
+            void nickname만_보내면_닉네임만_변경되고_직업은_유지된다() {
+                // given
+                Job oldJob = Job.builder().id(1L).build();
+                Users user =
+                        Users.builder().id(1L).nickName("기존닉네임").job(oldJob).build();
+
+                UserRequestDTO.UpdateProfileDTO request =
+                        new UserRequestDTO.UpdateProfileDTO("새닉네임", null, null, null);
+
+                when(userRepository.findById(eq(1L))).thenReturn(Optional.of(user));
+                when(userRepository.findByNickName(eq("새닉네임"))).thenReturn(Optional.empty());
+                when(userRepository.save(any(Users.class)))
+                        .thenAnswer(invocation -> invocation.getArgument(0));
+
+                // when
+                userService.updateUserProfile(1L, request);
+
+                // then
+                assertEquals("새닉네임", user.getNickName());
+                assertEquals(oldJob, user.getJob());
+                verify(jobRepository, never()).findById(any());
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+
+            @Test
+            @DisplayName("실패 - 존재하지 않는 jobId로 요청 시 _INVALID_JOB_ID 예외가 발생한다")
+            void 존재하지_않는_jobId로_요청_시_INVALID_JOB_ID_예외가_발생한다() {
+                // given
+                Users user = Users.builder().id(1L).nickName("기존닉네임").build();
+
+                UserRequestDTO.UpdateProfileDTO request =
+                        new UserRequestDTO.UpdateProfileDTO(null, 0L, null, null);
+
+                when(userRepository.findById(eq(1L))).thenReturn(Optional.of(user));
+                when(jobRepository.findById(eq(0L))).thenReturn(Optional.empty());
+
+                // when & then
+                com.umc.linkyou.apiPayload.exception.handler.UserHandler ex =
+                        assertThrows(
+                                com.umc.linkyou.apiPayload.exception.handler.UserHandler.class,
+                                () -> userService.updateUserProfile(1L, request));
+                assertEquals(
+                        com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus
+                                ._INVALID_JOB_ID,
+                        ex.getCode());
+                verify(userRepository, never()).save(any());
+            }
+
+            @Test
+            @DisplayName("실패 - 중복된 닉네임으로 변경 시 _DUPLICATE_NICKNAME 예외가 발생한다")
+            void 중복된_닉네임으로_변경_시_DUPLICATE_NICKNAME_예외가_발생한다() {
+                // given
+                Users user = Users.builder().id(1L).nickName("기존닉네임").build();
+
+                UserRequestDTO.UpdateProfileDTO request =
+                        new UserRequestDTO.UpdateProfileDTO("중복닉네임", null, null, null);
+
+                when(userRepository.findById(eq(1L))).thenReturn(Optional.of(user));
+                when(userRepository.findByNickName(eq("중복닉네임")))
+                        .thenReturn(Optional.of(Users.builder().id(2L).build()));
+
+                // when & then
+                com.umc.linkyou.apiPayload.exception.handler.UserHandler ex =
+                        assertThrows(
+                                com.umc.linkyou.apiPayload.exception.handler.UserHandler.class,
+                                () -> userService.updateUserProfile(1L, request));
+                assertEquals(
+                        com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus
+                                ._DUPLICATE_NICKNAME,
+                        ex.getCode());
+                verify(userRepository, never()).save(any());
+            }
+        }
+    }
 }
