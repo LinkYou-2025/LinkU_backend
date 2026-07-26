@@ -12,17 +12,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Configuration
 @EnableAsync
 public class AsyncConfig {
-    @Bean(name = "defaultTaskExecutor")
-    public Executor defaultTaskExecutor() {
-        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
-        ex.setCorePoolSize(10);
-        ex.setMaxPoolSize(20);
-        ex.setQueueCapacity(300);
-        ex.setThreadNamePrefix("async-");
-        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-        ex.initialize();
-        return ex;
-    }
     @Bean
     public Semaphore externalRecoLimiter() {
         return new Semaphore(3);
@@ -36,6 +25,51 @@ public class AsyncConfig {
     @Bean
     public Semaphore mentLimiter() {
         return new Semaphore(3);
+    }
+
+    // mentLimiter(3)와 동일한 크기로 잡아 세마포어가 유일한 동시성 제한 지점이 되도록 함
+    @Bean(name = "mentTaskExecutor")
+    public Executor mentTaskExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(3);
+        ex.setMaxPoolSize(3);
+        ex.setQueueCapacity(200);
+        ex.setThreadNamePrefix("ment-");
+        ex.setWaitForTasksToCompleteOnShutdown(true);
+        ex.setAwaitTerminationSeconds(30);
+        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        ex.initialize();
+        return ex;
+    }
+
+    // externalRecoLimiter(3)와 동일한 크기
+    @Bean(name = "externalRecoTaskExecutor")
+    public Executor externalRecoTaskExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(3);
+        ex.setMaxPoolSize(3);
+        ex.setQueueCapacity(200);
+        ex.setThreadNamePrefix("external-reco-");
+        ex.setWaitForTasksToCompleteOnShutdown(true);
+        ex.setAwaitTerminationSeconds(30);
+        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        ex.initialize();
+        return ex;
+    }
+
+    // internalRecoLimiter(6)와 동일한 크기
+    @Bean(name = "internalRecoTaskExecutor")
+    public Executor internalRecoTaskExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(6);
+        ex.setMaxPoolSize(6);
+        ex.setQueueCapacity(200);
+        ex.setThreadNamePrefix("internal-reco-");
+        ex.setWaitForTasksToCompleteOnShutdown(true);
+        ex.setAwaitTerminationSeconds(30);
+        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        ex.initialize();
+        return ex;
     }
 
 
