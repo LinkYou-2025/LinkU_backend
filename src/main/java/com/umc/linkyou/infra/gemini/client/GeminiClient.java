@@ -5,6 +5,8 @@ import com.google.genai.types.*;
 import com.umc.linkyou.apiPayload.code.status.gemini.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.infra.ai.AiClient;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +47,7 @@ public class GeminiClient implements AiClient {
             .build();
 
     @Override
+    @CircuitBreaker(name = "gemini", fallbackMethod = "fallback")
     public String completion(String systemInstruction, String userPrompt)
     {
         return generate(systemInstruction, userPrompt, null, 1024, 0.3f, GEMINI_TIMEOUT_SECONDS);
@@ -52,6 +55,7 @@ public class GeminiClient implements AiClient {
 
     // 창의적인 응답 생성
     @Override
+    @CircuitBreaker(name = "gemini", fallbackMethod = "fallback")
     public String completionCreative(String systemInstruction, String userPrompt)
     {
         return generate(systemInstruction, userPrompt, null, 1024, 0.9f, GEMINI_TIMEOUT_SECONDS);
@@ -59,9 +63,23 @@ public class GeminiClient implements AiClient {
 
     // Google Search로 실시간 정보 반영
     @Override
+    @CircuitBreaker(name = "gemini", fallbackMethod = "fallback")
     public String completionWithSearch(String systemInstruction, String userPrompt)
     {
         return generate(systemInstruction, userPrompt, GOOGLE_SEARCH_TOOL, 2048, 0.3f, GEMINI_SEARCH_TIMEOUT_SECONDS);
+    }
+
+    // completion/completionCreative/completionWithSearch가 시그니처(String, String)로 동일해 fallback 하나를 공유
+    private String fallback(String systemInstruction, String userPrompt, Throwable t) {
+        if (t instanceof CallNotPermittedException) {
+            log.warn("[GEMINI] 서킷 OPEN 상태로 요청 거부");
+            throw new GeneralException(GeminiErrorStatus.GEMINI_TOO_MANY_REQUESTS);
+        }
+        if (t instanceof GeneralException ge) {
+            throw ge;
+        }
+        log.error("[GEMINI] fallback 처리, 알 수 없는 오류", t);
+        throw new GeneralException(GeminiErrorStatus.GEMINI_API_ERROR);
     }
 
     private String generate(

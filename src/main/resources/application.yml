@@ -95,6 +95,21 @@ management:
     health:
       show-details: always
 
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+    instances:
+      gemini: {}
+      customSearch: {}
+
 jwt:
   redis:
     host: ${JWT_REDIS_HOST}
