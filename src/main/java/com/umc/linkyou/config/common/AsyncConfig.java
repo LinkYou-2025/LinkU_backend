@@ -27,7 +27,7 @@ public class AsyncConfig {
         return new Semaphore(3);
     }
 
-    // mentLimiter(3)와 동일한 크기로 잡아 세마포어가 유일한 동시성 제한 지점이 되도록 함
+    // 멘트 생성용 스레드 풀
     @Bean(name = "mentTaskExecutor")
     public Executor mentTaskExecutor() {
         ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
@@ -42,7 +42,7 @@ public class AsyncConfig {
         return ex;
     }
 
-    // externalRecoLimiter(3)와 동일한 크기
+    // 외부 추천용
     @Bean(name = "externalRecoTaskExecutor")
     public Executor externalRecoTaskExecutor() {
         ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
@@ -57,7 +57,7 @@ public class AsyncConfig {
         return ex;
     }
 
-    // internalRecoLimiter(6)와 동일한 크기
+    // 내부 추천용, DB 기반
     @Bean(name = "internalRecoTaskExecutor")
     public Executor internalRecoTaskExecutor() {
         ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
@@ -73,6 +73,7 @@ public class AsyncConfig {
     }
 
 
+    // 일반 fcm 알림 전송용
     @Bean(name = "fcmTaskExecutor")
     public Executor fcmTaskExecutor() {
         ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
@@ -103,11 +104,7 @@ public class AsyncConfig {
     }
 
 
-    /**
-     * 외부 추천 큐레이션 이미지 fetch 전용
-     * default와 같이 사용하면 해당 스레드에서 이 결과를 join으로 기다리기 때문에,
-     * 데드락 발생 가능성 있으므로 별도 풀로 분리
-     */
+    // 외부 추천 큐레이션 이미지 fetch
     @Bean(name = "imageFetchTaskExecutor")
     public Executor imageFetchTaskExecutor() {
         ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
