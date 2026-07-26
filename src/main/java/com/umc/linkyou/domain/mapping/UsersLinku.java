@@ -2,6 +2,7 @@ package com.umc.linkyou.domain.mapping;
 
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.common.BaseEntity;
@@ -39,8 +40,9 @@ public class UsersLinku extends BaseEntity {
 
     private String memo;
 
-    @Column(columnDefinition = "text")
-    private String imageUrl;
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "image_id")
+    private Image image;
 
     // 연관관계: Users (탈퇴 시 개인 데이터 완전 삭제를 위해 DB 레벨 ON DELETE CASCADE 적용)
     @ManyToOne(fetch = FetchType.LAZY)
@@ -85,8 +87,8 @@ public class UsersLinku extends BaseEntity {
         this.title = title;
     }
 
-    public void updateImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void updateImage(Image image) {
+        this.image = image;
     }
 
     public void updateEmotion(Emotion emotion) {

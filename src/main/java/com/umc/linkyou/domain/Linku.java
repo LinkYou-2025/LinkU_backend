@@ -49,8 +49,9 @@ public class Linku extends BaseEntity {
     @OneToMany(mappedBy = "linku", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LinkuKeyword> linkuKeywords = new ArrayList<>();
 
-    @Column(name = "img_url", columnDefinition = "TEXT")
-    private String imgUrl;
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "image_id")
+    private Image image;
 
     @Builder.Default
     @Column(name = "total_view_count", nullable = false)
@@ -84,4 +85,8 @@ public class Linku extends BaseEntity {
 
     public void updateEmotion(Emotion emotion) {this.emotion = emotion;}
     public void updateSituation(Situation situation) {this.situation = situation;}
+
+    public void updateImage(Image image) {
+        this.image = image;
+    }
 }

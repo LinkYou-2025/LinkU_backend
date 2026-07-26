@@ -1,5 +1,6 @@
 package com.umc.linkyou.domain.classification;
 
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.enums.CrawlStrategy;
 import jakarta.persistence.*;
 import lombok.*;
@@ -23,8 +24,9 @@ public class Domain {
     @Column(name = "domain_tail", length = 255, nullable = false)
     private String domainTail;
 
-    @Column(name = "image_url", columnDefinition = "text")
-    private String imageUrl;
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "image_id")
+    private Image image;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "crawl_strategy", length = 50)
@@ -38,7 +40,7 @@ public class Domain {
         this.domainTail = domainTail;
     }
 
-    public void updateImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void updateImage(Image image) {
+        this.image = image;
     }
 }
