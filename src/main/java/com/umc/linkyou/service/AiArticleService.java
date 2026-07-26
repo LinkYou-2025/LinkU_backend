@@ -71,12 +71,13 @@ public class AiArticleService {
 
         usersLinkus.forEach(ul -> ul.markAiExist(true));
 
+        String linkTitle = resolveTitle(linku, usersLinku);
+
         // 요약 완료 시 링크 요약 알림 발송. 설정 필터링은 sendAlarm 내부에서 처리한다.
-        String linkTitle = usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle();
         alarmService.sendAlarm(userId, new AlarmRequestDTO.AlarmSendRequestDTO(
                 AlarmType.LINK_SUMMARY_COMPLETE, linkuId, new AlarmPayload.LinkTitle(linkTitle)));
 
-        return AiArticleConverter.toDto(article, linku, usersLinku);
+        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku), linkTitle);
     }
 
     @Transactional
@@ -108,7 +109,21 @@ public class AiArticleService {
                 .max(Comparator.comparing(UsersLinku::getCreatedAt))
                 .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
 
-        return AiArticleConverter.toDto(article, linku, usersLinku);
+        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku), resolveTitle(linku, usersLinku));
+    }
+
+    // AI 요약 호출과 별개로, 링크 저장 시 이미 분류되어 저장된 키워드를 그대로 태그로 사용한다
+    // (요약할 때마다 태그를 다시 생성하지 않음 - linku 단위로 한 번 분류된 키워드는 항상 동일해야 함).
+    private String resolveTags(Linku linku) {
+        return linku.getLinkuKeywords().stream()
+                .map(lk -> lk.getKeyword().getName())
+                .collect(Collectors.joining(", "));
+    }
+
+    private String resolveTitle(Linku linku, UsersLinku usersLinku) {
+        return (usersLinku != null && usersLinku.getTitle() != null)
+                ? usersLinku.getTitle()
+                : linku.getTitle();
     }
 
     @Transactional(readOnly = true)

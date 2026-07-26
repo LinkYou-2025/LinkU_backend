@@ -7,8 +7,6 @@ import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.infra.ai.dto.AiArticleResultDTO;
 import com.umc.linkyou.web.dto.AiArticleResponseDTO;
 
-import java.util.stream.Collectors;
-
 public class AiArticleConverter {
 
     public static AiArticle toEntity(AiArticleResultDTO result, Linku linku) {
@@ -18,20 +16,17 @@ public class AiArticleConverter {
                 .build();
     }
 
+    // tags/title은 지연 로딩 컬렉션(linku.getLinkuKeywords())과 usersLinku 우선순위 결정이 필요해
+    // 트랜잭션을 쥔 서비스 레이어에서 계산해 넘겨받는다 (LinkuService/LinkuCreateService/FolderServiceImpl과
+    // 동일한 패턴). 컨버터는 순수 조립만 담당한다.
     public static AiArticleResponseDTO.AiArticleResultDTO toDto(
             AiArticle entity,
             Linku linku,
-            UsersLinku usersLinku
+            UsersLinku usersLinku,
+            String tags,
+            String title
     ) {
         Emotion emotion = usersLinku != null ? usersLinku.getEmotion() : null;
-        // AI 요약 호출과 별개로, 링크 저장 시 이미 분류되어 저장된 키워드를 그대로 태그로 사용한다
-        // (요약할 때마다 태그를 다시 생성하지 않음 - linku 단위로 한 번 분류된 키워드는 항상 동일해야 함).
-        String tags = linku.getLinkuKeywords().stream()
-                .map(lk -> lk.getKeyword().getName())
-                .collect(Collectors.joining(", "));
-        String title = (usersLinku != null && usersLinku.getTitle() != null)
-                ? usersLinku.getTitle()
-                : linku.getTitle();
         return new AiArticleResponseDTO.AiArticleResultDTO(
                 entity.getId(),
                 linku.getLinkuId(),
