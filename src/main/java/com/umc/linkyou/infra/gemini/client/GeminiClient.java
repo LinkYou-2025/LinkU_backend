@@ -25,12 +25,14 @@ import java.util.concurrent.atomic.AtomicLong;
 @RequiredArgsConstructor
 public class GeminiClient {
 
-    private static final int GEMINI_TIMEOUT_SECONDS = 30;
+    // 검색 도구 없는 순수 생성 호출용
+    private static final int GEMINI_TIMEOUT_SECONDS = 15;
+    // Google Search grounding이 붙는 경우, 검색 결과 수집에 시간이 더 걸리므로 타임아웃을 길게 잡음
+    private static final int GEMINI_SEARCH_TIMEOUT_SECONDS = 25;
 
     private final ObjectProvider<Client> clientProvider;
 
     // 실제 Gemini 호출에 타임아웃을 강제하기 위한 전용 executor
-    // mentLimiter(3) + externalRecoLimiter(3) 기준 최대 동시 호출 수보다 여유 있게 잡음
     private final ExecutorService geminiCallExecutor = Executors.newFixedThreadPool(10);
     private final AtomicLong callSeq = new AtomicLong();
 
@@ -43,22 +45,23 @@ public class GeminiClient {
 
     public String completion(String systemInstruction, String userPrompt)
     {
-        return generate(systemInstruction, userPrompt, null, 1024, 0.3f);
+        return generate(systemInstruction, userPrompt, null, 1024, 0.3f, GEMINI_TIMEOUT_SECONDS);
     }
 
     // 창의적인 응답 생성
     public String completionCreative(String systemInstruction, String userPrompt)
     {
-        return generate(systemInstruction, userPrompt, null, 1024, 0.9f);
+        return generate(systemInstruction, userPrompt, null, 1024, 0.9f, GEMINI_TIMEOUT_SECONDS);
     }
 
     // Google Search로 실시간 정보 반영
     public String completionWithSearch(String systemInstruction, String userPrompt)
     {
-        return generate(systemInstruction, userPrompt, GOOGLE_SEARCH_TOOL, 2048, 0.3f);
+        return generate(systemInstruction, userPrompt, GOOGLE_SEARCH_TOOL, 2048, 0.3f, GEMINI_SEARCH_TIMEOUT_SECONDS);
     }
 
-    private String generate(String systemInstruction, String userPrompt, Tool tool, int maxTokens, float temp)
+    private String generate(
+            String systemInstruction, String userPrompt, Tool tool, int maxTokens, float temp, int timeoutSeconds)
     {
         Client client = clientProvider.getIfAvailable();
         if (client == null) {
@@ -70,7 +73,7 @@ public class GeminiClient {
                 .systemInstruction(Content.fromParts(Part.fromText(systemInstruction)))
                 .maxOutputTokens(maxTokens)
                 .temperature(temp)
-                .httpOptions(HttpOptions.builder().timeout(GEMINI_TIMEOUT_SECONDS * 1000).build());
+                .httpOptions(HttpOptions.builder().timeout(timeoutSeconds * 1000).build());
 
         if (tool != null) {
             builder.tools(Collections.singletonList(tool));
@@ -87,14 +90,14 @@ public class GeminiClient {
         log.info("[GEMINI] call={} 제출 완료 thread={}", callId, Thread.currentThread().getName());
 
         try {
-            String result = future.get(GEMINI_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            String result = future.get(timeoutSeconds, TimeUnit.SECONDS);
             log.info("[GEMINI] call={} 완료 elapsed={}ms", callId, System.currentTimeMillis() - submittedAt);
             return result;
         } catch (TimeoutException e) {
             boolean cancelled = future.cancel(true);
             log.error(
                     "[GEMINI] call={} {}초 초과 (cancel 결과={}), elapsed={}ms",
-                    callId, GEMINI_TIMEOUT_SECONDS, cancelled, System.currentTimeMillis() - submittedAt);
+                    callId, timeoutSeconds, cancelled, System.currentTimeMillis() - submittedAt);
             logExecutorStats(callId, "타임아웃 직후");
             throw new GeneralException(GeminiErrorStatus.GEMINI_TIMEOUT);
         } catch (Exception e) {
