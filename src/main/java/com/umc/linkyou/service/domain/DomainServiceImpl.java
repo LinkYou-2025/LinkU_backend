@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.converter.DomainConverter;
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.web.dto.DomainDTO;
@@ -23,18 +24,19 @@ public class DomainServiceImpl implements DomainService{
     @Override
     @Transactional
     public DomainDTO.DomainReponseDTO createDomain(Long userId, DomainDTO.DomainRequestDTO dto, MultipartFile image) {
-        String imageUrl = null;
+        Image domainImage = null;
         if (image != null && !image.isEmpty()) {
-            imageUrl = awsS3Service.uploadFile(image, "domain");
+            String imageKey = awsS3Service.uploadFile(image, "domain");
+            domainImage = Image.ofS3(imageKey);
         }
 
         Domain domain = Domain.builder()
                 .name(dto.getName())
                 .domainTail(dto.getDomainTail())
-                .imageUrl(imageUrl)
+                .image(domainImage)
                 .build();
         domain = domainRepository.save(domain);
-        return DomainConverter.toDomainResponseDTO(domain.getName(), domain.getDomainTail(), domain.getImageUrl());
+        return DomainConverter.toDomainResponseDTO(domain.getName(), domain.getDomainTail(), awsS3Service.resolveUrl(domain.getImage()));
     }// 도메인 생성
 
     @Override
@@ -50,9 +52,14 @@ public class DomainServiceImpl implements DomainService{
             domain.updateDomainTail(dto.getDomainTail());
         }
         if (image != null && !image.isEmpty()) {
-            // 기존 이미지가 있으면 S3에서 먼저 삭제한 뒤 새 이미지를 업로드하고 URL을 교체한다.
-            String imageUrl = awsS3Service.replaceFile(domain.getImageUrl(), image, "domain");
-            domain.updateImageUrl(imageUrl);
+            // 기존 이미지가 있으면 S3에서 먼저 삭제한 뒤 새 이미지를 업로드하고 key를 교체한다.
+            String oldKey = domain.getImage() != null ? domain.getImage().getLocation() : null;
+            String newKey = awsS3Service.replaceFile(oldKey, image, "domain");
+            if (domain.getImage() != null) {
+                domain.getImage().updateLocation(newKey);
+            } else {
+                domain.updateImage(Image.ofS3(newKey));
+            }
         }
 
         domainRepository.save(domain);
@@ -60,7 +67,7 @@ public class DomainServiceImpl implements DomainService{
         return DomainDTO.DomainReponseDTO.builder()
                 .name(domain.getName())
                 .domainTail(domain.getDomainTail())
-                .imageUrl(domain.getImageUrl())
+                .imageUrl(awsS3Service.resolveUrl(domain.getImage()))
                 .build();
     }
 //도메인 수정
@@ -77,7 +84,7 @@ public class DomainServiceImpl implements DomainService{
                 .map(d -> DomainDTO.DomainReponseDTO.builder()
                         .name(d.getName())
                         .domainTail(d.getDomainTail())
-                        .imageUrl(d.getImageUrl())
+                        .imageUrl(awsS3Service.resolveUrl(d.getImage()))
                         .build())
                 .toList();
 
