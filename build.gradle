@@ -111,6 +111,10 @@ dependencies {
 
 	// 도메인 tail 계층 매칭(Public Suffix List 기반 eTLD+1 계산)에 사용
 	implementation 'com.google.guava:guava:33.2.1-jre'
+
+	// 서킷브레이커 (Gemini / Custom Search 등 외부 API 호출 보호용)
+	implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
 }
 
 clean {
