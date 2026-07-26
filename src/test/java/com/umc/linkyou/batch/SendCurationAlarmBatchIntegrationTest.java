@@ -53,7 +53,7 @@ class SendCurationAlarmBatchIntegrationTest {
 
     @Autowired private JobLauncher jobLauncher;
     @Autowired private JobRepository jobRepository;
-    @Autowired @Qualifier("generateMonthlyCurationJob") private Job generateMonthlyCurationJob;
+    @Autowired @Qualifier("sendCurationAlarmJob") private Job sendCurationAlarmJob;
 
     @Autowired private UserRepository userRepository;
     @Autowired private CurationRepository curationRepository;
@@ -74,7 +74,7 @@ class SendCurationAlarmBatchIntegrationTest {
         jobLauncherTestUtils = new JobLauncherTestUtils();
         jobLauncherTestUtils.setJobLauncher(jobLauncher);
         jobLauncherTestUtils.setJobRepository(jobRepository);
-        jobLauncherTestUtils.setJob(generateMonthlyCurationJob);
+        jobLauncherTestUtils.setJob(sendCurationAlarmJob);
 
         JobRepositoryTestUtils jobRepositoryTestUtils = new JobRepositoryTestUtils(jobRepository);
         jobRepositoryTestUtils.removeJobExecutions();
