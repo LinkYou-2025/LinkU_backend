@@ -19,19 +19,22 @@ public class BatchScheduler {
     private final Job deleteOldAlarmJob;
     private final Job deleteExpiredFcmTokenJob;
     private final Job generateMonthlyCurationJob;
+    private final Job sendCurationAlarmJob;
 
     public BatchScheduler(
             JobLauncher jobLauncher,
             @Qualifier("deleteInactiveUserJob") Job deleteInactiveUserJob,
             @Qualifier("deleteOldAlarmJob") Job deleteOldAlarmJob,
             @Qualifier("deleteExpiredFcmTokenJob") Job deleteExpiredFcmTokenJob,
-            @Qualifier("generateMonthlyCurationJob") Job generateMonthlyCurationJob
+            @Qualifier("generateMonthlyCurationJob") Job generateMonthlyCurationJob,
+            @Qualifier("sendCurationAlarmJob") Job sendCurationAlarmJob
     ) {
         this.jobLauncher = jobLauncher;
         this.deleteInactiveUserJob = deleteInactiveUserJob;
         this.deleteOldAlarmJob = deleteOldAlarmJob;
         this.deleteExpiredFcmTokenJob = deleteExpiredFcmTokenJob;
         this.generateMonthlyCurationJob = generateMonthlyCurationJob;
+        this.sendCurationAlarmJob = sendCurationAlarmJob;
     }
 
     // 매일 새벽 3시 - 비활성 유저 삭제
@@ -60,6 +63,13 @@ public class BatchScheduler {
     public void runGenerateMonthlyCurationJob() throws Exception {
         log.info("배치 실행 시작: 월간 큐레이션 생성");
         jobLauncher.run(generateMonthlyCurationJob, buildJobParameters());
+    }
+
+    // 매월 1일 오전 8시 - 큐레이션 알림 발송
+    @Scheduled(cron = "0 0 8 1 * *", zone = "Asia/Seoul")
+    public void runSendCurationAlarmJob() throws Exception {
+        log.info("배치 실행 시작: 큐레이션 알림 발송");
+        jobLauncher.run(sendCurationAlarmJob, buildJobParameters());
     }
 
     private JobParameters buildJobParameters() {
