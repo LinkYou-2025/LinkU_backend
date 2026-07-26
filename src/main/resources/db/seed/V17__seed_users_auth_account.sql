@@ -11,5 +11,8 @@
 -- (101 seed_lang_learner, 102 seed_studymethod, 104~113 등 V15 참고).
 
 INSERT INTO auth_accounts (email, external_id, provider, user_id, created_at, updated_at)
-VALUES ('seed103@test.com', 'seed103@test.com', 'GENERAL', 103, now(), now())
-ON CONFLICT ON CONSTRAINT uq_auth_accounts_provider_external DO NOTHING;
+SELECT 'seed103@test.com', 'seed103@test.com', 'GENERAL', 103, now(), now()
+WHERE NOT EXISTS (
+    SELECT 1 FROM auth_accounts WHERE provider = 'GENERAL' AND external_id = 'seed103@test.com'
+)
+AND EXISTS (SELECT 1 FROM users WHERE user_id = 103);
