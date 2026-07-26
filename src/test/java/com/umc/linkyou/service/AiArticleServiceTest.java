@@ -328,6 +328,9 @@ class AiArticleServiceTest {
 
                 verify(aiArticleAnalyzer, never()).analyzeByUrl(any());
                 verify(aiArticleRepository, never()).save(any());
+                // 요약 생성을 직접 요청한 게 아니라 이미 있는 요약을 조회(showAiArticle)한 경우에도
+                // 본인이 실제로 확인한 것이므로 aiExist는 true로 표시되어야 한다.
+                assertTrue(usersLinku.getAiExist());
             }
 
             @Test
@@ -353,6 +356,82 @@ class AiArticleServiceTest {
 
                 verify(aiArticleAnalyzer).analyzeByUrl(any());
                 assertEquals(SUMMARY, articleWithNullSummary.getSummary());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("showAiArticle() - AI 요약 조회")
+    class ShowAiArticle {
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("다른 유저가 먼저 만들어둔 요약이라도 본인이 조회하면 본인 소유 UsersLinku의 aiExist가 true로 표시된다")
+            void 다른_유저가_만든_요약이라도_본인이_조회하면_aiExist가_true로_표시된다() {
+                Linku linku = LinkuFixture.linku(null);
+                Users user = LinkuFixture.user();
+                // 저장 시점에는 본인이 요청/조회한 적이 없어 aiExist=false였던 상태 (다른 유저가 먼저 요약함)
+                UsersLinku usersLinku = buildUsersLinku(linku, user);
+                AiArticle existingArticle = LinkuFixture.aiArticle(linku, SUMMARY);
+
+                given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
+                given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.of(existingArticle));
+                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of(usersLinku));
+
+                assertFalse(usersLinku.getAiExist());
+
+                aiArticleService.showAiArticle(LINKU_ID, USER_ID);
+
+                assertTrue(usersLinku.getAiExist());
+            }
+
+            @Test
+            @DisplayName("동일 (user, linku)로 저장된 UsersLinku가 여러 건이면 조회 시 전부 aiExist가 true로 표시된다")
+            void 여러건이면_조회시_전부_aiExist가_true로_표시된다() {
+                Linku linku = LinkuFixture.linku(null);
+                Users user = LinkuFixture.user();
+                UsersLinku older = buildUsersLinku(linku, user);
+                org.springframework.test.util.ReflectionTestUtils.setField(
+                        older, "createdAt", java.time.LocalDateTime.now().minusDays(1));
+                UsersLinku newer = buildUsersLinku(linku, user);
+                org.springframework.test.util.ReflectionTestUtils.setField(
+                        newer, "createdAt", java.time.LocalDateTime.now());
+                AiArticle existingArticle = LinkuFixture.aiArticle(linku, SUMMARY);
+
+                given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
+                given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.of(existingArticle));
+                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of(older, newer));
+
+                aiArticleService.showAiArticle(LINKU_ID, USER_ID);
+
+                assertTrue(older.getAiExist());
+                assertTrue(newer.getAiExist());
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+
+            @Test
+            @DisplayName("요청 유저가 이 linku를 저장한 적이 없으면 예외가 발생한다")
+            void 소유권_없으면_예외가_발생한다() {
+                Linku linku = LinkuFixture.linku(null);
+                Users user = LinkuFixture.user();
+                AiArticle existingArticle = LinkuFixture.aiArticle(linku, SUMMARY);
+
+                given(linkuRepository.findById(LINKU_ID)).willReturn(Optional.of(linku));
+                given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.of(existingArticle));
+                given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, LINKU_ID)).willReturn(List.of());
+
+                assertThrows(GeneralException.class,
+                        () -> aiArticleService.showAiArticle(LINKU_ID, USER_ID));
             }
         }
     }

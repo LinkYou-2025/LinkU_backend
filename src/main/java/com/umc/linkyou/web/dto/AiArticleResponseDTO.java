@@ -1,16 +1,23 @@
 package com.umc.linkyou.web.dto;
 
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
 public class AiArticleResponseDTO {
-    public record AiArticleResultDTO(
-            Long id,
-            Long linkuId,
-            Long emotionId,
-            String emotionName,
-            String categoryName,
-            String summary,
-            String imgUrl,
-            String memo,
-            String tags,
-            String title
-    ) {}
+    @Getter
+    @Setter
+    @Builder
+    public static class AiArticleResultDTO {
+        private Long id;
+        private Long linkuId;
+        private Long emotionId;
+        private String emotionName;
+        private String categoryName;
+        private String summary;
+        private String imgUrl;
+        private String memo;
+        private String tags;
+        private String title;
+    }
 }

@@ -385,6 +385,9 @@ public class UserService {
         // purposes를 보낸 경우에만 전체 교체 (미포함 시 기존 목적 유지)
         if (request.getPurposes() != null) {
             usersPurposeRepository.deleteAllByUser(user);
+            // delete를 즉시 flush하지 않으면 insert가 flush 순서상 delete보다 먼저 나가
+            // 겹치는 값이 있을 때 uk_users_purposes_user_purpose 유니크 제약 위반(409)이 발생함
+            usersPurposeRepository.flush();
             usersPurposeRepository.saveAll(
                     UserConverter.toUsersPurposes(user, resolvePurposes(request.getPurposes())));
         }
@@ -392,6 +395,8 @@ public class UserService {
         // interests를 보낸 경우에만 전체 교체 (미포함 시 기존 관심사 유지)
         if (request.getInterests() != null) {
             usersInterestRepository.deleteAllByUser(user);
+            // 위와 동일한 이유로 flush 필요 (uk_users_interests_user_interest 위반 방지)
+            usersInterestRepository.flush();
             usersInterestRepository.saveAll(
                     UserConverter.toUsersInterests(user, resolveInterests(request.getInterests())));
         }

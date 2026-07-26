@@ -16,28 +16,34 @@ public class AiArticleConverter {
                 .build();
     }
 
-    // tags/title은 지연 로딩 컬렉션(linku.getLinkuKeywords())과 usersLinku 우선순위 결정이 필요해
-    // 트랜잭션을 쥔 서비스 레이어에서 계산해 넘겨받는다 (LinkuService/LinkuCreateService/FolderServiceImpl과
-    // 동일한 패턴). 컨버터는 순수 조립만 담당한다.
+    // tags는 지연 로딩 컬렉션(linku.getLinkuKeywords())을 순회해야 해서 트랜잭션을 쥔 서비스
+    // 레이어에서 계산해 넘겨받는다 (LinkuService/LinkuCreateService/FolderServiceImpl과 동일한 패턴).
+    // title/imgUrl은 단순 필드 우선순위 결정(usersLinku 우선, 없으면 linku)이라 지연 로딩과 무관하므로
+    // LinkuConverter와 동일하게 컨버터가 직접 계산한다.
     public static AiArticleResponseDTO.AiArticleResultDTO toDto(
             AiArticle entity,
             Linku linku,
             UsersLinku usersLinku,
-            String tags,
-            String title
+            String tags
     ) {
         Emotion emotion = usersLinku != null ? usersLinku.getEmotion() : null;
-        return new AiArticleResponseDTO.AiArticleResultDTO(
-                entity.getId(),
-                linku.getLinkuId(),
-                emotion != null ? emotion.getEmotionId() : null,
-                emotion != null ? emotion.getName() : null,
-                linku.getCategory() != null ? linku.getCategory().getCategoryName() : null,
-                entity.getSummary(),
-                linku.getImgUrl(),
-                usersLinku != null ? usersLinku.getMemo() : null,
-                tags,
-                title
-        );
+        String title = (usersLinku != null && usersLinku.getTitle() != null)
+                ? usersLinku.getTitle()
+                : linku.getTitle();
+        String imgUrl = (usersLinku != null && usersLinku.getImageUrl() != null)
+                ? usersLinku.getImageUrl()
+                : linku.getImgUrl();
+        return AiArticleResponseDTO.AiArticleResultDTO.builder()
+                .id(entity.getId())
+                .linkuId(linku.getLinkuId())
+                .emotionId(emotion != null ? emotion.getEmotionId() : null)
+                .emotionName(emotion != null ? emotion.getName() : null)
+                .categoryName(linku.getCategory() != null ? linku.getCategory().getCategoryName() : null)
+                .summary(entity.getSummary())
+                .imgUrl(imgUrl)
+                .memo(usersLinku != null ? usersLinku.getMemo() : null)
+                .tags(tags)
+                .title(title)
+                .build();
     }
 }
