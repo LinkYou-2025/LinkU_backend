@@ -9,8 +9,7 @@ import org.springframework.stereotype.Component;
 /**
  * 월간 큐레이션 생성 writer
  *
- * <p>실제 큐레이션 저장, top log 계산, 커밋 이후 외부 추천 실행은
- * 배치 전용 서비스로 위임한다.
+ * 실제 로직은 배치 전용 서비스로 위임함
  */
 @Component
 @RequiredArgsConstructor

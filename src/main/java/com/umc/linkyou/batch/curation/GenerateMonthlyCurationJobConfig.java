@@ -13,7 +13,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 /**
  * 매월 1일마다 유저별 큐레이션을 생성하는 배치 작업 설정
- * 생성된 큐레이션에 대한 알림 발송은 발송 시각이 달라(오전 8시) {@link SendCurationAlarmJobConfig}의 별도 Job으로 분리되어 있다.
+ * 생성된 큐레이션에 대한 알림 발송은 발송 시각이 달라(오전 8시) {@link SendCurationAlarmJobConfig}의 별도 Job으로 분리되어 있음
  */
 @Configuration
 @RequiredArgsConstructor

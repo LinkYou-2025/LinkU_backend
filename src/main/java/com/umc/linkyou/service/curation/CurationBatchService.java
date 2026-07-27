@@ -22,8 +22,7 @@ import java.util.Optional;
  * 월간 큐레이션 배치 전용 서비스
  *
  * <p>reader가 읽은 사용자를 배치 생성 대상으로 선별하고, writer가 넘긴 아이템 목록을
- * 실제 큐레이션 저장과 후처리(멘트/추천 생성)로 연결한다.
- * {@link CurationServiceImpl#generateCurationForUser}와 동일한 생성 절차를 따른다.
+ * 실제 큐레이션 저장과 후처리(멘트/추천 생성)로 연결함
  */
 @Service
 @RequiredArgsConstructor

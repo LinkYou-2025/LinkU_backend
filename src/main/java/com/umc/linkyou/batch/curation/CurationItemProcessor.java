@@ -3,6 +3,7 @@ package com.umc.linkyou.batch.curation;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.service.curation.CurationBatchService;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.stereotype.Component;
 
@@ -19,7 +20,7 @@ public class CurationItemProcessor implements ItemProcessor<Users, MonthlyCurati
     private final CurationBatchService curationBatchService;
 
     @Override
-    public MonthlyCurationBatchItem process(Users user) {
+    public MonthlyCurationBatchItem process(@NonNull Users user) {
         return curationBatchService.toBatchItem(user).orElse(null);
     }
 }

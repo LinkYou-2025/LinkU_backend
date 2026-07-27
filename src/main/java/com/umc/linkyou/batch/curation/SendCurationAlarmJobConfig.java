@@ -13,8 +13,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 /**
  * 지난달 생성된 큐레이션에 대한 알림을 발송하는 배치 작업 설정
  *
- * <p>큐레이션 생성(generateMonthlyCurationJob)과는 발송 시각이 달라(매월 1일 오전 8시) 별도 Job으로 분리했다.
- * 발송 대상은 Alarm 존재 여부로 판단하므로, 이 Job만 재실행돼도 이미 보낸 유저는 다시 대상이 되지 않는다.
+ * <p>큐레이션 생성(generateMonthlyCurationJob)과는 발송 시각이 달라(매월 1일 오전 8시) 별도 Job으로 분리함
+ * 발송 대상은 Alarm 존재 여부로 판단하므로, 이 Job만 재실행돼도 이미 보낸 유저는 다시 대상이 되지 않음
  */
 @Configuration
 @RequiredArgsConstructor
