@@ -311,6 +311,42 @@ public class HomeRecommendScoreService {
                 ftsScore, trgmScore, TRGM_FALLBACK_DAMPENING);
     }
 
+    // =====================================================================
+    // Novelty(최근에 안 본 것) 버킷 — QueryDSL 표현식
+    // =====================================================================
+
+    /**
+     * "최근에 안 본" 후보 조건. lastViewedAt이 있으면 마지막으로 본 지 recencyThresholdDays 넘었는지,
+     * null(한 번도 안 봄)이면 저장한 지(createdAt) recencyThresholdDays 넘었는지를 같은 기준으로 본다
+     * — COALESCE(lastViewedAt, createdAt) < now - recencyThresholdDays. 방금 저장해서 아직 볼 기회가
+     * 없었던 링크가 novelty로 잡히는 것을 막기 위해 createdAt 기준을 함께 쓴다
+     * (service/common/README.md "novelty quota" 참고).
+     */
+    public BooleanExpression noveltyCondition(QUsersLinku usersLinku, LocalDateTime now, int recencyThresholdDays) {
+        LocalDateTime threshold = now.minusDays(recencyThresholdDays);
+        return Expressions.booleanTemplate(
+                "COALESCE({0}, {1}) < {2}",
+                usersLinku.lastViewedAt, usersLinku.createdAt, threshold);
+    }
+
+    /** normal 버킷(가중합 랭킹)에서 novelty 후보를 제외하기 위한 반대 조건. 두 버킷을 서로소로 유지한다. */
+    public BooleanExpression notNoveltyCondition(QUsersLinku usersLinku, LocalDateTime now, int recencyThresholdDays) {
+        return noveltyCondition(usersLinku, now, recencyThresholdDays).not();
+    }
+
+    /**
+     * novelty 버킷 전용 정렬 스코어. 7축 가중합이 아니라 EmotionMatch/SituationMatch 두 축만 재사용해서
+     * "유저가 지금 고른 감정/상황과 얼마나 맞는가"만으로 정렬한다. emotionMatchExpression/
+     * situationMatchExpression을 그대로 재사용하므로 AI 추론 신뢰도 감쇠(aiEmotionDiscount/
+     * aiSituationDiscount)도 동일하게 적용된다.
+     */
+    public NumberExpression<Double> noveltyContextScoreExpression(
+            QUsersLinku usersLinku, Long targetEmotionId, Long targetSituationId) {
+        RecommendScoreProperties.Weight w = properties.weight();
+        return emotionMatchExpression(usersLinku, targetEmotionId).multiply(w.emotion())
+                .add(situationMatchExpression(usersLinku, targetSituationId).multiply(w.situation()));
+    }
+
     /**
      * 후보 링크의 linku_keywords와 이 유저의 UserProfileKeyword(상위 키워드 빈도)를 스칼라 서브쿼리로
      * 겹쳐서 weight 합을 구하고, keywordWeightCap으로 정규화한다. JOIN + GROUP BY로 하면 메인 쿼리의

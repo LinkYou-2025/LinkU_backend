@@ -92,6 +92,58 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
     public List<UsersLinku> findHomeRecommendCandidates(
             Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
             LocalDateTime now, String profileTsqueryText, String profileText, int offset, int limit) {
+        return queryRankedCandidates(userId, selectedEmotionId, selectedSituationId, mappedCategoryIds,
+                now, profileTsqueryText, profileText, null, offset, limit);
+    }
+
+    @Override
+    public List<UsersLinku> findNormalRecommendCandidates(
+            Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
+            LocalDateTime now, String profileTsqueryText, String profileText,
+            int recencyThresholdDays, int offset, int limit) {
+        QUsersLinku usersLinku = QUsersLinku.usersLinku;
+        BooleanExpression excludeNovelty =
+                homeRecommendScoreService.notNoveltyCondition(usersLinku, now, recencyThresholdDays);
+
+        return queryRankedCandidates(userId, selectedEmotionId, selectedSituationId, mappedCategoryIds,
+                now, profileTsqueryText, profileText, excludeNovelty, offset, limit);
+    }
+
+    @Override
+    public List<UsersLinku> findNoveltyRecommendCandidates(
+            Long userId, Long selectedEmotionId, Long selectedSituationId,
+            LocalDateTime now, int recencyThresholdDays, int offset, int limit) {
+        QUsersLinku usersLinku = QUsersLinku.usersLinku;
+        QLinku linku = QLinku.linku;
+
+        NumberExpression<Double> contextScore = homeRecommendScoreService
+                .noveltyContextScoreExpression(usersLinku, selectedEmotionId, selectedSituationId);
+        BooleanExpression noveltyCondition =
+                homeRecommendScoreService.noveltyCondition(usersLinku, now, recencyThresholdDays);
+
+        return queryFactory
+                .selectFrom(usersLinku)
+                .join(usersLinku.linku, linku).fetchJoin()
+                .join(usersLinku.emotion).fetchJoin()
+                .join(linku.category).fetchJoin()
+                .join(linku.domain).fetchJoin()
+                .leftJoin(usersLinku.situation)
+                .where(usersLinku.user.id.eq(userId), noveltyCondition)
+                .orderBy(contextScore.desc(), usersLinku.createdAt.desc())
+                .offset(offset)
+                .limit(limit)
+                .fetch();
+    }
+
+    /**
+     * findHomeRecommendCandidates/findNormalRecommendCandidates가 공유하는 7축 가중합 쿼리.
+     * extraCondition이 null이 아니면 WHERE 절에 추가로 걸어서(예: novelty 후보 제외) 두 메서드가
+     * fetch join 구조/정렬 기준을 중복 없이 그대로 재사용하게 한다.
+     */
+    private List<UsersLinku> queryRankedCandidates(
+            Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
+            LocalDateTime now, String profileTsqueryText, String profileText,
+            BooleanExpression extraCondition, int offset, int limit) {
         QUsersLinku usersLinku = QUsersLinku.usersLinku;
         QLinku linku = QLinku.linku;
         QAiArticle aiArticle = QAiArticle.aiArticle;
@@ -100,7 +152,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 usersLinku, linku, aiArticle, userId, selectedEmotionId, selectedSituationId, mappedCategoryIds,
                 now, profileTsqueryText, profileText);
 
-        return queryFactory
+        var query = queryFactory
                 .selectFrom(usersLinku)
                 // 감정/링크/카테고리/도메인을 한 번에 fetch join 해서 N+1을 없앤다.
                 .join(usersLinku.linku, linku).fetchJoin()
@@ -114,7 +166,13 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 // summary는 없는 링크도 있어서 LEFT JOIN. fetchJoin은 안 걸었다 — TextMatch 계산에만 쓰이고
                 // Java 쪽에서 linku.getAiArticle()을 다시 꺼내 쓰지 않는다.
                 .leftJoin(linku.aiArticle, aiArticle)
-                .where(usersLinku.user.id.eq(userId))
+                .where(usersLinku.user.id.eq(userId));
+
+        if (extraCondition != null) {
+            query = query.where(extraCondition);
+        }
+
+        return query
                 // 점수/정렬/페이징을 전부 DB에서 처리 (애플리케이션 메모리로 전체 로드하지 않음)
                 .orderBy(totalScore.desc(), usersLinku.createdAt.desc())
                 .offset(offset)

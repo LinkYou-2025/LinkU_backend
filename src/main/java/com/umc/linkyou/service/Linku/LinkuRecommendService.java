@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.config.properties.RecommendScoreProperties;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
@@ -25,10 +26,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -56,6 +60,7 @@ public class LinkuRecommendService {
     private final LinkuFolderRepository linkuFolderRepository;
     private final SituationCategoryService situationCategoryService;
     private final UserContentProfileRepository userContentProfileRepository;
+    private final RecommendScoreProperties recommendScoreProperties;
 
     @Transactional(readOnly = true)
     public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
@@ -72,10 +77,14 @@ public class LinkuRecommendService {
         String profileTsqueryText = contentProfile.map(UserContentProfile::getProfileTsqueryText).orElse(null);
         String profileText = contentProfile.map(UserContentProfile::getProfileText).orElse(null);
 
-        // 3. DB에서 점수 계산(6개 feature 가중합) + 정렬 + 페이징까지 마친 후보 조회
-        List<UsersLinku> candidates = usersLinkuRepository.findHomeRecommendCandidates(
+        // 3. novelty(최근에 안 본 것) quota만큼 먼저 뽑고, 나머지를 기존 7축 가중합(normal)으로 채운다.
+        //    quota는 목표치일 뿐이라 novelty 후보가 모자라면 normal이 초과해서 채운다(borrow).
+        //    주의: 아직 cursor 페이징으로 전환하지 않아서 page*quotaCount/page*normalCount로 오프셋을
+        //    근사한다 — novelty 풀이 소진되기 전까지는 정확하지만, 소진 이후 페이지에서는 중복/누락이
+        //    생길 수 있다(service/common/README.md "novelty quota" 참고, 후속 트랙: 커서 페이징 전환).
+        List<UsersLinku> candidates = fetchNoveltyAndNormalCandidates(
                 userId, selectedEmotion.getEmotionId(), situationId, mappedCategories,
-                LocalDateTime.now(), profileTsqueryText, profileText, page * size, size);
+                profileTsqueryText, profileText, page, size);
 
         if (candidates.isEmpty()) {
             return ApiResponse.onSuccess(Collections.emptyList());
@@ -88,6 +97,44 @@ public class LinkuRecommendService {
         linkuViewService.recordRecommendKeywordCount(userId, emotionId, situationId);
 
         return ApiResponse.onSuccess(result);
+    }
+
+    // 3. novelty(situation/emotion만으로 정렬) quota + normal(7축 가중합) 조회 결과를 합친다.
+    private List<UsersLinku> fetchNoveltyAndNormalCandidates(
+            Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
+            String profileTsqueryText, String profileText, int page, int size) {
+
+        RecommendScoreProperties.Novelty noveltyProps = recommendScoreProperties.novelty();
+        LocalDateTime now = LocalDateTime.now();
+
+        int quotaCount = (int) Math.round(size * noveltyProps.quotaRatio());
+        quotaCount = Math.min(Math.max(quotaCount, 0), size);
+
+        List<UsersLinku> noveltyCandidates = quotaCount == 0
+                ? Collections.emptyList()
+                : usersLinkuRepository.findNoveltyRecommendCandidates(
+                        userId, selectedEmotionId, selectedSituationId,
+                        now, noveltyProps.recencyThresholdDays(), page * quotaCount, quotaCount);
+
+        int normalTarget = size - noveltyCandidates.size();
+        List<UsersLinku> normalCandidates = normalTarget == 0
+                ? Collections.emptyList()
+                : usersLinkuRepository.findNormalRecommendCandidates(
+                        userId, selectedEmotionId, selectedSituationId, mappedCategoryIds,
+                        now, profileTsqueryText, profileText,
+                        noveltyProps.recencyThresholdDays(), page * (size - quotaCount), normalTarget);
+
+        // findNormalRecommendCandidates가 이미 novelty 조건을 제외하므로(서로소) 중복이 생길 수 없지만,
+        // 안전하게 userLinkuId 기준으로 한 번 더 방어한다.
+        Set<Long> seen = new LinkedHashSet<>();
+        List<UsersLinku> merged = new ArrayList<>(noveltyCandidates.size() + normalCandidates.size());
+        for (UsersLinku candidate : noveltyCandidates) {
+            if (seen.add(candidate.getUserLinkuId())) merged.add(candidate);
+        }
+        for (UsersLinku candidate : normalCandidates) {
+            if (seen.add(candidate.getUserLinkuId())) merged.add(candidate);
+        }
+        return merged;
     }
 
     // 1. 필수 엔티티 조회 및 입력 검증 (링크 개수는 count 쿼리로만 확인, 전체 로드하지 않음)

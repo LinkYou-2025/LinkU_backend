@@ -2,6 +2,7 @@ package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.config.properties.RecommendScoreProperties;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
@@ -45,6 +46,7 @@ class LinkuRecommendServiceTest {
     @Mock private LinkuFolderRepository linkuFolderRepository;
     @Mock private SituationCategoryService situationCategoryService;
     @Mock private UserContentProfileRepository userContentProfileRepository;
+    @Mock private RecommendScoreProperties recommendScoreProperties;
 
     @Nested
     @DisplayName("recommendLinku")
