@@ -70,11 +70,12 @@ public class CustomSearchImageClient {
     }
 
     private boolean isImageUrl(String url) {
-        String lower = url.toLowerCase();
-        return lower.endsWith(".jpg") ||
-                lower.endsWith(".jpeg") ||
-                lower.endsWith(".png") ||
-                lower.endsWith(".gif") ||
-                lower.endsWith(".webp");
+        //CDN 등에서 내려오는 이미지는 "photo.jpg?w=800"처럼 쿼리스트링이 붙는 경우가 많아 확장자 검사 전에 쿼리스트링 분리
+        String path = url.split("\\?", 2)[0].toLowerCase();
+        return path.endsWith(".jpg") ||
+                path.endsWith(".jpeg") ||
+                path.endsWith(".png") ||
+                path.endsWith(".gif") ||
+                path.endsWith(".webp");
     }
 }
