@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.user.UserSuccessStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
+import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.service.users.TermsAgreementService;
@@ -14,6 +15,7 @@ import com.umc.linkyou.web.api.UserApi;
 import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -42,8 +44,9 @@ public class UserController implements UserApi {
     }
 
     @Override
-    public ApiResponse<UserResponseDTO.withDrawalResultDTO> withdrawMe(@CurrentUser CustomUserDetails userDetails, UserRequestDTO.DeleteReasonDTO deleteReasonDTO) {
-        Users user = userWithdrawService.withdrawUser(userDetails.getUserId(), deleteReasonDTO);
+    public ApiResponse<UserResponseDTO.withDrawalResultDTO> withdrawMe(@CurrentUser CustomUserDetails userDetails, UserRequestDTO.DeleteReasonDTO deleteReasonDTO, HttpServletRequest request) {
+        String accessToken = JwtTokenProvider.resolveToken(request);
+        Users user = userWithdrawService.withdrawUser(userDetails.getUserId(), deleteReasonDTO, accessToken);
         return ApiResponse.onSuccess(UserSuccessStatus.USER_WITHDRAW_OK, UserConverter.toWithDrawalResultDTO(user));
     }
 

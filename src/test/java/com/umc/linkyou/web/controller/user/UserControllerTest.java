@@ -7,10 +7,12 @@ import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Gender;
+import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
+import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
 import com.umc.linkyou.service.email.EmailVerificationService;
@@ -29,6 +31,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -38,7 +42,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -265,6 +271,120 @@ class UserControllerTest {
                                 .content(objectMapper.writeValueAsString(request))
                                 .with(csrf()))
                         .andExpect(status().isUnauthorized());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("회원 탈퇴 엔드포인트")
+    class WithdrawMe {
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("성공 - Authorization 헤더의 액세스 토큰을 추출해 서비스로 전달하고, 탈퇴 즉시 로그아웃 처리된다")
+            @WithCustomUser(userId = 4L)
+            void withdraw_me_success_blacklists_current_access_token() throws Exception {
+                UserRequestDTO.DeleteReasonDTO request = new UserRequestDTO.DeleteReasonDTO();
+                request.setReason("더 이상 사용하지 않음");
+
+                Users mockUser = Users.builder()
+                        .id(4L)
+                        .nickName("탈퇴할유저")
+                        .status(UserStatus.INACTIVE)
+                        .build();
+                ReflectionTestUtils.setField(mockUser, "createdAt", LocalDateTime.now());
+
+                String accessToken = "mock-access-token";
+
+                // Authorization 헤더가 존재하면 JwtAuthenticationFilter가 SecurityContext를
+                // jwtTokenProvider.getAuthentication(token) 결과로 덮어쓴다.
+                // 이 값을 스텁하지 않으면 Mockito 기본값(null)이 반환되어
+                // @WithCustomUser가 심어둔 인증 정보가 지워지고 401(AUTH4001)이 발생한다.
+                Users authUser = Users.builder()
+                        .nickName("탈퇴할유저")
+                        .role(Role.USER)
+                        .build();
+                ReflectionTestUtils.setField(authUser, "id", 4L);
+                CustomUserDetails principal = new CustomUserDetails(authUser, "kakao");
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                        principal, null, principal.getAuthorities());
+                given(jwtTokenProvider.getAuthentication(accessToken)).willReturn(authentication);
+
+                given(userWithdrawService.withdrawUser(eq(4L), any(), eq(accessToken)))
+                        .willReturn(mockUser);
+
+                mockMvc.perform(post("/api/v1/users/inactive")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                                .with(csrf()))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.code").value("USERS2003"))
+                        .andExpect(jsonPath("$.result.userId").value(4));
+
+                // 컨트롤러가 헤더에서 추출한 액세스 토큰을 그대로 서비스에 넘겨
+                // withdrawUser 내부에서 즉시 블랙리스트 등록되도록 하는지 검증
+                verify(userWithdrawService).withdrawUser(eq(4L), any(), eq(accessToken));
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+
+            @Test
+            @DisplayName("실패 - 비인증 사용자가 요청 시 401 에러를 반환한다")
+            void withdraw_me_unauthorized() throws Exception {
+                UserRequestDTO.DeleteReasonDTO request = new UserRequestDTO.DeleteReasonDTO();
+                request.setReason("사유");
+
+                mockMvc.perform(post("/api/v1/users/inactive")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                                .with(csrf()))
+                        .andExpect(status().isUnauthorized());
+            }
+
+            @Test
+            @DisplayName("실패 - 존재하지 않는 유저인 경우 예외를 반환한다")
+            @WithCustomUser(userId = 98L)
+            void withdraw_me_user_not_found() throws Exception {
+                UserRequestDTO.DeleteReasonDTO request = new UserRequestDTO.DeleteReasonDTO();
+                request.setReason("사유");
+
+                String accessToken = "some-token";
+
+                // 성공 케이스와 동일한 이유: Authorization 헤더가 있으면 JwtAuthenticationFilter가
+                // jwtTokenProvider.getAuthentication(token)의 (스텁하지 않으면 null인) 반환값으로
+                // SecurityContext를 덮어써 @WithCustomUser 인증이 지워진다. 이를 막아야
+                // 컨트롤러까지 요청이 도달해 userWithdrawService.withdrawUser의
+                // USER_NOT_FOUND 예외 경로가 실제로 실행된다.
+                Users authUser = Users.builder()
+                        .nickName("존재안함")
+                        .role(Role.USER)
+                        .build();
+                ReflectionTestUtils.setField(authUser, "id", 98L);
+                CustomUserDetails principal = new CustomUserDetails(authUser, "kakao");
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                        principal, null, principal.getAuthorities());
+                given(jwtTokenProvider.getAuthentication(accessToken)).willReturn(authentication);
+
+                given(userWithdrawService.withdrawUser(eq(98L), any(), eq(accessToken)))
+                        .willThrow(new UserHandler(UserErrorStatus._USER_NOT_FOUND));
+
+                mockMvc.perform(post("/api/v1/users/inactive")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                                .with(csrf()))
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value("USERS4041"));
+
+                verify(userWithdrawService).withdrawUser(eq(98L), any(), eq(accessToken));
             }
         }
     }
