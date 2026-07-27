@@ -323,6 +323,7 @@ class UserControllerTest {
                                 .with(csrf()))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.code").value("USERS2003"))
                         .andExpect(jsonPath("$.result.userId").value(4));
 
                 // 컨트롤러가 헤더에서 추출한 액세스 토큰을 그대로 서비스에 넘겨
@@ -355,15 +356,35 @@ class UserControllerTest {
                 UserRequestDTO.DeleteReasonDTO request = new UserRequestDTO.DeleteReasonDTO();
                 request.setReason("사유");
 
-                given(userWithdrawService.withdrawUser(eq(98L), any(), any()))
+                String accessToken = "some-token";
+
+                // 성공 케이스와 동일한 이유: Authorization 헤더가 있으면 JwtAuthenticationFilter가
+                // jwtTokenProvider.getAuthentication(token)의 (스텁하지 않으면 null인) 반환값으로
+                // SecurityContext를 덮어써 @WithCustomUser 인증이 지워진다. 이를 막아야
+                // 컨트롤러까지 요청이 도달해 userWithdrawService.withdrawUser의
+                // USER_NOT_FOUND 예외 경로가 실제로 실행된다.
+                Users authUser = Users.builder()
+                        .nickName("존재안함")
+                        .role(Role.USER)
+                        .build();
+                ReflectionTestUtils.setField(authUser, "id", 98L);
+                CustomUserDetails principal = new CustomUserDetails(authUser, "kakao");
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                        principal, null, principal.getAuthorities());
+                given(jwtTokenProvider.getAuthentication(accessToken)).willReturn(authentication);
+
+                given(userWithdrawService.withdrawUser(eq(98L), any(), eq(accessToken)))
                         .willThrow(new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
                 mockMvc.perform(post("/api/v1/users/inactive")
-                                .header("Authorization", "Bearer some-token")
+                                .header("Authorization", "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                                 .with(csrf()))
-                        .andExpect(jsonPath("$.isSuccess").value(false));
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value("USERS4041"));
+
+                verify(userWithdrawService).withdrawUser(eq(98L), any(), eq(accessToken));
             }
         }
     }
