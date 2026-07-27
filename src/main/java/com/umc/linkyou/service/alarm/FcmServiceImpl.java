@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -89,8 +90,11 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
         }
     }
 
-    // 유저별로 본문이 다른 개인화 알림을 청크(최대 100건) 단위로 모아 sendEach 한 번에 전송
+    // 유저별로 본문이 다른 개인화 알림을 sendEach 배치 한도(최대 500건, Spring Batch chunk 크기 100과는 별개) 단위로 묶어 전송
+    // 클래스 기본(readOnly=true) 트랜잭션을 이어받으면 토큰 조회 엔티티가 read-only로 고정돼 handleBatchResponse의
+    // activate/deactivate가 flush되지 않으므로, 트랜잭션을 걸치지 않고 각 단계에서 필요한 만큼만 별도로 연다
     @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void sendBulkPersonalized(List<FcmBulkTarget> targets) {
         if (firebaseMessaging == null || targets == null || targets.isEmpty()) return;
 
