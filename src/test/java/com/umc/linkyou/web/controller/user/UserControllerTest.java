@@ -7,10 +7,12 @@ import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Gender;
+import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
+import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
 import com.umc.linkyou.service.email.EmailVerificationService;
@@ -29,6 +31,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -294,6 +298,20 @@ class UserControllerTest {
                 ReflectionTestUtils.setField(mockUser, "createdAt", LocalDateTime.now());
 
                 String accessToken = "mock-access-token";
+
+                // Authorization 헤더가 존재하면 JwtAuthenticationFilter가 SecurityContext를
+                // jwtTokenProvider.getAuthentication(token) 결과로 덮어쓴다.
+                // 이 값을 스텁하지 않으면 Mockito 기본값(null)이 반환되어
+                // @WithCustomUser가 심어둔 인증 정보가 지워지고 401(AUTH4001)이 발생한다.
+                Users authUser = Users.builder()
+                        .nickName("탈퇴할유저")
+                        .role(Role.USER)
+                        .build();
+                ReflectionTestUtils.setField(authUser, "id", 4L);
+                CustomUserDetails principal = new CustomUserDetails(authUser, "kakao");
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                        principal, null, principal.getAuthorities());
+                given(jwtTokenProvider.getAuthentication(accessToken)).willReturn(authentication);
 
                 given(userWithdrawService.withdrawUser(eq(4L), any(), eq(accessToken)))
                         .willReturn(mockUser);
