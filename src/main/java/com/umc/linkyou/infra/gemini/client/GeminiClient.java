@@ -35,10 +35,11 @@ public class GeminiClient implements AiClient {
 
     private final ObjectProvider<Client> clientProvider;
 
-    // 링크 생성/아티클 요약(completion) 전용 - 사용자 요청 경로라 큐레이션 배치 폭주에 영향받지 않도록 분리
+    // 링크 생성/아티클 요약 전용 - 사용자 요청 경로라 큐레이션 배치 폭주에 영향받지 않도록 분리
     private final ExecutorService geminiLinkExecutor = Executors.newFixedThreadPool(6);
     // 큐레이션 멘트/외부추천(completionCreative, completionWithSearch) 전용
-    // mentLimiter(3) + externalRecoLimiter(3) = 최대 동시 호출 6개 기준으로 크기를 맞춤
+
+    // 멘트추천, 외부추천으로 최대 동시 호출 6개 기준으로 크기를 맞춤
     private final ExecutorService geminiCurationExecutor = Executors.newFixedThreadPool(6);
     private final AtomicLong callSeq = new AtomicLong();
 
@@ -75,12 +76,8 @@ public class GeminiClient implements AiClient {
     }
 
     /**
-     * completion/completionCreative/completionWithSearch 공통 fallback
-     * 서킷 OPEN이거나 generate()가 실패했을 때 Resilience4j가 원본 메서드 대신 이 메서드
-     * @param systemInstruction 원본 호출의 시스템 지시문 (시그니처 일치 목적으로만 받고 실제 로직에서는 쓰지 않음)
-     * @param userPrompt 원본 호출의 사용자 프롬프트 (시그니처 일치 목적으로만 받고 실제 로직에서는 쓰지 않음)
-     * @param t 서킷 OPEN이면 {@link CallNotPermittedException}, 그 외에는 generate()가 던진 예외
-     * @return 반환값은 없고 항상 상황에 맞는 {@link GeneralException}을 던짐
+     * ai client 공통 fallback
+     * 서킷 OPEN이거나 generate()가 실패했을 때 Resilience4j가 원본 메서드 대신 이 메서드를 사용
      */
     private String fallback(String systemInstruction, String userPrompt, Throwable t) {
         if (t instanceof CallNotPermittedException) {
@@ -96,14 +93,7 @@ public class GeminiClient implements AiClient {
 
     /**
      * executor를 분리하여 동시 호출 제한, 큐 길이 제한, 타임아웃 등을 제어
-     * @param systemInstruction 시스템 지시문
-     * @param userPrompt 사용자 입력
-     * @param tool 도구 (검색 등)
-     * @param maxTokens 최대 토큰 수
-     * @param temp 온도 (0.0~1.0, 낮을수록 결정적, 높을수록 창의적)
-     * @param timeoutSeconds 타임아웃 (초)
-     * @param executor 호출 전용 스레드풀
-     * @return 생성된 텍스트
+     * 일반적으로는 이 메서드를 사용, 실패 시 fallback()이 호출됨
      */
     private String generate(
             String systemInstruction, String userPrompt, Tool tool, int maxTokens, float temp,
@@ -155,11 +145,9 @@ public class GeminiClient implements AiClient {
     }
 
     /**
-     * executor 상태 로깅. 큐가 쌓이거나 active 스레드가 poolSize에 계속 붙어 있으면
-     * 실제 API 문제가 아니라 풀 용량 부족으로 타임아웃/큐잉이 발생했다는 신호로 볼 수 있음
-     * @param callId generate() 호출마다 부여되는 일련번호 (로그 추적용)
-     * @param when 로깅 시점 구분 문자열
-     * @param executor 상태를 조회할 대상 풀 (geminiLinkExecutor 또는 geminiCurationExecutor)
+     * executor 상태 로깅
+     * - 큐가 쌓이거나 active 스레드가 poolSize에 계속 붙어 있으면 실제 API 문제가 아니라 풀 용량 부족으로 타임아웃/큐잉이 발생했다는 신호로 볼 수 있음
+     * - executor 상태를 조회할 대상 스레드 풀 설정
      */
     private void logExecutorStats(long callId, String when, ExecutorService executor) {
         if (executor instanceof ThreadPoolExecutor pool) {
