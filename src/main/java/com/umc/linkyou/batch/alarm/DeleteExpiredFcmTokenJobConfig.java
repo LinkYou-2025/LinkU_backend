@@ -16,7 +16,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.time.LocalDateTime;
 
 /**
- * FCM 토큰 중 270일 간 사용하지 않는 토큰을 즉시 삭제하는 배치 작업 설정
+ * FCM 토큰 중 30일 간 사용하지 않는 토큰을 즉시 삭제하는 배치 작업 설정
  * - Tasklet 기반으로 구현하여 간단한 삭제 작업 수행
  */
 @Configuration
@@ -44,7 +44,7 @@ public class DeleteExpiredFcmTokenJobConfig {
     @Bean
     public Tasklet deleteExpiredFcmTokenTasklet() {
         return (contribution, chunkContext) -> {
-            LocalDateTime cutoff = LocalDateTime.now().minusDays(270);
+            LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
             userFcmTokenRepository.deleteByLastUsedAtBefore(cutoff);
             return RepeatStatus.FINISHED;
         };

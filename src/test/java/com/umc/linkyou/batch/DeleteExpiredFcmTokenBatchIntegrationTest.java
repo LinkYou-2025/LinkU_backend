@@ -68,11 +68,11 @@ class DeleteExpiredFcmTokenBatchIntegrationTest {
     class DeleteCondition {
 
         @Test
-        @DisplayName("270일 초과된 FCM 토큰이 삭제되고 유효 토큰은 보존된다")
+        @DisplayName("30일 초과된 FCM 토큰이 삭제되고 유효 토큰은 보존된다")
         void 만료토큰_삭제_유효토큰_보존() throws Exception {
             // given
             Users user = saveUser("fcm-test-user");
-            UsersFcmToken expiredToken = saveFcmToken(user, "expired-token", LocalDateTime.now().minusDays(271));
+            UsersFcmToken expiredToken = saveFcmToken(user, "expired-token", LocalDateTime.now().minusDays(31));
             UsersFcmToken activeToken  = saveFcmToken(user, "active-token",  LocalDateTime.now().minusDays(10));
 
             // when
@@ -85,12 +85,12 @@ class DeleteExpiredFcmTokenBatchIntegrationTest {
         }
 
         @Test
-        @DisplayName("lastUsedAt이 270일 1초 전이면 삭제된다")
-        void lastUsedAt_270일_1초전_삭제() throws Exception {
+        @DisplayName("lastUsedAt이 30일 1초 전이면 삭제된다")
+        void lastUsedAt_30일_1초전_삭제() throws Exception {
             // given — WHERE lastUsedAt < cutoff: cutoff보다 1초 이전 → 삭제 대상
             Users user = saveUser("just-over-cutoff-user");
             UsersFcmToken expiredToken = saveFcmToken(user, "just-expired-token",
-                    LocalDateTime.now().minusDays(270).minusSeconds(1));
+                    LocalDateTime.now().minusDays(30).minusSeconds(1));
 
             // when
             JobExecution execution = jobLauncherTestUtils.launchJob(uniqueJobParameters());

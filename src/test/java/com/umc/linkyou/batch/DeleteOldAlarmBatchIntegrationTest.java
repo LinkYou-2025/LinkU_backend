@@ -73,12 +73,12 @@ class DeleteOldAlarmBatchIntegrationTest {
     class DeleteCondition {
 
         @Test
-        @DisplayName("30일 초과 알람과 연결된 사용자 알람이 함께 삭제된다")
-        void 알람_30일초과_UserAlarm_함께_삭제() throws Exception {
+        @DisplayName("7일 초과 알람과 연결된 사용자 알람이 함께 삭제된다")
+        void 알람_7일초과_UserAlarm_함께_삭제() throws Exception {
             // given
             Users user = saveUser("alarm-test-user");
-            Alarm oldAlarm    = saveAlarm(AlarmType.CURATION_UPDATED, 1L, LocalDateTime.now().minusDays(31));
-            Alarm recentAlarm = saveAlarm(AlarmType.CURATION_UPDATED, 2L, LocalDateTime.now().minusDays(10));
+            Alarm oldAlarm    = saveAlarm(AlarmType.CURATION_UPDATED, 1L, LocalDateTime.now().minusDays(8));
+            Alarm recentAlarm = saveAlarm(AlarmType.CURATION_UPDATED, 2L, LocalDateTime.now().minusDays(3));
             userAlarmRepository.save(UserAlarm.create(user, oldAlarm));
             userAlarmRepository.save(UserAlarm.create(user, recentAlarm));
 
@@ -99,11 +99,11 @@ class DeleteOldAlarmBatchIntegrationTest {
     class PreserveCondition {
 
         @Test
-        @DisplayName("30일 이내 알람은 삭제되지 않는다")
-        void 알람_30일이내_보존() throws Exception {
+        @DisplayName("7일 이내 알람은 삭제되지 않는다")
+        void 알람_7일이내_보존() throws Exception {
             // given
             Users user = saveUser("recent-alarm-user");
-            Alarm recentAlarm = saveAlarm(AlarmType.CURATION_UPDATED, 3L, LocalDateTime.now().minusDays(29));
+            Alarm recentAlarm = saveAlarm(AlarmType.CURATION_UPDATED, 3L, LocalDateTime.now().minusDays(6));
             userAlarmRepository.save(UserAlarm.create(user, recentAlarm));
 
             // when
