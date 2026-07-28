@@ -96,8 +96,8 @@ public class LinkuController implements LinkuApi {
     }
 
     @Override
-    public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(@CurrentUser CustomUserDetails userDetails, @RequestParam Long situationId, @RequestParam Long emotionId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int size) {
-        return linkuRecommendService.recommendLinku(userDetails.getUserId(), situationId, emotionId, page, size);
+    public ApiResponse<LinkuResponseDTO.LinkuRecommendCursorPageDTO> recommendLinku(@CurrentUser CustomUserDetails userDetails, @RequestParam Long situationId, @RequestParam Long emotionId, @RequestParam(required = false) String cursor, @RequestParam(defaultValue = "5") int size) {
+        return linkuRecommendService.recommendLinku(userDetails.getUserId(), situationId, emotionId, cursor, size);
     }
 
     @Override

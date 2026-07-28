@@ -186,6 +186,73 @@ EmotionMatch가 항상 0이 되어버려서, 통합 테스트로는 EmotionMatch
    성공한 유저만 큐에서 삭제한다(실패하면 다음 주기에 재시도).
 3. 신규 유저처럼 프로필이 아직 없는 경우 TextMatch/KeywordMatch는 0으로 처리한다(에러 아님).
 
+## Novelty Quota (최근에 안 본 것 우선 노출) — 구현 완료
+
+7축 가중합과는 별개로, 한 페이지를 구성할 때 "최근에 안 본" 후보를 quota만큼 먼저 채우고 나머지를 기존
+가중합(normal)으로 채우는 2단계 조립을 추가했다. 7축에 새 feature를 추가한 게 아니라, DB 쿼리 결과를
+서비스 레이어에서 두 풀로 나눠 합치는 post-process 단계다.
+
+- **novelty 조건**: `COALESCE(usersLinku.lastViewedAt, usersLinku.createdAt) < now - recencyThresholdDays`.
+  `lastViewedAt`이 있으면 마지막으로 본 지 기준일이 넘었는지, null(한 번도 안 봄)이면 저장한 지(`createdAt`)
+  기준일이 넘었는지를 같은 기준으로 본다 — 방금 저장해서 아직 볼 기회가 없었던 링크가 novelty로 잘못
+  잡히는 것을 막기 위해서다. `viewCount`는 저장 시점에 항상 0으로 초기화되고(`LinkuConverter.toUsersLinku`가
+  `viewCount`/`lastViewedAt`을 세팅하지 않음), `incrementViewCount()`가 호출될 때만 `lastViewedAt`이 채워지므로
+  `viewCount=0` 조건은 `lastViewedAt IS NULL`과 동치라 별도로 쓰지 않는다.
+- **novelty 버킷 정렬**: 7축이 아니라 EmotionMatch/SituationMatch 두 축만으로 정렬한다
+  (`HomeRecommendScoreService#noveltyContextScoreExpression`, 기존 `emotionMatchExpression`/
+  `situationMatchExpression`을 그대로 재사용하므로 AI 추론 신뢰도 감쇠도 동일하게 적용됨).
+- **quota**: `RecommendScoreProperties.Novelty.quotaRatio`(기본 0.3)로 한 페이지(`size`)당 목표 개수를 정한다.
+  목표치일 뿐이라 novelty 후보가 모자라면 normal 버킷이 초과해서 채운다(`LinkuRecommendService
+  #fetchNoveltyAndNormalCandidates`).
+- **두 버킷은 서로소로 유지된다**: `findNormalRecommendCandidates`가 novelty 조건을 제외(`NOT COALESCE(...) <
+  threshold`)한 채로 조회하므로, 같은 링크가 novelty와 normal 양쪽에서 중복으로 뽑히는 일이 없다.
+  `findHomeRecommendCandidates`(novelty 필터 없는 원본)는 그대로 남겨뒀고, 기존 테스트/호출부와의
+  하위호환을 위해 시그니처를 바꾸지 않았다 — normal 버킷은 별도 메서드(`findNormalRecommendCandidates`)로
+  분리했다.
+
+### 페이지네이션 — 커서 기반 전환 완료 (seek/keyset, OFFSET 아님)
+
+`{noveltyBucket, noveltyLastId, normalBucket, normalLastId, noveltyExhausted}`를 base64(JSON)로 인코딩한
+커서로 novelty/normal 두 버킷의 진행 지점을 각각 독립적으로 추적한다(`docs/home-recommend-cursor-api-spec.md`
+명세대로). `page`/`size` 오프셋 근사치는 더 이상 쓰지 않는다.
+
+처음 커서 페이징으로 전환했을 때는 리포지토리 레이어를 그대로 두고(`.offset()/.limit()`) 커서만 옳게
+계산하는 데 그쳤는데, 이러면 "정확성"은 고쳐도 "성능"은 그대로였다 — 페이지가 깊어질수록 DB가 앞 페이지들을
+매번 다시 스캔/스킵해야 하는 OFFSET의 근본적인 비용은 남아있었다. 그래서 리포지토리 쿼리 자체를
+seek(keyset) 방식으로 다시 바꿨다.
+
+- **왜 단순 keyset이 아니라 bucket인가**: `LinkuSearchService`의 검색 커서(`userLinkuId` 기준)처럼 정렬
+  기준이 단조 증가하는 단일 컬럼이면 `WHERE id < cursor`만으로 충분하다. 그런데 추천의 정렬 기준은
+  `score = wᵀx`라는, 요청마다 다시 계산되는 연속값(float)이다 — `now()`에 따라 달라지는 recencyDecay,
+  유저가 방금 조회해서 바뀔 수 있는 viewCount 등 때문에 같은 후보라도 요청 N과 N+1 사이에 정확한 점수가
+  미세하게 흔들릴 수 있다. 이 흔들림을 그대로 keyset 탐색 키로 쓰면 페이지 경계에서 순서가 뒤집혀
+  중복/누락이 생길 수 있다. 그래서 score를 `scoreBucket`(정수 구간, `HomeRecommendScoreService
+  #scoreBucketExpression`, 기본 200구간)으로 성기게 양자화해서 정렬/탐색 키로 쓴다 — 요청 사이의 미세한
+  점수 흔들림은 대부분 같은 버킷 안에 흡수되고, 같은 버킷 안에서는 `usersLinku.userLinkuId`(단조 증가 PK)로
+  타이브레이크한다. 정렬은 `ORDER BY scoreBucket DESC, userLinkuId DESC`, 탐색은
+  `WHERE (scoreBucket, userLinkuId) < (커서의 scoreBucket, userLinkuId)`로 짝을 맞춘다(둘 다 QueryDSL 튜플
+  비교로 구현: `UsersLinkuRepositoryImpl#seekCondition`).
+- **트레이드오프**: 버킷 안에서는 정확한 score 순서 대신 userLinkuId 순서로 정렬되는 정밀도 손실이 있다.
+  200구간(해상도 0.005)이면 이진(0/1.0) 신호 하나의 가중치(기본 0.10)보다 훨씬 촘촘해서 실제로 순위가
+  갈리는 두 후보가 같은 버킷에 묶이는 경우는 드물 것으로 본다 — 다만 실측 검증은 아직 안 했다.
+- `RankedUsersLinku`(`repository/dto/`) — `(UsersLinku, scoreBucket)` 튜플. QueryDSL이 fetch join된 엔티티와
+  스칼라 표현식(scoreBucket)을 함께 Tuple로 뽑아야 해서 도입했다(`.select(usersLinku, bucket)` 형태,
+  fetchJoin은 FROM 절에서 그대로 유지됨).
+- `findHomeRecommendCandidates`(novelty 필터 없는 원본, OFFSET 기반)는 손대지 않았다 — 다른 테스트 호출부와의
+  하위호환을 위해서다. `findNormalRecommendCandidates`/`findNoveltyRecommendCandidates`만 seek 방식으로
+  바꿨고, 내부 쿼리 빌더는 기존 `queryRankedCandidates`(OFFSET)와 통합하지 않고 별도로 분리했다.
+- `RecommendCursorUtil`(`utils/`) — 커서 인코딩/디코딩. 디코딩 실패(잘못된 값) 시 에러 대신 첫 페이지로
+  안전하게 폴백하고, 그 경우 원인을 로그로 남긴다(`log.warn`). 인코딩은 필드가 고정된 소수의 int/long/boolean
+  뿐이라 실패할 수 없어서 try-catch 없이 문자열을 직접 조립한다 — try-catch는 외부 입력을 파싱하는 디코딩
+  쪽에만 남겨뒀다.
+- `LinkuRecommendService#fetchNoveltyAndNormalCandidates` — 각 버킷을 `목표 개수 + 1`건씩 조회해 "이번
+  페이지를 넘는 잔여 후보가 있는지"(hasMore)를 함께 판별하고, 이번 페이지에서 실제로 반환한 마지막 행의
+  `(scoreBucket, userLinkuId)`를 다음 커서로 그대로 들고 간다. novelty가 소진되면(`noveltyExhausted=true`)
+  이후 페이지부터는 novelty 조회 자체를 생략하고 normal만으로 채운다.
+- 응답 DTO는 `LinkuResponseDTO.LinkuRecommendCursorPageDTO`(`items`/`nextCursor`/`hasNext`)로, 기존
+  `List<LinkuSimpleDTO>` 단순 배열 응답을 대체했다(API 계약 변경, FE 협의 완료). 커서 내부 포맷(필드 구성)은
+  FE에는 완전히 불투명하므로, 이번처럼 offset→bucket으로 내부 구현을 바꿔도 FE 코드는 영향받지 않는다.
+
 ## 의도적으로 보류한 것
 
 - **DomainDiversity(#8)** — 가중합에 넣지 않고, DB에서 넉넉히(top 20~30) 뽑은 뒤 애플리케이션 레이어에서
@@ -195,6 +262,38 @@ EmotionMatch가 항상 0이 되어버려서, 통합 테스트로는 EmotionMatch
   스코어링 튜닝보다 큰 결정(다른 유저가 저장한 링크를 서로에게 노출할지 등 제품 결정 포함)이라 별도 트랙.
 - **임베딩(cosine similarity) 기반 semantic 매칭** — pgvector + 임베딩 API 호출이 필요한 무거운 인프라라
   TextMatch를 Postgres FTS + trgm으로 먼저 갔고, 품질이 부족하면 그때 검토한다.
+- **SituationMatch(#2) 정확도 개선 — 위치 정보 / 폴더 공유 상대와의 관계** — 지금 SituationMatch는 저장
+  당시 유저(또는 AI)가 고른 situation 라벨과 요청 situationId의 직접 일치만 본다. 다음 확장으로 두 가지를
+  검토할 수 있다: (1) **위치 정보** — 저장 시점의 GPS/위치 컨텍스트를 함께 기록해두면 "집/직장/이동 중" 같은
+  situation 추론의 신뢰도를 높이거나, AI 추론(situationAi=true) 시의 confidence 보정에 쓸 수 있다.
+  (2) **폴더 공유 상대와의 관계** — `ShareFolderService`/`InvitationService`로 이미 폴더 공유·초대 기능이
+  있으므로, "누구와 공유된 폴더에 저장했는가"(예: 친구와 공유한 폴더 vs 혼자 쓰는 폴더)가 situation의
+  또 다른 신호가 될 수 있다(같이 저장한 상대와의 관계 유형에 따라 "친구랑 볼 것" 같은 situation을 보정).
+  둘 다 아직 원본 데이터(위치 컬럼, 관계 유형 분류)가 없어서 스코어링 축 추가 전에 데이터 수집/스키마 설계가
+  선행돼야 한다 — 지금 스코프에는 포함하지 않고 향후 트랙으로 남긴다. 위치/관계 신호로 situation 정확도를
+  높이는 방향은 아래 "참고 자료"의 Anand & Bharadwaj situation-aware 논문에서 다루는 접근(유저의
+  social-spatiotemporal context를 situation 추론에 반영)과 같은 맥락이다.
+
+## 참고 자료
+
+- Anand, D., & Bharadwaj, K. K. **"Situation-Aware Approach to Improve Context-based Recommender System."**
+  ([arXiv:1303.0481](https://arxiv.org/pdf/1303.0481)) — SituationMatch(#2) 설계 시 참고. 유저의
+  social-spatiotemporal context("situation")를 추천 랭킹에 직접 반영하는 접근으로, 지금 SituationMatch가
+  "저장 당시 situation 라벨 == 요청 situationId 직접 일치"를 보는 방식과 같은 문제의식(situation을 별도
+  context 축으로 명시적으로 다룬다)을 공유한다. 위 SituationMatch 확장 아이디어(위치 정보, 폴더 공유 상대와의
+  관계로 situation 정확도를 높이는 것)도 이 논문이 다루는 "situation을 더 풍부한 컨텍스트로 정의"하는
+  방향의 연장선이다.
+- Che, E., Ceylan, H., McInerney, J., & Kallus, N. (Netflix / Columbia / Cornell). **"Optimization of
+  Epsilon-Greedy Exploration."** ([arXiv:2506.03324](https://arxiv.org/pdf/2506.03324)) — novelty quota(안 본
+  것 버킷을 몇 %나 뽑을지) 비율을 어떻게 정할지 참고. epsilon-greedy의 고정 탐색률(ε)을 감으로 잡는 대신,
+  Bayesian regret을 SGD로 직접 최소화해 탐색률 스케줄을 구하고(Model-Predictive Control로 매 배치마다
+  재조정) 실측 결과 constant epsilon-greedy보다 일관되게 더 낫다는 걸 보였다. 이 논문의 프레임을 novelty
+  quota에 대응시키면, "안 본 것 quota = exploration, 나머지 가중합 랭킹 = exploitation"이 되고, 두 가지를
+  시사한다: (1) quota를 전역 고정값 하나로 못박기보다 유저별 트래픽/반응 패턴에 따라 배치 단위로 조정하는
+  쪽이 이론적으로 더 낫고, (2) 최소 탐색률 제약(논문에서 최소 탐색률 0.05처럼 하한을 최적화 문제에 넣는 것)처럼
+  "novelty quota는 최소 몇 % 이상 보장" 같은 하한 제약을 두는 방식도 참고할 수 있다. 지금은 이런 최적화까지
+  가지 않고 고정 비율(예: 20~30%)로 시작해서 실측 튜닝하는 단계이지만, 나중에 quota를 동적으로 조정하고
+  싶어지면 이 논문의 MPC 프레임을 재검토한다.
 
 ## 다음 액션 아이템
 
@@ -211,3 +310,6 @@ EmotionMatch가 항상 0이 되어버려서, 통합 테스트로는 EmotionMatch
    `confidence.ai-emotion-discount`/`ai-situation-discount`(0.8)도 마찬가지로 실측 전 임의값이다.
 6. 이후: DomainDiversity 재정렬, Collaborative 축 별도 설계, day-of-week/time-of-day 실시간 신호(저비용·가설
    검증 필요) 및 그 다음 단계로서의 날씨 신호(비동기 캐싱 인프라 + 콘텐츠 태그 체계 선행 필요) 검토.
+7. ~~novelty quota 커서 페이징 전환~~ — 완료 (위 "페이지네이션 — 커서 기반 전환 완료" 참고).
+8. novelty `recencyThresholdDays`(현재 14)/`quotaRatio`(현재 0.3) 실측 기반 튜닝 — 다른 가중치 상수들과
+   마찬가지로 시작값일 뿐이다.

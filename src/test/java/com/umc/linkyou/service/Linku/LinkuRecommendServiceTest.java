@@ -2,6 +2,7 @@ package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.config.properties.RecommendScoreProperties;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
@@ -45,6 +46,7 @@ class LinkuRecommendServiceTest {
     @Mock private LinkuFolderRepository linkuFolderRepository;
     @Mock private SituationCategoryService situationCategoryService;
     @Mock private UserContentProfileRepository userContentProfileRepository;
+    @Mock private RecommendScoreProperties recommendScoreProperties;
 
     @Nested
     @DisplayName("recommendLinku")
@@ -64,7 +66,7 @@ class LinkuRecommendServiceTest {
                 given(situationRepository.findById(SITUATION_ID))
                         .willReturn(Optional.of(Situation.builder().id(SITUATION_ID).name("공부").build()));
 
-                assertThatThrownBy(() -> linkuRecommendService.recommendLinku(USER_ID, SITUATION_ID, EMOTION_ID, 0, 5))
+                assertThatThrownBy(() -> linkuRecommendService.recommendLinku(USER_ID, SITUATION_ID, EMOTION_ID, null, 5))
                         .isInstanceOf(GeneralException.class)
                         .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                                 .isEqualTo(UserErrorStatus._JOB_NOT_SET));

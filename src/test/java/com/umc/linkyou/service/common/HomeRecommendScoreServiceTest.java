@@ -32,7 +32,8 @@ class HomeRecommendScoreServiceTest {
     private final RecommendScoreProperties properties = new RecommendScoreProperties(
             new RecommendScoreProperties.Weight(0.35, 0.15, 0.15, 0.1, 0.1, 0.05, 0.1),
             new RecommendScoreProperties.Normalization(20, 14, 1000, 20),
-            new RecommendScoreProperties.Confidence(0.8, 0.8));
+            new RecommendScoreProperties.Confidence(0.8, 0.8),
+            new RecommendScoreProperties.Novelty(14, 0.3));
 
     private final HomeRecommendScoreService service = new HomeRecommendScoreService(properties);
 

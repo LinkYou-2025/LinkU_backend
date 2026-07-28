@@ -10,7 +10,6 @@ import com.umc.linkyou.domain.QAiArticle;
 import com.umc.linkyou.domain.QLinku;
 import com.umc.linkyou.domain.mapping.QLinkuKeyword;
 import com.umc.linkyou.domain.mapping.QUsersLinku;
-import com.umc.linkyou.domain.recommend.QUserProfileKeyword;
 import com.umc.linkyou.utils.EmotionSimilarityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -18,6 +17,7 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * 홈화면 링크 추천 스코어링.
@@ -32,10 +32,12 @@ import java.util.Collection;
  * - Popularity     : Linku.totalViewCount의 로그 정규화 (전역 인기도, 약하게만 반영)
  * - TextMatch      : 후보의 title+summary와 UserContentProfile(사전계산된 유저 프로필)의 Postgres FTS
  *                    (ts_rank_cd) 매칭, 정확히 겹치는 단어가 없으면 pg_trgm similarity()로 fallback
- * - KeywordMatch   : 후보의 linku_keywords와 UserProfileKeyword(사전계산된 유저 키워드 빈도 top-K)의
+ * - KeywordMatch   : 후보의 linku_keywords와 UserProfileKeyword(사전계산된 유저 키워드 빈도 top-K, K=10)의
  *                    가중치 합을 정규화한 값 — "이 유저가 평소 저장하는 키워드와 얼마나 겹치는가"라는
  *                    intra-user 신호. 협업 필터링(inter-user)용으로 keyword를 쓸 때는 이 신호를 건드리지
  *                    않고 별도 feature를 추가한다 (service/common/README.md 참고).
+ *                    UserProfileKeyword 자체는 row당 서브쿼리로 다시 조회하지 않고, 호출하는 쿼리(리포지토리)가
+ *                    요청당 한 번만 조회해 Map으로 넘겨준다 — keywordMatchExpression()의 파라미터 참고.
  * - CategoryMatch  : 후보 Linku.category가 situation→category 매핑(SituationCategoryService)에 걸리면 1.0,
  *                    아니면 0. SituationMatch(저장 당시 태깅)와 달리 순수 콘텐츠 속성(Linku.category)만 보므로
  *                    emotionAi/situationAi 같은 신뢰도 감쇠를 적용하지 않는다.
@@ -56,6 +58,8 @@ public class HomeRecommendScoreService {
     private static final int EMOTION_MAX_SCORE = 60;
     /** ts_rank_cd가 0(정확히 겹치는 단어 없음)일 때 pg_trgm similarity() fallback에 곱하는 감쇠 계수 */
     private static final double TRGM_FALLBACK_DAMPENING = 0.7;
+    /** score(0~1대)를 나눌 구간 수. 200이면 해상도 0.005로 충분히 촘촘함 */
+    private static final int SCORE_BUCKET_COUNT = 200;
 
     private final RecommendScoreProperties properties;
 
@@ -172,10 +176,14 @@ public class HomeRecommendScoreService {
      *
      * @param profileTsqueryText UserContentProfile.profileTsqueryText (없으면 null — TextMatch는 0 처리)
      * @param profileText        UserContentProfile.profileText (trgm fallback용, 없으면 null)
+     * @param keywordWeights     이 유저의 UserProfileKeyword(keywordId -> weight, 최대 10개)를 호출부가
+     *                           미리 한 번 조회해서 넘긴 것. row마다 user_profile_keywords를 다시 조인하지
+     *                           않기 위함 — keywordMatchExpression() 참고.
      */
     public NumberExpression<Double> scoreExpression(
             QUsersLinku usersLinku, QLinku linku, QAiArticle aiArticle,
-            Long userId, Long targetEmotionId, Long targetSituationId, Collection<Long> mappedCategoryIds,
+            Map<Long, Integer> keywordWeights, Long targetEmotionId, Long targetSituationId,
+            Collection<Long> mappedCategoryIds,
             LocalDateTime now, String profileTsqueryText, String profileText) {
 
         RecommendScoreProperties.Weight w = properties.weight();
@@ -185,8 +193,22 @@ public class HomeRecommendScoreService {
                 .add(personalEngagementExpression(usersLinku, now).multiply(w.engagement()))
                 .add(popularityExpression(linku).multiply(w.popularity()))
                 .add(textMatchExpression(linku, aiArticle, profileTsqueryText, profileText).multiply(w.text()))
-                .add(keywordMatchExpression(linku, userId).multiply(w.keyword()))
+                .add(keywordMatchExpression(linku, keywordWeights).multiply(w.keyword()))
                 .add(categoryMatchExpression(linku, mappedCategoryIds).multiply(w.category()));
+    }
+
+    /**
+     * score를 SCORE_BUCKET_COUNT 구간으로 내림 양자화 — seek 페이징의 정렬/탐색 키.
+     * score는 매 요청 SQL로 재계산돼 미세하게 흔들릴 수 있는데(recencyDecay, viewCount 등),
+     * 버킷 단위로 뭉개면 이 흔들림이 흡수돼 커서 안정성이 생긴다. 버킷 내 동점은 userLinkuId로 타이브레이크.
+     *
+     * 구현 주의: score(scoreExpression/noveltyContextScoreExpression)는 여러 항을 {@code .add()}/
+     * raw 템플릿({@code numberTemplate}으로 이 중첩 트리를 {0} 자리에 통으로 밀어 넣는 방식)은
+     * Hibernate 6 HQL 분석기가 타입을 못 잡아 SemanticException을 던진다(재현됨) — 네이티브 연산자만 사용.
+     * FLOOR 불필요: score는 항상 0 이상(전 항이 CASE WHEN otherwise 0/1.0)이라 intValue() 절삭 = floor.
+     */
+    public NumberExpression<Integer> scoreBucketExpression(NumberExpression<Double> score) {
+        return score.multiply((double) SCORE_BUCKET_COUNT).intValue();
     }
 
     /**
@@ -295,15 +317,22 @@ public class HomeRecommendScoreService {
             return Expressions.asNumber(0.0);
         }
 
+        // ts_rank_cd/to_tsvector/to_tsquery/similarity는 Hibernate가 반환 타입을 모르는
+        // Postgres 전용 함수라, 여기서 나온 값을 그대로 +/>로 연산하면 Hibernate 6 HQL 분석기가
+        // 피연산자를 java.lang.Object로 취급해 "Operand of + is of type java.lang.Object"
+        // SemanticException을 던진다(재현됨 — profileTsqueryText/profileText가 null이 아닌
+        // 실제 유저에서만 이 분기를 타서, 둘 다 null로 두는 테스트에서는 드러나지 않았다).
+        // usersLinku.viewCount/linku.totalViewCount를 CAST({0} AS double)로 감싸는 것과 동일하게,
+        // 함수 호출 결과를 산술/비교에 쓰기 전에 명시적으로 CAST해서 타입을 고정해야 한다.
         NumberExpression<Double> ftsScore = Expressions.numberTemplate(Double.class,
                 "CASE WHEN {2} IS NULL OR {2} = '' THEN 0.0 ELSE ("
-                        + "ts_rank_cd(to_tsvector('simple', {0} || ' ' || COALESCE({1}, '')), to_tsquery('simple', {2})) / "
-                        + "(ts_rank_cd(to_tsvector('simple', {0} || ' ' || COALESCE({1}, '')), to_tsquery('simple', {2})) + 1)"
+                        + "CAST(ts_rank_cd(to_tsvector('simple', {0} || ' ' || COALESCE({1}, '')), to_tsquery('simple', {2})) AS double) / "
+                        + "(CAST(ts_rank_cd(to_tsvector('simple', {0} || ' ' || COALESCE({1}, '')), to_tsquery('simple', {2})) AS double) + 1.0)"
                         + ") END",
                 linku.title, aiArticle.summary, profileTsqueryText);
 
         NumberExpression<Double> trgmScore = Expressions.numberTemplate(Double.class,
-                "COALESCE(similarity({0} || ' ' || COALESCE({1}, ''), {2}), 0)",
+                "CAST(COALESCE(similarity({0} || ' ' || COALESCE({1}, ''), {2}), 0) AS double)",
                 linku.title, aiArticle.summary, profileText);
 
         return Expressions.numberTemplate(Double.class,
@@ -311,30 +340,94 @@ public class HomeRecommendScoreService {
                 ftsScore, trgmScore, TRGM_FALLBACK_DAMPENING);
     }
 
+    // =====================================================================
+    // Novelty(최근에 안 본 것) 버킷 — QueryDSL 표현식
+    // =====================================================================
+
     /**
-     * 후보 링크의 linku_keywords와 이 유저의 UserProfileKeyword(상위 키워드 빈도)를 스칼라 서브쿼리로
-     * 겹쳐서 weight 합을 구하고, keywordWeightCap으로 정규화한다. JOIN + GROUP BY로 하면 메인 쿼리의
-     * fetch join 구조(행당 1건 보장)가 깨지므로 서브쿼리로 처리한다.
+     * "최근에 안 본" 후보 조건. lastViewedAt이 있으면 마지막으로 본 지 recencyThresholdDays 넘었는지,
+     * null(한 번도 안 봄)이면 저장한 지(createdAt) recencyThresholdDays 넘었는지를 같은 기준으로 본다
+     * — COALESCE(lastViewedAt, createdAt) < now - recencyThresholdDays. 방금 저장해서 아직 볼 기회가
+     * 없었던 링크가 novelty로 잡히는 것을 막기 위해 createdAt 기준을 함께 쓴다
+     * (service/common/README.md "novelty quota" 참고).
      */
-    public NumberExpression<Double> keywordMatchExpression(QLinku linku, Long userId) {
-        if (userId == null) {
+    public BooleanExpression noveltyCondition(QUsersLinku usersLinku, LocalDateTime now, int recencyThresholdDays) {
+        LocalDateTime threshold = now.minusDays(recencyThresholdDays);
+        return Expressions.booleanTemplate(
+                "COALESCE({0}, {1}) < {2}",
+                usersLinku.lastViewedAt, usersLinku.createdAt, threshold);
+    }
+
+    /** normal 버킷(가중합 랭킹)에서 novelty 후보를 제외하기 위한 반대 조건. 두 버킷을 서로소로 유지한다. */
+    public BooleanExpression notNoveltyCondition(QUsersLinku usersLinku, LocalDateTime now, int recencyThresholdDays) {
+        return noveltyCondition(usersLinku, now, recencyThresholdDays).not();
+    }
+
+    /**
+     * novelty 버킷 전용 정렬 스코어. 7축 가중합이 아니라 EmotionMatch/SituationMatch 두 축만 재사용해서
+     * "유저가 지금 고른 감정/상황과 얼마나 맞는가"만으로 정렬한다. emotionMatchExpression/
+     * situationMatchExpression을 그대로 재사용하므로 AI 추론 신뢰도 감쇠(aiEmotionDiscount/
+     * aiSituationDiscount)도 동일하게 적용된다.
+     */
+    public NumberExpression<Double> noveltyContextScoreExpression(
+            QUsersLinku usersLinku, Long targetEmotionId, Long targetSituationId) {
+        RecommendScoreProperties.Weight w = properties.weight();
+        return emotionMatchExpression(usersLinku, targetEmotionId).multiply(w.emotion())
+                .add(situationMatchExpression(usersLinku, targetSituationId).multiply(w.situation()));
+    }
+
+    /**
+     * 후보 링크의 linku_keywords와 이 유저의 키워드 가중치 맵을 겹쳐서 weight 합을 구하고,
+     * keywordWeightCap으로 정규화한다.
+     *
+     * {@code keywordWeights}는 호출부(리포지토리)가 요청당 딱 한 번 {@code user_profile_keywords}를
+     * 조회해서 만든 Map이다 — 유저당 최대 10개(UserProfileRefreshWorker#TOP_KEYWORD_COUNT)뿐이라
+     * 애플리케이션 메모리에 올려두기 충분히 작다. 이전엔 이 테이블을 row(후보)마다 상관 서브쿼리로
+     * 다시 조인했는데, 후보 수만큼 반복 실행되는 비용이 있어서 — emotionMatchExpression처럼 미리
+     * 알고 있는 값을 CASE WHEN으로 SQL에 상수로 박아넣는 방식으로 바꿨다. 이러면 row마다 남는 건
+     * linku_keywords 하나뿐이고, user_profile_keywords는 이 메서드 밖에서 한 번만 조회된다.
+     *
+     * linku_keywords는 여전히 row(후보 linku)마다 서브쿼리로 조회한다 — 후보마다 키워드 집합이
+     * 다르므로 이건 구조상 피할 수 없다. JOIN + GROUP BY로 하면 메인 쿼리의 fetch join 구조
+     * (행당 1건 보장)가 깨지므로 서브쿼리로 처리한다.
+     */
+    public NumberExpression<Double> keywordMatchExpression(QLinku linku, Map<Long, Integer> keywordWeights) {
+        if (keywordWeights == null || keywordWeights.isEmpty()) {
             return Expressions.asNumber(0.0);
         }
 
         QLinkuKeyword linkuKeyword = QLinkuKeyword.linkuKeyword;
-        QUserProfileKeyword profileKeyword = QUserProfileKeyword.userProfileKeyword;
         double cap = properties.normalization().keywordWeightCap();
+
+        // keywordId -> weight를 CASE WHEN 체인으로 SQL에 상수로 박아넣는다 (emotionMatchExpression과
+        // 동일한 패턴). user_profile_keywords 테이블을 여기서 다시 조인하지 않는다.
+        CaseBuilder.Cases<Integer, NumberExpression<Integer>> chain = null;
+        for (Map.Entry<Long, Integer> entry : keywordWeights.entrySet()) {
+            BooleanExpression condition = linkuKeyword.keyword.id.eq(entry.getKey());
+            chain = (chain == null)
+                    ? new CaseBuilder().when(condition).then(entry.getValue())
+                    : chain.when(condition).then(entry.getValue());
+        }
+        NumberExpression<Integer> weightPerKeyword = chain.otherwise(0);
 
         // 서브쿼리 자체를 NumberExpression으로 담지 않고 Object 인자로 바로 넘긴다
         // (JPAQuery는 Expression이긴 하지만 NumberExpression의 산술 연산까지는 지원하지 않는다).
         var matchedWeightSum = JPAExpressions
-                .select(profileKeyword.weight.sum())
+                .select(weightPerKeyword.sum())
                 .from(linkuKeyword)
-                .join(profileKeyword).on(profileKeyword.keywordId.eq(linkuKeyword.keyword.id))
-                .where(linkuKeyword.linku.eq(linku), profileKeyword.userId.eq(userId));
+                .where(linkuKeyword.linku.eq(linku));
+
+        // 서브쿼리 결과를 COALESCE/LEAST에 바로 섞어 넣으면(구 버전) Hibernate 6 HQL 분석기가
+        // 이 표현식이 select 절(findNormalRecommendCandidates의 select(usersLinku, bucket))에
+        // 들어갈 때 서브쿼리 반환 타입을 못 잡고 java.lang.Object로 취급해
+        // "Operand ... is of type java.lang.Object which is not a numeric type" SemanticException을
+        // 던진다(재현됨). personalEngagementExpression/popularityExpression에서 plain path를
+        // CAST({0} AS double)로 감싸는 것과 동일하게, 서브쿼리도 먼저 CAST로 타입을 명시해야 한다.
+        NumberExpression<Double> matchedWeight = Expressions.numberTemplate(Double.class,
+                "CAST(COALESCE(({0}), 0) AS double)", matchedWeightSum);
 
         return Expressions.numberTemplate(Double.class,
-                "LEAST(CAST(COALESCE({0}, 0) AS double), {1}) / {1}",
-                matchedWeightSum, cap);
+                "LEAST({0}, {1}) / {1}",
+                matchedWeight, cap);
     }
 }

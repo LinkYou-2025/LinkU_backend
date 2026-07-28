@@ -107,4 +107,16 @@ public class LinkuResponseDTO {
         private String title;
         private String linkuImageUrl;
     }
+
+    // 홈화면 링크 추천(GET /linku/recommend) 커서 페이징 응답.
+    // nextCursor는 novelty/normal 두 버킷의 진행 상태를 base64(JSON)로 인코딩한 불투명 문자열이다 —
+    // FE는 파싱하지 않고 다음 요청의 cursor 파라미터에 그대로 넘기기만 하면 된다.
+    @Getter
+    @Setter
+    @Builder
+    public static class LinkuRecommendCursorPageDTO {
+        private List<LinkuSimpleDTO> items;
+        private String nextCursor;
+        private Boolean hasNext;
+    }
 }
