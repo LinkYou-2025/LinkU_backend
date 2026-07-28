@@ -56,6 +56,12 @@ public class HomeRecommendScoreService {
     private static final int EMOTION_MAX_SCORE = 60;
     /** ts_rank_cd가 0(정확히 겹치는 단어 없음)일 때 pg_trgm similarity() fallback에 곱하는 감쇠 계수 */
     private static final double TRGM_FALLBACK_DAMPENING = 0.7;
+    /**
+     * scoreBucketExpression()이 score를 나누는 구간 수. 200이면 해상도 0.005 — categoryMatch처럼
+     * 이진(0/1.0) 신호 하나의 가중치(기본 0.10)보다 훨씬 촘촘해서, 의미 있게 다른 두 후보가 같은 버킷에
+     * 묶이는 일은 거의 없다. scoreBucketExpression() javadoc 참고.
+     */
+    private static final int SCORE_BUCKET_COUNT = 200;
 
     private final RecommendScoreProperties properties;
 
@@ -187,6 +193,32 @@ public class HomeRecommendScoreService {
                 .add(textMatchExpression(linku, aiArticle, profileTsqueryText, profileText).multiply(w.text()))
                 .add(keywordMatchExpression(linku, userId).multiply(w.keyword()))
                 .add(categoryMatchExpression(linku, mappedCategoryIds).multiply(w.category()));
+    }
+
+    /**
+     * 연속값 score를 SCORE_BUCKET_COUNT개의 정수 구간으로 내림(floor) 양자화한다.
+     * seek(keyset) 페이징에서 ORDER BY/WHERE 탐색 키로 이 값을 쓴다 — 그 이유는 다음과 같다.
+     *
+     * score는 요청 시점마다 SQL로 다시 계산되는 값이라(now()에 따라 달라지는 recencyDecay,
+     * 유저가 방금 조회해서 바뀔 수 있는 viewCount 등), 연속값 그대로 쓰면 요청 N과 N+1 사이에 같은
+     * 후보의 정확한 점수가 미세하게 흔들려 페이지 경계에서 순서가 뒤바뀔 수 있다(중복/누락 위험).
+     * 구간을 성기게 나누면 이런 미세한 흔들림은 대부분 같은 버킷 안에 흡수되어 탐색 키가 안정적으로
+     * 유지된다. 버킷 내부(동점) 정렬은 usersLinku.userLinkuId(단조 증가 PK)로 타이브레이크한다
+     * — 대신 같은 버킷 안에서는 정확한 score 순서 대신 userLinkuId 순서로 정렬되는 정밀도 손실이
+     * 생기는데, 위 SCORE_BUCKET_COUNT 값이면 실제로 순위가 갈리는 두 후보가 같은 버킷에 묶이는
+     * 경우는 드물다(주석 참고).
+     *
+     * UsersLinkuRepositoryImpl#findNormalRecommendCandidates/findNoveltyRecommendCandidates에서
+     * 정렬(ORDER BY bucket DESC, userLinkuId DESC)과 탐색(WHERE (bucket, userLinkuId) < (커서의 bucket, userLinkuId))
+     * 양쪽에 동일하게 쓴다 — 매 요청 SQL이 그때그때 계산하므로 Java 쪽에서 별도로 재계산하지 않는다.
+     *
+     * 이 값은 RankedUsersLinku.scoreBucket(int, primitive)로 그대로 옮겨 담기므로, SQL NULL이 나오면
+     * 언박싱에서 NPE가 난다. score를 구성하는 하위 항 중 하나라도 NULL이면 덧셈 전체가 NULL로 전파되는
+     * SQL 특성 때문에 COALESCE로 방어한다.
+     */
+    public NumberExpression<Integer> scoreBucketExpression(NumberExpression<Double> score) {
+        return Expressions.numberTemplate(Integer.class,
+                "CAST(FLOOR(COALESCE({0}, 0) * {1}) AS integer)", score, SCORE_BUCKET_COUNT);
     }
 
     /**

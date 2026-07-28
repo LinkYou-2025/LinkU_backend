@@ -1,6 +1,7 @@
 package com.umc.linkyou.repository.UserLinkuRepository;
 
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.repository.dto.RankedUsersLinku;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 
@@ -25,16 +26,22 @@ public interface UsersLinkuRepositoryCustom {
     // 홈화면 링크 추천 — normal 버킷. findHomeRecommendCandidates와 동일한 7축 가중합 랭킹이지만,
     // HomeRecommendScoreService#noveltyCondition에 해당하는(=최근에 안 본) 후보를 제외한다.
     // findNoveltyRecommendCandidates가 뽑아가는 후보와 서로소를 유지해서 두 버킷을 합쳤을 때 중복이 없게 한다.
-    List<UsersLinku> findNormalRecommendCandidates(
+    //
+    // OFFSET이 아니라 seek(keyset) 방식이다 — afterScoreBucket/afterUserLinkuId가 둘 다 null이면 처음부터,
+    // 아니면 (scoreBucket, userLinkuId)가 그보다 작은 것부터 이어서 가져온다. 정렬/탐색 키로 쓰는
+    // scoreBucket은 HomeRecommendScoreService#scoreBucketExpression 참고 — 페이지가 깊어져도 이전 구간을
+    // 다시 스캔/스킵하지 않기 위한 것이다(service/common/README.md 참고).
+    List<RankedUsersLinku> findNormalRecommendCandidates(
             Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
             LocalDateTime now, String profileTsqueryText, String profileText,
-            int recencyThresholdDays, int offset, int limit);
+            int recencyThresholdDays, Integer afterScoreBucket, Long afterUserLinkuId, int limit);
 
     // 홈화면 링크 추천 — novelty(최근에 안 본 것) 버킷. 7축 가중합이 아니라 EmotionMatch/SituationMatch
     // 두 축(HomeRecommendScoreService#noveltyContextScoreExpression)만으로 정렬한다.
-    List<UsersLinku> findNoveltyRecommendCandidates(
+    // findNormalRecommendCandidates와 동일하게 seek(keyset) 방식이다.
+    List<RankedUsersLinku> findNoveltyRecommendCandidates(
             Long userId, Long selectedEmotionId, Long selectedSituationId,
-            LocalDateTime now, int recencyThresholdDays, int offset, int limit);
+            LocalDateTime now, int recencyThresholdDays, Integer afterScoreBucket, Long afterUserLinkuId, int limit);
 
     // UserProfileRefreshWorker용: TextMatch 프로필(title+summary) 재계산 재료로 최근 저장 링크를 캡을 두고 가져온다.
     List<UsersLinku> findRecentContentForProfile(Long userId, int limit);

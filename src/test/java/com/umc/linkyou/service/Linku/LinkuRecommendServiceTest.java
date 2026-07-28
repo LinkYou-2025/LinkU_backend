@@ -66,7 +66,7 @@ class LinkuRecommendServiceTest {
                 given(situationRepository.findById(SITUATION_ID))
                         .willReturn(Optional.of(Situation.builder().id(SITUATION_ID).name("공부").build()));
 
-                assertThatThrownBy(() -> linkuRecommendService.recommendLinku(USER_ID, SITUATION_ID, EMOTION_ID, 0, 5))
+                assertThatThrownBy(() -> linkuRecommendService.recommendLinku(USER_ID, SITUATION_ID, EMOTION_ID, null, 5))
                         .isInstanceOf(GeneralException.class)
                         .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                                 .isEqualTo(UserErrorStatus._JOB_NOT_SET));

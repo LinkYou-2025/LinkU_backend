@@ -210,15 +210,48 @@ EmotionMatch가 항상 0이 되어버려서, 통합 테스트로는 EmotionMatch
   하위호환을 위해 시그니처를 바꾸지 않았다 — normal 버킷은 별도 메서드(`findNormalRecommendCandidates`)로
   분리했다.
 
-### 알려진 한계 — 페이지네이션 근사치 (커서 페이징 전환 전)
+### 페이지네이션 — 커서 기반 전환 완료 (seek/keyset, OFFSET 아님)
 
-지금은 `offset = page * quotaCount`(novelty), `offset = page * (size - quotaCount)`(normal)로 페이지 번호를
-근사해서 오프셋을 계산한다. novelty 풀이 소진되기 전까지는 정확하지만, 어느 페이지에서 novelty 후보가
-목표치보다 적게 나와서 normal이 더 채워준 뒤에는(borrow), 다음 페이지의 오프셋 계산이 실제로 소비한 양과
-어긋나서 중복/누락이 생길 수 있다. 이를 정확히 하려면 novelty/normal 각각의 소비량을 별도로 추적하는
-커서(`{noveltyOffset, normalOffset, noveltyExhausted}`)로 페이징 방식 자체를 바꿔야 하는데, 이건 API 계약
-변경(FE 협의 필요)이라 이번 스코프에서는 의도적으로 미루고 `page`/`size` 방식을 그대로 유지했다. 커서 페이징
-명세는 `docs/home-recommend-cursor-api-spec.md`에 이미 정리해뒀고, 다음 트랙에서 이 근사치를 대체한다.
+`{noveltyBucket, noveltyLastId, normalBucket, normalLastId, noveltyExhausted}`를 base64(JSON)로 인코딩한
+커서로 novelty/normal 두 버킷의 진행 지점을 각각 독립적으로 추적한다(`docs/home-recommend-cursor-api-spec.md`
+명세대로). `page`/`size` 오프셋 근사치는 더 이상 쓰지 않는다.
+
+처음 커서 페이징으로 전환했을 때는 리포지토리 레이어를 그대로 두고(`.offset()/.limit()`) 커서만 옳게
+계산하는 데 그쳤는데, 이러면 "정확성"은 고쳐도 "성능"은 그대로였다 — 페이지가 깊어질수록 DB가 앞 페이지들을
+매번 다시 스캔/스킵해야 하는 OFFSET의 근본적인 비용은 남아있었다. 그래서 리포지토리 쿼리 자체를
+seek(keyset) 방식으로 다시 바꿨다.
+
+- **왜 단순 keyset이 아니라 bucket인가**: `LinkuSearchService`의 검색 커서(`userLinkuId` 기준)처럼 정렬
+  기준이 단조 증가하는 단일 컬럼이면 `WHERE id < cursor`만으로 충분하다. 그런데 추천의 정렬 기준은
+  `score = wᵀx`라는, 요청마다 다시 계산되는 연속값(float)이다 — `now()`에 따라 달라지는 recencyDecay,
+  유저가 방금 조회해서 바뀔 수 있는 viewCount 등 때문에 같은 후보라도 요청 N과 N+1 사이에 정확한 점수가
+  미세하게 흔들릴 수 있다. 이 흔들림을 그대로 keyset 탐색 키로 쓰면 페이지 경계에서 순서가 뒤집혀
+  중복/누락이 생길 수 있다. 그래서 score를 `scoreBucket`(정수 구간, `HomeRecommendScoreService
+  #scoreBucketExpression`, 기본 200구간)으로 성기게 양자화해서 정렬/탐색 키로 쓴다 — 요청 사이의 미세한
+  점수 흔들림은 대부분 같은 버킷 안에 흡수되고, 같은 버킷 안에서는 `usersLinku.userLinkuId`(단조 증가 PK)로
+  타이브레이크한다. 정렬은 `ORDER BY scoreBucket DESC, userLinkuId DESC`, 탐색은
+  `WHERE (scoreBucket, userLinkuId) < (커서의 scoreBucket, userLinkuId)`로 짝을 맞춘다(둘 다 QueryDSL 튜플
+  비교로 구현: `UsersLinkuRepositoryImpl#seekCondition`).
+- **트레이드오프**: 버킷 안에서는 정확한 score 순서 대신 userLinkuId 순서로 정렬되는 정밀도 손실이 있다.
+  200구간(해상도 0.005)이면 이진(0/1.0) 신호 하나의 가중치(기본 0.10)보다 훨씬 촘촘해서 실제로 순위가
+  갈리는 두 후보가 같은 버킷에 묶이는 경우는 드물 것으로 본다 — 다만 실측 검증은 아직 안 했다.
+- `RankedUsersLinku`(`repository/dto/`) — `(UsersLinku, scoreBucket)` 튜플. QueryDSL이 fetch join된 엔티티와
+  스칼라 표현식(scoreBucket)을 함께 Tuple로 뽑아야 해서 도입했다(`.select(usersLinku, bucket)` 형태,
+  fetchJoin은 FROM 절에서 그대로 유지됨).
+- `findHomeRecommendCandidates`(novelty 필터 없는 원본, OFFSET 기반)는 손대지 않았다 — 다른 테스트 호출부와의
+  하위호환을 위해서다. `findNormalRecommendCandidates`/`findNoveltyRecommendCandidates`만 seek 방식으로
+  바꿨고, 내부 쿼리 빌더는 기존 `queryRankedCandidates`(OFFSET)와 통합하지 않고 별도로 분리했다.
+- `RecommendCursorUtil`(`utils/`) — 커서 인코딩/디코딩. 디코딩 실패(잘못된 값) 시 에러 대신 첫 페이지로
+  안전하게 폴백하고, 그 경우 원인을 로그로 남긴다(`log.warn`). 인코딩은 필드가 고정된 소수의 int/long/boolean
+  뿐이라 실패할 수 없어서 try-catch 없이 문자열을 직접 조립한다 — try-catch는 외부 입력을 파싱하는 디코딩
+  쪽에만 남겨뒀다.
+- `LinkuRecommendService#fetchNoveltyAndNormalCandidates` — 각 버킷을 `목표 개수 + 1`건씩 조회해 "이번
+  페이지를 넘는 잔여 후보가 있는지"(hasMore)를 함께 판별하고, 이번 페이지에서 실제로 반환한 마지막 행의
+  `(scoreBucket, userLinkuId)`를 다음 커서로 그대로 들고 간다. novelty가 소진되면(`noveltyExhausted=true`)
+  이후 페이지부터는 novelty 조회 자체를 생략하고 normal만으로 채운다.
+- 응답 DTO는 `LinkuResponseDTO.LinkuRecommendCursorPageDTO`(`items`/`nextCursor`/`hasNext`)로, 기존
+  `List<LinkuSimpleDTO>` 단순 배열 응답을 대체했다(API 계약 변경, FE 협의 완료). 커서 내부 포맷(필드 구성)은
+  FE에는 완전히 불투명하므로, 이번처럼 offset→bucket으로 내부 구현을 바꿔도 FE 코드는 영향받지 않는다.
 
 ## 의도적으로 보류한 것
 
@@ -277,8 +310,6 @@ EmotionMatch가 항상 0이 되어버려서, 통합 테스트로는 EmotionMatch
    `confidence.ai-emotion-discount`/`ai-situation-discount`(0.8)도 마찬가지로 실측 전 임의값이다.
 6. 이후: DomainDiversity 재정렬, Collaborative 축 별도 설계, day-of-week/time-of-day 실시간 신호(저비용·가설
    검증 필요) 및 그 다음 단계로서의 날씨 신호(비동기 캐싱 인프라 + 콘텐츠 태그 체계 선행 필요) 검토.
-7. **novelty quota 커서 페이징 전환** — 지금은 page/size 기반 오프셋 근사치를 쓰고 있어서(위 "알려진 한계"
-   참고) novelty 풀이 소진된 이후 페이지에서 중복/누락 가능성이 있다. `docs/home-recommend-cursor-api-spec.md`
-   명세대로 `{noveltyOffset, normalOffset, noveltyExhausted}` 커서 기반으로 전환 필요 — FE 협의 후 진행.
+7. ~~novelty quota 커서 페이징 전환~~ — 완료 (위 "페이지네이션 — 커서 기반 전환 완료" 참고).
 8. novelty `recencyThresholdDays`(현재 14)/`quotaRatio`(현재 0.3) 실측 기반 튜닝 — 다른 가중치 상수들과
    마찬가지로 시작값일 뿐이다.

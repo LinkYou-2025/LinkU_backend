@@ -9,6 +9,7 @@ import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.repository.dto.RankedUsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.categoryRepository.FcolorRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
@@ -110,10 +111,10 @@ class UsersLinkuRepositoryImplTest {
                     baseUsersLinku(user, linkuViewedRecent, emotion).situation(situation)
                             .lastViewedAt(now.minusDays(1)).build());
 
-            List<UsersLinku> result = usersLinkuRepository.findNoveltyRecommendCandidates(
-                    user.getId(), emotion.getEmotionId(), situation.getId(), now, recencyThresholdDays, 0, 10);
+            List<RankedUsersLinku> result = usersLinkuRepository.findNoveltyRecommendCandidates(
+                    user.getId(), emotion.getEmotionId(), situation.getId(), now, recencyThresholdDays, null, null, 10);
 
-            assertThat(result).extracting(UsersLinku::getUserLinkuId)
+            assertThat(result).extracting(r -> r.usersLinku().getUserLinkuId())
                     .containsExactlyInAnyOrder(neverViewedOld.getUserLinkuId(), viewedOld.getUserLinkuId());
         }
 
@@ -142,11 +143,11 @@ class UsersLinkuRepositoryImplTest {
                     baseUsersLinku(user, linkuNormal, emotion).situation(situation)
                             .lastViewedAt(now.minusDays(1)).build());
 
-            List<UsersLinku> result = usersLinkuRepository.findNormalRecommendCandidates(
+            List<RankedUsersLinku> result = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
-                    now, null, null, recencyThresholdDays, 0, 10);
+                    now, null, null, recencyThresholdDays, null, null, 10);
 
-            assertThat(result).extracting(UsersLinku::getUserLinkuId)
+            assertThat(result).extracting(r -> r.usersLinku().getUserLinkuId())
                     .containsExactly(normal.getUserLinkuId());
         }
     }
