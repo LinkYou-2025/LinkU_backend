@@ -120,23 +120,20 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
         JPAQuery<Tuple> query = queryFactory
                 .select(usersLinku, bucket)
                 .from(usersLinku)
-                // 감정/링크/카테고리/도메인을 한 번에 fetch join 해서 N+1을 없앤다.
                 .join(usersLinku.linku, linku).fetchJoin()
                 .join(usersLinku.emotion).fetchJoin()
                 .join(linku.category).fetchJoin()
                 .join(linku.domain).fetchJoin()
-                // situation은 nullable이라 fetchJoin 없이 LEFT JOIN만 건다.
-                // (INNER JOIN이나 조인 없이 경로만 참조하면 situation이 없는 저장 링크가 통째로 빠지는 버그가 생김 —
-                //  HomeRecommendScoreService#scoreExpression 주석 참고)
+                // situation nullable — INNER/경로참조만 하면 situation 없는 링크가 빠지는 버그가 생김
                 .leftJoin(usersLinku.situation)
-                // summary는 없는 링크도 있어서 LEFT JOIN. fetchJoin은 안 걸었다 — TextMatch 계산에만 쓰이고
-                // Java 쪽에서 linku.getAiArticle()을 다시 꺼내 쓰지 않는다.
-                .leftJoin(linku.aiArticle, aiArticle)
+                // fetchJoin 필수: AiArticle.linku 가 owning side라 Linku.aiArticle(mappedBy, LAZY)은
+                // 진짜 지연로딩이 안 되고(프록시를 못 만들어서) 엔티티 로드 시점에 무조건 존재 확인
+                // 쿼리를 한 번 더 던진다 — fetchJoin으로 여기서 같이 실어야 결과 row당 N+1이 안 생김.
+                .leftJoin(linku.aiArticle, aiArticle).fetchJoin()
                 .where(usersLinku.user.id.eq(userId), excludeNovelty, seek);
 
         List<Tuple> rows = query
-                // scoreBucket이 성긴 정수 구간이라 그 안에서는 userLinkuId(단조 증가)로 타이브레이크한다 —
-                // scoreBucketExpression() javadoc 참고.
+                // bucket 내 동점은 userLinkuId로 타이브레이크
                 .orderBy(bucket.desc(), usersLinku.userLinkuId.desc())
                 .limit(limit)
                 .fetch();
@@ -150,6 +147,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
             LocalDateTime now, int recencyThresholdDays, Integer afterScoreBucket, Long afterUserLinkuId, int limit) {
         QUsersLinku usersLinku = QUsersLinku.usersLinku;
         QLinku linku = QLinku.linku;
+        QAiArticle aiArticle = QAiArticle.aiArticle;
 
         NumberExpression<Double> contextScore = homeRecommendScoreService
                 .noveltyContextScoreExpression(usersLinku, selectedEmotionId, selectedSituationId);
@@ -166,6 +164,9 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 .join(linku.category).fetchJoin()
                 .join(linku.domain).fetchJoin()
                 .leftJoin(usersLinku.situation)
+                // findNormalRecommendCandidates와 동일한 이유로 fetchJoin 필요 (AiArticle이 owning
+                // side라 Linku.aiArticle이 진짜 지연로딩 안 됨 — row당 존재확인 쿼리 N+1 방지).
+                .leftJoin(linku.aiArticle, aiArticle).fetchJoin()
                 .where(usersLinku.user.id.eq(userId), noveltyCondition, seek)
                 .orderBy(bucket.desc(), usersLinku.userLinkuId.desc())
                 .limit(limit)
@@ -174,12 +175,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
         return toRankedList(rows, usersLinku, bucket);
     }
 
-    /**
-     * seek(keyset) 탐색 조건. afterScoreBucket/afterUserLinkuId가 둘 다 null이면(첫 페이지) 조건 없이
-     * 처음부터 가져온다. 아니면 정렬 기준(bucket DESC, userLinkuId DESC)과 짝을 맞춰
-     * (bucket, userLinkuId)가 튜플 기준으로 그 지점보다 "작은" 행부터 가져온다 — OFFSET처럼 앞부분을
-     * 다시 스캔/스킵하지 않는다.
-     */
+    /** seek 탐색 조건. 둘 다 null이면 첫 페이지(조건 없음), 아니면 (bucket, userLinkuId) 이전 행부터 */
     private BooleanExpression seekCondition(
             NumberExpression<Integer> bucket, QUsersLinku usersLinku,
             Integer afterScoreBucket, Long afterUserLinkuId) {
@@ -190,7 +186,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 .or(bucket.eq(afterScoreBucket).and(usersLinku.userLinkuId.lt(afterUserLinkuId)));
     }
 
-    /** Tuple(usersLinku, bucket) 결과를 RankedUsersLinku 리스트로 변환한다. */
+    /** Tuple(usersLinku, bucket) → RankedUsersLinku 변환 */
     private List<RankedUsersLinku> toRankedList(
             List<Tuple> rows, QUsersLinku usersLinku, NumberExpression<Integer> bucket) {
         List<RankedUsersLinku> result = new ArrayList<>(rows.size());
@@ -200,11 +196,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
         return result;
     }
 
-    /**
-     * findHomeRecommendCandidates 전용 쿼리(OFFSET 기반). findNormalRecommendCandidates는 seek(keyset)
-     * 기반으로 전환됐지만, 이 메서드는 기존 호출부(테스트 등)와의 하위호환을 위해 그대로 둔다 —
-     * 정렬 기준이 바뀌면 안 되는 별도 메서드이므로 위 seek 쿼리와 통합하지 않았다.
-     */
+    /** findHomeRecommendCandidates 전용 OFFSET 쿼리 — 하위호환용으로 유지, seek 쿼리와 통합 안 함 */
     private List<UsersLinku> queryRankedCandidates(
             Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
             LocalDateTime now, String profileTsqueryText, String profileText,

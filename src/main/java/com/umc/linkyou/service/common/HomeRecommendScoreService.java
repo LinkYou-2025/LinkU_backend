@@ -56,11 +56,7 @@ public class HomeRecommendScoreService {
     private static final int EMOTION_MAX_SCORE = 60;
     /** ts_rank_cd가 0(정확히 겹치는 단어 없음)일 때 pg_trgm similarity() fallback에 곱하는 감쇠 계수 */
     private static final double TRGM_FALLBACK_DAMPENING = 0.7;
-    /**
-     * scoreBucketExpression()이 score를 나누는 구간 수. 200이면 해상도 0.005 — categoryMatch처럼
-     * 이진(0/1.0) 신호 하나의 가중치(기본 0.10)보다 훨씬 촘촘해서, 의미 있게 다른 두 후보가 같은 버킷에
-     * 묶이는 일은 거의 없다. scoreBucketExpression() javadoc 참고.
-     */
+    /** score(0~1대)를 나눌 구간 수. 200이면 해상도 0.005로 충분히 촘촘함 */
     private static final int SCORE_BUCKET_COUNT = 200;
 
     private final RecommendScoreProperties properties;
@@ -196,29 +192,17 @@ public class HomeRecommendScoreService {
     }
 
     /**
-     * 연속값 score를 SCORE_BUCKET_COUNT개의 정수 구간으로 내림(floor) 양자화한다.
-     * seek(keyset) 페이징에서 ORDER BY/WHERE 탐색 키로 이 값을 쓴다 — 그 이유는 다음과 같다.
+     * score를 SCORE_BUCKET_COUNT 구간으로 내림 양자화 — seek 페이징의 정렬/탐색 키.
+     * score는 매 요청 SQL로 재계산돼 미세하게 흔들릴 수 있는데(recencyDecay, viewCount 등),
+     * 버킷 단위로 뭉개면 이 흔들림이 흡수돼 커서 안정성이 생긴다. 버킷 내 동점은 userLinkuId로 타이브레이크.
      *
-     * score는 요청 시점마다 SQL로 다시 계산되는 값이라(now()에 따라 달라지는 recencyDecay,
-     * 유저가 방금 조회해서 바뀔 수 있는 viewCount 등), 연속값 그대로 쓰면 요청 N과 N+1 사이에 같은
-     * 후보의 정확한 점수가 미세하게 흔들려 페이지 경계에서 순서가 뒤바뀔 수 있다(중복/누락 위험).
-     * 구간을 성기게 나누면 이런 미세한 흔들림은 대부분 같은 버킷 안에 흡수되어 탐색 키가 안정적으로
-     * 유지된다. 버킷 내부(동점) 정렬은 usersLinku.userLinkuId(단조 증가 PK)로 타이브레이크한다
-     * — 대신 같은 버킷 안에서는 정확한 score 순서 대신 userLinkuId 순서로 정렬되는 정밀도 손실이
-     * 생기는데, 위 SCORE_BUCKET_COUNT 값이면 실제로 순위가 갈리는 두 후보가 같은 버킷에 묶이는
-     * 경우는 드물다(주석 참고).
-     *
-     * UsersLinkuRepositoryImpl#findNormalRecommendCandidates/findNoveltyRecommendCandidates에서
-     * 정렬(ORDER BY bucket DESC, userLinkuId DESC)과 탐색(WHERE (bucket, userLinkuId) < (커서의 bucket, userLinkuId))
-     * 양쪽에 동일하게 쓴다 — 매 요청 SQL이 그때그때 계산하므로 Java 쪽에서 별도로 재계산하지 않는다.
-     *
-     * 이 값은 RankedUsersLinku.scoreBucket(int, primitive)로 그대로 옮겨 담기므로, SQL NULL이 나오면
-     * 언박싱에서 NPE가 난다. score를 구성하는 하위 항 중 하나라도 NULL이면 덧셈 전체가 NULL로 전파되는
-     * SQL 특성 때문에 COALESCE로 방어한다.
+     * 구현 주의: score(scoreExpression/noveltyContextScoreExpression)는 여러 항을 {@code .add()}/
+     * raw 템플릿({@code numberTemplate}으로 이 중첩 트리를 {0} 자리에 통으로 밀어 넣는 방식)은
+     * Hibernate 6 HQL 분석기가 타입을 못 잡아 SemanticException을 던진다(재현됨) — 네이티브 연산자만 사용.
+     * FLOOR 불필요: score는 항상 0 이상(전 항이 CASE WHEN otherwise 0/1.0)이라 intValue() 절삭 = floor.
      */
     public NumberExpression<Integer> scoreBucketExpression(NumberExpression<Double> score) {
-        return Expressions.numberTemplate(Integer.class,
-                "CAST(FLOOR(COALESCE({0}, 0) * {1}) AS integer)", score, SCORE_BUCKET_COUNT);
+        return score.multiply((double) SCORE_BUCKET_COUNT).intValue();
     }
 
     /**
@@ -327,15 +311,22 @@ public class HomeRecommendScoreService {
             return Expressions.asNumber(0.0);
         }
 
+        // ts_rank_cd/to_tsvector/to_tsquery/similarity는 Hibernate가 반환 타입을 모르는
+        // Postgres 전용 함수라, 여기서 나온 값을 그대로 +/>로 연산하면 Hibernate 6 HQL 분석기가
+        // 피연산자를 java.lang.Object로 취급해 "Operand of + is of type java.lang.Object"
+        // SemanticException을 던진다(재현됨 — profileTsqueryText/profileText가 null이 아닌
+        // 실제 유저에서만 이 분기를 타서, 둘 다 null로 두는 테스트에서는 드러나지 않았다).
+        // usersLinku.viewCount/linku.totalViewCount를 CAST({0} AS double)로 감싸는 것과 동일하게,
+        // 함수 호출 결과를 산술/비교에 쓰기 전에 명시적으로 CAST해서 타입을 고정해야 한다.
         NumberExpression<Double> ftsScore = Expressions.numberTemplate(Double.class,
                 "CASE WHEN {2} IS NULL OR {2} = '' THEN 0.0 ELSE ("
-                        + "ts_rank_cd(to_tsvector('simple', {0} || ' ' || COALESCE({1}, '')), to_tsquery('simple', {2})) / "
-                        + "(ts_rank_cd(to_tsvector('simple', {0} || ' ' || COALESCE({1}, '')), to_tsquery('simple', {2})) + 1)"
+                        + "CAST(ts_rank_cd(to_tsvector('simple', {0} || ' ' || COALESCE({1}, '')), to_tsquery('simple', {2})) AS double) / "
+                        + "(CAST(ts_rank_cd(to_tsvector('simple', {0} || ' ' || COALESCE({1}, '')), to_tsquery('simple', {2})) AS double) + 1.0)"
                         + ") END",
                 linku.title, aiArticle.summary, profileTsqueryText);
 
         NumberExpression<Double> trgmScore = Expressions.numberTemplate(Double.class,
-                "COALESCE(similarity({0} || ' ' || COALESCE({1}, ''), {2}), 0)",
+                "CAST(COALESCE(similarity({0} || ' ' || COALESCE({1}, ''), {2}), 0) AS double)",
                 linku.title, aiArticle.summary, profileText);
 
         return Expressions.numberTemplate(Double.class,
@@ -401,8 +392,17 @@ public class HomeRecommendScoreService {
                 .join(profileKeyword).on(profileKeyword.keywordId.eq(linkuKeyword.keyword.id))
                 .where(linkuKeyword.linku.eq(linku), profileKeyword.userId.eq(userId));
 
+        // 서브쿼리 결과를 COALESCE/LEAST에 바로 섞어 넣으면(구 버전) Hibernate 6 HQL 분석기가
+        // 이 표현식이 select 절(findNormalRecommendCandidates의 select(usersLinku, bucket))에
+        // 들어갈 때 서브쿼리 반환 타입을 못 잡고 java.lang.Object로 취급해
+        // "Operand ... is of type java.lang.Object which is not a numeric type" SemanticException을
+        // 던진다(재현됨). personalEngagementExpression/popularityExpression에서 plain path를
+        // CAST({0} AS double)로 감싸는 것과 동일하게, 서브쿼리도 먼저 CAST로 타입을 명시해야 한다.
+        NumberExpression<Double> matchedWeight = Expressions.numberTemplate(Double.class,
+                "CAST(COALESCE(({0}), 0) AS double)", matchedWeightSum);
+
         return Expressions.numberTemplate(Double.class,
-                "LEAST(CAST(COALESCE({0}, 0) AS double), {1}) / {1}",
-                matchedWeightSum, cap);
+                "LEAST({0}, {1}) / {1}",
+                matchedWeight, cap);
     }
 }

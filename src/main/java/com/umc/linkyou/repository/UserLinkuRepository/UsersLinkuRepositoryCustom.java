@@ -14,31 +14,21 @@ public interface UsersLinkuRepositoryCustom {
     List<UsersLinku> findRecentLinkCandidatesByUser(Long userId, int limit);
     List<UsersLinku> fetchAiArticlesByCategoryIdWithCursor(Long userId, Long categoryId, Long cursorId, int limit);
 
-    // 홈화면 링크 추천: EmotionMatch/SituationMatch/PersonalEngagement/Popularity/TextMatch/KeywordMatch를
-    // 정규화해 가중합한 뒤 DB에서 정렬/페이징까지 마친 후보를 반환한다. (HomeRecommendScoreService#scoreExpression)
-    // profileTsqueryText/profileText는 UserContentProfile에서 미리 조회해서 넘긴다(없으면 null — TextMatch 0 처리).
-    // novelty 버킷 필터링을 하지 않는 원본 메서드다 — LinkuRecommendService는 novelty/normal 버킷을 분리하기 위해
-    // findNormalRecommendCandidates를 대신 쓴다 (아래 참고).
+    // 홈화면 추천 원본(OFFSET). 7축 가중합 정렬 — HomeRecommendScoreService#scoreExpression.
+    // novelty/normal 분리 없이 전체를 다루던 옛 메서드, LinkuRecommendService는 아래 seek 버전을 쓴다.
     List<UsersLinku> findHomeRecommendCandidates(
             Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
             LocalDateTime now, String profileTsqueryText, String profileText, int offset, int limit);
 
-    // 홈화면 링크 추천 — normal 버킷. findHomeRecommendCandidates와 동일한 7축 가중합 랭킹이지만,
-    // HomeRecommendScoreService#noveltyCondition에 해당하는(=최근에 안 본) 후보를 제외한다.
-    // findNoveltyRecommendCandidates가 뽑아가는 후보와 서로소를 유지해서 두 버킷을 합쳤을 때 중복이 없게 한다.
-    //
-    // OFFSET이 아니라 seek(keyset) 방식이다 — afterScoreBucket/afterUserLinkuId가 둘 다 null이면 처음부터,
-    // 아니면 (scoreBucket, userLinkuId)가 그보다 작은 것부터 이어서 가져온다. 정렬/탐색 키로 쓰는
-    // scoreBucket은 HomeRecommendScoreService#scoreBucketExpression 참고 — 페이지가 깊어져도 이전 구간을
-    // 다시 스캔/스킵하지 않기 위한 것이다(service/common/README.md 참고).
+    // normal 버킷 — 7축 가중합, novelty 대상(최근 안 본 것)은 제외해 서로소 유지.
+    // seek(keyset) 방식: after* 둘 다 null이면 처음부터, 아니면 (scoreBucket, userLinkuId) 이전부터.
+    // scoreBucket은 HomeRecommendScoreService#scoreBucketExpression 참고.
     List<RankedUsersLinku> findNormalRecommendCandidates(
             Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
             LocalDateTime now, String profileTsqueryText, String profileText,
             int recencyThresholdDays, Integer afterScoreBucket, Long afterUserLinkuId, int limit);
 
-    // 홈화면 링크 추천 — novelty(최근에 안 본 것) 버킷. 7축 가중합이 아니라 EmotionMatch/SituationMatch
-    // 두 축(HomeRecommendScoreService#noveltyContextScoreExpression)만으로 정렬한다.
-    // findNormalRecommendCandidates와 동일하게 seek(keyset) 방식이다.
+    // novelty 버킷 — EmotionMatch/SituationMatch 2축만 정렬(noveltyContextScoreExpression). seek 방식 동일.
     List<RankedUsersLinku> findNoveltyRecommendCandidates(
             Long userId, Long selectedEmotionId, Long selectedSituationId,
             LocalDateTime now, int recencyThresholdDays, Integer afterScoreBucket, Long afterUserLinkuId, int limit);
