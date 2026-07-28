@@ -9,6 +9,7 @@ import com.umc.linkyou.domain.QAiArticle;
 import com.umc.linkyou.domain.QLinku;
 import com.umc.linkyou.domain.mapping.QUsersLinku;
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.domain.recommend.QUserProfileKeyword;
 import com.umc.linkyou.repository.dto.RankedUsersLinku;
 import com.umc.linkyou.service.common.HomeRecommendScoreService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
@@ -112,7 +115,8 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 homeRecommendScoreService.notNoveltyCondition(usersLinku, now, recencyThresholdDays);
 
         NumberExpression<Double> totalScore = homeRecommendScoreService.scoreExpression(
-                usersLinku, linku, aiArticle, userId, selectedEmotionId, selectedSituationId, mappedCategoryIds,
+                usersLinku, linku, aiArticle, fetchUserKeywordWeights(userId),
+                selectedEmotionId, selectedSituationId, mappedCategoryIds,
                 now, profileTsqueryText, profileText);
         NumberExpression<Integer> bucket = homeRecommendScoreService.scoreBucketExpression(totalScore);
         BooleanExpression seek = seekCondition(bucket, usersLinku, afterScoreBucket, afterUserLinkuId);
@@ -175,6 +179,26 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
         return toRankedList(rows, usersLinku, bucket);
     }
 
+    /**
+     * 이 유저의 keywordId -> weight 맵을 요청당 한 번만 조회한다 (최대 10개,
+     * UserProfileRefreshWorker#TOP_KEYWORD_COUNT). HomeRecommendScoreService#keywordMatchExpression이
+     * 이 맵을 후보 row마다 다시 조회하는 대신 CASE WHEN 상수로 SQL에 박아넣는 데 쓴다 — 원래는
+     * user_profile_keywords를 후보 row마다 상관 서브쿼리로 조인했는데, 이 테이블은 유저당 10개뿐이라
+     * 여기서 한 번에 메모리로 올려두는 게 훨씬 싸다.
+     */
+    private Map<Long, Integer> fetchUserKeywordWeights(Long userId) {
+        QUserProfileKeyword profileKeyword = QUserProfileKeyword.userProfileKeyword;
+        return queryFactory
+                .select(profileKeyword.keywordId, profileKeyword.weight)
+                .from(profileKeyword)
+                .where(profileKeyword.userId.eq(userId))
+                .fetch()
+                .stream()
+                .collect(Collectors.toMap(
+                        t -> t.get(profileKeyword.keywordId),
+                        t -> t.get(profileKeyword.weight)));
+    }
+
     /** seek 탐색 조건. 둘 다 null이면 첫 페이지(조건 없음), 아니면 (bucket, userLinkuId) 이전 행부터 */
     private BooleanExpression seekCondition(
             NumberExpression<Integer> bucket, QUsersLinku usersLinku,
@@ -206,7 +230,8 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
         QAiArticle aiArticle = QAiArticle.aiArticle;
 
         NumberExpression<Double> totalScore = homeRecommendScoreService.scoreExpression(
-                usersLinku, linku, aiArticle, userId, selectedEmotionId, selectedSituationId, mappedCategoryIds,
+                usersLinku, linku, aiArticle, fetchUserKeywordWeights(userId),
+                selectedEmotionId, selectedSituationId, mappedCategoryIds,
                 now, profileTsqueryText, profileText);
 
         var query = queryFactory
