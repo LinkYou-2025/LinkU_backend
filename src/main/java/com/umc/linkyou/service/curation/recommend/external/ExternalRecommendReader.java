@@ -1,5 +1,6 @@
 package com.umc.linkyou.service.curation.recommend.external;
 
+import com.umc.linkyou.converter.CurationConverter;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
 import com.umc.linkyou.domain.mapping.CurationLinku;
@@ -47,11 +48,8 @@ public class ExternalRecommendReader {
 
         if (tails.isEmpty()) {
             return items.stream()
-                    .map(item -> RecommendedLinkResponse.builder()
-                            .url(item.url())
-                            .title(item.title())
-                            .imageUrl(item.imageUrl())
-                            .build())
+                    .map(item -> CurationConverter.toRecommendedLinkResponse(
+                            item.url(), item.title(), item.imageUrl(), null))
                     .toList();
         }
 
@@ -65,13 +63,8 @@ public class ExternalRecommendReader {
                             .filter(Objects::nonNull)
                             .findFirst()
                             .orElse(null);
-                    return RecommendedLinkResponse.builder()
-                            .url(item.url())
-                            .title(item.title())
-                            .domain(domain != null ? domain.getName() : null)
-                            .domainImageUrl(domain != null ? domain.getImageUrl() : null)
-                            .imageUrl(item.imageUrl())
-                            .build();
+                    return CurationConverter.toRecommendedLinkResponse(
+                            item.url(), item.title(), item.imageUrl(), domain);
                 })
                 .toList();
     }

@@ -2,10 +2,11 @@ package com.umc.linkyou.service.curation;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.converter.CurationConverter;
 import com.umc.linkyou.domain.Curation;
+import com.umc.linkyou.domain.CurationSectionInfo;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.service.curation.ment.CurationMentMaterializer;
-import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.service.curation.recommend.external.ExternalRecommendMaterializer;
 import com.umc.linkyou.service.curation.recommend.internal.InternalRecommendMaterializer;
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
@@ -38,7 +39,6 @@ public class CurationServiceImpl implements CurationService {
     private final UserRepository userRepository;
     private final CurationRepository curationRepository;
     private final CurationSectionInfoRepository curationSectionInfoRepository;
-    private final ThumbnailUrlProvider thumbnailUrlProvider;
     private final ExternalRecommendMaterializer externalRecommendMaterializer;
     private final InternalRecommendMaterializer internalRecommendMaterializer;
     private final CurationMentMaterializer curationMentMaterializer;
@@ -136,13 +136,6 @@ public class CurationServiceImpl implements CurationService {
             throw new GeneralException(CurationErrorStatus._CURATION_FORBIDDEN);
         }
 
-        return CurationDetailResponse.builder()
-                .curationId(curation.getCurationId())
-                .month(curation.getBaseMonth())
-                .headerMent(curation.getHeaderMent())
-                .footerMent(curation.getFooterMent())
-                .mentReady(curation.getHeaderMent() != null && !curation.getHeaderMent().isBlank()
-                        && curation.getFooterMent() != null && !curation.getFooterMent().isBlank())
-                .build();
+        return CurationConverter.toCurationDetailResponse(curation);
     }
 }

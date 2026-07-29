@@ -43,6 +43,14 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
 
     List<UsersLinku> findByUser_IdAndLastViewedAtIsNull(Long userId);
 
+    // 후보 URL 중 사용자가 이미 저장한 것을 찾는다 (외부 추천에 userLinkuId를 채워주기 위함)
+    @Query("""
+            SELECT ul FROM UsersLinku ul
+            JOIN FETCH ul.linku l
+            WHERE ul.user.id = :userId AND l.linkuUrl IN :urls
+            """)
+    List<UsersLinku> findByUserIdAndLinkuUrlIn(@Param("userId") Long userId, @Param("urls") List<String> urls);
+
     // 해당 기간 유저가 저장한 링크의 감정별 저장 횟수
     @Query("""
             SELECT new com.umc.linkyou.repository.dto.TagCountRow(ul.emotion.emotionId, COUNT(ul))

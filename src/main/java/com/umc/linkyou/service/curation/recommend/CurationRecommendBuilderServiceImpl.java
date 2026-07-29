@@ -5,6 +5,8 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.CurationConverter;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
+import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.curationRepository.CurationLinkuRepository;
 import com.umc.linkyou.repository.curationRepository.CurationRepository;
 import com.umc.linkyou.service.curation.recommend.external.ExternalRecommendMaterializer;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -29,6 +32,7 @@ public class CurationRecommendBuilderServiceImpl implements CurationRecommendBui
 
     private final CurationRepository curationRepository;
     private final CurationLinkuRepository curationLinkuRepository;
+    private final UsersLinkuRepository usersLinkuRepository;
     private final ExternalRecommendReader externalRecommendReader;
     private final InternalRecommendMaterializer internalRecommendMaterializer;
     private final ExternalRecommendMaterializer externalRecommendMaterializer;
@@ -57,6 +61,21 @@ public class CurationRecommendBuilderServiceImpl implements CurationRecommendBui
 
         if (external.isEmpty()) {
             externalRecommendMaterializer.generateExternalAsync(curationId);
+        }
+
+        // 외부 추천이 이미 저장된 링크와 같은 URL이면, 외부 추천인 채로 유지하되 userLinkuId만 채워준다
+        if (!external.isEmpty()) {
+            List<UsersLinku> savedMatches = usersLinkuRepository.findByUserIdAndLinkuUrlIn(
+                    userId, external.stream().map(RecommendedLinkResponse::getUrl).toList());
+            if (!savedMatches.isEmpty()) {
+                Map<String, Long> urlToUserLinkuId = savedMatches.stream()
+                        .collect(Collectors.toMap(ul -> ul.getLinku().getLinkuUrl(), UsersLinku::getUserLinkuId));
+                external = external.stream()
+                        .map(ex -> urlToUserLinkuId.containsKey(ex.getUrl())
+                                ? ex.toBuilder().userLinkuId(urlToUserLinkuId.get(ex.getUrl())).build()
+                                : ex)
+                        .toList();
+            }
         }
 
         List<RecommendedLinkResponse> result = new ArrayList<>(INTERNAL_LIMIT + EXTERNAL_LIMIT);
