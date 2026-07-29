@@ -1,15 +1,13 @@
 package com.umc.linkyou.repository.UserLinkuRepository;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.CaseBuilder;
-import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.QAiArticle;
 import com.umc.linkyou.domain.QLinku;
 import com.umc.linkyou.domain.mapping.QUsersLinku;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.utils.EmotionSimilarityUtil;
+import com.umc.linkyou.service.common.HomeRecommendScoreService;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
@@ -19,6 +17,7 @@ import java.util.List;
 public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
 
     private final JPAQueryFactory queryFactory;
+    private final HomeRecommendScoreService homeRecommendScoreService;
 
     @Override
     public List<UsersLinku> fetchAiArticlesByCategoryId(Long userId, Long categoryId) {
@@ -91,12 +90,15 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
 
     @Override
     public List<UsersLinku> findHomeRecommendCandidates(
-            Long userId, Long selectedEmotionId, List<Long> mappedCategoryIds, int offset, int limit) {
+            Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
+            LocalDateTime now, String profileTsqueryText, String profileText, int offset, int limit) {
         QUsersLinku usersLinku = QUsersLinku.usersLinku;
         QLinku linku = QLinku.linku;
+        QAiArticle aiArticle = QAiArticle.aiArticle;
 
-        NumberExpression<Integer> totalScore = emotionScoreExpression(usersLinku, selectedEmotionId)
-                .add(situationScoreExpression(linku, mappedCategoryIds));
+        NumberExpression<Double> totalScore = homeRecommendScoreService.scoreExpression(
+                usersLinku, linku, aiArticle, userId, selectedEmotionId, selectedSituationId, mappedCategoryIds,
+                now, profileTsqueryText, profileText);
 
         return queryFactory
                 .selectFrom(usersLinku)
@@ -105,6 +107,13 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 .join(usersLinku.emotion).fetchJoin()
                 .join(linku.category).fetchJoin()
                 .join(linku.domain).fetchJoin()
+                // situation은 nullable이라 fetchJoin 없이 LEFT JOIN만 건다.
+                // (INNER JOIN이나 조인 없이 경로만 참조하면 situation이 없는 저장 링크가 통째로 빠지는 버그가 생김 —
+                //  HomeRecommendScoreService#scoreExpression 주석 참고)
+                .leftJoin(usersLinku.situation)
+                // summary는 없는 링크도 있어서 LEFT JOIN. fetchJoin은 안 걸었다 — TextMatch 계산에만 쓰이고
+                // Java 쪽에서 linku.getAiArticle()을 다시 꺼내 쓰지 않는다.
+                .leftJoin(linku.aiArticle, aiArticle)
                 .where(usersLinku.user.id.eq(userId))
                 // 점수/정렬/페이징을 전부 DB에서 처리 (애플리케이션 메모리로 전체 로드하지 않음)
                 .orderBy(totalScore.desc(), usersLinku.createdAt.desc())
@@ -113,34 +122,20 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 .fetch();
     }
 
-    // 감정 유사도 점수를 CASE WHEN 식으로 변환한다.
-    // EmotionSimilarityUtil의 (선택 감정, 후보 감정) 매핑을 그대로 SQL로 옮긴 것으로,
-    // 실제 점수 값의 출처는 여전히 EmotionSimilarityUtil 하나다.
-    private NumberExpression<Integer> emotionScoreExpression(QUsersLinku usersLinku, Long selectedEmotionId) {
-        CaseBuilder.Cases<Integer, NumberExpression<Integer>> chain = null;
+    @Override
+    public List<UsersLinku> findRecentContentForProfile(Long userId, int limit) {
+        QUsersLinku usersLinku = QUsersLinku.usersLinku;
+        QLinku linku = QLinku.linku;
+        QAiArticle aiArticle = QAiArticle.aiArticle;
 
-        for (long candidateEmotionId = 1; candidateEmotionId <= 6; candidateEmotionId++) {
-            int score = EmotionSimilarityUtil.getSimilarityScore(selectedEmotionId, candidateEmotionId);
-            if (score == 0) {
-                continue;
-            }
-            BooleanExpression condition = usersLinku.emotion.emotionId.eq(candidateEmotionId);
-            chain = (chain == null)
-                    ? new CaseBuilder().when(condition).then(score)
-                    : chain.when(condition).then(score);
-        }
-
-        return chain != null ? chain.otherwise(0) : Expressions.asNumber(0);
-    }
-
-    // 상황(situation)에 매핑된 카테고리에 속하면 40점, 아니면 0점.
-    private NumberExpression<Integer> situationScoreExpression(QLinku linku, List<Long> mappedCategoryIds) {
-        if (mappedCategoryIds == null || mappedCategoryIds.isEmpty()) {
-            return Expressions.asNumber(0);
-        }
-        return new CaseBuilder()
-                .when(linku.category.categoryId.in(mappedCategoryIds))
-                .then(40)
-                .otherwise(0);
+        return queryFactory
+                .selectFrom(usersLinku)
+                .join(usersLinku.linku, linku).fetchJoin()
+                // summary 없는 링크도 있으니 LEFT JOIN
+                .leftJoin(linku.aiArticle, aiArticle).fetchJoin()
+                .where(usersLinku.user.id.eq(userId))
+                .orderBy(usersLinku.createdAt.desc())
+                .limit(limit)
+                .fetch();
     }
 }

@@ -4,7 +4,6 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleSuccessStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
-import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.service.AiArticleService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.api.AiArticleApi;
@@ -20,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 public class AiArticleController implements AiArticleApi {
 
     final private AiArticleService aiArticleService;
-    final private AiArticleRepository aiArticleRepository;
 
     @Override
     @PostMapping("/{linkuid}")

@@ -19,6 +19,7 @@ import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
+import com.umc.linkyou.repository.recommend.UserProfileRefreshQueueRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.service.folder.FolderService;
@@ -72,6 +73,7 @@ class LinkuCreateServiceTest {
     @Mock private FolderService folderService;
     @Mock private KeywordService keywordService;
     @Mock private UsersFolderRepository usersFolderRepository;
+    @Mock private UserProfileRefreshQueueRepository userProfileRefreshQueueRepository;
 
     // 의존성 주입을 위한 Upsert 서비스 Mock 추가
     @Mock private LinkuUpsertService linkuUpsertService;
@@ -245,13 +247,14 @@ class LinkuCreateServiceTest {
     class CreateUsersLinkuAiExistInheritance {
 
         @Test
-        @DisplayName("이미_AI_요약이_존재하는_링크를_재저장하면_새_UsersLinku도_aiExist가_true로_생성된다")
-        void 이미_AI_요약이_존재하는_링크를_재저장하면_새_UsersLinku도_aiExist가_true로_생성된다() {
+        @DisplayName("본인이_이전에_같은_링크를_저장하며_AI_요약을_확인한_적_있으면_새_UsersLinku도_aiExist가_true로_생성된다")
+        void 본인이_이전에_같은_링크를_저장하며_AI_요약을_확인한_적_있으면_새_UsersLinku도_aiExist가_true로_생성된다() {
             Linku linku = LinkuFixture.linku(null);
-            com.umc.linkyou.domain.AiArticle existingArticle = com.umc.linkyou.domain.AiArticle.builder()
-                    .id(1L).linku(linku).summary("이미 존재하는 요약").build();
+            UsersLinku previousSave = UsersLinku.builder()
+                    .user(LinkuFixture.user()).linku(linku).aiExist(true).build();
 
-            given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.of(existingArticle));
+            given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(LinkuFixture.USER_ID, linku.getLinkuId()))
+                    .willReturn(List.of(previousSave));
             given(usersLinkuRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             UsersLinku result = linkuCreateService.createUsersLinku(
@@ -262,11 +265,28 @@ class LinkuCreateServiceTest {
         }
 
         @Test
-        @DisplayName("아직_AI_요약이_없는_링크를_저장하면_UsersLinku는_aiExist가_false로_생성된다")
-        void 아직_AI_요약이_없는_링크를_저장하면_UsersLinku는_aiExist가_false로_생성된다() {
+        @DisplayName("본인의_이전_저장_이력이_없으면_UsersLinku는_aiExist가_false로_생성된다")
+        void 본인의_이전_저장_이력이_없으면_UsersLinku는_aiExist가_false로_생성된다() {
             Linku linku = LinkuFixture.linku(null);
 
-            given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.empty());
+            given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(LinkuFixture.USER_ID, linku.getLinkuId()))
+                    .willReturn(List.of());
+            given(usersLinkuRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+            UsersLinku result = linkuCreateService.createUsersLinku(
+                    LinkuFixture.user(), linku, LinkuFixture.emotion(), LinkuFixture.situation(),
+                    null, null, "1번째 저장", true, true);
+
+            assertFalse(result.getAiExist());
+        }
+
+        @Test
+        @DisplayName("다른_유저가_이미_이_링크를_요약해뒀어도_본인이_요청_조회한_적_없으면_aiExist가_false로_생성된다")
+        void 다른_유저가_이미_이_링크를_요약해뒀어도_본인이_요청_조회한_적_없으면_aiExist가_false로_생성된다() {
+            Linku linku = LinkuFixture.linku(null);
+            // 다른 유저가 저장하며 이미 AI 요약을 확인해둔 상태 - 본인의 이력이 아니므로 조회 대상이 아니다.
+            given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(LinkuFixture.USER_ID, linku.getLinkuId()))
+                    .willReturn(List.of());
             given(usersLinkuRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             UsersLinku result = linkuCreateService.createUsersLinku(

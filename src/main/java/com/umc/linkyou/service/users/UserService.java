@@ -358,7 +358,7 @@ public class UserService {
         return UserConverter.toUserInfoDTO(s, currentEmail, purposes, interests, loginProvider);
     }
 
-    // 마이페이지 수정
+    // 마이페이지 수정 (부분 업데이트: 요청 본문에 포함되지 않은 필드는 변경하지 않음)
     @Transactional
     public void updateUserProfile(Long userId, UserRequestDTO.UpdateProfileDTO request) {
         Users user =
@@ -366,10 +366,14 @@ public class UserService {
                         .findById(userId)
                         .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
-        Job job =
-                jobRepository
-                        .findById(request.getJobId())
-                        .orElseThrow(() -> new UserHandler(UserErrorStatus._JOB_NOT_SET));
+        // jobId를 보낸 경우에만 직업 변경 (미포함 시 기존 직업 유지)
+        Job job = null;
+        if (request.getJobId() != null) {
+            job =
+                    jobRepository
+                            .findById(request.getJobId())
+                            .orElseThrow(() -> new UserHandler(UserErrorStatus._INVALID_JOB_ID));
+        }
 
         String nickName = null;
         if (request.getNickname() != null && !request.getNickname().equals(user.getNickName())) {
@@ -378,12 +382,24 @@ public class UserService {
         }
         user.updateProfile(job, nickName);
 
-        usersPurposeRepository.deleteAllByUser(user);
-        usersInterestRepository.deleteAllByUser(user);
-        usersPurposeRepository.saveAll(
-                UserConverter.toUsersPurposes(user, resolvePurposes(request.getPurposes())));
-        usersInterestRepository.saveAll(
-                UserConverter.toUsersInterests(user, resolveInterests(request.getInterests())));
+        // purposes를 보낸 경우에만 전체 교체 (미포함 시 기존 목적 유지)
+        if (request.getPurposes() != null) {
+            usersPurposeRepository.deleteAllByUser(user);
+            // delete를 즉시 flush하지 않으면 insert가 flush 순서상 delete보다 먼저 나가
+            // 겹치는 값이 있을 때 uk_users_purposes_user_purpose 유니크 제약 위반(409)이 발생함
+            usersPurposeRepository.flush();
+            usersPurposeRepository.saveAll(
+                    UserConverter.toUsersPurposes(user, resolvePurposes(request.getPurposes())));
+        }
+
+        // interests를 보낸 경우에만 전체 교체 (미포함 시 기존 관심사 유지)
+        if (request.getInterests() != null) {
+            usersInterestRepository.deleteAllByUser(user);
+            // 위와 동일한 이유로 flush 필요 (uk_users_interests_user_interest 위반 방지)
+            usersInterestRepository.flush();
+            usersInterestRepository.saveAll(
+                    UserConverter.toUsersInterests(user, resolveInterests(request.getInterests())));
+        }
 
         userRepository.save(user);
     }

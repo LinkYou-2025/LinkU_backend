@@ -188,4 +188,20 @@ public class LinkuConverter {
                 .build();
     } //리스트로 반환할때 쓰이는 것
 
+    // 마이페이지 AI 요약 링크 목록용 - toLinkuSimpleDTO와 동일한 title/linkuImageUrl 우선순위 패턴
+    // (usersLinku 우선, 없으면 linku)을 사용한다.
+    public static LinkuResponseDTO.AiArticleSummaryDTO toAiArticleSummaryDTO(UsersLinku usersLinku) {
+        Linku linku = usersLinku.getLinku();
+        Domain domain = linku.getDomain();
+        return LinkuResponseDTO.AiArticleSummaryDTO.builder()
+                .linkuId(linku.getLinkuId())
+                .linku(linku.getLinkuUrl())
+                .emotionId(usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
+                .domain(domain != null ? domain.getName() : null)
+                .domainImageUrl(domain != null ? domain.getImageUrl() : null)
+                .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
+                .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
+                .build();
+    }
+
 }

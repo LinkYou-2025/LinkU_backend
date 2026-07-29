@@ -14,6 +14,7 @@ import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuSearchResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -135,7 +136,22 @@ public interface LinkuApi {
             @Valid @RequestBody LinkuRequestDTO.LinkuFolderUpdateDTO updateDTO
     );
 
-    @Operation(summary = "링크 추천", description = "상황(situation)과 감정(emotion)을 기반으로 링크를 추천합니다. 페이지네이션을 지원합니다.")
+    @Operation(
+            summary = "링크 추천",
+            description = """
+                    상황(situation)과 감정(emotion)을 기반으로 링크를 추천합니다. 페이지네이션을 지원합니다.
+
+                    - **situationId**: 요청 유저의 직업(job)에 해당하는 상황 ID만 유효합니다. 직업과 맞지 않는 situationId를 넘기면 404(`_SITUATION_NOT_FOUND`)가 반환됩니다.
+                      - job_id 1 (고등학생) → situation 1~8 (1통학 중, 2공부 중, 3식사 중, 4시험 준비, 5친구랑, 6쇼핑 중, 7휴식 중, 8자기 전)
+                      - job_id 2 (대학생) → situation 9~16 (9과제 중, 10통학 중, 11쇼핑 중, 12알바 중, 13트렌드 확인, 14데이트 중, 15휴식 중, 16자기 전)
+                      - job_id 3 (직장인) → situation 17~24 (17출퇴근, 18트렌드 확인, 19업무 중, 20커리어 고민, 21쇼핑 중, 22데이트 중, 23휴식 중, 24자기 전)
+                      - job_id 4 (자영업자) → situation 25~32 (25출퇴근, 26업무 준비 중, 27데이트 중, 28식사, 29쇼핑 중, 30트렌드 확인, 31휴식 중, 32자기 전)
+                      - job_id 5 (프리랜서) → situation 33~40 (33작업 중, 34쇼핑 중, 35트렌드 확인, 36데이트 중, 37운동 중, 38식사, 39휴식 중, 40자기 전)
+                      - job_id 6 (취준생) → situation 41~48 (41자소서 작성, 42면접 준비, 43요리 중, 44트렌드 확인, 45쇼핑 중, 46운동 중, 47휴식 중, 48자기 전)
+                    - **emotionId**: 1즐거움, 2평온, 3설렘, 4슬픔, 5짜증, 6분노 중 하나.
+                    - 추천을 받으려면 저장한 링크가 3개 이상이어야 합니다(미만이면 `_RECOMMEND_LINKU_NOT_ENOUGH_LINKS`/`_RECOMMEND_LINKU_NEW_USER`).
+                    """
+    )
     @ApiErrorCode(
             errorStatus = {ErrorStatus._SITUATION_NOT_FOUND, ErrorStatus._EMOTION_NOT_FOUND, ErrorStatus._RECOMMEND_LINKU_NOT_ENOUGH_LINKS, ErrorStatus._RECOMMEND_LINKU_NO_RECOMMENDATION, ErrorStatus._RECOMMEND_LINKU_NEW_USER},
             userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus._JOB_NOT_SET}
@@ -143,8 +159,8 @@ public interface LinkuApi {
     @GetMapping("/recommend")
     ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
             @CurrentUser CustomUserDetails userDetails,
-            @RequestParam Long situationId,
-            @RequestParam Long emotionId,
+            @Parameter(description = "요청 유저의 job에 해당하는 상황 ID (설명 참고)", example = "19") @RequestParam Long situationId,
+            @Parameter(description = "감정 ID: 1즐거움/2평온/3설렘/4슬픔/5짜증/6분노", example = "1") @RequestParam Long emotionId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size
     );

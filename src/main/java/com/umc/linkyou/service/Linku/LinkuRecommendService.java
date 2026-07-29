@@ -11,20 +11,24 @@ import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.SituationJob;
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.domain.recommend.UserContentProfile;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
+import com.umc.linkyou.repository.recommend.UserContentProfileRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -32,8 +36,12 @@ import java.util.stream.Collectors;
  * 큐레이션 내부/외부 추천(service.curation.recommend.*)과는 별개의 독립된 로직이다.
  *
  * 점수 계산·정렬·페이징을 전부 DB(QueryDSL)에서 처리한다.
- * - 감정 유사도 / 상황-카테고리 매칭 점수: UsersLinkuRepositoryImpl#findHomeRecommendCandidates 의 CASE WHEN 식
+ * - EmotionMatch/SituationMatch/PersonalEngagement/Popularity/TextMatch/KeywordMatch 가중합(w^T x):
+ *   service.common.HomeRecommendScoreService
+ * - 위 스코어를 CASE WHEN/템플릿 식으로 변환해 쿼리에 적용: UsersLinkuRepositoryImpl#findHomeRecommendCandidates
  * - 정렬 + LIMIT/OFFSET: 같은 쿼리에서 처리 (애플리케이션 메모리로 전체 링크를 올리지 않음)
+ * - TextMatch/KeywordMatch에 쓰이는 유저 프로필(UserContentProfile)은 UserProfileRefreshWorker가
+ *   비동기로 미리 계산해둔 값을 여기서 단건 조회만 한다 (없으면 null → 두 신호는 0 처리).
  */
 @Service
 @RequiredArgsConstructor
@@ -47,6 +55,7 @@ public class LinkuRecommendService {
     private final LinkuViewService linkuViewService;
     private final LinkuFolderRepository linkuFolderRepository;
     private final SituationCategoryService situationCategoryService;
+    private final UserContentProfileRepository userContentProfileRepository;
 
     @Transactional(readOnly = true)
     public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
@@ -58,9 +67,15 @@ public class LinkuRecommendService {
         // 2. 상황에 매핑된 카테고리 조회
         List<Long> mappedCategories = situationCategoryService.getCategoryIdsBySituation(situationId);
 
-        // 3. DB에서 점수 계산 + 정렬 + 페이징까지 마친 후보 조회
+        // 2-1. TextMatch/KeywordMatch용 유저 콘텐츠 프로필 조회 (없으면 두 신호는 0으로 처리됨)
+        Optional<UserContentProfile> contentProfile = userContentProfileRepository.findById(userId);
+        String profileTsqueryText = contentProfile.map(UserContentProfile::getProfileTsqueryText).orElse(null);
+        String profileText = contentProfile.map(UserContentProfile::getProfileText).orElse(null);
+
+        // 3. DB에서 점수 계산(6개 feature 가중합) + 정렬 + 페이징까지 마친 후보 조회
         List<UsersLinku> candidates = usersLinkuRepository.findHomeRecommendCandidates(
-                userId, selectedEmotion.getEmotionId(), mappedCategories, page * size, size);
+                userId, selectedEmotion.getEmotionId(), situationId, mappedCategories,
+                LocalDateTime.now(), profileTsqueryText, profileText, page * size, size);
 
         if (candidates.isEmpty()) {
             return ApiResponse.onSuccess(Collections.emptyList());
