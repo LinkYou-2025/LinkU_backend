@@ -47,7 +47,7 @@ public class TermsAgreementService {
         upsertTerms(user, request.termsMap());
 
         List<TermsAgreement> updatedList = termsAgreementRepository.findAllByUserId(user.getId());
-        return TermsConverter.toTermsStatusDTO(user.getId(), updatedList);
+        return TermsConverter.toTermsStatusDTO(updatedList);
     }
 
     /**
@@ -79,7 +79,7 @@ public class TermsAgreementService {
     public UserResponseDTO.TermsStatusDTO getTermsStatus(CustomUserDetails userDetails) {
         // userDetails.getUserId()를 사용하여 단순 조회
         List<TermsAgreement> agreements = termsAgreementRepository.findAllByUserId(userDetails.getUserId());
-        return TermsConverter.toTermsStatusDTO(userDetails.getUserId(), agreements);
+        return TermsConverter.toTermsStatusDTO(agreements);
     }
 
     @Transactional

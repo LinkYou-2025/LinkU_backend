@@ -21,7 +21,7 @@ public class TermsConverter {
     /**
      * 전체 약관 상태 응답 DTO 생성
      */
-    public static UserResponseDTO.TermsStatusDTO toTermsStatusDTO(Long userId, List<TermsAgreement> agreements) {
+    public static UserResponseDTO.TermsStatusDTO toTermsStatusDTO(List<TermsAgreement> agreements) {
         // 1. 약관 타입별 동의 여부 Map 생성 (순서 보장)
         Map<TermsType, Boolean> termsStatusMap = agreements.stream()
                 .collect(Collectors.toMap(
@@ -41,7 +41,6 @@ public class TermsConverter {
                 && requiredList.stream().allMatch(TermsAgreement::getIsAgreed);
 
         return UserResponseDTO.TermsStatusDTO.builder()
-                .userId(userId)
                 .termsStatus(termsStatusMap)
                 .allRequiredAgreed(allRequiredAgreed)
                 .build();

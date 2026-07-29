@@ -166,7 +166,6 @@ class UserControllerTest {
             @WithCustomUser(userId = 1L)
             void get_terms_status_success() throws Exception {
                 UserResponseDTO.TermsStatusDTO mockResponse = UserResponseDTO.TermsStatusDTO.builder()
-                        .userId(1L)
                         .termsStatus(Map.of(
                                 TermsType.TERMS_OF_USE, true,
                                 TermsType.PRIVACY_POLICY, true,
@@ -212,11 +211,9 @@ class UserControllerTest {
             void update_terms_success() throws Exception {
                 UserRequestDTO.TermsAgreeDTO request = UserRequestDTO.TermsAgreeDTO.builder()
                         .termsMap(Map.of(TermsType.MARKETING, true))
-                        .termsVersion("v1.0")
                         .build();
 
                 UserResponseDTO.TermsStatusDTO mockResponse = UserResponseDTO.TermsStatusDTO.builder()
-                        .userId(1L)
                         .termsStatus(Map.of(
                                 TermsType.TERMS_OF_USE, true,
                                 TermsType.PRIVACY_POLICY, true,
@@ -246,8 +243,7 @@ class UserControllerTest {
             void update_terms_fail_invalid_type() throws Exception {
                 String invalidJson = """
                         {
-                          "termsMap": { "INVALID_TYPE": true },
-                          "termsVersion": "v1.0"
+                          "termsMap": { "INVALID_TYPE": true }
                         }
                         """;
 
@@ -263,7 +259,6 @@ class UserControllerTest {
             void update_terms_unauthorized() throws Exception {
                 UserRequestDTO.TermsAgreeDTO request = UserRequestDTO.TermsAgreeDTO.builder()
                         .termsMap(Map.of(TermsType.MARKETING, true))
-                        .termsVersion("v1.0")
                         .build();
 
                 mockMvc.perform(patch("/api/v1/users/terms/agree")

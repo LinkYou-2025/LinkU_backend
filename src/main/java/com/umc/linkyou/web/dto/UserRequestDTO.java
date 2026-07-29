@@ -145,15 +145,8 @@ public class UserRequestDTO {
                     anyOf = {TermsType.class}
             )
             @NotEmpty(message = "변경할 약관 상태를 하나 이상 입력해주세요.")
-            Map<TermsType, Boolean> termsMap,
-
-            @Schema(description = "약관 버전", example = "v1.0")
-            String termsVersion
+            Map<TermsType, Boolean> termsMap
     ) {
-        // 컴팩트 생성자를 사용하여 기본값 설정
-        public TermsAgreeDTO {
-            if (termsVersion == null) termsVersion = "v1.0";
-        }
     }
 
 }
