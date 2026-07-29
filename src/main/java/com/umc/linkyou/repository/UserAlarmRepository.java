@@ -48,4 +48,6 @@ public interface UserAlarmRepository extends JpaRepository<UserAlarm, Long> {
 
     boolean existsByUser_IdAndIsReadFalseAndCreatedAtAfter(Long userId, LocalDateTime after);
 
+    void deleteByCreatedAtBefore(LocalDateTime threshold);
+
 }

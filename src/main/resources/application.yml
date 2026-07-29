@@ -25,6 +25,10 @@ spring:
     baseline-on-migrate: false
     baseline-version: 1
 
+  batch:
+    job:
+      enabled: false
+
   sql:
     init:
       mode: never
@@ -90,6 +94,21 @@ management:
   endpoint:
     health:
       show-details: always
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+    instances:
+      gemini: {}
+      customSearch: {}
 
 jwt:
   redis:
