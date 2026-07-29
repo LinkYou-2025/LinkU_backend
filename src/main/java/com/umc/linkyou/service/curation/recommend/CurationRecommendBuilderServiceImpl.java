@@ -43,7 +43,7 @@ public class CurationRecommendBuilderServiceImpl implements CurationRecommendBui
         }
 
         List<RecommendedLinkResponse> internal = curationLinkuRepository
-                .findWithDomainByCurationIdAndType(curationId, CurationLinkuType.RECOMMENDED)
+                .findWithDomainByCurationIdAndType(curationId, CurationLinkuType.INTERNAL)
                 .stream()
                 .map(CurationConverter::toRecommendedLinkResponse)
                 .limit(INTERNAL_LIMIT)

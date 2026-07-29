@@ -31,7 +31,7 @@ public class CurationLinku {
 
     @Column(name = "type", nullable = false)
     @Enumerated(EnumType.STRING)
-    private CurationLinkuType type; // RECOMMENDED / EXTERNAL
+    private CurationLinkuType type; // INTERNAL / EXTERNAL
 
     // 외부추천용 최소 컬럼
     @Column(name = "url", columnDefinition = "TEXT")
@@ -61,7 +61,7 @@ public class CurationLinku {
         return CurationLinku.builder()
                 .curation(curation)
                 .usersLinku(usersLinku)
-                .type(CurationLinkuType.RECOMMENDED)
+                .type(CurationLinkuType.INTERNAL)
                 .url(usersLinku.getLinku().getLinkuUrl())
                 .title(usersLinku.getLinku().getTitle())
                 .imageUrl(imageUrl)
