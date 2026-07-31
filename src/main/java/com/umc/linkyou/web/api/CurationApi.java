@@ -7,6 +7,7 @@ import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
+import com.umc.linkyou.validation.annotation.swagger.ApiNoContentCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
 import com.umc.linkyou.web.dto.curation.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -55,6 +56,7 @@ public interface CurationApi {
             - 생성된 큐레이션이 하나도 없는 경우, 204 No Content를 반환합니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
+    @ApiNoContentCode
     @GetMapping("/latest")
     ResponseEntity<ApiResponse<CurationLatestResponse>> getLatestCuration(
             @CurrentUser CustomUserDetails userDetails
