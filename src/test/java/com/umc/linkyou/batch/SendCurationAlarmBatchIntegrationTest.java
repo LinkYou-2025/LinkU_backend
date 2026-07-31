@@ -31,6 +31,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,7 +50,10 @@ import static org.mockito.Mockito.verify;
 @DisplayName("sendCurationAlarmStep 통합 테스트")
 class SendCurationAlarmBatchIntegrationTest {
 
-    private static final String BASE_MONTH = YearMonth.now().minusMonths(1).toString();
+    // reader(CurationAlarmItemReader)가 Asia/Seoul 기준으로 baseMonth를 계산하므로 테스트도 맞춰야 한다.
+    // JVM 기본 타임존(YearMonth.now())을 쓰면 UTC로 도는 CI에서 매월 1일 UTC 기준 전날 하루 동안
+    // Seoul과 다른 달을 계산해 리더가 대상을 못 찾는 문제가 있었다.
+    private static final String BASE_MONTH = YearMonth.now(ZoneId.of("Asia/Seoul")).minusMonths(1).toString();
 
     @Autowired private JobLauncher jobLauncher;
     @Autowired private JobRepository jobRepository;
@@ -173,7 +177,7 @@ class SendCurationAlarmBatchIntegrationTest {
         void 지난달_아닌_큐레이션_제외() throws Exception {
             // given
             Users user = saveUserWithSetting("유저디", true);
-            saveCuration(user, YearMonth.now().minusMonths(2).toString());
+            saveCuration(user, YearMonth.now(ZoneId.of("Asia/Seoul")).minusMonths(2).toString());
 
             // when
             JobExecution execution = jobLauncherTestUtils.launchStep("sendCurationAlarmStep", uniqueJobParameters());

@@ -58,8 +58,8 @@ public class BatchScheduler {
         jobLauncher.run(deleteExpiredFcmTokenJob, buildJobParameters());
     }
 
-    // 매월 1일 새벽 0시 5분 - 큐레이션 생성
-    @Scheduled(cron = "0 5 0 1 * *", zone = "Asia/Seoul")
+    // 매월 1일 새벽 0시 59분 - 큐레이션 생성
+    @Scheduled(cron = "0 59 0 1 * *", zone = "Asia/Seoul")
     public void runGenerateMonthlyCurationJob() throws Exception {
         log.info("배치 실행 시작: 월간 큐레이션 생성");
         jobLauncher.run(generateMonthlyCurationJob, buildJobParameters());
