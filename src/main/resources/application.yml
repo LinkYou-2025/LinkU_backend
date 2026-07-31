@@ -51,7 +51,7 @@ spring:
   cloud:
     gcp:
       project-id: linku-server
-      location: us-central1
+      location: global
 
   security:
     oauth2:
