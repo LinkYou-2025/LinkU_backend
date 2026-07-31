@@ -12,17 +12,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Configuration
 @EnableAsync
 public class AsyncConfig {
-    @Bean(name = "defaultTaskExecutor")
-    public Executor defaultTaskExecutor() {
-        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
-        ex.setCorePoolSize(10);
-        ex.setMaxPoolSize(20);
-        ex.setQueueCapacity(300);
-        ex.setThreadNamePrefix("async-");
-        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-        ex.initialize();
-        return ex;
-    }
     @Bean
     public Semaphore externalRecoLimiter() {
         return new Semaphore(3);
@@ -38,7 +27,53 @@ public class AsyncConfig {
         return new Semaphore(3);
     }
 
+    // 멘트 생성용 스레드 풀
+    @Bean(name = "mentTaskExecutor")
+    public Executor mentTaskExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(3);
+        ex.setMaxPoolSize(3);
+        ex.setQueueCapacity(200);
+        ex.setThreadNamePrefix("ment-");
+        ex.setWaitForTasksToCompleteOnShutdown(true);
+        ex.setAwaitTerminationSeconds(30);
+        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        ex.initialize();
+        return ex;
+    }
 
+    // 외부 추천용
+    @Bean(name = "externalRecoTaskExecutor")
+    public Executor externalRecoTaskExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(3);
+        ex.setMaxPoolSize(3);
+        ex.setQueueCapacity(200);
+        ex.setThreadNamePrefix("external-reco-");
+        ex.setWaitForTasksToCompleteOnShutdown(true);
+        ex.setAwaitTerminationSeconds(30);
+        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        ex.initialize();
+        return ex;
+    }
+
+    // 내부 추천용, DB 기반
+    @Bean(name = "internalRecoTaskExecutor")
+    public Executor internalRecoTaskExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(6);
+        ex.setMaxPoolSize(6);
+        ex.setQueueCapacity(200);
+        ex.setThreadNamePrefix("internal-reco-");
+        ex.setWaitForTasksToCompleteOnShutdown(true);
+        ex.setAwaitTerminationSeconds(30);
+        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        ex.initialize();
+        return ex;
+    }
+
+
+    // 일반 fcm 알림 전송용
     @Bean(name = "fcmTaskExecutor")
     public Executor fcmTaskExecutor() {
         ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
@@ -63,6 +98,22 @@ public class AsyncConfig {
         ex.setThreadNamePrefix("alarm-batch-");
         ex.setWaitForTasksToCompleteOnShutdown(true);
         ex.setAwaitTerminationSeconds(60);
+        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        ex.initialize();
+        return ex;
+    }
+
+
+    // 외부 추천 큐레이션 이미지 fetch
+    @Bean(name = "imageFetchTaskExecutor")
+    public Executor imageFetchTaskExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(8);
+        ex.setMaxPoolSize(15);
+        ex.setQueueCapacity(100);
+        ex.setThreadNamePrefix("image-fetch-");
+        ex.setWaitForTasksToCompleteOnShutdown(true);
+        ex.setAwaitTerminationSeconds(30);
         ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         ex.initialize();
         return ex;

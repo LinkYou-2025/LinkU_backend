@@ -25,6 +25,10 @@ spring:
     baseline-on-migrate: false
     baseline-version: 1
 
+  batch:
+    job:
+      enabled: false
+
   sql:
     init:
       mode: never
@@ -90,6 +94,21 @@ management:
   endpoint:
     health:
       show-details: always
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+    instances:
+      gemini: {}
+      customSearch: {}
 
 jwt:
   redis:
@@ -163,6 +182,12 @@ recommend:
         # 유저가 직접 고른 감정/situation은 1.0 그대로, AI가 추론한 값은 아래 계수만큼 감쇠한다.
         ai-emotion-discount: 0.8
         ai-situation-discount: 0.8
+      novelty:
+        # "최근에 안 본" 후보 조건: COALESCE(lastViewedAt, createdAt) < now - recency-threshold-days.
+        recency-threshold-days: 14
+        # 한 페이지(size)당 novelty 버킷에서 뽑을 목표 비율. 실제로는 목표치일 뿐이라, 후보가 모자라면
+        # normal 버킷이 나머지를 채운다(service/common/README.md 참고).
+        quota-ratio: 0.3
 
 kakao:
   admin-key: ${KAKAO_ADMIN_KEY}

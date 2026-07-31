@@ -12,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,6 +31,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -131,6 +133,20 @@ class LinkuSearchServiceTest {
                 linkuSearchService.search(1L, "Java", null, 10);
 
                 verify(linkuSearchHistoryRepository).save(any(LinkuSearchHistory.class));
+            }
+
+            @Test
+            @DisplayName("검색 성공 시 동일 키워드의 기존 기록을 삭제한 뒤 저장한다")
+            void 검색_성공_시_동일_키워드_기존_기록을_삭제한_뒤_저장한다() {
+                when(linkuRepository.searchUserLinks(1L, "Java", null, 10))
+                        .thenReturn(List.of(searchItem(1L, "A")));
+                when(linkuSearchHistoryRepository.countByUserId(1L)).thenReturn(5L);
+
+                linkuSearchService.search(1L, "Java", null, 10);
+
+                InOrder inOrder = inOrder(linkuSearchHistoryRepository);
+                inOrder.verify(linkuSearchHistoryRepository).deleteByUserIdAndKeyword(1L, "Java");
+                inOrder.verify(linkuSearchHistoryRepository).save(any(LinkuSearchHistory.class));
             }
 
             @Test

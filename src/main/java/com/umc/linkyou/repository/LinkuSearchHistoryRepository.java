@@ -16,7 +16,7 @@ public interface LinkuSearchHistoryRepository extends JpaRepository<LinkuSearchH
 
     Optional<LinkuSearchHistory> findFirstByUserIdOrderByCreatedAtAsc(Long userId);
 
-
+    void deleteByUserIdAndKeyword(Long userId, String keyword);
 
     void deleteAllByUserId(Long userId);
 }

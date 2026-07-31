@@ -9,6 +9,7 @@ import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.repository.dto.RankedUsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.categoryRepository.FcolorRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,6 +62,95 @@ class UsersLinkuRepositoryImplTest {
     @Autowired private EmotionRepository emotionRepository;
     @Autowired private SituationRepository situationRepository;
     @Autowired private LinkuRepository linkuRepository;
+    @Autowired private JdbcTemplate jdbcTemplate;
+
+    // BaseEntity.createdAt은 @CreatedDate(updatable=false)라 JPA로는 저장 후 값을 바꿀 수 없어서,
+    // "저장한 지 오래된" 상태를 재현하려면 raw SQL로 직접 덮어써야 한다
+    // (DeleteOldAlarmBatchIntegrationTest#saveAlarm과 같은 패턴).
+    private void overrideCreatedAt(Long userLinkuId, LocalDateTime createdAt) {
+        jdbcTemplate.update("UPDATE users_linkus SET created_at = ? WHERE user_linku_id = ?", createdAt, userLinkuId);
+    }
+
+    @Nested
+    @DisplayName("novelty(최근에 안 본 것) 버킷")
+    class NoveltyBucket {
+
+        @Test
+        @DisplayName("findNoveltyRecommendCandidates는 COALESCE(lastViewedAt, createdAt)가 임계값보다 오래된 후보만 반환한다")
+        void onlyReturnsCandidatesOlderThanThreshold() {
+            Users user = userRepository.save(createUser("home-reco-novelty"));
+            Domain domain = domainRepository.save(createDomain("novelty-test"));
+            Fcolor fcolor = fcolorRepository.save(createFcolor());
+            Category category = categoryRepository.save(createCategory("카테고리", fcolor));
+            Emotion emotion = emotionRepository.save(createEmotion());
+            Situation situation = situationRepository.save(createSituation("상황"));
+
+            LocalDateTime now = LocalDateTime.now();
+            int recencyThresholdDays = 14;
+
+            // 한 번도 안 봄(lastViewedAt=null) + 저장한 지 30일 지남 → novelty 대상
+            Linku linkuNeverViewedOld = createAndSaveLinku(domain, category, emotion, situation);
+            UsersLinku neverViewedOld = usersLinkuRepository.save(
+                    baseUsersLinku(user, linkuNeverViewedOld, emotion).situation(situation).build());
+            overrideCreatedAt(neverViewedOld.getUserLinkuId(), now.minusDays(30));
+
+            // 한 번도 안 봄 + 방금 저장(기본 createdAt=now) → 아직 볼 기회가 없었을 뿐이라 novelty 아님
+            Linku linkuNeverViewedRecent = createAndSaveLinku(domain, category, emotion, situation);
+            usersLinkuRepository.save(
+                    baseUsersLinku(user, linkuNeverViewedRecent, emotion).situation(situation).build());
+
+            // 마지막으로 본 지 30일 지남 → novelty 대상
+            Linku linkuViewedOld = createAndSaveLinku(domain, category, emotion, situation);
+            UsersLinku viewedOld = usersLinkuRepository.save(
+                    baseUsersLinku(user, linkuViewedOld, emotion).situation(situation)
+                            .lastViewedAt(now.minusDays(30)).build());
+
+            // 마지막으로 본 지 1일밖에 안 지남 → novelty 아님
+            Linku linkuViewedRecent = createAndSaveLinku(domain, category, emotion, situation);
+            usersLinkuRepository.save(
+                    baseUsersLinku(user, linkuViewedRecent, emotion).situation(situation)
+                            .lastViewedAt(now.minusDays(1)).build());
+
+            List<RankedUsersLinku> result = usersLinkuRepository.findNoveltyRecommendCandidates(
+                    user.getId(), emotion.getEmotionId(), situation.getId(), now, recencyThresholdDays, null, null, 10);
+
+            assertThat(result).extracting(r -> r.usersLinku().getUserLinkuId())
+                    .containsExactlyInAnyOrder(neverViewedOld.getUserLinkuId(), viewedOld.getUserLinkuId());
+        }
+
+        @Test
+        @DisplayName("findNormalRecommendCandidates는 novelty 대상을 제외한다 (서로소 유지)")
+        void normalBucketExcludesNoveltyCandidates() {
+            Users user = userRepository.save(createUser("home-reco-normal"));
+            Domain domain = domainRepository.save(createDomain("normal-test"));
+            Fcolor fcolor = fcolorRepository.save(createFcolor());
+            Category category = categoryRepository.save(createCategory("카테고리", fcolor));
+            Emotion emotion = emotionRepository.save(createEmotion());
+            Situation situation = situationRepository.save(createSituation("상황"));
+
+            LocalDateTime now = LocalDateTime.now();
+            int recencyThresholdDays = 14;
+
+            // novelty 대상(마지막으로 본 지 30일 지남) — normal 버킷에는 안 나와야 함
+            Linku linkuNovelty = createAndSaveLinku(domain, category, emotion, situation);
+            usersLinkuRepository.save(
+                    baseUsersLinku(user, linkuNovelty, emotion).situation(situation)
+                            .lastViewedAt(now.minusDays(30)).build());
+
+            // novelty 아님(최근에 봄) — normal 버킷에 나와야 함
+            Linku linkuNormal = createAndSaveLinku(domain, category, emotion, situation);
+            UsersLinku normal = usersLinkuRepository.save(
+                    baseUsersLinku(user, linkuNormal, emotion).situation(situation)
+                            .lastViewedAt(now.minusDays(1)).build());
+
+            List<RankedUsersLinku> result = usersLinkuRepository.findNormalRecommendCandidates(
+                    user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
+                    now, null, null, recencyThresholdDays, null, null, 10);
+
+            assertThat(result).extracting(r -> r.usersLinku().getUserLinkuId())
+                    .containsExactly(normal.getUserLinkuId());
+        }
+    }
 
     @Nested
     @DisplayName("SituationMatch")

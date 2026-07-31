@@ -3,6 +3,8 @@ package com.umc.linkyou.service.users;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.jwt.AccessTokenBlackListManager;
+import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.RefreshTokenManager;
 import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
@@ -30,19 +32,90 @@ public class UserWithdrawService{
     private final RefreshTokenManager refreshTokenManager;
     private final AuthAccountRepository authAccountRepository;
     private final UserStatusValidator userStatusValidator;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final AccessTokenBlackListManager accessTokenBlackListManager;
 
     // 탈퇴 유예 기간
     private static final int GRACE_PERIOD_DAYS = 14;
 
+    /**
+     * 회원 탈퇴 (accessToken 미지정)
+     * 웹훅 등 현재 요청의 accessToken을 알 수 없는 내부 호출용.
+     */
     @Transactional
     public Users withdrawUser(Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO) {
+        return withdrawUser(userId, deleteReasonDTO, null);
+    }
+
+    /**
+     * 회원 탈퇴
+     * - Refresh Token 전체 삭제
+     * - 현재 요청의 Access Token을 블랙리스트에 등록하여 탈퇴 즉시 로그아웃 처리
+     *
+     * Redis(RefreshToken 삭제/AccessToken 블랙리스트)는 @Transactional 롤백 대상이 아니므로,
+     * DB 커밋이 확정된 뒤(afterCommit)에만 반영한다. 이렇게 하면 DB 저장이 실패해 롤백되는 경우
+     * "DB는 ACTIVE인데 Redis만 로그아웃 처리된" 불일치가 생기지 않는다.
+     */
+    @Transactional
+    public Users withdrawUser(
+            Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO, String accessToken) {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
-        // 1. 토큰 즉시 무효화
-        refreshTokenManager.deleteAllTokens(userId);
+
         user.withdraw(deleteReasonDTO.getReason(), LocalDateTime.now());
         userRepository.save(user);
+
+        // DB 커밋 후에만 Redis 반영 (커밋 실패 시 Redis는 건드리지 않음)
+        runAfterCommit(() -> invalidateTokens(userId, accessToken));
+
         return user;
+    }
+
+    /**
+     * 트랜잭션 동기화가 활성 상태면 커밋 후에 실행되도록 등록하고,
+     * 활성 상태가 아니면(예: 순수 단위 테스트처럼 트랜잭션 밖에서 호출된 경우) 즉시 실행한다.
+     */
+    private void runAfterCommit(Runnable task) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    task.run();
+                }
+            });
+        } else {
+            task.run();
+        }
+    }
+
+    /**
+     * 리프레시 토큰 전체 삭제 + 현재 액세스 토큰 블랙리스트 등록.
+     * DB 트랜잭션 커밋 후에만 호출되므로, 여기서 실패해도 DB 상태를 되돌릴 수 없다.
+     * 따라서 예외를 던지지 않고 로그만 남긴다(재시도/보상 처리는 후속 개선 과제).
+     */
+    private void invalidateTokens(Long userId, String accessToken) {
+        try {
+            refreshTokenManager.deleteAllTokens(userId);
+        } catch (Exception e) {
+            log.warn("탈퇴 처리 중 리프레시 토큰 삭제 실패 (userId={})", userId, e);
+        }
+        blacklistAccessToken(accessToken);
+    }
+
+    private void blacklistAccessToken(String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            return;
+        }
+        // 만료/위조 등으로 파싱이 실패해도 탈퇴 자체는 계속 진행되어야 하므로
+        // 블랙리스트 등록 실패는 로그만 남기고 흐름을 막지 않는다.
+        try {
+            long ttlMs = jwtTokenProvider.getRemainingExpiryMs(accessToken);
+            if (ttlMs > 0) {
+                accessTokenBlackListManager.addToBlacklist(accessToken, ttlMs);
+            }
+        } catch (Exception e) {
+            log.warn("탈퇴 처리 중 액세스 토큰 블랙리스트 등록 실패 (탈퇴는 계속 진행됨)", e);
+        }
     }
 
     /**
@@ -84,11 +157,12 @@ public class UserWithdrawService{
         userRepository.deleteAll(toDelete);
 
         // 2. DB 커밋 후에만 Redis 토큰 삭제
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                for (Long userId : inactiveUserIds) {
+        runAfterCommit(() -> {
+            for (Long userId : inactiveUserIds) {
+                try {
                     refreshTokenManager.deleteAllTokens(userId);
+                } catch (Exception e) {
+                    log.warn("완전삭제 후 리프레시 토큰 삭제 실패 (userId={})", userId, e);
                 }
             }
         });
@@ -106,11 +180,17 @@ public class UserWithdrawService{
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
-        // 2. Redis 토큰 삭제
-        refreshTokenManager.deleteAllTokens(userId);
-
-        // 3. 부모 엔티티 삭제. 연관 데이터는 DB ON DELETE CASCADE가 정리합니다.
+        // 2. 부모 엔티티 삭제. 연관 데이터는 DB ON DELETE CASCADE가 정리합니다.
         userRepository.delete(user);
+
+        // 3. Redis 토큰 삭제는 DB 커밋 후에만 (삭제가 롤백되면 Redis는 건드리지 않음)
+        runAfterCommit(() -> {
+            try {
+                refreshTokenManager.deleteAllTokens(userId);
+            } catch (Exception e) {
+                log.warn("테스트 삭제 후 리프레시 토큰 삭제 실패 (userId={})", userId, e);
+            }
+        });
 
         log.info("🧪 테스트 삭제 완료: 사용자 ID {}", userId);
 

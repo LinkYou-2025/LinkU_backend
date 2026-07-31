@@ -15,7 +15,7 @@ public class InternalRecommendMaterializer {
     private final InternalRecommendWorker worker;
     private final Semaphore internalRecoLimiter;
 
-    @Async("defaultTaskExecutor")
+    @Async("internalRecoTaskExecutor")
     public void generateInternalAsync(Long curationId) {
         boolean acquired = false;
         try {

@@ -1,17 +1,24 @@
 package com.umc.linkyou.repository.UserLinkuRepository;
 
+import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberExpression;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.QAiArticle;
 import com.umc.linkyou.domain.QLinku;
 import com.umc.linkyou.domain.mapping.QUsersLinku;
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.domain.recommend.QUserProfileKeyword;
+import com.umc.linkyou.repository.dto.RankedUsersLinku;
 import com.umc.linkyou.service.common.HomeRecommendScoreService;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
@@ -92,15 +99,142 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
     public List<UsersLinku> findHomeRecommendCandidates(
             Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
             LocalDateTime now, String profileTsqueryText, String profileText, int offset, int limit) {
+        return queryRankedCandidates(userId, selectedEmotionId, selectedSituationId, mappedCategoryIds,
+                now, profileTsqueryText, profileText, null, offset, limit);
+    }
+
+    @Override
+    public List<RankedUsersLinku> findNormalRecommendCandidates(
+            Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
+            LocalDateTime now, String profileTsqueryText, String profileText,
+            int recencyThresholdDays, Integer afterScoreBucket, Long afterUserLinkuId, int limit) {
+        QUsersLinku usersLinku = QUsersLinku.usersLinku;
+        QLinku linku = QLinku.linku;
+        QAiArticle aiArticle = QAiArticle.aiArticle;
+        BooleanExpression excludeNovelty =
+                homeRecommendScoreService.notNoveltyCondition(usersLinku, now, recencyThresholdDays);
+
+        NumberExpression<Double> totalScore = homeRecommendScoreService.scoreExpression(
+                usersLinku, linku, aiArticle, fetchUserKeywordWeights(userId),
+                selectedEmotionId, selectedSituationId, mappedCategoryIds,
+                now, profileTsqueryText, profileText);
+        NumberExpression<Integer> bucket = homeRecommendScoreService.scoreBucketExpression(totalScore);
+        BooleanExpression seek = seekCondition(bucket, usersLinku, afterScoreBucket, afterUserLinkuId);
+
+        JPAQuery<Tuple> query = queryFactory
+                .select(usersLinku, bucket)
+                .from(usersLinku)
+                .join(usersLinku.linku, linku).fetchJoin()
+                .join(usersLinku.emotion).fetchJoin()
+                .join(linku.category).fetchJoin()
+                .join(linku.domain).fetchJoin()
+                // situation nullable — INNER/경로참조만 하면 situation 없는 링크가 빠지는 버그가 생김
+                .leftJoin(usersLinku.situation)
+                // fetchJoin 필수: AiArticle.linku 가 owning side라 Linku.aiArticle(mappedBy, LAZY)은
+                // 진짜 지연로딩이 안 되고(프록시를 못 만들어서) 엔티티 로드 시점에 무조건 존재 확인
+                // 쿼리를 한 번 더 던진다 — fetchJoin으로 여기서 같이 실어야 결과 row당 N+1이 안 생김.
+                .leftJoin(linku.aiArticle, aiArticle).fetchJoin()
+                .where(usersLinku.user.id.eq(userId), excludeNovelty, seek);
+
+        List<Tuple> rows = query
+                // bucket 내 동점은 userLinkuId로 타이브레이크
+                .orderBy(bucket.desc(), usersLinku.userLinkuId.desc())
+                .limit(limit)
+                .fetch();
+
+        return toRankedList(rows, usersLinku, bucket);
+    }
+
+    @Override
+    public List<RankedUsersLinku> findNoveltyRecommendCandidates(
+            Long userId, Long selectedEmotionId, Long selectedSituationId,
+            LocalDateTime now, int recencyThresholdDays, Integer afterScoreBucket, Long afterUserLinkuId, int limit) {
+        QUsersLinku usersLinku = QUsersLinku.usersLinku;
+        QLinku linku = QLinku.linku;
+        QAiArticle aiArticle = QAiArticle.aiArticle;
+
+        NumberExpression<Double> contextScore = homeRecommendScoreService
+                .noveltyContextScoreExpression(usersLinku, selectedEmotionId, selectedSituationId);
+        NumberExpression<Integer> bucket = homeRecommendScoreService.scoreBucketExpression(contextScore);
+        BooleanExpression noveltyCondition =
+                homeRecommendScoreService.noveltyCondition(usersLinku, now, recencyThresholdDays);
+        BooleanExpression seek = seekCondition(bucket, usersLinku, afterScoreBucket, afterUserLinkuId);
+
+        List<Tuple> rows = queryFactory
+                .select(usersLinku, bucket)
+                .from(usersLinku)
+                .join(usersLinku.linku, linku).fetchJoin()
+                .join(usersLinku.emotion).fetchJoin()
+                .join(linku.category).fetchJoin()
+                .join(linku.domain).fetchJoin()
+                .leftJoin(usersLinku.situation)
+                // findNormalRecommendCandidates와 동일한 이유로 fetchJoin 필요 (AiArticle이 owning
+                // side라 Linku.aiArticle이 진짜 지연로딩 안 됨 — row당 존재확인 쿼리 N+1 방지).
+                .leftJoin(linku.aiArticle, aiArticle).fetchJoin()
+                .where(usersLinku.user.id.eq(userId), noveltyCondition, seek)
+                .orderBy(bucket.desc(), usersLinku.userLinkuId.desc())
+                .limit(limit)
+                .fetch();
+
+        return toRankedList(rows, usersLinku, bucket);
+    }
+
+    /**
+     * 이 유저의 keywordId -> weight 맵을 요청당 한 번만 조회한다 (최대 10개,
+     * UserProfileRefreshWorker#TOP_KEYWORD_COUNT). HomeRecommendScoreService#keywordMatchExpression이
+     * 이 맵을 후보 row마다 다시 조회하는 대신 CASE WHEN 상수로 SQL에 박아넣는 데 쓴다 — 원래는
+     * user_profile_keywords를 후보 row마다 상관 서브쿼리로 조인했는데, 이 테이블은 유저당 10개뿐이라
+     * 여기서 한 번에 메모리로 올려두는 게 훨씬 싸다.
+     */
+    private Map<Long, Integer> fetchUserKeywordWeights(Long userId) {
+        QUserProfileKeyword profileKeyword = QUserProfileKeyword.userProfileKeyword;
+        return queryFactory
+                .select(profileKeyword.keywordId, profileKeyword.weight)
+                .from(profileKeyword)
+                .where(profileKeyword.userId.eq(userId))
+                .fetch()
+                .stream()
+                .collect(Collectors.toMap(
+                        t -> t.get(profileKeyword.keywordId),
+                        t -> t.get(profileKeyword.weight)));
+    }
+
+    /** seek 탐색 조건. 둘 다 null이면 첫 페이지(조건 없음), 아니면 (bucket, userLinkuId) 이전 행부터 */
+    private BooleanExpression seekCondition(
+            NumberExpression<Integer> bucket, QUsersLinku usersLinku,
+            Integer afterScoreBucket, Long afterUserLinkuId) {
+        if (afterScoreBucket == null || afterUserLinkuId == null) {
+            return null;
+        }
+        return bucket.lt(afterScoreBucket)
+                .or(bucket.eq(afterScoreBucket).and(usersLinku.userLinkuId.lt(afterUserLinkuId)));
+    }
+
+    /** Tuple(usersLinku, bucket) → RankedUsersLinku 변환 */
+    private List<RankedUsersLinku> toRankedList(
+            List<Tuple> rows, QUsersLinku usersLinku, NumberExpression<Integer> bucket) {
+        List<RankedUsersLinku> result = new ArrayList<>(rows.size());
+        for (Tuple row : rows) {
+            result.add(new RankedUsersLinku(row.get(usersLinku), row.get(bucket)));
+        }
+        return result;
+    }
+
+    /** findHomeRecommendCandidates 전용 OFFSET 쿼리 — 하위호환용으로 유지, seek 쿼리와 통합 안 함 */
+    private List<UsersLinku> queryRankedCandidates(
+            Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
+            LocalDateTime now, String profileTsqueryText, String profileText,
+            BooleanExpression extraCondition, int offset, int limit) {
         QUsersLinku usersLinku = QUsersLinku.usersLinku;
         QLinku linku = QLinku.linku;
         QAiArticle aiArticle = QAiArticle.aiArticle;
 
         NumberExpression<Double> totalScore = homeRecommendScoreService.scoreExpression(
-                usersLinku, linku, aiArticle, userId, selectedEmotionId, selectedSituationId, mappedCategoryIds,
+                usersLinku, linku, aiArticle, fetchUserKeywordWeights(userId),
+                selectedEmotionId, selectedSituationId, mappedCategoryIds,
                 now, profileTsqueryText, profileText);
 
-        return queryFactory
+        var query = queryFactory
                 .selectFrom(usersLinku)
                 // 감정/링크/카테고리/도메인을 한 번에 fetch join 해서 N+1을 없앤다.
                 .join(usersLinku.linku, linku).fetchJoin()
@@ -114,7 +248,13 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 // summary는 없는 링크도 있어서 LEFT JOIN. fetchJoin은 안 걸었다 — TextMatch 계산에만 쓰이고
                 // Java 쪽에서 linku.getAiArticle()을 다시 꺼내 쓰지 않는다.
                 .leftJoin(linku.aiArticle, aiArticle)
-                .where(usersLinku.user.id.eq(userId))
+                .where(usersLinku.user.id.eq(userId));
+
+        if (extraCondition != null) {
+            query = query.where(extraCondition);
+        }
+
+        return query
                 // 점수/정렬/페이징을 전부 DB에서 처리 (애플리케이션 메모리로 전체 로드하지 않음)
                 .orderBy(totalScore.desc(), usersLinku.createdAt.desc())
                 .offset(offset)

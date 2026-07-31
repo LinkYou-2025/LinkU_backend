@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.gemini.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.infra.ai.AiClient;
 import com.umc.linkyou.infra.gemini.GeminiJsonUtils;
-import com.umc.linkyou.infra.gemini.client.GeminiClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +15,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GeminiService {
 
-    private final GeminiClient geminiClient;
+    private final AiClient geminiClient;
     private final ObjectMapper objectMapper;
 
     public <T> T callAndParse(String systemMsg, String userMsg, Class<T> clazz) {

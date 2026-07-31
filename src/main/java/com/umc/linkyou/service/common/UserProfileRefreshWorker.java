@@ -41,7 +41,9 @@ public class UserProfileRefreshWorker {
     // 1회 작업량이 무한정 커지지 않게 막는다.
     private static final int PROFILE_LINK_LIMIT = 200;
     private static final int TOP_TERM_COUNT = 20;
-    private static final int TOP_KEYWORD_COUNT = 20;
+    // KeywordMatch 서브쿼리 비용을 줄이려고 20 -> 10으로 축소 (HomeRecommendScoreService#keywordMatchExpression
+    // 참고 — 이 개수만큼 CASE WHEN 분기가 생기므로 작을수록 쿼리도 가벼워진다).
+    private static final int TOP_KEYWORD_COUNT = 10;
     // profile_text(trgm fallback 원문) 길이 캡.
     private static final int PROFILE_TEXT_MAX_LENGTH = 4000;
     // Postgres 'simple' tsvector 설정과 맞춰서 토큰화하므로, 한 글자짜리(조사 잔여물 등 노이즈)는 제외한다.

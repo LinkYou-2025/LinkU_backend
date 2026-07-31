@@ -139,7 +139,7 @@ public interface LinkuApi {
     @Operation(
             summary = "링크 추천",
             description = """
-                    상황(situation)과 감정(emotion)을 기반으로 링크를 추천합니다. 페이지네이션을 지원합니다.
+                    상황(situation)과 감정(emotion)을 기반으로 링크를 추천합니다. 커서 기반 페이지네이션을 지원합니다.
 
                     - **situationId**: 요청 유저의 직업(job)에 해당하는 상황 ID만 유효합니다. 직업과 맞지 않는 situationId를 넘기면 404(`_SITUATION_NOT_FOUND`)가 반환됩니다.
                       - job_id 1 (고등학생) → situation 1~8 (1통학 중, 2공부 중, 3식사 중, 4시험 준비, 5친구랑, 6쇼핑 중, 7휴식 중, 8자기 전)
@@ -150,6 +150,17 @@ public interface LinkuApi {
                       - job_id 6 (취준생) → situation 41~48 (41자소서 작성, 42면접 준비, 43요리 중, 44트렌드 확인, 45쇼핑 중, 46운동 중, 47휴식 중, 48자기 전)
                     - **emotionId**: 1즐거움, 2평온, 3설렘, 4슬픔, 5짜증, 6분노 중 하나.
                     - 추천을 받으려면 저장한 링크가 3개 이상이어야 합니다(미만이면 `_RECOMMEND_LINKU_NOT_ENOUGH_LINKS`/`_RECOMMEND_LINKU_NEW_USER`).
+
+                    **페이징 방식 (커서 기반)**
+                    - "최근에 안 본 링크"(novelty)를 우선 노출하는 로직이 있어, 일반 후보군과 서로 다른 속도로
+                      소진된다. 그래서 `page` 번호 대신 서버가 두 후보군의 진행 상태를 인코딩한 `cursor` 문자열을
+                      내려주고, FE는 그 값을 그대로 다음 요청에 전달한다. `cursor` 안의 내용은 파싱/계산할 필요
+                      없이 그대로 복사만 하면 된다.
+                    - 첫 요청 시 `cursor` 파라미터를 생략한다.
+                    - 응답의 `hasNext=true`이면, 응답의 `nextCursor` 값을 다음 요청의 `cursor`로 그대로 전달해
+                      다음 페이지를 이어서 조회한다.
+                    - `hasNext=false`이면 `nextCursor`는 null이며 더 이상 가져올 데이터가 없다는 뜻이다.
+                    - 잘못된 `cursor` 값을 넘겨도 에러를 던지지 않고 첫 페이지로 안전하게 처리한다.
                     """
     )
     @ApiErrorCode(
@@ -157,12 +168,12 @@ public interface LinkuApi {
             userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus._JOB_NOT_SET}
     )
     @GetMapping("/recommend")
-    ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> recommendLinku(
+    ApiResponse<LinkuResponseDTO.LinkuRecommendCursorPageDTO> recommendLinku(
             @CurrentUser CustomUserDetails userDetails,
             @Parameter(description = "요청 유저의 job에 해당하는 상황 ID (설명 참고)", example = "19") @RequestParam Long situationId,
             @Parameter(description = "감정 ID: 1즐거움/2평온/3설렘/4슬픔/5짜증/6분노", example = "1") @RequestParam Long emotionId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size
+            @Parameter(description = "이전 응답의 nextCursor 값을 그대로 전달. 첫 요청 시 생략합니다.") @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "5") @Min(1) @Max(20) int size
     );
 
     @Operation(summary = "링크 검색", description = "사용자가 저장한 링크에서 제목·태그가 검색어와 일치하는 링크 목록을 최신 저장 순으로 조회합니다. 커서는 필수입니다. 첫 페이지는 0, 이후에는 응답의 nextCursor 값을 보냅니다.")

@@ -12,6 +12,7 @@ import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import com.umc.linkyou.jwt.CurrentUser;
 import org.springframework.web.bind.annotation.*;
@@ -67,6 +68,7 @@ public interface UserApi {
                     사용자 계정을 비활성화(INACTIVE) 처리합니다.
                     - 탈퇴 사유를 입력받아 저장합니다.
                     - 실제 데이터 삭제는 정책에 따라 유예 기간(예: 30일) 후에 진행됩니다.
+                    - 리프레시 토큰을 즉시 삭제하고, 현재 액세스 토큰을 블랙리스트에 등록하여 탈퇴 즉시 로그아웃 처리됩니다.
                     """
     )
     @ApiSuccessCode(SuccessStatus._OK)
@@ -74,7 +76,8 @@ public interface UserApi {
     @PostMapping("/inactive")
     ApiResponse<UserResponseDTO.withDrawalResultDTO> withdrawMe(
             @CurrentUser CustomUserDetails userDetails,
-            @RequestBody @Valid UserRequestDTO.DeleteReasonDTO deleteReasonDTO);
+            @RequestBody @Valid UserRequestDTO.DeleteReasonDTO deleteReasonDTO,
+            HttpServletRequest request);
 
     // 소셜 프로필 완성 temp -> active
     @Operation(

@@ -120,8 +120,7 @@ class TermsIntegrationTest {
             Users user = createUser("로그인유저");
 
             UserRequestDTO.TermsAgreeDTO request = new UserRequestDTO.TermsAgreeDTO(
-                    Map.of(TermsType.MARKETING, true),
-                    "v1.0"
+                    Map.of(TermsType.MARKETING, true)
             );
 
             mockMvc.perform(patch("/api/v1/users/terms/agree")
