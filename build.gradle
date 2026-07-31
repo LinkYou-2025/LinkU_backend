@@ -146,6 +146,12 @@ test {
 	systemProperty 'api.version', System.getProperty('api.version') ?: '1.44'
 	environment 'DOCKER_API_VERSION', System.getenv('DOCKER_API_VERSION') ?: '1.44'
 	finalizedBy jacocoTestReport
+	// 기본 설정은 실패 시 "AssertionError at Foo.java:112"처럼 위치만 찍고 메시지(expected/actual)를
+	// 생략해서, CI에서 로컬 재현 없이는 원인을 못 좁히는 문제
+	testLogging {
+		events "failed"
+		exceptionFormat "full"
+	}
 }
 
 bootJar {
