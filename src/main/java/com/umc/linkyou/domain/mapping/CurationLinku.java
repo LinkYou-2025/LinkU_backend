@@ -2,6 +2,7 @@ package com.umc.linkyou.domain.mapping;
 
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
+import com.umc.linkyou.utils.UrlUtils;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.OnDelete;
@@ -31,7 +32,7 @@ public class CurationLinku {
 
     @Column(name = "type", nullable = false)
     @Enumerated(EnumType.STRING)
-    private CurationLinkuType type; // RECOMMENDED / EXTERNAL
+    private CurationLinkuType type; // INTERNAL / EXTERNAL
 
     // 외부추천용 최소 컬럼
     @Column(name = "url", columnDefinition = "TEXT")
@@ -43,15 +44,12 @@ public class CurationLinku {
     @Column(name = "image_url", length = 1024)
     private String imageUrl;
 
-    @Column(name = "url_normalized", length = 2048, insertable = false, updatable = false)
-    private String urlNormalized;
-
     // 팩토리 메서드
     public static CurationLinku ofExternal(Curation curation, String url, String title, String imageUrl) {
         return CurationLinku.builder()
                 .curation(curation)
                 .type(CurationLinkuType.EXTERNAL)
-                .url(url)
+                .url(UrlUtils.normalizeUrl(url))
                 .title(title)
                 .imageUrl(imageUrl)
                 .build();
@@ -61,7 +59,7 @@ public class CurationLinku {
         return CurationLinku.builder()
                 .curation(curation)
                 .usersLinku(usersLinku)
-                .type(CurationLinkuType.RECOMMENDED)
+                .type(CurationLinkuType.INTERNAL)
                 .url(usersLinku.getLinku().getLinkuUrl())
                 .title(usersLinku.getLinku().getTitle())
                 .imageUrl(imageUrl)

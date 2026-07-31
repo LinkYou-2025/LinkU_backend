@@ -23,6 +23,7 @@ import com.umc.linkyou.validation.annotation.swagger.ApiAuthSuccessCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiDomainErrorCodes;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCodes;
+import com.umc.linkyou.validation.annotation.swagger.ApiNoContentCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -95,6 +96,11 @@ public class SwaggerConfig {
             ApiAuthSuccessCode authSuccessAnnotation = handlerMethod.getMethodAnnotation(ApiAuthSuccessCode.class);
             if (authSuccessAnnotation != null) {
                 generateAuthSuccessResponseExample(operation, authSuccessAnnotation.value());
+            }
+            ApiNoContentCode noContentAnnotation = handlerMethod.getMethodAnnotation(ApiNoContentCode.class);
+            if (noContentAnnotation != null) {
+                operation.getResponses().addApiResponse("204",
+                        new ApiResponse().description(noContentAnnotation.description()));
             }
 
             // 2. 에러 응답 처리 (Repeatable 컨테이너와 단일 어노테이션 모두 상속 관계 포함 스캔)

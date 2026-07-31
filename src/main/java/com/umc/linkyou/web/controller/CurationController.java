@@ -23,9 +23,9 @@ public class CurationController implements CurationApi {
     private final CurationRecommendBuilderService curationRecommendBuilderService;
 
     @Override
-    public ResponseEntity<ApiResponse<List<CurationSectionResponse>>> getSectionInfo(@RequestParam(required = false) String month) {
-        String resolvedMonth = (month != null) ? month : YearMonth.now().toString();
-        return ResponseEntity.ok(ApiResponse.onSuccess(curationService.getCurationSections(resolvedMonth)));
+    public ResponseEntity<ApiResponse<List<CurationSectionResponse>>> getSectionInfo(@RequestParam(required = false) YearMonth month) {
+        YearMonth resolvedMonth = (month != null) ? month : YearMonth.now();
+        return ResponseEntity.ok(ApiResponse.onSuccess(curationService.getCurationSections(resolvedMonth.toString())));
     }
 
     @Override

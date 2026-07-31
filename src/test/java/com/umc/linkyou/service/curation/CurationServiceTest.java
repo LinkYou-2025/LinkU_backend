@@ -4,10 +4,11 @@ import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Curation;
+import com.umc.linkyou.domain.CurationSectionInfo;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.repository.curationRepository.CurationRepository;
+import com.umc.linkyou.repository.curationRepository.CurationSectionInfoRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.web.dto.curation.CurationDetailResponse;
 import com.umc.linkyou.web.dto.curation.CurationListResponse;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +38,7 @@ class CurationServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private CurationRepository curationRepository;
-    @Mock private ThumbnailUrlProvider thumbnailUrlProvider;
+    @Mock private CurationSectionInfoRepository curationSectionInfoRepository;
 
     @Nested
     @DisplayName("큐레이션 생성")
@@ -179,7 +180,8 @@ class CurationServiceTest {
             Curation curation = Curation.builder().user(user).baseMonth("2026-03").build();
 
             given(curationRepository.findAllByUserIdAndYear(USER_ID, "2026")).willReturn(List.of(curation));
-            given(thumbnailUrlProvider.getUrlForMonth("2026-03")).willReturn("url");
+            given(curationSectionInfoRepository.findByMonthAndSectionNumber("2026-03", 1))
+                    .willReturn(Optional.of(CurationSectionInfo.builder().imageUrl("url").build()));
 
             List<CurationListResponse> result = curationService.getCurationList(USER_ID, 2026);
 
