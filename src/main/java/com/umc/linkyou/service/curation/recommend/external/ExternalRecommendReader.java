@@ -1,5 +1,6 @@
 package com.umc.linkyou.service.curation.recommend.external;
 
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.converter.CurationConverter;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
@@ -24,6 +25,7 @@ public class ExternalRecommendReader {
 
     private final CurationLinkuRepository curationLinkuRepository;
     private final DomainRepositoryCustom domainRepository;
+    private final AwsS3Service awsS3Service;
 
     @Transactional(readOnly = true)
     public List<RecommendedLinkResponse> read(Long curationId) {
@@ -49,7 +51,7 @@ public class ExternalRecommendReader {
         if (tails.isEmpty()) {
             return items.stream()
                     .map(item -> CurationConverter.toRecommendedLinkResponse(
-                            item.url(), item.title(), item.imageUrl(), null))
+                            item.url(), item.title(), item.imageUrl(), null, awsS3Service))
                     .toList();
         }
 
@@ -64,7 +66,7 @@ public class ExternalRecommendReader {
                             .findFirst()
                             .orElse(null);
                     return CurationConverter.toRecommendedLinkResponse(
-                            item.url(), item.title(), item.imageUrl(), domain);
+                            item.url(), item.title(), item.imageUrl(), domain, awsS3Service);
                 })
                 .toList();
     }

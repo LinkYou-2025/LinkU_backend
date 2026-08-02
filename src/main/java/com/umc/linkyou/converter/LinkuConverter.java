@@ -200,17 +200,18 @@ public class LinkuConverter {
 
     // 마이페이지 AI 요약 링크 목록용 - toLinkuSimpleDTO와 동일한 title/linkuImageUrl 우선순위 패턴
     // (usersLinku 우선, 없으면 linku)을 사용한다.
-    public static LinkuResponseDTO.AiArticleSummaryDTO toAiArticleSummaryDTO(UsersLinku usersLinku) {
+    public static LinkuResponseDTO.AiArticleSummaryDTO toAiArticleSummaryDTO(UsersLinku usersLinku, AwsS3Service awsS3Service) {
         Linku linku = usersLinku.getLinku();
         Domain domain = linku.getDomain();
+        Image linkuImage = usersLinku.getImage() != null ? usersLinku.getImage() : linku.getImage();
         return LinkuResponseDTO.AiArticleSummaryDTO.builder()
                 .linkuId(linku.getLinkuId())
                 .linku(linku.getLinkuUrl())
                 .emotionId(usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
                 .domain(domain != null ? domain.getName() : null)
-                .domainImageUrl(domain != null ? domain.getImageUrl() : null)
+                .domainImageUrl(domain != null ? awsS3Service.resolveUrl(domain.getImage()) : null)
                 .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
-                .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
+                .linkuImageUrl(awsS3Service.resolveUrl(linkuImage))
                 .build();
     }
 

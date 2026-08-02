@@ -1,5 +1,6 @@
 package com.umc.linkyou.converter;
 
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.CurationSectionInfo;
 import com.umc.linkyou.domain.Linku;
@@ -18,7 +19,7 @@ import java.util.List;
 
 public class CurationConverter {
 
-    public static RecommendedLinkResponse toRecommendedLinkResponse(CurationLinku entity) {
+    public static RecommendedLinkResponse toRecommendedLinkResponse(CurationLinku entity, AwsS3Service awsS3Service) {
         UsersLinku usersLinku = entity.getUsersLinku();
         Linku linku = usersLinku != null ? usersLinku.getLinku() : null;
         Domain domain = linku != null ? linku.getDomain() : null;
@@ -28,7 +29,7 @@ public class CurationConverter {
                 .url(entity.getUrl())
                 .title(entity.getTitle())
                 .domain(domain != null ? domain.getName() : null)
-                .domainImageUrl(domain != null ? domain.getImageUrl() : null)
+                .domainImageUrl(domain != null ? awsS3Service.resolveUrl(domain.getImage()) : null)
                 .imageUrl(entity.getImageUrl())
                 .categories(category != null ? List.of(category.getCategoryName()) : null)
                 .type(CurationLinkuType.INTERNAL)
@@ -37,13 +38,13 @@ public class CurationConverter {
 
     // 외부 추천: 도메인 브랜딩(Domain)이 URL 기반 별도 조회로 해석된 경우
     public static RecommendedLinkResponse toRecommendedLinkResponse(
-            String url, String title, String imageUrl, Domain domain) {
+            String url, String title, String imageUrl, Domain domain, AwsS3Service awsS3Service) {
         return RecommendedLinkResponse.builder()
                 .url(url)
                 .title(title)
                 .imageUrl(imageUrl)
                 .domain(domain != null ? domain.getName() : null)
-                .domainImageUrl(domain != null ? domain.getImageUrl() : null)
+                .domainImageUrl(domain != null ? awsS3Service.resolveUrl(domain.getImage()) : null)
                 .type(CurationLinkuType.EXTERNAL)
                 .build();
     }

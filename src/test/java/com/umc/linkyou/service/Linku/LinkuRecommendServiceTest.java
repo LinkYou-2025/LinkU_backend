@@ -2,6 +2,7 @@ package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.config.properties.RecommendScoreProperties;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Emotion;
@@ -47,6 +48,7 @@ class LinkuRecommendServiceTest {
     @Mock private SituationCategoryService situationCategoryService;
     @Mock private UserContentProfileRepository userContentProfileRepository;
     @Mock private RecommendScoreProperties recommendScoreProperties;
+    @Mock private AwsS3Service awsS3Service;
 
     @Nested
     @DisplayName("recommendLinku")

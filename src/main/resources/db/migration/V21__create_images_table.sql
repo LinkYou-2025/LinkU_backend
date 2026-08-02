@@ -2,8 +2,8 @@
 -- DB에 CloudFront URL 전체를 저장하는 대신, S3 object key(상대 경로) 또는 외부 이미지 URL만
 -- 별도의 images 테이블에서 source_type으로 구분해 관리한다.
 -- domains.image_url / linkus.img_url / users_linkus.image_url 을 각각 image_id FK로 대체하기 위한
--- 테이블/컬럼 준비만 여기서 하고, 기존 데이터 백필과 옛 컬럼 제거는 V14에서 진행한다.
--- (기존 컬럼 값을 옮기기 전에 지워버리면 안 되므로 반드시 V14와 분리한다)
+-- 테이블/컬럼 준비만 여기서 하고, 기존 데이터 백필과 옛 컬럼 제거는 V22에서 진행한다.
+-- (기존 컬럼 값을 옮기기 전에 지워버리면 안 되므로 반드시 V22와 분리한다)
 
 create table images
 (

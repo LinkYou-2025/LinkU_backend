@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.config.properties.RecommendScoreProperties;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.Linku;
@@ -55,6 +56,7 @@ public class LinkuRecommendService {
     private final SituationCategoryService situationCategoryService;
     private final UserContentProfileRepository userContentProfileRepository;
     private final RecommendScoreProperties recommendScoreProperties;
+    private final AwsS3Service awsS3Service;
 
     @Transactional(readOnly = true)
     public ApiResponse<LinkuResponseDTO.LinkuRecommendCursorPageDTO> recommendLinku(
@@ -213,7 +215,8 @@ public class LinkuRecommendService {
                             userLinku,
                             linku.getDomain(),
                             aiArticleExists,
-                            linkuFolder
+                            linkuFolder,
+                            awsS3Service
                     );
                 })
                 .collect(Collectors.toList());

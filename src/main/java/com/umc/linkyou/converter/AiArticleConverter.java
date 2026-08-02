@@ -1,6 +1,8 @@
 package com.umc.linkyou.converter;
 
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.domain.AiArticle;
+import com.umc.linkyou.domain.Image;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.mapping.UsersLinku;
@@ -24,15 +26,17 @@ public class AiArticleConverter {
             AiArticle entity,
             Linku linku,
             UsersLinku usersLinku,
-            String tags
+            String tags,
+            AwsS3Service awsS3Service
     ) {
         Emotion emotion = usersLinku != null ? usersLinku.getEmotion() : null;
         String title = (usersLinku != null && usersLinku.getTitle() != null)
                 ? usersLinku.getTitle()
                 : linku.getTitle();
-        String imgUrl = (usersLinku != null && usersLinku.getImageUrl() != null)
-                ? usersLinku.getImageUrl()
-                : linku.getImgUrl();
+        Image linkuImage = (usersLinku != null && usersLinku.getImage() != null)
+                ? usersLinku.getImage()
+                : linku.getImage();
+        String imgUrl = awsS3Service.resolveUrl(linkuImage);
         return AiArticleResponseDTO.AiArticleResultDTO.builder()
                 .id(entity.getId())
                 .linkuId(linku.getLinkuId())

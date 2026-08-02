@@ -1,8 +1,8 @@
 -- 이미지 저장 방식 변경 (Object Key-only 저장) - 2단계: 기존 데이터 백필 + 옛 컬럼 제거
--- V13에서 준비한 images 테이블/FK로 기존 데이터를 옮긴 뒤, 더 이상 쓰지 않는 옛 컬럼을 지운다.
--- db/seed가 아니라 db/migration에 두는 이유: application-prod.yml의 flyway locations에는
--- db/migration만 포함되고 db/seed는 빠져 있다. 이 백필은 실제 운영 데이터(도메인/링크/사용자링크
--- 이미지)를 옮기는 작업이라 운영 DB에서도 반드시 실행돼야 하므로 db/seed에 두면 안 된다.
+-- V21에서 준비한 images 테이블/FK로 기존 데이터를 옮긴 뒤, 더 이상 쓰지 않는 옛 컬럼을 지운다.
+-- 이 백필은 실제 운영 데이터(도메인/링크/사용자링크 이미지)를 옮기는 작업이라 운영 DB에서도
+-- 반드시 실행돼야 하므로 db/migration에 둔다 (application-prod.yml의 flyway locations는
+-- db/migration만 스캔하고 db/seed는 포함하지 않는다).
 --
 -- domains / users_linkus: S3 출처 이미지. 값이 CloudFront 전체 URL이면 도메인 접두사를 제거하고,
 --   이미 "/"로 시작하는 상대 경로(신규 시드 데이터)면 그대로 사용해 "/"로 시작하는 object key로 통일한다.

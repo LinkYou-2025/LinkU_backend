@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.converter.AiArticleConverter;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.AiArticle;
@@ -43,6 +44,7 @@ public class AiArticleService {
     private final UsersLinkuRepository usersLinkuRepository;
     private final AiArticleAnalyzer aiArticleAnalyzer;
     private final AlarmService alarmService;
+    private final AwsS3Service awsS3Service;
 
     @Transactional
     public AiArticleResponseDTO.AiArticleResultDTO saveAiArticle(Long linkuId, Long userId) {
@@ -77,7 +79,7 @@ public class AiArticleService {
         alarmService.sendAlarm(userId, new AlarmRequestDTO.AlarmSendRequestDTO(
                 AlarmType.LINK_SUMMARY_COMPLETE, linkuId, new AlarmPayload.LinkTitle(linkTitle)));
 
-        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku));
+        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku), awsS3Service);
     }
 
     @Transactional
@@ -116,7 +118,7 @@ public class AiArticleService {
         // 시점에는 더 이상 자동으로 표시하지 않으므로, 대신 실제 조회 시점에 표시한다).
         usersLinkus.forEach(ul -> ul.markAiExist(true));
 
-        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku));
+        return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku), awsS3Service);
     }
 
     // AI 요약 호출과 별개로, 링크 저장 시 이미 분류되어 저장된 키워드를 그대로 태그로 사용한다
@@ -147,7 +149,7 @@ public class AiArticleService {
                 : null;
 
         List<LinkuResponseDTO.AiArticleSummaryDTO> linkuResultDTOs = resultList.stream()
-                .map(LinkuConverter::toAiArticleSummaryDTO)
+                .map(ul -> LinkuConverter.toAiArticleSummaryDTO(ul, awsS3Service))
                 .collect(Collectors.toList());
 
         return LinkuResponseDTO.LinkuSliceResultDTO.builder()
