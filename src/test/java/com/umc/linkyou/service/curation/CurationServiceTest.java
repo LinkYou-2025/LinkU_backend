@@ -41,7 +41,6 @@ class CurationServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private CurationRepository curationRepository;
     @Mock private CurationSectionInfoRepository curationSectionInfoRepository;
-    @Mock private ThumbnailUrlProvider thumbnailUrlProvider;
 
     @Nested
     @DisplayName("큐레이션 생성")
@@ -202,7 +201,8 @@ class CurationServiceTest {
             Curation curation = Curation.builder().curationId(CURATION_ID).user(user).baseMonth(MONTH).build();
 
             given(curationRepository.findLatestByUserId(USER_ID)).willReturn(Optional.of(curation));
-            given(thumbnailUrlProvider.getUrlForMonth(MONTH)).willReturn("url");
+            given(curationSectionInfoRepository.findByMonthAndSectionNumber(MONTH, 1))
+                    .willReturn(Optional.of(CurationSectionInfo.builder().imageUrl("url").build()));
 
             Optional<CurationLatestResponse> result = curationService.getLatestCuration(USER_ID);
 
