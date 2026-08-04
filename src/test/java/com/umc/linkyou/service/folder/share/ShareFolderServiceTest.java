@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.code.status.folder.InvitationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.AlarmSetting;
+import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.folder.FolderShareLink;
@@ -123,6 +124,22 @@ class ShareFolderServiceTest {
         @DisplayName("실패")
         class Failure {
             @Test
+            @DisplayName("존재하지 않는 폴더면 _FOLDER_NOT_FOUND를 던진다")
+            void 폴더없음_예외() {
+                given(folderRepository.existsById(FOLDER_ID)).willReturn(false);
+
+                FolderPermissionRequestDTO request = new FolderPermissionRequestDTO();
+                request.setPermission(PermissionType.WRITER);
+
+                assertThatThrownBy(() -> shareFolderService.updateViewerPermission(OWNER_ID, FOLDER_ID, USERS_FOLDER_ID, request))
+                    .isInstanceOf(GeneralException.class)
+                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                        .isEqualTo(FolderErrorStatus._FOLDER_NOT_FOUND));
+
+                verify(eventPublisher, never()).publishEvent(any());
+            }
+
+            @Test
             @DisplayName("소유자가 아니면 예외를 던지고, 알람도 발송하지 않는다")
             void 소유자아님_예외() {
                 given(folderRepository.existsById(FOLDER_ID)).willReturn(true);
@@ -135,6 +152,89 @@ class ShareFolderServiceTest {
                     .isInstanceOf(GeneralException.class)
                     .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                         .isEqualTo(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED));
+
+                verify(eventPublisher, never()).publishEvent(any());
+            }
+
+            @Test
+            @DisplayName("대상 유저-폴더 관계가 없으면 _FOLDER_PERMISSION_NOT_FOUND를 던진다")
+            void 대상유저폴더관계없음_예외() {
+                given(folderRepository.existsById(FOLDER_ID)).willReturn(true);
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
+                given(usersFolderRepository.findById(USERS_FOLDER_ID)).willReturn(Optional.empty());
+
+                FolderPermissionRequestDTO request = new FolderPermissionRequestDTO();
+                request.setPermission(PermissionType.WRITER);
+
+                assertThatThrownBy(() -> shareFolderService.updateViewerPermission(OWNER_ID, FOLDER_ID, USERS_FOLDER_ID, request))
+                    .isInstanceOf(GeneralException.class)
+                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                        .isEqualTo(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND));
+
+                verify(eventPublisher, never()).publishEvent(any());
+            }
+
+            @Test
+            @DisplayName("대상 유저-폴더 관계가 다른 폴더의 것이면 _FOLDER_PERMISSION_NOT_ALLOWED를 던진다")
+            void 다른폴더의_유저폴더관계_예외() {
+                Folder otherFolder = Folder.builder().folderId(999L).folderName("다른폴더").build();
+                UsersFolder otherFolderUf = UsersFolder.builder()
+                        .user(Users.builder().id(MEMBER_ID).build())
+                        .folder(otherFolder)
+                        .permissionType(PermissionType.VIEWER)
+                        .build();
+
+                given(folderRepository.existsById(FOLDER_ID)).willReturn(true);
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
+                given(usersFolderRepository.findById(USERS_FOLDER_ID)).willReturn(Optional.of(otherFolderUf));
+
+                FolderPermissionRequestDTO request = new FolderPermissionRequestDTO();
+                request.setPermission(PermissionType.WRITER);
+
+                assertThatThrownBy(() -> shareFolderService.updateViewerPermission(OWNER_ID, FOLDER_ID, USERS_FOLDER_ID, request))
+                    .isInstanceOf(GeneralException.class)
+                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                        .isEqualTo(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED));
+
+                verify(eventPublisher, never()).publishEvent(any());
+            }
+
+            @Test
+            @DisplayName("대상이 폴더 소유자면 _FOLDER_OWNER_UPDATE_NOT_ALLOWED를 던진다")
+            void 오너권한수정_예외() {
+                UsersFolder ownerTarget = targetUsersFolder(PermissionType.OWNER);
+
+                given(folderRepository.existsById(FOLDER_ID)).willReturn(true);
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
+                given(usersFolderRepository.findById(USERS_FOLDER_ID)).willReturn(Optional.of(ownerTarget));
+
+                FolderPermissionRequestDTO request = new FolderPermissionRequestDTO();
+                request.setPermission(PermissionType.WRITER);
+
+                assertThatThrownBy(() -> shareFolderService.updateViewerPermission(OWNER_ID, FOLDER_ID, USERS_FOLDER_ID, request))
+                    .isInstanceOf(GeneralException.class)
+                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                        .isEqualTo(ShareFolderErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED));
+
+                verify(eventPublisher, never()).publishEvent(any());
+            }
+
+            @Test
+            @DisplayName("OWNER 권한으로 변경 요청 시 _INVALID_PERMISSION_TYPE을 던진다")
+            void OWNER로_변경요청_예외() {
+                UsersFolder usersFolder = targetUsersFolder(PermissionType.VIEWER);
+
+                given(folderRepository.existsById(FOLDER_ID)).willReturn(true);
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
+                given(usersFolderRepository.findById(USERS_FOLDER_ID)).willReturn(Optional.of(usersFolder));
+
+                FolderPermissionRequestDTO request = new FolderPermissionRequestDTO();
+                request.setPermission(PermissionType.OWNER);
+
+                assertThatThrownBy(() -> shareFolderService.updateViewerPermission(OWNER_ID, FOLDER_ID, USERS_FOLDER_ID, request))
+                    .isInstanceOf(GeneralException.class)
+                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                        .isEqualTo(ShareFolderErrorStatus._INVALID_PERMISSION_TYPE));
 
                 verify(eventPublisher, never()).publishEvent(any());
             }
