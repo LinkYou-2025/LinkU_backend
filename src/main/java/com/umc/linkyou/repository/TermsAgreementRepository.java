@@ -13,4 +13,6 @@ public interface TermsAgreementRepository extends JpaRepository<TermsAgreement, 
     List<TermsAgreement> findAllByUserId(Long userId);
 
     Optional<TermsAgreement> findByUserIdAndTermsType(Long userId, TermsType termsType);
+
+    void deleteAllByUserIdIn(List<Long> userIds);
 }

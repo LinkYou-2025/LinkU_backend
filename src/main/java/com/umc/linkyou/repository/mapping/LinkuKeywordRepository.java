@@ -4,6 +4,7 @@ import com.umc.linkyou.domain.Keyword;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.mapping.LinkuKeyword;
 import com.umc.linkyou.repository.dto.KeywordCountRow;
+import com.umc.linkyou.repository.dto.UserKeywordWeightRow;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -34,4 +35,16 @@ public interface LinkuKeywordRepository extends JpaRepository<LinkuKeyword, Long
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             Pageable pageable);
+
+    // 홈화면 추천 KeywordMatch용: 이 유저가 저장한 링크들의 키워드 빈도 상위 N건 (UserProfileKeyword 재계산 재료)
+    @Query("""
+            SELECT new com.umc.linkyou.repository.dto.UserKeywordWeightRow(lk.keyword.id, COUNT(lk))
+            FROM LinkuKeyword lk
+            JOIN lk.linku l
+            JOIN l.usersLinku ul
+            WHERE ul.user.id = :userId
+            GROUP BY lk.keyword.id
+            ORDER BY COUNT(lk) DESC
+            """)
+    List<UserKeywordWeightRow> findKeywordFrequencyByUserId(@Param("userId") Long userId, Pageable pageable);
 }

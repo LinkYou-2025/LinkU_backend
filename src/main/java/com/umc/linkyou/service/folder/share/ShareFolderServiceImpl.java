@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.code.status.folder.InvitationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.converter.ShareFolderConverter;
 import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.folder.FolderShareLink;
@@ -126,13 +127,7 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         List<UsersFolder> participants = usersFolderRepository.findAllParticipantsByFolderId(folderId);
 
         return participants.stream()
-                .map(uf -> {
-                    ViewerResponseDTO dto = new ViewerResponseDTO();
-                    dto.setUserId(uf.getUser().getId());
-                    dto.setUserName(uf.getUser().getNickName());
-                    dto.setPermission(uf.getPermissionType().name());
-                    return dto;
-                })
+                .map(ShareFolderConverter::toViewerResponseDTO)
                 .toList();
     }
 
@@ -177,12 +172,8 @@ public class ShareFolderServiceImpl implements ShareFolderService {
             .ifPresent(setting -> eventPublisher.publishEvent(
                     new FolderPermissionChangedAlarmEvent(memberId, folderId, folderName)));
 
-        return ShareFolderResponseDTO.builder()
-                .folderId(folderId)
-                .userId(usersFolder.getUser().getId())
-                .permission(permission.name())
-                .sharedAt(usersFolder.getUpdatedAt().toString())
-                .build();
+        return ShareFolderConverter.toShareFolderResponseDTO(
+                folderId, usersFolder.getUser().getId(), permission.name(), usersFolder.getUpdatedAt());
     }
 
     // 가장 오래 참여한 멤버에게 소유권 자동 위임 후 폴더 나가기
@@ -208,12 +199,8 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         ownerUF.updatePermission(PermissionType.NONE);
         usersFolderRepository.saveAll(List.of(newOwnerUF, ownerUF));
 
-        return ShareFolderResponseDTO.builder()
-                .folderId(folderId)
-                .userId(newOwnerUF.getUser().getId())
-                .permission(PermissionType.OWNER.name())
-                .sharedAt(LocalDateTime.now().toString())
-                .build();
+        return ShareFolderConverter.toShareFolderResponseDTO(
+                folderId, newOwnerUF.getUser().getId(), PermissionType.OWNER.name(), LocalDateTime.now());
     }
 
     // 내가 공유한(소유자인) 폴더 목록 조회
@@ -231,11 +218,8 @@ public class ShareFolderServiceImpl implements ShareFolderService {
                 .collect(Collectors.groupingBy(uf -> uf.getFolder().getFolderId(), Collectors.counting()));
 
         return folders.stream()
-                .map(folder -> MySharedFolderResponseDTO.builder()
-                        .folderId(folder.getFolderId())
-                        .folderName(folder.getFolderName())
-                        .memberCount(memberCountByFolderId.getOrDefault(folder.getFolderId(), 0L).intValue())
-                        .build())
+                .map(folder -> ShareFolderConverter.toMySharedFolderResponseDTO(
+                        folder, memberCountByFolderId.getOrDefault(folder.getFolderId(), 0L).intValue()))
                 .toList();
     }
 
@@ -265,11 +249,6 @@ public class ShareFolderServiceImpl implements ShareFolderService {
 
         usersFolderRepository.saveAll(mappings);
 
-        return ShareFolderResponseDTO.builder()
-                .folderId(folderId)
-                .userId(ownerId)
-                .permission("PRIVATE")
-                .sharedAt(LocalDateTime.now().toString())
-                .build();
+        return ShareFolderConverter.toShareFolderResponseDTO(folderId, ownerId, "PRIVATE", LocalDateTime.now());
     }
 }

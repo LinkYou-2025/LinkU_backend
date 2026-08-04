@@ -6,7 +6,6 @@ import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Linku;
-import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
@@ -53,6 +52,16 @@ public class FolderServiceImpl implements FolderService {
             throw new GeneralException(FolderErrorStatus._FOLDER_PARENT_NOT_FOUND);
         }
 
+        // 부모 폴더에 대한 생성 권한 확인
+        if (!usersFolderRepository.existsFolderOwnerOrWriter(userId, parentFolderId)) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_CREATE_FORBIDDEN);
+        }
+
+        // 폴더는 중분류-소분류 2단계까지만 허용 (부모가 이미 소분류면 생성 불가)
+        if (parent.getParentFolder() != null) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_MAX_DEPTH_EXCEEDED);
+        }
+
         // 부모 폴더에 대한 생성 권한 확인 (소유자 또는 편집자만 가능)
         if (!usersFolderRepository.existsFolderOwnerOrWriter(userId, parentFolderId)) {
             throw new GeneralException(FolderErrorStatus._FOLDER_CREATE_FORBIDDEN);
@@ -87,16 +96,7 @@ public class FolderServiceImpl implements FolderService {
                 .isBookmarked(false)
                 .build());
 
-        return FolderResponseDTO.builder()
-                .folderId(folder.getFolderId())
-                .folderName(folder.getFolderName())
-                .isBookmarked(false)
-                .categoryId(parent.getCategory().getCategoryId())
-                .categoryName(parent.getCategory().getCategoryName())
-                .parentFolderId(parent.getFolderId())
-                .createdAt(folder.getCreatedAt())
-                .updatedAt(folder.getUpdatedAt())
-                .build();
+        return FolderConverter.toFolderResponseDTO(folder, false);
     }
 
     // 폴더 이름 수정
@@ -202,14 +202,9 @@ public class FolderServiceImpl implements FolderService {
                         .collect(Collectors.toList())
                 : null;
 
-        Category category = folder.getCategory();
-        return FolderTreeResponseDTO.builder()
-                .folderId(folder.getFolderId())
-                .folderName(folder.getFolderName())
-                .isBookmarked(bookmarkMap.getOrDefault(folder.getFolderId(), false))
-                .categoryId(category != null ? category.getCategoryId() : null)
-                .children(childDTOs)
-                .build();
+        FolderTreeResponseDTO dto = FolderConverter.toFolderTreeDTO(folder, bookmarkMap);
+        dto.setChildren(childDTOs);
+        return dto;
     }
 
     // 중분류 폴더 목록 조회
@@ -265,6 +260,11 @@ public class FolderServiceImpl implements FolderService {
     @Transactional
     public BookmarkUpdateResponseDTO updateBookmark(Long userId, Long folderId, Boolean isBookmarked) {
         UsersFolder usersFolder = usersFolderRepository.findByUserIdAndFolderId(userId, folderId).orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND));
+
+        // 공유 해제 등으로 권한이 회수(NONE)된 관계는 존재하지 않는 것과 동일하게 처리
+        if (usersFolder.getPermissionType() == PermissionType.NONE) {
+            throw new GeneralException(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND);
+        }
 
         usersFolder.updateBookmark(isBookmarked);
 

@@ -36,7 +36,7 @@ public class InternalRecommendWorker {
 
         List<UsersLinku> candidates = internalLinkCandidateService.getInternalCandidates(userId, curationId, 4);
 
-        curationLinkuRepository.deleteAllByCurationIdAndType(curationId, CurationLinkuType.RECOMMENDED);
+        curationLinkuRepository.deleteAllByCurationIdAndType(curationId, CurationLinkuType.INTERNAL);
 
         List<CurationLinku> toSave = candidates.stream()
                 .map(item -> CurationLinku.ofInternal(curation, item, item.getImageUrl()))

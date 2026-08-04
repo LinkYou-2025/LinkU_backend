@@ -126,9 +126,6 @@ public class UserResponseDTO {
     @Schema(description = "약관 동의 상태 응답 (키-값 형태)")
     public static class TermsStatusDTO {
 
-        @Schema(description = "사용자 ID", example = "123")
-        private Long userId;
-
         @Schema(
                 description = "약관별 동의 상태 맵",
                 example = "{\"TERMS_OF_USE\":true,\"MARKETING\":true,\"PRIVACY_POLICY\":false}")

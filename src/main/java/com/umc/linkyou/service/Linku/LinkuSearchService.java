@@ -39,7 +39,8 @@ public class LinkuSearchService{
         List<LinkuSearchResponseDTO.LinkuSearchItemDTO> items = hasNext ? fetched.subList(0, size) : fetched;
         Long nextCursor = hasNext ? items.get(items.size() - 1).userLinkuId() : null;
 
-        // 키워드 저장
+        // 동일 키워드 기존 기록 제거 후 저장 (중복 제거, 최신순 재정렬)
+        linkuSearchHistoryRepository.deleteByUserIdAndKeyword(userId, trimmed);
         linkuSearchHistoryRepository.save(LinkuSearchHistory.of(userId, trimmed));
         // 10개 넘으면 가장 오래된 것 삭제
         if (linkuSearchHistoryRepository.countByUserId(userId) > 10) {

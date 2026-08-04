@@ -76,7 +76,9 @@ public class Users extends BaseEntity {
     }
 
     public void updateProfile(Job job, String nickName) {
-        this.job = job;
+        if (job != null) {
+            this.job = job;
+        }
         if (nickName != null) {
             this.nickName = nickName;
         }

@@ -12,6 +12,7 @@ import com.umc.linkyou.web.dto.UserRequestDTO;
 import com.umc.linkyou.web.dto.UserResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import com.umc.linkyou.jwt.CurrentUser;
 import org.springframework.web.bind.annotation.*;
@@ -40,13 +41,22 @@ public interface UserApi {
     @Operation(
             summary = "마이페이지 수정",
             description = """
-                    사용자의 프로필 정보를 변경합니다.
-                    - 닉네임 변경 시 중복 여부를 체크합니다.
-                    - 직업(Job ID), 관심사 리스트, 사용 목적 리스트를 전체 업데이트합니다.
+                    사용자의 프로필 정보를 부분 변경합니다. (Partial Update)
+                    - 요청 본문에 포함하지 않은 필드는 변경되지 않고 기존 값을 유지합니다.
+                    - nickname: 변경 시 중복 여부를 체크합니다.
+                    - jobId: 존재하는 Job ID여야 하며(1부터 시작), 포함 시에만 직업이 변경됩니다.
+                    - purposes: 링크를 저장/활용하는 목적 리스트 (예: CAREER-취업/커리어 준비, STUDY-학업/리포트 정리, WORK-업무자료 아카이빙, SIDE_PROJECT-사이드 프로젝트/창업 준비, SELF_DEVELOPMENT-자기계발/정보 수집, LATER_READING-나중에 읽고 싶은 글, INSIGHTS-인사이트 모으기, CREATION_REFERENCE-블로그/콘텐츠 작성 참고용, OTHERS-기타). 포함 시 해당 리스트로 전체 대체됩니다. (빈 배열을 보내면 전부 삭제됨)
+                    - interests: 관심 있는 콘텐츠 분야 리스트 (예: BUSINESS-비즈니스/마케팅, IT-IT/개발, DESIGN-디자인/크리에이티브, PSYCHOLOGY-심리/자기계발, CAREER-커리어/채용, CURRENT_EVENTS-시사/트렌드, STUDY-학업/리포트 참고, STARTUP-스타트업/창업, SOCIETY-사회/문화/환경, WRITING-글쓰기/콘텐츠 작성, INSIGHTS-책/인사이트 요약, COLLECT-모아두고 싶은 글). 포함 시 해당 리스트로 전체 대체됩니다. (빈 배열을 보내면 전부 삭제됨)
                     """
     )
     @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus._DUPLICATE_NICKNAME, UserErrorStatus._JOB_NOT_SET}) // _JOB_NOT_SET: 잘못된 Job ID 등
+    @ApiErrorCode(userErrorStatus = {
+            UserErrorStatus._USER_NOT_FOUND,
+            UserErrorStatus._DUPLICATE_NICKNAME,
+            UserErrorStatus._INVALID_JOB_ID,
+            UserErrorStatus._INVALID_PURPOSE,
+            UserErrorStatus._INVALID_INTEREST
+    })
     @PatchMapping("/profile")
     ApiResponse<Object> updateUserProfile(
             @CurrentUser CustomUserDetails userDetails,
@@ -58,6 +68,7 @@ public interface UserApi {
                     사용자 계정을 비활성화(INACTIVE) 처리합니다.
                     - 탈퇴 사유를 입력받아 저장합니다.
                     - 실제 데이터 삭제는 정책에 따라 유예 기간(예: 30일) 후에 진행됩니다.
+                    - 리프레시 토큰을 즉시 삭제하고, 현재 액세스 토큰을 블랙리스트에 등록하여 탈퇴 즉시 로그아웃 처리됩니다.
                     """
     )
     @ApiSuccessCode(SuccessStatus._OK)
@@ -65,7 +76,8 @@ public interface UserApi {
     @PostMapping("/inactive")
     ApiResponse<UserResponseDTO.withDrawalResultDTO> withdrawMe(
             @CurrentUser CustomUserDetails userDetails,
-            @RequestBody @Valid UserRequestDTO.DeleteReasonDTO deleteReasonDTO);
+            @RequestBody @Valid UserRequestDTO.DeleteReasonDTO deleteReasonDTO,
+            HttpServletRequest request);
 
     // 소셜 프로필 완성 temp -> active
     @Operation(

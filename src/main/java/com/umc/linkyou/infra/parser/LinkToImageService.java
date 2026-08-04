@@ -1,7 +1,5 @@
 package com.umc.linkyou.infra.parser;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.infra.net.SafeUrlFetcher;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.domain.classification.Domain;
@@ -9,8 +7,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.net.URI;
 import java.util.List;
@@ -23,16 +19,9 @@ public class LinkToImageService {
     private final DomainRepository domainRepository;
     private final SafeUrlFetcher safeUrlFetcher;
     private final RobotsTxtChecker robotsTxtChecker;
-    private final RestTemplate restTemplate = new RestTemplate();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final CustomSearchImageClient customSearchImageClient;
 
-    private static final int MAX_IMAGE_SEARCH_TRY = 5;
     private static final int IMAGE_FETCH_TIMEOUT_MS = 5000;
-
-    @Value("${custom.search.api.key}")
-    private String apiKey;
-    @Value("${custom.search.engine.id}")
-    private String searchEngineId;
 
     // URL에서 도메인 추출
     private String extractDomainFromUrl(String url) {
@@ -124,42 +113,6 @@ public class LinkToImageService {
         return null;
     }
 
-    // Google Custom Search API 특정 이미지 직접 검색
-    public String searchFirstDirectImageUrl(String query) {
-        try {
-            String url = "https://www.googleapis.com/customsearch/v1?"
-                    + "key=" + apiKey
-                    + "&cx=" + searchEngineId
-                    + "&searchType=image"
-                    + "&q=" + java.net.URLEncoder.encode(query, "UTF-8");
-
-            String response = restTemplate.getForObject(url, String.class);
-
-            JsonNode root = objectMapper.readTree(response);
-            JsonNode items = root.get("items");
-            if (items != null && items.isArray()) {
-                for (int i = 0; i < items.size() && i < MAX_IMAGE_SEARCH_TRY; i++) {
-                    String link = items.get(i).get("link").asText();
-                    if (isImageUrl(link)) {
-                        return link;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            return null;
-        }
-        return null;
-    }
-
-    private boolean isImageUrl(String url) {
-        String lower = url.toLowerCase();
-        return lower.endsWith(".jpg") ||
-                lower.endsWith(".jpeg") ||
-                lower.endsWith(".png") ||
-                lower.endsWith(".gif") ||
-                lower.endsWith(".webp");
-    }
-
     // 전체 플로우
     public String getRelatedImageFromUrl(String url, String title) {
         String imgUrl;
@@ -172,13 +125,13 @@ public class LinkToImageService {
         }
 
         if (title != null && !title.isEmpty()) {
-            imgUrl = searchFirstDirectImageUrl(title);
+            imgUrl = customSearchImageClient.searchFirstDirectImageUrl(title);
             if (imgUrl != null) return imgUrl;
         }
 
         String domainOnly = extractDomainFromUrl(url);
         if (domainOnly != null && !domainOnly.isEmpty()) {
-            imgUrl = searchFirstDirectImageUrl(domainOnly);
+            imgUrl = customSearchImageClient.searchFirstDirectImageUrl(domainOnly);
             if (imgUrl != null) return imgUrl;
         }
 

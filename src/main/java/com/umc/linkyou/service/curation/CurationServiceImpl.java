@@ -2,10 +2,11 @@ package com.umc.linkyou.service.curation;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.converter.CurationConverter;
 import com.umc.linkyou.domain.Curation;
+import com.umc.linkyou.domain.CurationSectionInfo;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.service.curation.ment.CurationMentMaterializer;
-import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.service.curation.recommend.external.ExternalRecommendMaterializer;
 import com.umc.linkyou.service.curation.recommend.internal.InternalRecommendMaterializer;
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
@@ -38,7 +39,6 @@ public class CurationServiceImpl implements CurationService {
     private final UserRepository userRepository;
     private final CurationRepository curationRepository;
     private final CurationSectionInfoRepository curationSectionInfoRepository;
-    private final ThumbnailUrlProvider thumbnailUrlProvider;
     private final ExternalRecommendMaterializer externalRecommendMaterializer;
     private final InternalRecommendMaterializer internalRecommendMaterializer;
     private final CurationMentMaterializer curationMentMaterializer;
@@ -90,17 +90,8 @@ public class CurationServiceImpl implements CurationService {
         for (int m = 1; m <= 12; m++) {
             String month = String.format("%d-%02d", year, m);
             Curation c = existing.get(month);
-            if (c != null) {
-                result.add(CurationListResponse.builder()
-                        .curationId(c.getCurationId())
-                        .month(month)
-                        .thumbnailUrl(thumbnailUrlProvider.getUrlForMonth(month))
-                        .build());
-            } else {
-                result.add(CurationListResponse.builder()
-                        .month(month)
-                        .build());
-            }
+            String thumbnailUrl = c != null ? getSection1ImageUrl(month) : null;
+            result.add(CurationConverter.toCurationListResponse(c, month, thumbnailUrl));
         }
         return result;
     }
@@ -110,11 +101,14 @@ public class CurationServiceImpl implements CurationService {
     @Transactional(readOnly = true)
     public Optional<CurationLatestResponse> getLatestCuration(Long userId) {
         return curationRepository.findLatestByUserId(userId)
-                .map(curation -> CurationLatestResponse.builder()
-                        .curationId(curation.getCurationId())
-                        .month(curation.getBaseMonth())
-                        .thumbnailUrl(thumbnailUrlProvider.getUrlForMonth(curation.getBaseMonth()))
-                        .build());
+                .map(curation -> CurationConverter.toCurationLatestResponse(
+                        curation, getSection1ImageUrl(curation.getBaseMonth())));
+    }
+
+    private String getSection1ImageUrl(String month) {
+        return curationSectionInfoRepository.findByMonthAndSectionNumber(month, 1)
+                .map(CurationSectionInfo::getImageUrl)
+                .orElse(null);
     }
 
     // 월별 섹션 정보 조회 (제목, 설명, 대표 이미지)
@@ -124,12 +118,7 @@ public class CurationServiceImpl implements CurationService {
         return curationSectionInfoRepository
                 .findAllByMonth(month)
                 .stream()
-                .map(s -> CurationSectionResponse.builder()
-                        .section(s.getSectionNumber())
-                        .title(s.getTitle())
-                        .description(s.getDescription())
-                        .imageUrl(s.getImageUrl())
-                        .build())
+                .map(CurationConverter::toCurationSectionResponse)
                 .toList();
     }
 
@@ -147,13 +136,6 @@ public class CurationServiceImpl implements CurationService {
             throw new GeneralException(CurationErrorStatus._CURATION_FORBIDDEN);
         }
 
-        return CurationDetailResponse.builder()
-                .curationId(curation.getCurationId())
-                .month(curation.getBaseMonth())
-                .headerMent(curation.getHeaderMent())
-                .footerMent(curation.getFooterMent())
-                .mentReady(curation.getHeaderMent() != null && !curation.getHeaderMent().isBlank()
-                        && curation.getFooterMent() != null && !curation.getFooterMent().isBlank())
-                .build();
+        return CurationConverter.toCurationDetailResponse(curation);
     }
 }

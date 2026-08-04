@@ -9,7 +9,6 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.repository.curationRepository.CurationRepository;
 import com.umc.linkyou.repository.curationRepository.CurationSectionInfoRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.service.curation.utils.ThumbnailUrlProvider;
 import com.umc.linkyou.web.dto.curation.CurationDetailResponse;
 import com.umc.linkyou.web.dto.curation.CurationLatestResponse;
 import com.umc.linkyou.web.dto.curation.CurationListResponse;
@@ -184,7 +183,8 @@ class CurationServiceTest {
             Curation curation = Curation.builder().user(user).baseMonth("2026-03").build();
 
             given(curationRepository.findAllByUserIdAndYear(USER_ID, "2026")).willReturn(List.of(curation));
-            given(thumbnailUrlProvider.getUrlForMonth("2026-03")).willReturn("url");
+            given(curationSectionInfoRepository.findByMonthAndSectionNumber("2026-03", 1))
+                    .willReturn(Optional.of(CurationSectionInfo.builder().imageUrl("url").build()));
 
             List<CurationListResponse> result = curationService.getCurationList(USER_ID, 2026);
 
