@@ -9,6 +9,7 @@ import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.repository.dto.RankedUsersLinku;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 
@@ -187,6 +188,25 @@ public class LinkuConverter {
                 .lastViewedAt(usersLinku != null ? usersLinku.getLastViewedAt() : null)
                 .build();
     } //리스트로 반환할때 쓰이는 것
+
+    public static LinkuResponseDTO.LinkuSimpleDTO toLinkuSimpleDTO(
+            RankedUsersLinku candidate, LinkuFolder linkuFolder) {
+        return LinkuResponseDTO.LinkuSimpleDTO.builder()
+                .userLinkuId(candidate.userLinkuId())
+                .linkuId(candidate.linkuId())
+                .categoryId(candidate.categoryId())
+                .folderName(linkuFolder != null ? linkuFolder.getFolder().getFolderName() : null)
+                .linku(candidate.linku())
+                .memo(candidate.memo())
+                .emotionId(candidate.emotionId())
+                .title(candidate.title())
+                .domain(candidate.domain())
+                .domainImageUrl(candidate.domainImageUrl())
+                .linkuImageUrl(candidate.linkuImageUrl())
+                .aiArticleExists(Boolean.TRUE.equals(candidate.aiArticleExists()))
+                .lastViewedAt(candidate.lastViewedAt())
+                .build();
+    }
 
     // 마이페이지 AI 요약 링크 목록용 - toLinkuSimpleDTO와 동일한 title/linkuImageUrl 우선순위 패턴
     // (usersLinku 우선, 없으면 linku)을 사용한다.
