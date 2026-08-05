@@ -9,6 +9,7 @@ import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.domain.recommend.UserProfileKeyword;
 import com.umc.linkyou.repository.dto.RankedUsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.categoryRepository.FcolorRepository;
@@ -16,6 +17,7 @@ import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
+import com.umc.linkyou.repository.recommend.UserProfileKeywordRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.config.TestExternalConfig;
 import org.junit.jupiter.api.DisplayName;
@@ -62,6 +64,7 @@ class UsersLinkuRepositoryImplTest {
     @Autowired private EmotionRepository emotionRepository;
     @Autowired private SituationRepository situationRepository;
     @Autowired private LinkuRepository linkuRepository;
+    @Autowired private UserProfileKeywordRepository userProfileKeywordRepository;
     @Autowired private JdbcTemplate jdbcTemplate;
 
     // BaseEntity.createdAt은 @CreatedDate(updatable=false)라 JPA로는 저장 후 값을 바꿀 수 없어서,
@@ -114,7 +117,7 @@ class UsersLinkuRepositoryImplTest {
             List<RankedUsersLinku> result = usersLinkuRepository.findNoveltyRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), situation.getId(), now, recencyThresholdDays, null, null, 10);
 
-            assertThat(result).extracting(r -> r.usersLinku().getUserLinkuId())
+            assertThat(result).extracting(RankedUsersLinku::userLinkuId)
                     .containsExactlyInAnyOrder(neverViewedOld.getUserLinkuId(), viewedOld.getUserLinkuId());
         }
 
@@ -147,8 +150,55 @@ class UsersLinkuRepositoryImplTest {
                     user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
                     now, null, null, recencyThresholdDays, null, null, 10);
 
-            assertThat(result).extracting(r -> r.usersLinku().getUserLinkuId())
+            assertThat(result).extracting(RankedUsersLinku::userLinkuId)
                     .containsExactly(normal.getUserLinkuId());
+        }
+    }
+
+    @Nested
+    @DisplayName("점수 커서")
+    class ScoreCursor {
+
+        @Test
+        @DisplayName("키워드 10개와 커서가 있을 시 다음 후보를 반환한다")
+        void 키워드_10개와_커서가_있을_시_다음_후보를_반환한다() {
+            Users user = userRepository.save(createUser("home-reco-cursor"));
+            Domain domain = domainRepository.save(createDomain("cursor-test"));
+            Fcolor fcolor = fcolorRepository.save(createFcolor());
+            Category category = categoryRepository.save(createCategory("카테고리", fcolor));
+            Emotion emotion = emotionRepository.save(createEmotion());
+            Situation situation = situationRepository.save(createSituation("상황"));
+
+            for (long keywordId = 1; keywordId <= 10; keywordId++) {
+                userProfileKeywordRepository.save(UserProfileKeyword.builder()
+                        .userId(user.getId())
+                        .keywordId(keywordId)
+                        .weight((int) keywordId)
+                        .build());
+            }
+
+            LocalDateTime now = LocalDateTime.now();
+            for (int i = 0; i < 3; i++) {
+                Linku linku = createAndSaveLinku(domain, category, emotion, situation);
+                usersLinkuRepository.save(baseUsersLinku(user, linku, emotion)
+                        .situation(situation)
+                        .lastViewedAt(now.minusDays(1))
+                        .build());
+            }
+
+            List<RankedUsersLinku> firstPage = usersLinkuRepository.findNormalRecommendCandidates(
+                    user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
+                    now, null, null, 14, null, null, 1);
+            assertThat(firstPage).hasSize(1);
+            RankedUsersLinku cursor = firstPage.get(0);
+
+            List<RankedUsersLinku> secondPage = usersLinkuRepository.findNormalRecommendCandidates(
+                    user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
+                    now, null, null, 14, cursor.scoreBucket(), cursor.userLinkuId(), 1);
+
+            assertThat(secondPage).hasSize(1);
+            assertThat(secondPage.get(0).userLinkuId())
+                    .isLessThan(cursor.userLinkuId());
         }
     }
 
