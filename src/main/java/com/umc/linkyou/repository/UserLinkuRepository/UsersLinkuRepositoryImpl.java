@@ -257,7 +257,8 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
     private String nativeTextExpression(String profileTsqueryText, String profileText) {
         if (profileTsqueryText == null && profileText == null) return "0.0";
         String document = "to_tsvector('simple', l.title || ' ' || COALESCE(aa.summary, ''))";
-        String fts = "CAST(ts_rank_cd(" + document + ", to_tsquery('simple', :profileTsqueryText)) AS double precision)";
+        String ftsRank = "CAST(ts_rank_cd(" + document + ", to_tsquery('simple', :profileTsqueryText)) AS double precision)";
+        String fts = "(" + ftsRank + " / (" + ftsRank + " + 1.0))";
         String trgm = "COALESCE(similarity(l.title || ' ' || COALESCE(aa.summary, ''), :profileText), 0)";
         return "CASE WHEN :profileTsqueryText IS NULL OR :profileTsqueryText = '' THEN 0.0 "
                 + "WHEN " + fts + " > 0 THEN " + fts + " ELSE " + trgm + " * 0.7 END";
