@@ -10,6 +10,7 @@ import com.umc.linkyou.domain.QAiArticle;
 import com.umc.linkyou.domain.QLinku;
 import com.umc.linkyou.domain.mapping.QLinkuKeyword;
 import com.umc.linkyou.domain.mapping.QUsersLinku;
+import com.umc.linkyou.domain.recommend.QUserProfileKeyword;
 import com.umc.linkyou.utils.EmotionSimilarityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -17,7 +18,6 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Collection;
-import java.util.Map;
 
 /**
  * 홈화면 링크 추천 스코어링.
@@ -36,8 +36,6 @@ import java.util.Map;
  *                    가중치 합을 정규화한 값 — "이 유저가 평소 저장하는 키워드와 얼마나 겹치는가"라는
  *                    intra-user 신호. 협업 필터링(inter-user)용으로 keyword를 쓸 때는 이 신호를 건드리지
  *                    않고 별도 feature를 추가한다 (service/common/README.md 참고).
- *                    UserProfileKeyword 자체는 row당 서브쿼리로 다시 조회하지 않고, 호출하는 쿼리(리포지토리)가
- *                    요청당 한 번만 조회해 Map으로 넘겨준다 — keywordMatchExpression()의 파라미터 참고.
  * - CategoryMatch  : 후보 Linku.category가 situation→category 매핑(SituationCategoryService)에 걸리면 1.0,
  *                    아니면 0. SituationMatch(저장 당시 태깅)와 달리 순수 콘텐츠 속성(Linku.category)만 보므로
  *                    emotionAi/situationAi 같은 신뢰도 감쇠를 적용하지 않는다.
@@ -176,13 +174,11 @@ public class HomeRecommendScoreService {
      *
      * @param profileTsqueryText UserContentProfile.profileTsqueryText (없으면 null — TextMatch는 0 처리)
      * @param profileText        UserContentProfile.profileText (trgm fallback용, 없으면 null)
-     * @param keywordWeights     이 유저의 UserProfileKeyword(keywordId -> weight, 최대 10개)를 호출부가
-     *                           미리 한 번 조회해서 넘긴 것. row마다 user_profile_keywords를 다시 조인하지
-     *                           않기 위함 — keywordMatchExpression() 참고.
+     * @param userId             KeywordMatch에 사용할 UserProfileKeyword 소유자
      */
     public NumberExpression<Double> scoreExpression(
             QUsersLinku usersLinku, QLinku linku, QAiArticle aiArticle,
-            Map<Long, Integer> keywordWeights, Long targetEmotionId, Long targetSituationId,
+            Long userId, Long targetEmotionId, Long targetSituationId,
             Collection<Long> mappedCategoryIds,
             LocalDateTime now, String profileTsqueryText, String profileText) {
 
@@ -193,7 +189,7 @@ public class HomeRecommendScoreService {
                 .add(personalEngagementExpression(usersLinku, now).multiply(w.engagement()))
                 .add(popularityExpression(linku).multiply(w.popularity()))
                 .add(textMatchExpression(linku, aiArticle, profileTsqueryText, profileText).multiply(w.text()))
-                .add(keywordMatchExpression(linku, keywordWeights).multiply(w.keyword()))
+                .add(keywordMatchExpression(linku, userId).multiply(w.keyword()))
                 .add(categoryMatchExpression(linku, mappedCategoryIds).multiply(w.category()));
     }
 
@@ -377,45 +373,26 @@ public class HomeRecommendScoreService {
     }
 
     /**
-     * 후보 링크의 linku_keywords와 이 유저의 키워드 가중치 맵을 겹쳐서 weight 합을 구하고,
-     * keywordWeightCap으로 정규화한다.
+     * 후보의 linku_keywords와 유저의 UserProfileKeyword를 상관 서브쿼리로 겹쳐
+     * 가중치 합을 keywordWeightCap으로 정규화한다.
      *
-     * {@code keywordWeights}는 호출부(리포지토리)가 요청당 딱 한 번 {@code user_profile_keywords}를
-     * 조회해서 만든 Map이다 — 유저당 최대 10개(UserProfileRefreshWorker#TOP_KEYWORD_COUNT)뿐이라
-     * 애플리케이션 메모리에 올려두기 충분히 작다. 이전엔 이 테이블을 row(후보)마다 상관 서브쿼리로
-     * 다시 조인했는데, 후보 수만큼 반복 실행되는 비용이 있어서 — emotionMatchExpression처럼 미리
-     * 알고 있는 값을 CASE WHEN으로 SQL에 상수로 박아넣는 방식으로 바꿨다. 이러면 row마다 남는 건
-     * linku_keywords 하나뿐이고, user_profile_keywords는 이 메서드 밖에서 한 번만 조회된다.
-     *
-     * linku_keywords는 여전히 row(후보 linku)마다 서브쿼리로 조회한다 — 후보마다 키워드 집합이
-     * 다르므로 이건 구조상 피할 수 없다. JOIN + GROUP BY로 하면 메인 쿼리의 fetch join 구조
-     * (행당 1건 보장)가 깨지므로 서브쿼리로 처리한다.
+     * CASE WHEN 인라인은 점수식이 반복될 때 HQL 파서 상태를 급증시키므로 사용하지 않는다.
      */
-    public NumberExpression<Double> keywordMatchExpression(QLinku linku, Map<Long, Integer> keywordWeights) {
-        if (keywordWeights == null || keywordWeights.isEmpty()) {
+    public NumberExpression<Double> keywordMatchExpression(QLinku linku, Long userId) {
+        if (userId == null) {
             return Expressions.asNumber(0.0);
         }
 
         QLinkuKeyword linkuKeyword = QLinkuKeyword.linkuKeyword;
+        QUserProfileKeyword profileKeyword = QUserProfileKeyword.userProfileKeyword;
         double cap = properties.normalization().keywordWeightCap();
 
-        // keywordId -> weight를 CASE WHEN 체인으로 SQL에 상수로 박아넣는다 (emotionMatchExpression과
-        // 동일한 패턴). user_profile_keywords 테이블을 여기서 다시 조인하지 않는다.
-        CaseBuilder.Cases<Integer, NumberExpression<Integer>> chain = null;
-        for (Map.Entry<Long, Integer> entry : keywordWeights.entrySet()) {
-            BooleanExpression condition = linkuKeyword.keyword.id.eq(entry.getKey());
-            chain = (chain == null)
-                    ? new CaseBuilder().when(condition).then(entry.getValue())
-                    : chain.when(condition).then(entry.getValue());
-        }
-        NumberExpression<Integer> weightPerKeyword = chain.otherwise(0);
-
-        // 서브쿼리 자체를 NumberExpression으로 담지 않고 Object 인자로 바로 넘긴다
-        // (JPAQuery는 Expression이긴 하지만 NumberExpression의 산술 연산까지는 지원하지 않는다).
+        // fetch join의 행 중복을 피하기 위해 키워드 집계만 서브쿼리로 분리한다.
         var matchedWeightSum = JPAExpressions
-                .select(weightPerKeyword.sum())
+                .select(profileKeyword.weight.sum())
                 .from(linkuKeyword)
-                .where(linkuKeyword.linku.eq(linku));
+                .join(profileKeyword).on(profileKeyword.keywordId.eq(linkuKeyword.keyword.id))
+                .where(linkuKeyword.linku.eq(linku), profileKeyword.userId.eq(userId));
 
         // 서브쿼리 결과를 COALESCE/LEAST에 바로 섞어 넣으면(구 버전) Hibernate 6 HQL 분석기가
         // 이 표현식이 select 절(findNormalRecommendCandidates의 select(usersLinku, bucket))에

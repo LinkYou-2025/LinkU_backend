@@ -235,7 +235,7 @@ seek(keyset) 방식으로 다시 바꿨다.
 - **트레이드오프**: 버킷 안에서는 정확한 score 순서 대신 userLinkuId 순서로 정렬되는 정밀도 손실이 있다.
   200구간(해상도 0.005)이면 이진(0/1.0) 신호 하나의 가중치(기본 0.10)보다 훨씬 촘촘해서 실제로 순위가
   갈리는 두 후보가 같은 버킷에 묶이는 경우는 드물 것으로 본다 — 다만 실측 검증은 아직 안 했다.
-- `RankedUsersLinku`(`repository/dto/`) — `(UsersLinku, scoreBucket)` 튜플. QueryDSL이 fetch join된 엔티티와
+- `RankedUsersLinku`(`repository/dto/`) — 추천 응답에 필요한 scalar 필드와 `scoreBucket`을 담는 DTO projection.
   스칼라 표현식(scoreBucket)을 함께 Tuple로 뽑아야 해서 도입했다(`.select(usersLinku, bucket)` 형태,
   fetchJoin은 FROM 절에서 그대로 유지됨).
 - `findHomeRecommendCandidates`(novelty 필터 없는 원본, OFFSET 기반)는 손대지 않았다 — 다른 테스트 호출부와의

@@ -6,12 +6,10 @@ import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.properties.RecommendScoreProperties;
 import com.umc.linkyou.converter.LinkuConverter;
-import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.SituationJob;
-import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.recommend.UserContentProfile;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
@@ -138,12 +136,12 @@ public class LinkuRecommendService {
 
         // normal/novelty는 서로소라 중복 없지만 userLinkuId 기준으로 한 번 더 방어
         Set<Long> seen = new LinkedHashSet<>();
-        List<UsersLinku> merged = new ArrayList<>(noveltyCandidates.size() + normalCandidates.size());
+        List<RankedUsersLinku> merged = new ArrayList<>(noveltyCandidates.size() + normalCandidates.size());
         for (RankedUsersLinku candidate : noveltyCandidates) {
-            if (seen.add(candidate.usersLinku().getUserLinkuId())) merged.add(candidate.usersLinku());
+            if (seen.add(candidate.userLinkuId())) merged.add(candidate);
         }
         for (RankedUsersLinku candidate : normalCandidates) {
-            if (seen.add(candidate.usersLinku().getUserLinkuId())) merged.add(candidate.usersLinku());
+            if (seen.add(candidate.userLinkuId())) merged.add(candidate);
         }
 
         // 다음 seek 지점 = 이번 페이지 마지막 행의 (scoreBucket, userLinkuId). 못 뽑았으면 기존 값 유지
@@ -159,9 +157,9 @@ public class LinkuRecommendService {
         // 맞춰서 언박싱이 안 일어나게 한다.
         RecommendCursorUtil.RecommendCursor nextCursor = new RecommendCursorUtil.RecommendCursor(
                 lastNovelty != null ? Integer.valueOf(lastNovelty.scoreBucket()) : cursor.noveltyBucket(),
-                lastNovelty != null ? lastNovelty.usersLinku().getUserLinkuId() : cursor.noveltyLastId(),
+                lastNovelty != null ? lastNovelty.userLinkuId() : cursor.noveltyLastId(),
                 lastNormal != null ? Integer.valueOf(lastNormal.scoreBucket()) : cursor.normalBucket(),
-                lastNormal != null ? lastNormal.usersLinku().getUserLinkuId() : cursor.normalLastId(),
+                lastNormal != null ? lastNormal.userLinkuId() : cursor.normalLastId(),
                 noveltyExhaustedNext);
         boolean hasNext = !noveltyExhaustedNext || hasMoreNormal;
 
@@ -169,7 +167,7 @@ public class LinkuRecommendService {
     }
 
     private record CandidatePage(
-            List<UsersLinku> candidates, RecommendCursorUtil.RecommendCursor nextCursor, boolean hasNext) {}
+            List<RankedUsersLinku> candidates, RecommendCursorUtil.RecommendCursor nextCursor, boolean hasNext) {}
 
     private Emotion validateAndFetchContext(Long userId, Long situationId, Long emotionId) {
         Users user = userRepository.findById(userId)
@@ -196,26 +194,16 @@ public class LinkuRecommendService {
     }
 
     // 2. DTO 변환 (AiArticle 존재 여부는 UsersLinku.aiExist 플래그를 그대로 사용 — 별도 조회 없음)
-    private List<LinkuResponseDTO.LinkuSimpleDTO> mapCandidatesToDto(List<UsersLinku> candidates) {
+    private List<LinkuResponseDTO.LinkuSimpleDTO> mapCandidatesToDto(List<RankedUsersLinku> candidates) {
         List<Long> userLinkuIds = candidates.stream()
-                .map(UsersLinku::getUserLinkuId)
+                .map(RankedUsersLinku::userLinkuId)
                 .collect(Collectors.toList());
         Map<Long, LinkuFolder> latestFolderByUserLinkuId = fetchLatestLinkuFolders(userLinkuIds);
 
         return candidates.stream()
-                .map(userLinku -> {
-                    Linku linku = userLinku.getLinku();
-                    boolean aiArticleExists = Boolean.TRUE.equals(userLinku.getAiExist());
-                    LinkuFolder linkuFolder = latestFolderByUserLinkuId.get(userLinku.getUserLinkuId());
-
-                    return LinkuConverter.toLinkuSimpleDTO(
-                            linku,
-                            userLinku,
-                            linku.getDomain(),
-                            aiArticleExists,
-                            linkuFolder
-                    );
-                })
+                .map(candidate -> LinkuConverter.toLinkuSimpleDTO(
+                        candidate,
+                        latestFolderByUserLinkuId.get(candidate.userLinkuId())))
                 .collect(Collectors.toList());
     }
 
