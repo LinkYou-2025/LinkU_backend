@@ -1,6 +1,7 @@
 package com.umc.linkyou.repository.UserLinkuRepository;
 
 import com.umc.linkyou.domain.Linku;
+import com.umc.linkyou.domain.Keyword;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
@@ -9,6 +10,7 @@ import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.domain.mapping.LinkuKeyword;
 import com.umc.linkyou.domain.recommend.UserProfileKeyword;
 import com.umc.linkyou.repository.dto.RankedUsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
@@ -17,6 +19,8 @@ import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
+import com.umc.linkyou.repository.keywordRepository.KeywordRepository;
+import com.umc.linkyou.repository.mapping.LinkuKeywordRepository;
 import com.umc.linkyou.repository.recommend.UserProfileKeywordRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.config.TestExternalConfig;
@@ -38,10 +42,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * UsersLinkuRepositoryImpl#findHomeRecommendCandidates 통합 테스트.
  *
- * TextMatch/KeywordMatch용 profileTsqueryText/profileText는 전부 null로 넘긴다 — 둘 다 null이면
- * HomeRecommendScoreService#textMatchExpression이 similarity()/ts_rank_cd를 아예 호출하지 않는
- * 상수(0.0) 표현식만 반환하므로, pg_trgm 확장 설치 여부와 무관하게 이 테스트가 검증하려는
- * EmotionMatch/SituationMatch/PersonalEngagement/Popularity 동작에 집중할 수 있다.
+ * TextMatch용 profileTsqueryText/profileText는 null로 넘긴다 — 둘 다 null이면
+ * HomeRecommendScoreService#textMatchExpression이 similarity()/ts_rank_cd를 호출하지 않아
+ * pg_trgm 확장 설치 여부와 무관하게 KeywordMatch 및 커서 동작을 검증할 수 있다.
  *
  * 감정(EmotionMatch) 자체는 EmotionSimilarityUtil이 감정 ID 1~6을 하드코딩 매핑하고 있어서, 테스트
  * DB에서 매번 새로 생성되는(IDENTITY 시퀀스가 테스트 클래스 간에도 누적되는) Emotion의 실제 ID가 1~6
@@ -64,6 +67,8 @@ class UsersLinkuRepositoryImplTest {
     @Autowired private EmotionRepository emotionRepository;
     @Autowired private SituationRepository situationRepository;
     @Autowired private LinkuRepository linkuRepository;
+    @Autowired private KeywordRepository keywordRepository;
+    @Autowired private LinkuKeywordRepository linkuKeywordRepository;
     @Autowired private UserProfileKeywordRepository userProfileKeywordRepository;
     @Autowired private JdbcTemplate jdbcTemplate;
 
@@ -169,27 +174,47 @@ class UsersLinkuRepositoryImplTest {
             Emotion emotion = emotionRepository.save(createEmotion());
             Situation situation = situationRepository.save(createSituation("상황"));
 
-            for (long keywordId = 1; keywordId <= 10; keywordId++) {
+            List<Keyword> keywords = keywordRepository.saveAll(
+                    java.util.stream.IntStream.rangeClosed(1, 10)
+                            .mapToObj(keywordId -> Keyword.builder().name("cursor-keyword-" + keywordId).build())
+                            .toList());
+            for (int keywordIndex = 0; keywordIndex < keywords.size(); keywordIndex++) {
                 userProfileKeywordRepository.save(UserProfileKeyword.builder()
                         .userId(user.getId())
-                        .keywordId(keywordId)
-                        .weight((int) keywordId)
+                        .keywordId(keywords.get(keywordIndex).getId())
+                        .weight(keywordIndex + 1)
                         .build());
             }
 
             LocalDateTime now = LocalDateTime.now();
-            for (int i = 0; i < 3; i++) {
-                Linku linku = createAndSaveLinku(domain, category, emotion, situation);
-                usersLinkuRepository.save(baseUsersLinku(user, linku, emotion)
-                        .situation(situation)
-                        .lastViewedAt(now.minusDays(1))
-                        .build());
-            }
+            Linku lowKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
+            Linku highKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
+            Linku noKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
+            linkuKeywordRepository.saveAll(List.of(
+                    LinkuKeyword.builder().linku(lowKeywordLinku).keyword(keywords.get(8)).build(),
+                    LinkuKeyword.builder().linku(lowKeywordLinku).keyword(keywords.get(9)).build()));
+            linkuKeywordRepository.saveAll(keywords.stream()
+                    .map(keyword -> LinkuKeyword.builder().linku(highKeywordLinku).keyword(keyword).build())
+                    .toList());
+
+            UsersLinku lowKeywordCandidate = usersLinkuRepository.save(baseUsersLinku(user, lowKeywordLinku, emotion)
+                    .situation(situation)
+                    .lastViewedAt(now.minusDays(1))
+                    .build());
+            UsersLinku highKeywordCandidate = usersLinkuRepository.save(baseUsersLinku(user, highKeywordLinku, emotion)
+                    .situation(situation)
+                    .lastViewedAt(now.minusDays(1))
+                    .build());
+            usersLinkuRepository.save(baseUsersLinku(user, noKeywordLinku, emotion)
+                    .situation(situation)
+                    .lastViewedAt(now.minusDays(1))
+                    .build());
 
             List<RankedUsersLinku> firstPage = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
                     now, null, null, 14, null, null, 1);
             assertThat(firstPage).hasSize(1);
+            assertThat(firstPage.get(0).userLinkuId()).isEqualTo(highKeywordCandidate.getUserLinkuId());
             RankedUsersLinku cursor = firstPage.get(0);
 
             List<RankedUsersLinku> secondPage = usersLinkuRepository.findNormalRecommendCandidates(
@@ -197,8 +222,8 @@ class UsersLinkuRepositoryImplTest {
                     now, null, null, 14, cursor.scoreBucket(), cursor.userLinkuId(), 1);
 
             assertThat(secondPage).hasSize(1);
-            assertThat(secondPage.get(0).userLinkuId())
-                    .isLessThan(cursor.userLinkuId());
+            assertThat(secondPage.get(0).userLinkuId()).isEqualTo(lowKeywordCandidate.getUserLinkuId());
+            assertThat(cursor.scoreBucket()).isGreaterThan(secondPage.get(0).scoreBucket());
         }
     }
 
