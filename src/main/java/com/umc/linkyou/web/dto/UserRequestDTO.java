@@ -135,6 +135,22 @@ public class UserRequestDTO {
     }
 
     /**
+     * 회원 탈퇴 복구 요청 DTO
+     * 복구 성공 시 바로 액세스/리프레시 토큰 쌍을 발급하기 위해 deviceId/deviceType을 함께 받는다.
+     */
+    @Builder
+    public record RecoverDTO(
+            @Schema(example = "ios-iphone-16-pro")
+            @NotBlank(message = "deviceId는 필수입니다.")
+            String deviceId,
+
+            @Schema(example = "PHONE")
+            @NotNull(message = "deviceType은 필수입니다.")
+            DeviceType deviceType
+    ) {
+    }
+
+    /**
      * 약관 일괄 동의/변경 처리 DTO
      */
     @Builder
