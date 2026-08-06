@@ -6,13 +6,17 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.RefreshTokenManager;
+import com.umc.linkyou.jwt.TokenIssueService;
 import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.DeviceType;
+import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.service.users.UserStatusValidator;
 import com.umc.linkyou.service.users.UserWithdrawService;
 import com.umc.linkyou.web.dto.UserRequestDTO;
+import com.umc.linkyou.web.dto.UserResponseDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -24,6 +28,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
@@ -44,9 +50,13 @@ public class UserWithdrawServiceTest {
     @Mock private UserStatusValidator userStatusValidator;
     @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private AccessTokenBlackListManager accessTokenBlackListManager;
+    @Mock private TokenIssueService tokenIssueService;
 
     @InjectMocks
     private UserWithdrawService userWithdrawService;
+
+    private static final UserRequestDTO.RecoverDTO RECOVER_REQUEST =
+            new UserRequestDTO.RecoverDTO("test-device", DeviceType.PHONE);
 
     @Nested
     @DisplayName("withdrawUser - 회원 탈퇴 테스트")
@@ -181,7 +191,7 @@ public class UserWithdrawServiceTest {
     class Success {
 
         @Test
-        @DisplayName("INACTIVE 상태이고 14일 이내라면 ACTIVE로 복구된다")
+        @DisplayName("INACTIVE 상태이고 14일 이내라면 ACTIVE로 복구되고 액세스/리프레시 토큰이 발급된다")
         void 정상복구_성공() {
             // given
             Long userId = 1L;
@@ -194,14 +204,23 @@ public class UserWithdrawServiceTest {
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userRepository.save(user)).willReturn(user);
             given(userStatusValidator.isWithinWithdrawGracePeriod(user)).willReturn(true);
+            given(authAccountRepository.findEmailByUserIdAndProvider(userId, Provider.GENERAL))
+                    .willReturn(Optional.of("user1@example.com"));
+            given(tokenIssueService.issueTokenPair(
+                            eq(userId), eq("user1@example.com"), eq("GENERAL"), any(),
+                            eq("test-device"), eq(DeviceType.PHONE)))
+                    .willReturn(new TokenIssueService.IssuedTokenPair("access-token", "refresh-token"));
 
             // when
-            Users result = userWithdrawService.recoverUser(userId);
+            UserResponseDTO.withDrawalResultDTO result =
+                    userWithdrawService.recoverUser(userId, "GENERAL", RECOVER_REQUEST);
 
             // then
-            assertThat(result.getStatus()).isEqualTo(UserStatus.ACTIVE);
-            assertThat(result.getInactiveDate()).isNull();
-            assertThat(result.getDeleted_reason()).isNull();
+            assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
+            assertThat(user.getInactiveDate()).isNull();
+            assertThat(user.getDeleted_reason()).isNull();
+            assertThat(result.getAccessToken()).isEqualTo("access-token");
+            assertThat(result.getRefreshToken()).isEqualTo("refresh-token");
         }
 
         @Test
@@ -218,12 +237,18 @@ public class UserWithdrawServiceTest {
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userRepository.save(user)).willReturn(user);
             given(userStatusValidator.isWithinWithdrawGracePeriod(user)).willReturn(true);
+            given(authAccountRepository.findEmailByUserIdAndProvider(userId, Provider.GENERAL))
+                    .willReturn(Optional.of("user2@example.com"));
+            given(tokenIssueService.issueTokenPair(
+                            eq(userId), eq("user2@example.com"), eq("GENERAL"), any(),
+                            eq("test-device"), eq(DeviceType.PHONE)))
+                    .willReturn(new TokenIssueService.IssuedTokenPair("access-token", "refresh-token"));
 
             // when
-            Users result = userWithdrawService.recoverUser(userId);
+            userWithdrawService.recoverUser(userId, "GENERAL", RECOVER_REQUEST);
 
             // then
-            assertThat(result.getStatus()).isEqualTo(UserStatus.ACTIVE);
+            assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
         }
 
         @Test
@@ -240,12 +265,18 @@ public class UserWithdrawServiceTest {
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(userRepository.save(user)).willReturn(user);
             given(userStatusValidator.isWithinWithdrawGracePeriod(user)).willReturn(true);
+            given(authAccountRepository.findEmailByUserIdAndProvider(userId, Provider.GENERAL))
+                    .willReturn(Optional.of("user3@example.com"));
+            given(tokenIssueService.issueTokenPair(
+                            eq(userId), eq("user3@example.com"), eq("GENERAL"), any(),
+                            eq("test-device"), eq(DeviceType.PHONE)))
+                    .willReturn(new TokenIssueService.IssuedTokenPair("access-token", "refresh-token"));
 
             // when
-            Users result = userWithdrawService.recoverUser(userId);
+            userWithdrawService.recoverUser(userId, "GENERAL", RECOVER_REQUEST);
 
             // then
-            assertThat(result.getStatus()).isEqualTo(UserStatus.ACTIVE);
+            assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
         }
     }
     @Nested
@@ -260,7 +291,7 @@ public class UserWithdrawServiceTest {
             given(userRepository.findById(userId)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> userWithdrawService.recoverUser(userId))
+            assertThatThrownBy(() -> userWithdrawService.recoverUser(userId, "GENERAL", RECOVER_REQUEST))
                     .isInstanceOf(GeneralException.class)
                     .satisfies(e -> {
                         GeneralException ex = (GeneralException) e;
@@ -281,7 +312,7 @@ public class UserWithdrawServiceTest {
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
             // when & then
-            assertThatThrownBy(() -> userWithdrawService.recoverUser(userId))
+            assertThatThrownBy(() -> userWithdrawService.recoverUser(userId, "GENERAL", RECOVER_REQUEST))
                     .isInstanceOf(GeneralException.class)
                     .satisfies(e -> {
                         GeneralException ex = (GeneralException) e;
@@ -304,7 +335,7 @@ public class UserWithdrawServiceTest {
             given(userStatusValidator.isWithinWithdrawGracePeriod(user)).willReturn(false);
 
             // when & then
-            assertThatThrownBy(() -> userWithdrawService.recoverUser(userId))
+            assertThatThrownBy(() -> userWithdrawService.recoverUser(userId, "GENERAL", RECOVER_REQUEST))
                     .isInstanceOf(GeneralException.class)
                     .satisfies(e -> {
                         GeneralException ex = (GeneralException) e;

@@ -127,6 +127,13 @@ public interface UserApi {
                 탈퇴 유예 기간(14일) 내에 있는 사용자의 계정을 다시 활성화합니다.
                 - 상태를 ACTIVE로 변경하고 탈퇴 사유 및 날짜를 초기화합니다.
                 - 유예 기간(14일)이 지난 경우 복구 불가 에러를 반환합니다.
+                - 복구 성공 시 별도 재로그인 없이 바로 홈 화면에 진입할 수 있도록 정식 액세스/리프레시 토큰 쌍을 함께 발급합니다.
+
+                Swagger 테스트 시 유의사항
+                - 회원탈퇴(inactive) API를 호출하면 기존 액세스/리프레시 토큰이 즉시 무효화(블랙리스트 등록/삭제)됩니다.
+                - 따라서 탈퇴 직후 이 API를 테스트하려면, 탈퇴로 만료된 토큰이 아니라 로그인 API를 다시 호출해서 새로 발급받은 토큰을 Authorize에 넣어야 합니다.
+                  (탈퇴 유예 기간 내 로그인 시 일반 액세스 토큰이 아닌, 이 API 전용의 복구 토큰(만료 10분)이 발급됩니다.)
+                - 소셜 로그인 계정은 이메일/비밀번호가 없어 Swagger에서 곧바로 재로그인할 수 없으므로, 모바일 소셜 로그인 API를 통해 토큰을 재발급받아야 합니다.
                 """
     )
     @ApiSuccessCode(SuccessStatus._OK)
@@ -134,7 +141,8 @@ public interface UserApi {
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @PostMapping("/recover")
     ApiResponse<UserResponseDTO.withDrawalResultDTO> recoverMe(
-            @CurrentUser CustomUserDetails userDetails);
+            @CurrentUser CustomUserDetails userDetails,
+            @RequestBody @Valid UserRequestDTO.RecoverDTO request);
 
     // 계정 즉시 완전 삭제 (QA/테스트용, 대상은 항상 로그인한 본인 계정)
     @Operation(

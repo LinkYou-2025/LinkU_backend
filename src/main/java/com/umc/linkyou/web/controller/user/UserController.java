@@ -71,9 +71,12 @@ public class UserController implements UserApi {
     }
 
     @Override
-    public ApiResponse<UserResponseDTO.withDrawalResultDTO> recoverMe(@CurrentUser CustomUserDetails userDetails) {
-        Users user = userWithdrawService.recoverUser(userDetails.getUserId());
-        return ApiResponse.onSuccess(UserSuccessStatus.USER_RECOVER_OK, UserConverter.toWithDrawalResultDTO(user));
+    public ApiResponse<UserResponseDTO.withDrawalResultDTO> recoverMe(
+            @CurrentUser CustomUserDetails userDetails, UserRequestDTO.RecoverDTO request) {
+        UserResponseDTO.withDrawalResultDTO result =
+                userWithdrawService.recoverUser(
+                        userDetails.getUserId(), userDetails.getProvider(), request);
+        return ApiResponse.onSuccess(UserSuccessStatus.USER_RECOVER_OK, result);
     }
 
     @Override
