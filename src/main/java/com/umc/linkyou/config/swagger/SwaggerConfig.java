@@ -39,6 +39,7 @@ import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
@@ -58,6 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@Slf4j
 @Configuration
 public class SwaggerConfig {
 
@@ -385,8 +387,11 @@ public class SwaggerConfig {
                     collectDomainErrorCodes(iface, bucket);
                     collectMethodErrorCodes(iface, bucket);
                 }
-            } catch (Throwable e) {
-                // 문서 생성이 컨트롤러 클래스 로딩 실패로 실패하지 않도록 스킵한다.
+            } catch (ClassNotFoundException | LinkageError e) {
+                // NoClassDefFoundError 등 복구 가능한 클래스 로딩 실패만 스킵하고 원인을 남긴다.
+                // OutOfMemoryError 등 치명적 오류(Error 중 LinkageError가 아닌 것)는 여기서 잡히지 않고 그대로 전파된다.
+                log.warn("Swagger 에러코드 문서 생성 중 컨트롤러 클래스 로딩 실패: {} - {}",
+                        bd.getBeanClassName(), e.toString());
             }
         }
 
