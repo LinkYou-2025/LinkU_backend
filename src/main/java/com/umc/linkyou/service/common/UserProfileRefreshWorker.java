@@ -41,8 +41,8 @@ public class UserProfileRefreshWorker {
     // 1회 작업량이 무한정 커지지 않게 막는다.
     private static final int PROFILE_LINK_LIMIT = 200;
     private static final int TOP_TERM_COUNT = 20;
-    // KeywordMatch 서브쿼리 비용을 줄이려고 20 -> 10으로 축소 (HomeRecommendScoreService#keywordMatchExpression
-    // 참고 — 이 개수만큼 CASE WHEN 분기가 생기므로 작을수록 쿼리도 가벼워진다).
+    // KeywordMatch 서브쿼리 비용을 줄이려고 20 -> 10으로 축소 (UsersLinkuRepositoryImpl#nativeScoreExpression
+    // 의 keyword 상관 서브쿼리 참고 — user_profile_keywords 행 수가 늘수록 그 서브쿼리가 스캔할 후보도 늘어난다).
     private static final int TOP_KEYWORD_COUNT = 10;
     // profile_text(trgm fallback 원문) 길이 캡.
     private static final int PROFILE_TEXT_MAX_LENGTH = 4000;

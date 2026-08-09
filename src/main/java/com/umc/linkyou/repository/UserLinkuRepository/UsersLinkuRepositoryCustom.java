@@ -14,12 +14,6 @@ public interface UsersLinkuRepositoryCustom {
     List<UsersLinku> findRecentLinkCandidatesByUser(Long userId, int limit);
     List<UsersLinku> fetchAiArticlesByCategoryIdWithCursor(Long userId, Long categoryId, Long cursorId, int limit);
 
-    // 홈화면 추천 원본(OFFSET). 7축 가중합 정렬 — HomeRecommendScoreService#scoreExpression.
-    // novelty/normal 분리 없이 전체를 다루던 옛 메서드, LinkuRecommendService는 아래 seek 버전을 쓴다.
-    List<UsersLinku> findHomeRecommendCandidates(
-            Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
-            LocalDateTime now, String profileTsqueryText, String profileText, int offset, int limit);
-
     // normal 버킷 — 7축 가중합, novelty 대상(최근 안 본 것)은 제외해 서로소 유지.
     // seek(keyset) 방식: after* 둘 다 null이면 처음부터, 아니면 (scoreBucket, userLinkuId) 이전부터.
     // scoreBucket은 HomeRecommendScoreService#scoreBucketExpression 참고.

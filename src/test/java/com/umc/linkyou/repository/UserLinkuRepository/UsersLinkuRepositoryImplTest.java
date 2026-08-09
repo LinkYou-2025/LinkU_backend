@@ -40,11 +40,12 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * UsersLinkuRepositoryImpl#findHomeRecommendCandidates 통합 테스트.
+ * UsersLinkuRepositoryImpl 홈화면 추천 조회(findNormalRecommendCandidates/findNoveltyRecommendCandidates)
+ * 통합 테스트.
  *
- * TextMatch용 profileTsqueryText/profileText는 null로 넘긴다 — 둘 다 null이면
- * HomeRecommendScoreService#textMatchExpression이 similarity()/ts_rank_cd를 호출하지 않아
- * pg_trgm 확장 설치 여부와 무관하게 KeywordMatch 및 커서 동작을 검증할 수 있다.
+ * TextMatch용 profileTsqueryText/profileText는 null로 넘긴다 — 둘 다 null이면 nativeTextExpression이
+ * similarity()/ts_rank_cd를 호출하지 않아 pg_trgm 확장 설치 여부와 무관하게 KeywordMatch 및 커서 동작을
+ * 검증할 수 있다.
  *
  * 감정(EmotionMatch) 자체는 EmotionSimilarityUtil이 감정 ID 1~6을 하드코딩 매핑하고 있어서, 테스트
  * DB에서 매번 새로 생성되는(IDENTITY 시퀀스가 테스트 클래스 간에도 누적되는) Emotion의 실제 ID가 1~6
@@ -56,7 +57,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Transactional
 @ActiveProfiles("test")
 @Import(TestExternalConfig.class)
-@DisplayName("UsersLinkuRepositoryImpl#findHomeRecommendCandidates 테스트")
+@DisplayName("UsersLinkuRepositoryImpl 홈화면 추천 조회 테스트")
 class UsersLinkuRepositoryImplTest {
 
     @Autowired private UsersLinkuRepository usersLinkuRepository;
@@ -261,12 +262,14 @@ class UsersLinkuRepositoryImplTest {
             UsersLinku none = usersLinkuRepository.save(
                     baseUsersLinku(user, linkuNone, emotion).situation(otherSituation).build());
 
-            List<UsersLinku> result = usersLinkuRepository.findHomeRecommendCandidates(
+            // 셋 다 방금 저장(lastViewedAt=null, createdAt=now)이라 novelty 임계값(14일)과 무관하게
+            // 전부 normal 버킷에 남는다.
+            List<RankedUsersLinku> result = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), targetSituation.getId(), List.of(matchedCategory.getCategoryId()),
-                    LocalDateTime.now(), null, null, 0, 10);
+                    LocalDateTime.now(), null, null, 14, null, null, 10);
 
             assertThat(result).hasSize(3); // situation=null인 categoryOnly도 빠지지 않는다
-            assertThat(result).extracting(UsersLinku::getUserLinkuId)
+            assertThat(result).extracting(RankedUsersLinku::userLinkuId)
                     .containsExactly(direct.getUserLinkuId(), categoryOnly.getUserLinkuId(), none.getUserLinkuId());
         }
     }
@@ -286,12 +289,14 @@ class UsersLinkuRepositoryImplTest {
             Situation situation = situationRepository.save(createSituation("상황"));
 
             LocalDateTime now = LocalDateTime.now();
+            int recencyThresholdDays = 14;
 
-            // 인기/재방문 신호가 전부 낮은 링크
+            // 인기/재방문 신호가 낮은 링크. novelty(14일 경과)로 빠지지 않도록 임계값 안쪽(10일)으로 잡는다 —
+            // 이 테스트는 normal 버킷 안에서의 순위만 검증한다.
             Linku linkuLow = createAndSaveLinku(domain, category, emotion, situation, 0L);
             UsersLinku low = usersLinkuRepository.save(
                     baseUsersLinku(user, linkuLow, emotion).situation(situation)
-                            .viewCount(0).lastViewedAt(now.minusDays(60)).build());
+                            .viewCount(0).lastViewedAt(now.minusDays(10)).build());
 
             // 인기/재방문 신호가 전부 높은 링크
             Linku linkuHigh = createAndSaveLinku(domain, category, emotion, situation, 5000L);
@@ -299,11 +304,11 @@ class UsersLinkuRepositoryImplTest {
                     baseUsersLinku(user, linkuHigh, emotion).situation(situation)
                             .viewCount(50).lastViewedAt(now.minusHours(1)).build());
 
-            List<UsersLinku> result = usersLinkuRepository.findHomeRecommendCandidates(
+            List<RankedUsersLinku> result = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
-                    now, null, null, 0, 10);
+                    now, null, null, recencyThresholdDays, null, null, 10);
 
-            assertThat(result).extracting(UsersLinku::getUserLinkuId)
+            assertThat(result).extracting(RankedUsersLinku::userLinkuId)
                     .containsExactly(high.getUserLinkuId(), low.getUserLinkuId());
         }
     }

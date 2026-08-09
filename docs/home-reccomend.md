@@ -26,6 +26,19 @@ CategoryMatch: SituationCategory점수
 | 6 | KeywordMatch | `LinkuKeyword`/`Keyword` | 사전계산된 유저 키워드 프로필과 스칼라 서브쿼리 매칭 | ✅ 구현 완료 |
 | 7 | CategoryMatch | `Linku.category` | 실시간 SQL (situation→category 매핑(`SituationCategoryService`)에 걸리면 1.0, 아니면 0) | ✅ 구현 완료 |
 
+### sql 계산
+base CTE: 추천 후보 링크를 가져오고 텍스트 점수도 미리 계산
+scored CTE: base CTE에서 가져온 값을 이용해 7중 가중합 계산 , score_bucket 계산
+cursor 계산: score_bucket 순으로 정렬, LIMIT 적용
+
+### Textmatch
+title_tsv/summary_tsv generated column + GIN 인덱스는 한 번 추가했다가 뺐다 — `@@` 검색 조건 없이
+`ts_rank_cd`로 랭킹만 계산하는 지금 쿼리 구조에서는 GIN이 실행계획에 전혀 안 잡혀서(＠＠가 있어야 GIN이
+쓰임) 실익 없이 컬럼/인덱스만 늘리는 꼴이었다. 대신 `to_tsvector('simple', title || ' ' || summary)`를
+요청마다 즉석 계산하되, base CTE에서 후보 행당 딱 한 번만 계산해 `fts_rank` 컬럼으로 두고 scored
+단계에서는 그 값을 읽기만 한다 — 예전엔 이 계산식이 CASE 절 안에서 4번 반복 삽입돼 행마다 4번씩
+실행됐는데, 그 중복만 없앤 것으로 충분했다.
+
 ## Novelty Quota (최근에 안 본 것 우선 노출) — 구현 완료
 
 7축 가중합과는 별개로, 한 페이지를 구성할 때 "최근에 안 본" 후보를 quota만큼 먼저 채우고 나머지를 기존
@@ -46,6 +59,8 @@ CategoryMatch: SituationCategory점수
   #fetchNoveltyAndNormalCandidates`).
 - **두 버킷은 서로소로 유지된다**: `findNormalRecommendCandidates`가 novelty 조건을 제외(`NOT COALESCE(...) <
   threshold`)한 채로 조회하므로, 같은 링크가 novelty와 normal 양쪽에서 중복으로 뽑히는 일이 없다.
-  `findHomeRecommendCandidates`(novelty 필터 없는 원본)는 그대로 남겨뒀고, 기존 테스트/호출부와의
-  하위호환을 위해 시그니처를 바꾸지 않았다 — normal 버킷은 별도 메서드(`findNormalRecommendCandidates`)로
-  분리했다.
+  `findHomeRecommendCandidates`(novelty 필터 없는 OFFSET 원본)는 실제로 아무 서비스 호출부도 쓰지 않는
+  죽은 코드로 확인돼 제거했다 — `queryRankedCandidates`와 그 전용 QueryDSL Expression(scoreExpression/
+  textMatchExpression/keywordMatchExpression/personalEngagementExpression/popularityExpression/
+  categoryMatchExpression/notNoveltyCondition)도 함께 정리했다. 관련 테스트 2개는 `findNormalRecommendCandidates`
+  기준으로 다시 작성했다.
