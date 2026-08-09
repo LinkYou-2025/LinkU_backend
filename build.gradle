@@ -85,6 +85,9 @@ dependencies {
 	//blue-green
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
+	// Prometheus
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+
 	// Google Gen AI SDK
 	implementation 'com.google.genai:google-genai:1.46.0'
 
