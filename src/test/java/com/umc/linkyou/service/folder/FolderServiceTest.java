@@ -192,13 +192,12 @@ class FolderServiceTest {
                 Folder subFolderAsParent = subFolder(grandParent);
 
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(subFolderAsParent));
+                given(usersFolderRepository.existsFolderOwnerOrWriter(OWNER_ID, FOLDER_ID)).willReturn(true);
 
                 assertThatThrownBy(() -> folderService.createFolder(OWNER_ID, FOLDER_ID, request()))
                         .isInstanceOf(GeneralException.class)
                         .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                                 .isEqualTo(FolderErrorStatus._FOLDER_MAX_DEPTH_EXCEEDED));
-
-                verify(usersFolderRepository, never()).existsFolderOwnerOrWriter(any(), any());
             }
 
             @Test

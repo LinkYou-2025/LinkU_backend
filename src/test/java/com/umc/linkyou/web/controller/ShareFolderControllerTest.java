@@ -25,7 +25,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -47,7 +46,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(ShareFolderController.class)
 @Import({WebConfig.class, CurrentUserArgumentResolver.class, TestSecurityConfig.class})
-@TestPropertySource(properties = "app.deeplink.base-url=https://linku.test")
 @DisplayName("ShareFolderController 테스트")
 class ShareFolderControllerTest {
 
@@ -80,7 +78,7 @@ class ShareFolderControllerTest {
         @DisplayName("성공")
         class Success {
             @Test
-            @DisplayName("정상 요청 시 딥링크 형태의 초대 링크를 반환한다")
+            @DisplayName("정상 요청 시 초대 토큰을 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_초대링크를_반환한다() throws Exception {
                 given(shareFolderService.createInviteLink(1L, FOLDER_ID)).willReturn("token-abc");
@@ -89,7 +87,7 @@ class ShareFolderControllerTest {
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("FOLDER2008"))
-                        .andExpect(jsonPath("$.result").value("https://linku.test/open?action=share&folderId=token-abc"));
+                        .andExpect(jsonPath("$.result").value("token-abc"));
             }
         }
 
