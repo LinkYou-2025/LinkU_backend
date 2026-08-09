@@ -130,7 +130,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
             int recencyThresholdDays, Integer afterScoreBucket, Long afterUserLinkuId, int limit) {
         String categoryCondition = mappedCategoryIds == null || mappedCategoryIds.isEmpty()
                 ? "FALSE"
-                : "l.category_id IN (" + mappedCategoryIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(",")) + ")";
+                : "b.category_id IN (" + mappedCategoryIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(",")) + ")";
         String scoreExpression = nativeScoreExpression(
                 selectedEmotionId, selectedSituationId, categoryCondition, profileTsqueryText, profileText);
         boolean hasCursor = afterScoreBucket != null && afterUserLinkuId != null;
@@ -138,28 +138,62 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 ? "(score_bucket, user_linku_id) < (:afterScoreBucket, :afterUserLinkuId)"
                 : "TRUE";
 
+        // base: join + fts_rank(ts_rank_cd/to_tsvector)를 행당 딱 한 번만 계산해서 컬럼으로 노출한다.
+        // 예전엔 nativeTextExpression()이 이 계산식 텍스트를 CASE 절 안에서 그대로 4번 반복 삽입해서
+        // (WHEN/THEN 각 2회 참조 x 분자/분모 각 2회 참조) 후보 행마다 to_tsvector/ts_rank_cd가 4번씩
+        // 실행됐다 — 이게 추천 조회가 느렸던 주 원인. base에서 한 번 계산해 fts_rank 컬럼으로 두면,
+        // scored에서는 그 값을 몇 번 참조하든 컬럼 읽기일 뿐 함수가 재실행되지 않는다.
         String sql = """
-                WITH scored AS MATERIALIZED (
+                WITH base AS (
                     SELECT
                         ul.user_linku_id,
                         l.linku_id,
                         l.category_id,
                         l.linku_url,
+                        l.title AS linku_title,
+                        l.img_url,
+                        l.total_view_count,
                         ul.memo,
                         ul.emotion_id,
-                        COALESCE(ul.title, l.title) AS title,
+                        ul.is_emotion_ai,
+                        ul.situation_id,
+                        ul.is_situation_ai,
+                        ul.view_count,
+                        ul.last_viewed_at,
+                        ul.title AS user_title,
+                        ul.image_url AS user_image_url,
+                        ul.is_ai_exist,
                         d.name AS domain,
                         d.image_url AS domain_image_url,
-                        COALESCE(ul.image_url, l.img_url) AS linku_image_url,
-                        ul.is_ai_exist,
-                        ul.last_viewed_at,
-                        CAST((%s) * 200 AS integer) AS score_bucket
+                        aa.summary,
+                        CASE WHEN :profileTsqueryText IS NULL OR :profileTsqueryText = '' THEN NULL
+                             ELSE CAST(ts_rank_cd(
+                                 to_tsvector('simple', l.title || ' ' || COALESCE(aa.summary, '')),
+                                 to_tsquery('simple', :profileTsqueryText)) AS double precision)
+                        END AS fts_rank
                     FROM users_linkus ul
                     JOIN linkus l ON l.linku_id = ul.linku_id
                     JOIN domains d ON d.domain_id = l.domain_id
                     LEFT JOIN ai_articles aa ON aa.linku_id = l.linku_id
                     WHERE ul.user_id = :userId
                       AND NOT (COALESCE(ul.last_viewed_at, ul.created_at) < :noveltyThreshold)
+                ),
+                scored AS MATERIALIZED (
+                    SELECT
+                        b.user_linku_id,
+                        b.linku_id,
+                        b.category_id,
+                        b.linku_url,
+                        b.memo,
+                        b.emotion_id,
+                        COALESCE(b.user_title, b.linku_title) AS title,
+                        b.domain,
+                        b.domain_image_url,
+                        COALESCE(b.user_image_url, b.img_url) AS linku_image_url,
+                        b.is_ai_exist,
+                        b.last_viewed_at,
+                        CAST((%s) * 200 AS integer) AS score_bucket
+                    FROM base b
                 )
                 SELECT user_linku_id, linku_id, category_id, linku_url, memo, emotion_id,
                        title, domain, domain_image_url, linku_image_url, is_ai_exist,
@@ -214,18 +248,18 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
         RecommendScoreProperties.Confidence confidence = scoreProperties.confidence();
 
         String emotion = nativeEmotionExpression(selectedEmotionId, confidence.aiEmotionDiscount());
-        String situation = "(CASE WHEN ul.situation_id = CAST(:selectedSituationId AS bigint) THEN 1.0 ELSE 0.0 END)"
-                + " * CASE WHEN ul.is_situation_ai THEN " + decimal(confidence.aiSituationDiscount()) + " ELSE 1.0 END";
-        String engagement = "((LEAST(CAST(ul.view_count AS double precision), " + normalization.viewCountCap() + ") / "
-                + normalization.viewCountCap() + ") + CASE WHEN ul.last_viewed_at IS NULL THEN 0.0 ELSE "
-                + "EXP(-GREATEST(EXTRACT(EPOCH FROM (:now - ul.last_viewed_at)) / 86400.0, 0) / "
+        String situation = "(CASE WHEN b.situation_id = CAST(:selectedSituationId AS bigint) THEN 1.0 ELSE 0.0 END)"
+                + " * CASE WHEN b.is_situation_ai THEN " + decimal(confidence.aiSituationDiscount()) + " ELSE 1.0 END";
+        String engagement = "((LEAST(CAST(b.view_count AS double precision), " + normalization.viewCountCap() + ") / "
+                + normalization.viewCountCap() + ") + CASE WHEN b.last_viewed_at IS NULL THEN 0.0 ELSE "
+                + "EXP(-GREATEST(EXTRACT(EPOCH FROM (:now - b.last_viewed_at)) / 86400.0, 0) / "
                 + normalization.recencyHalfLifeDays() + ") END) / 2.0";
-        String popularity = "LEAST(LN(1 + CAST(l.total_view_count AS double precision)) / LN(1 + "
+        String popularity = "LEAST(LN(1 + CAST(b.total_view_count AS double precision)) / LN(1 + "
                 + normalization.popularityViewCountCap() + "), 1.0)";
         String text = nativeTextExpression(profileTsqueryText, profileText);
         String keyword = "LEAST(CAST(COALESCE((SELECT SUM(upk.weight) FROM linku_keywords lk "
                 + "JOIN user_profile_keywords upk ON upk.keyword_id = lk.keyword_id "
-                + "WHERE lk.linku_id = l.linku_id AND upk.user_id = :userId), 0) AS double precision), "
+                + "WHERE lk.linku_id = b.linku_id AND upk.user_id = :userId), 0) AS double precision), "
                 + normalization.keywordWeightCap() + ") / " + normalization.keywordWeightCap();
         String category = "CASE WHEN " + categoryCondition + " THEN 1.0 ELSE 0.0 END";
 
@@ -240,7 +274,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
 
     private String nativeEmotionExpression(Long selectedEmotionId, double aiDiscount) {
         if (selectedEmotionId == null) return "0.0";
-        StringBuilder expression = new StringBuilder("(CASE ul.emotion_id");
+        StringBuilder expression = new StringBuilder("(CASE b.emotion_id");
         boolean hasMatch = false;
         for (long candidateEmotionId = 1; candidateEmotionId <= 6; candidateEmotionId++) {
             int similarity = EmotionSimilarityUtil.getSimilarityScore(selectedEmotionId, candidateEmotionId);
@@ -250,18 +284,20 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
             }
         }
         if (!hasMatch) return "0.0";
-        return expression.append(" ELSE 0 END / 60.0) * CASE WHEN ul.is_emotion_ai THEN ")
+        return expression.append(" ELSE 0 END / 60.0) * CASE WHEN b.is_emotion_ai THEN ")
                 .append(decimal(aiDiscount)).append(" ELSE 1.0 END").toString();
     }
 
+    // fts_rank(ts_rank_cd/to_tsvector)는 base CTE에서 이미 한 번 계산해 컬럼(b.fts_rank)으로 넘어온다.
+    // 여기서 b.fts_rank를 CASE 안에서 여러 번 참조해도 컬럼 값을 읽는 것뿐이라 함수가 재실행되지 않는다
+    // (예전 버전은 to_tsvector/ts_rank_cd 호출 텍스트 자체를 이 메서드 안에서 4번 반복 삽입해서
+    // 후보 행마다 4번씩 실행됐다 — 추천 조회가 느렸던 주 원인).
     private String nativeTextExpression(String profileTsqueryText, String profileText) {
         if (profileTsqueryText == null && profileText == null) return "0.0";
-        String document = "to_tsvector('simple', l.title || ' ' || COALESCE(aa.summary, ''))";
-        String ftsRank = "CAST(ts_rank_cd(" + document + ", to_tsquery('simple', :profileTsqueryText)) AS double precision)";
-        String fts = "(" + ftsRank + " / (" + ftsRank + " + 1.0))";
-        String trgm = "COALESCE(similarity(l.title || ' ' || COALESCE(aa.summary, ''), :profileText), 0)";
+        String trgm = "COALESCE(similarity(b.linku_title || ' ' || COALESCE(b.summary, ''), :profileText), 0)";
         return "CASE WHEN :profileTsqueryText IS NULL OR :profileTsqueryText = '' THEN 0.0 "
-                + "WHEN " + fts + " > 0 THEN " + fts + " ELSE " + trgm + " * 0.7 END";
+                + "WHEN b.fts_rank IS NOT NULL AND b.fts_rank > 0 THEN (b.fts_rank / (b.fts_rank + 1.0)) "
+                + "ELSE " + trgm + " * 0.7 END";
     }
 
     private String decimal(double value) {
