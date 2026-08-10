@@ -3,9 +3,11 @@ package com.umc.linkyou.service.users;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.RefreshTokenManager;
+import com.umc.linkyou.jwt.TokenIssueService;
 import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
@@ -13,6 +15,7 @@ import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.web.dto.UserRequestDTO;
+import com.umc.linkyou.web.dto.UserResponseDTO;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +37,7 @@ public class UserWithdrawService{
     private final UserStatusValidator userStatusValidator;
     private final JwtTokenProvider jwtTokenProvider;
     private final AccessTokenBlackListManager accessTokenBlackListManager;
+    private final TokenIssueService tokenIssueService;
 
     // 탈퇴 유예 기간
     private static final int GRACE_PERIOD_DAYS = 14;
@@ -51,10 +55,6 @@ public class UserWithdrawService{
      * 회원 탈퇴
      * - Refresh Token 전체 삭제
      * - 현재 요청의 Access Token을 블랙리스트에 등록하여 탈퇴 즉시 로그아웃 처리
-     *
-     * Redis(RefreshToken 삭제/AccessToken 블랙리스트)는 @Transactional 롤백 대상이 아니므로,
-     * DB 커밋이 확정된 뒤(afterCommit)에만 반영한다. 이렇게 하면 DB 저장이 실패해 롤백되는 경우
-     * "DB는 ACTIVE인데 Redis만 로그아웃 처리된" 불일치가 생기지 않는다.
      */
     @Transactional
     public Users withdrawUser(
@@ -90,8 +90,6 @@ public class UserWithdrawService{
 
     /**
      * 리프레시 토큰 전체 삭제 + 현재 액세스 토큰 블랙리스트 등록.
-     * DB 트랜잭션 커밋 후에만 호출되므로, 여기서 실패해도 DB 상태를 되돌릴 수 없다.
-     * 따라서 예외를 던지지 않고 로그만 남긴다(재시도/보상 처리는 후속 개선 과제).
      */
     private void invalidateTokens(Long userId, String accessToken) {
         try {
@@ -120,10 +118,12 @@ public class UserWithdrawService{
 
     /**
      * 회원 탈퇴 복구 API
-     * INACTIVE 상태의 사용자를 다시 ACTIVE로 전환합니다.
+     * - INACTIVE 상태의 사용자를 다시 ACTIVE로 전환합니다.
+     * - 복구 성공 시 재로그인 없이 바로 홈 화면에 진입할 수 있도록 정식 액세스/리프레시 토큰 쌍을 함께 발급
      */
     @Transactional
-    public Users recoverUser(Long userId) {
+    public UserResponseDTO.withDrawalResultDTO recoverUser(
+            Long userId, String providerStr, UserRequestDTO.RecoverDTO request) {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
@@ -136,8 +136,26 @@ public class UserWithdrawService{
         }
         // 상태 및 탈퇴 관련 필드 초기화
         user.recover();
+        Users savedUser = userRepository.save(user);
 
-        return userRepository.save(user);
+        // 3. 복구 완료 시점에 정식 토큰 쌍 발급
+        Provider provider = Provider.valueOf(providerStr);
+        String email =
+                authAccountRepository
+                        .findEmailByUserIdAndProvider(userId, provider)
+                        .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+
+        TokenIssueService.IssuedTokenPair tokenPair =
+                tokenIssueService.issueTokenPair(
+                        userId,
+                        email,
+                        providerStr,
+                        savedUser.getRole(),
+                        request.deviceId(),
+                        request.deviceType());
+
+        return UserConverter.toWithDrawalResultDTO(
+                savedUser, tokenPair.accessToken(), tokenPair.refreshToken());
     }
 
     //14 일 이후 삭제

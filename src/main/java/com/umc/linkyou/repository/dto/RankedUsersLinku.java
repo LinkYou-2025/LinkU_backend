@@ -1,6 +1,19 @@
 package com.umc.linkyou.repository.dto;
 
-import com.umc.linkyou.domain.mapping.UsersLinku;
+import java.time.LocalDateTime;
 
-/** seek 페이징 후보 1건. scoreBucket은 다음 커서의 탐색 키로 쓰인다 */
-public record RankedUsersLinku(UsersLinku usersLinku, int scoreBucket) {}
+/** 추천 커서 조회에서 응답에 필요한 필드만 조회한 후보 */
+public record RankedUsersLinku(
+        Long userLinkuId,
+        Long linkuId,
+        Long categoryId,
+        String linku,
+        String memo,
+        Long emotionId,
+        String title,
+        String domain,
+        String domainImageUrl,
+        String linkuImageUrl,
+        Boolean aiArticleExists,
+        LocalDateTime lastViewedAt,
+        int scoreBucket) {}
