@@ -61,6 +61,9 @@ public interface AiArticleApi {
 
                     **응답 항목 (linkuList의 각 원소)**
                     - `linkuId`, `linku`(원본 URL), `emotionId`, `domain`(도메인명), `domainImageUrl`, `title`, `linkuImageUrl`을 반환합니다.
+
+                    **전체 카테고리 조회**
+                    - `categoryId`를 생략하면 카테고리 필터 없이 전체 카테고리의 AI 요약 링크를 조회합니다("전체" 탭).
                     """
     )
     @ApiSuccessCode(SuccessStatus._OK)
@@ -69,12 +72,12 @@ public interface AiArticleApi {
     @GetMapping
     ApiResponse<LinkuResponseDTO.LinkuSliceResultDTO> getMyAiArticlesByCategory(
             @Parameter(description = """
-                    조회할 카테고리 ID
+                    조회할 카테고리 ID. 생략하면 전체 카테고리를 조회합니다("전체" 탭).
                     1: 어학, 2: 뉴스, 3: 공부법, 4: IT·개발, 5: 자기계발, 6: 취업·이직,
                     7: 비즈니스 인사이트, 8: 생산성·툴, 9: 라이프스타일, 10: 심리·자기이해,
                     11: 에세이·칼럼, 12: 트렌드, 13: 디자인·예술, 14: 영상·뮤직,
                     15: 맛집·여행, 16: 기타
-                    """, example = "1") @RequestParam("categoryId") Long categoryId,
+                    """, example = "1", required = false) @RequestParam(name = "categoryId", required = false) Long categoryId,
             @Parameter(description = "커서 ID. 이전 응답의 nextCursor 값을 그대로 전달하며, 첫 조회 시에는 생략합니다.") @RequestParam(name = "cursor", required = false) Long cursor,
             @Parameter(description = "한 번에 조회할 개수", example = "10") @RequestParam(name = "limit", defaultValue = "10") int limit,
             @CurrentUser CustomUserDetails userDetails

@@ -75,6 +75,12 @@ public class UserConverter {
     }
 
     public static UserResponseDTO.withDrawalResultDTO toWithDrawalResultDTO(Users user) {
+        return toWithDrawalResultDTO(user, null, null);
+    }
+
+    // 회원복구 성공 시 accessToken/refreshToken을 함께 담기 위한 오버로드
+    public static UserResponseDTO.withDrawalResultDTO toWithDrawalResultDTO(
+            Users user, String accessToken, String refreshToken) {
         if (user == null) return null;
         return UserResponseDTO.withDrawalResultDTO
                 .builder()
@@ -83,6 +89,8 @@ public class UserConverter {
                 .createdAt(user.getCreatedAt())
                 .status(user.getStatus())
                 .inactiveDate(user.getInactiveDate())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 

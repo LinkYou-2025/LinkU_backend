@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -168,6 +169,50 @@ class AiArticleControllerTest {
                         readResult(result, objectMapper, LinkuResponseDTO.LinkuSliceResultDTO.class);
                 assertThat(body.getLinkuList()).isEmpty();
                 assertThat(body.getHasNext()).isFalse();
+            }
+
+            @Test
+            @DisplayName("categoryId를 생략하면 전체 카테고리 결과를 반환한다")
+            void getMyAiArticlesByCategory_AllCategories_WhenCategoryIdOmitted() throws Exception {
+                // given
+                LinkuResponseDTO.AiArticleSummaryDTO articleFromCategoryA = LinkuResponseDTO.AiArticleSummaryDTO.builder()
+                        .linkuId(201L)
+                        .linku("https://example.com/a")
+                        .emotionId(1L)
+                        .domain("naver")
+                        .domainImageUrl("https://img1.daumcdn.net/thumb/R800x0")
+                        .title("카테고리 A 글")
+                        .linkuImageUrl("https://img1.daumcdn.net/thumb/R800x0")
+                        .build();
+                LinkuResponseDTO.AiArticleSummaryDTO articleFromCategoryB = LinkuResponseDTO.AiArticleSummaryDTO.builder()
+                        .linkuId(202L)
+                        .linku("https://example.com/b")
+                        .emotionId(2L)
+                        .domain("google")
+                        .domainImageUrl("https://img1.daumcdn.net/thumb/R800x0")
+                        .title("카테고리 B 글")
+                        .linkuImageUrl("https://img1.daumcdn.net/thumb/R800x0")
+                        .build();
+
+                LinkuResponseDTO.LinkuSliceResultDTO mockSlice = LinkuResponseDTO.LinkuSliceResultDTO.builder()
+                        .linkuList(List.of(articleFromCategoryA, articleFromCategoryB))
+                        .nextCursor(null)
+                        .hasNext(false)
+                        .build();
+
+                given(aiArticleService.getMyAiArticlesByCategory(eq(TEST_USER_ID), isNull(), any(), anyInt()))
+                        .willReturn(mockSlice);
+
+                // when & then
+                mockMvc.perform(get("/api/v1/aiarticle")
+                                .param("limit", "10")
+                                .contentType(MediaType.APPLICATION_JSON))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.result.linkuList.length()").value(2))
+                        .andExpect(jsonPath("$.result.linkuList[0].linkuId").value(201L))
+                        .andExpect(jsonPath("$.result.linkuList[1].linkuId").value(202L))
+                        .andDo(print());
             }
         }
 

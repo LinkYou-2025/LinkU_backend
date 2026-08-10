@@ -75,6 +75,8 @@ public class UserResponseDTO {
         LocalDateTime createdAt;
         UserStatus status;
         LocalDateTime inactiveDate;
+        String accessToken;
+        String refreshToken;
     }
 
     @Getter
