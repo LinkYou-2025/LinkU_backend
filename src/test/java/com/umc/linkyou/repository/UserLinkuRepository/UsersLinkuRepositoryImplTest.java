@@ -77,7 +77,7 @@ class UsersLinkuRepositoryImplTest {
 
         @Test
         @DisplayName("findNoveltyRecommendCandidates는 COALESCE(lastViewedAt, createdAt)가 임계값보다 오래된 후보만 반환한다")
-        void onlyReturnsCandidatesOlderThanThreshold() {
+        void findNoveltyRecommendCandidates는_임계값보다_오래된_후보만_반환한다() {
             Users user = userRepository.save(createUser("home-reco-novelty"));
             Domain domain = domainRepository.save(createDomain("novelty-test"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -120,7 +120,7 @@ class UsersLinkuRepositoryImplTest {
 
         @Test
         @DisplayName("findNormalRecommendCandidates는 novelty 대상을 제외한다 (서로소 유지)")
-        void normalBucketExcludesNoveltyCandidates() {
+        void findNormalRecommendCandidates는_novelty_대상을_제외한다() {
             Users user = userRepository.save(createUser("home-reco-normal"));
             Domain domain = domainRepository.save(createDomain("normal-test"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -158,7 +158,7 @@ class UsersLinkuRepositoryImplTest {
 
         @Test
         @DisplayName("직접 일치 > category 매핑만 일치 > 매칭 없음 순으로 정렬되고, situation=null인 후보도 결과에서 빠지지 않는다")
-        void directMatchBeatsCategoryMatchBeatsNone() {
+        void 직접_일치_category_매핑_매칭없음_순으로_정렬된다() {
             Users user = userRepository.save(createUser("home-reco-situation"));
             Domain domain = domainRepository.save(createDomain("situation-test"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -202,7 +202,7 @@ class UsersLinkuRepositoryImplTest {
 
         @Test
         @DisplayName("viewCount/lastViewedAt/totalViewCount가 높을수록 상위로 정렬된다")
-        void higherEngagementAndPopularityRanksHigher() {
+        void engagement와_popularity가_높을수록_상위로_정렬된다() {
             Users user = userRepository.save(createUser("home-reco-engagement"));
             Domain domain = domainRepository.save(createDomain("engagement-test"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());

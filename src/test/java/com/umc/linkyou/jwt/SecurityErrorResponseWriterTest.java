@@ -1,6 +1,7 @@
 package com.umc.linkyou.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -16,37 +17,47 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("SecurityErrorResponseWriter 단위 테스트")
 class SecurityErrorResponseWriterTest {
 
-    private final SecurityErrorResponseWriter writer = new SecurityErrorResponseWriter(new ObjectMapper());
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private final SecurityErrorResponseWriter writer = new SecurityErrorResponseWriter(objectMapper);
 
     @Nested
     @DisplayName("write")
     class Write {
-        @Test
-        @DisplayName("에러코드로 ApiResponse 포맷의 바디를 작성한다")
-        void 에러코드로_ApiResponse_포맷의_바디를_작성한다() throws Exception {
-            MockHttpServletResponse response = new MockHttpServletResponse();
 
-            writer.write(response, AuthErrorStatus.UNAUTHORIZED);
+        @Nested
+        @DisplayName("성공")
+        class Success {
+            @Test
+            @DisplayName("에러코드가 주어지면 ApiResponse 포맷의 바디를 작성한다")
+            void 에러코드가_주어지면_ApiResponse_포맷의_바디를_작성한다() throws Exception {
+                MockHttpServletResponse response = new MockHttpServletResponse();
 
-            assertThat(response.getStatus()).isEqualTo(401);
-            assertThat(response.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
+                writer.write(response, AuthErrorStatus.UNAUTHORIZED);
 
-            Map<String, Object> body = new ObjectMapper().readValue(response.getContentAsString(), Map.class);
-            assertThat(body.get("isSuccess")).isEqualTo(false);
-            assertThat(body.get("code")).isEqualTo("AUTH4001");
-            assertThat(body.get("message")).isEqualTo("인증이 필요합니다.");
-            assertThat(body.get("result")).isNull();
+                assertThat(response.getStatus()).isEqualTo(401);
+                assertThat(response.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
+
+                Map<String, Object> body = objectMapper.readValue(response.getContentAsString(), Map.class);
+                assertThat(body.get("isSuccess")).isEqualTo(false);
+                assertThat(body.get("code")).isEqualTo("AUTH4001");
+                assertThat(body.get("message")).isEqualTo("인증이 필요합니다.");
+                assertThat(body.get("result")).isNull();
+            }
         }
 
-        @Test
-        @DisplayName("이미 커밋된 응답이면 아무것도 쓰지 않는다")
-        void 커밋된_응답이면_아무것도_쓰지_않는다() throws Exception {
-            MockHttpServletResponse response = new MockHttpServletResponse();
-            response.setCommitted(true);
+        @Nested
+        @DisplayName("이미 커밋된 응답")
+        class AlreadyCommitted {
+            @Test
+            @DisplayName("이미 커밋된 응답이면 아무것도 쓰지 않는다")
+            void 커밋된_응답이면_아무것도_쓰지_않는다() throws Exception {
+                MockHttpServletResponse response = new MockHttpServletResponse();
+                response.setCommitted(true);
 
-            writer.write(response, AuthErrorStatus.UNAUTHORIZED);
+                writer.write(response, AuthErrorStatus.UNAUTHORIZED);
 
-            assertThat(response.getContentAsString()).isEmpty();
+                assertThat(response.getContentAsString()).isEmpty();
+            }
         }
     }
 }

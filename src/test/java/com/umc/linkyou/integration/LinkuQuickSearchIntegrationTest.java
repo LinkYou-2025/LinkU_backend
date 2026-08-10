@@ -128,7 +128,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("검색 - 제목 중간 단어로 검색해도 링크가 반환된다")
-    void search_byWordInMiddleOfTitle_returnsLink() throws Exception {
+    void 제목_중간_단어로_검색해도_링크가_반환된다() throws Exception {
         Users user = createUser("search_user_1");
         Linku linku = createLinku("스프링 부트 강의 모음", "https://youtube.com/watch?v=1");
         saveToUser(user, linku, null);
@@ -149,7 +149,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("검색 - 사용자가 지정한 제목(users_linku.title)으로 검색해도 링크가 반환된다")
-    void search_byUserCustomTitle_returnsLink() throws Exception {
+    void 사용자_지정_제목으로_검색해도_링크가_반환된다() throws Exception {
         Users user = createUser("search_user_2");
         Linku linku = createLinku("원본 크롤링 제목", "https://youtube.com/watch?v=2");
         saveToUser(user, linku, "내가 바꾼 제목");
@@ -164,7 +164,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("검색 - 제목엔 없고 태그에만 있는 단어로 검색해도 링크가 반환된다")
-    void search_byTagOnly_returnsLink() throws Exception {
+    void 태그에만_있는_단어로_검색해도_링크가_반환된다() throws Exception {
         Users user = createUser("search_user_3");
         Linku linku = createLinku("자바 유용한 팁", "https://youtube.com/watch?v=3");
         saveToUser(user, linku, null);
@@ -181,7 +181,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("검색 - 영문 대소문자를 구분하지 않는다")
-    void search_isCaseInsensitive() throws Exception {
+    void 영문_대소문자를_구분하지_않는다() throws Exception {
         Users user = createUser("search_user_4");
         Linku linku = createLinku("YouTube 알고리즘 분석", "https://youtube.com/watch?v=4");
         saveToUser(user, linku, null);
@@ -196,7 +196,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("검색 - 다른 사용자가 저장한 링크는 검색되지 않는다")
-    void search_doesNotReturnOtherUsersLinks() throws Exception {
+    void 다른_사용자가_저장한_링크는_검색되지_않는다() throws Exception {
         Users owner = createUser("search_user_5");
         Users other = createUser("search_user_6");
         Linku linku = createLinku("스프링 부트 강의", "https://youtube.com/watch?v=5");
@@ -212,7 +212,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("검색 - 최신 저장 순으로 반환된다")
-    void search_returnsNewestFirst() throws Exception {
+    void 최신_저장_순으로_반환된다() throws Exception {
         Users user = createUser("search_user_7");
         Linku first = createLinku("스프링 강의 하나", "https://youtube.com/watch?v=6");
         saveToUser(user, first, null);
@@ -229,7 +229,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("검색 - 커서 페이징: 첫 페이지 후 nextCursor로 다음 페이지를 이어서 조회한다")
-    void search_cursorPaging() throws Exception {
+    void 커서_페이징으로_다음_페이지를_이어서_조회한다() throws Exception {
         Users user = createUser("search_user_8");
         for (int i = 1; i <= 15; i++) {
             Linku linku = createLinku("스프링 강의 " + i, "https://youtube.com/watch?v=paging" + i);
@@ -261,7 +261,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("검색 - 검색어가 공백뿐이면 400을 반환한다")
-    void search_blankKeyword_badRequest() throws Exception {
+    void 검색어가_공백뿐이면_400을_반환한다() throws Exception {
         Users user = createUser("search_user_9");
 
         mockMvc.perform(get("/api/v1/linku/search")
@@ -273,7 +273,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("검색 - 검색어가 1글자면 400을 반환한다")
-    void search_singleCharKeyword_badRequest() throws Exception {
+    void 검색어가_1글자면_400을_반환한다() throws Exception {
         Users user = createUser("search_user_10");
 
         mockMvc.perform(get("/api/v1/linku/search")
@@ -287,7 +287,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("자동완성 - 저장한 링크의 제목에서 후보를 반환한다")
-    void autocomplete_returnsTitleCandidates() throws Exception {
+    void 저장한_링크의_제목에서_후보를_반환한다() throws Exception {
         Users user = createUser("search_user_11");
         Linku linku = createLinku("스프링 부트 강의", "https://youtube.com/watch?v=8");
         saveToUser(user, linku, null);
@@ -306,7 +306,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("자동완성 - 태그만 일치하는 링크도 후보에 포함된다")
-    void autocomplete_includesTagOnlyMatches() throws Exception {
+    void 태그만_일치하는_링크도_후보에_포함된다() throws Exception {
         Users user = createUser("search_user_12");
         Linku linku = createLinku("자바 유용한 팁", "https://youtube.com/watch?v=9");
         saveToUser(user, linku, null);
@@ -321,7 +321,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("자동완성 - 후보는 최대 3개까지만 반환된다")
-    void autocomplete_returnsAtMostThree() throws Exception {
+    void 후보는_최대_3개까지만_반환된다() throws Exception {
         Users user = createUser("search_user_13");
         for (int i = 1; i <= 5; i++) {
             Linku linku = createLinku("스프링 강의 " + i, "https://youtube.com/watch?v=quick" + i);
@@ -337,7 +337,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("자동완성 - 사용자가 지정한 제목으로도 검색된다")
-    void autocomplete_byCustomTitle_returnsLink() throws Exception {
+    void 사용자가_지정한_제목으로도_검색된다() throws Exception {
         Users user = createUser("search_user_15");
         Linku linku = createLinku("원본 크롤링 제목", "https://youtube.com/watch?v=custom");
         saveToUser(user, linku, "내가 바꾼 스프링 강의");
@@ -352,7 +352,7 @@ class LinkuQuickSearchIntegrationTest {
 
     @Test
     @DisplayName("자동완성 - 검색어가 1글자면 400을 반환한다")
-    void autocomplete_singleCharKeyword_badRequest() throws Exception {
+    void 자동완성_검색어가_1글자면_400을_반환한다() throws Exception {
         Users user = createUser("search_user_14");
 
         mockMvc.perform(get("/api/v1/linku/search/quick")

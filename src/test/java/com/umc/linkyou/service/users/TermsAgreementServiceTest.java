@@ -40,7 +40,7 @@ class TermsAgreementServiceTest {
 
             @Test
             @DisplayName("성공 - 기존 기록이 없는 약관은 새롭게 저장(save)된다")
-            void upsert_new_agreement_success() {
+            void 기존_기록이_없는_약관은_새롭게_저장된다() {
                 // given
                 Users user = Users.builder().id(1L).build();
                 Map<TermsType, Boolean> termsMap = Map.of(TermsType.TERMS_OF_USE, true);
@@ -55,7 +55,7 @@ class TermsAgreementServiceTest {
 
             @Test
             @DisplayName("성공 - 기존 기록이 있는 약관은 상태만 업데이트된다")
-            void update_existing_agreement_success() {
+            void 기존_기록이_있는_약관은_상태만_업데이트된다() {
                 // given
                 Users user = Users.builder().id(1L).build();
                 TermsAgreement existing = TermsAgreement.builder()
@@ -81,7 +81,7 @@ class TermsAgreementServiceTest {
 
             @Test
             @DisplayName("실패 - 전달된 약관 맵이 비어있으면 INVALID_TERMS_TYPE 예외가 발생한다")
-            void fail_when_map_is_empty() {
+            void 전달된_약관_맵이_비어있으면_INVALID_TERMS_TYPE_예외가_발생한다() {
                 // given
                 Users user = Users.builder().id(1L).build();
                 Map<TermsType, Boolean> emptyMap = Map.of();

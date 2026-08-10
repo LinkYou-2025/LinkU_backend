@@ -1,7 +1,6 @@
 package com.umc.linkyou.service.users;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -90,7 +89,7 @@ class UserServiceImplTest {
 
             @Test
             @DisplayName("성공 - 신규 유저 가입 시 기본 ROLE_USER 권한과 알림 설정이 생성된다")
-            void join_user_success() {
+            void 신규_유저_가입_시_기본_권한과_알림_설정이_생성된다() {
                 // given
                 UserRequestDTO.JoinDTO request =
                         UserRequestDTO.JoinDTO.builder()
@@ -153,7 +152,7 @@ class UserServiceImplTest {
 
             @Test
             @DisplayName("성공 - TEMP 상태 유저가 프로필 완성 시 ACTIVE 상태로 변경되고 정식 토큰이 발급된다")
-            void social_complete_success() {
+            void TEMP_상태_유저가_프로필_완성_시_ACTIVE_상태로_변경되고_정식_토큰이_발급된다() {
                 // given
                 Users tempUser = Users.builder().id(1L).status(UserStatus.TEMP).build();
 
@@ -216,7 +215,7 @@ class UserServiceImplTest {
 
             @Test
             @DisplayName("성공 - 로그인 성공 시 토큰 페어와 유저 권한 정보가 반환된다")
-            void login_user_success() {
+            void 로그인_성공_시_토큰_페어와_유저_권한_정보가_반환된다() {
                 // given
                 UserRequestDTO.LoginRequestDTO request =
                         new UserRequestDTO.LoginRequestDTO(

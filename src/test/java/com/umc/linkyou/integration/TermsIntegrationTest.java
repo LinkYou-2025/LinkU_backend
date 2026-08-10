@@ -79,7 +79,7 @@ class TermsIntegrationTest {
 
         @Test
         @DisplayName("성공 - 일반 회원가입 시 약관 동의 맵이 DB에 정상 반영된다")
-        void join_with_terms_success() throws Exception {
+        void 일반_회원가입_시_약관_동의_맵이_DB에_정상_반영된다() throws Exception {
             Job job = jobRepository.save(Job.builder()
                     .name("테스트직업")
                     .build());
@@ -116,7 +116,7 @@ class TermsIntegrationTest {
 
         @Test
         @DisplayName("성공 - 로그인한 사용자가 마케팅 약관을 추가로 동의할 수 있다")
-        void update_marketing_terms_success() throws Exception {
+        void 로그인한_사용자가_마케팅_약관을_추가로_동의할_수_있다() throws Exception {
             Users user = createUser("로그인유저");
 
             UserRequestDTO.TermsAgreeDTO request = new UserRequestDTO.TermsAgreeDTO(
