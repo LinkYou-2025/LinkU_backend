@@ -117,7 +117,7 @@ class LinkuCreateServiceTest {
                 ArgumentCaptor<UsersLinku> usersLinkuCaptor = ArgumentCaptor.forClass(UsersLinku.class);
                 verify(usersLinkuRepository).save(usersLinkuCaptor.capture());
                 assertEquals(S3_IMAGE_URL, usersLinkuCaptor.getValue().getImageUrl());
-                assertNotNull(usersLinkuCaptor.getValue().getEmotion());
+                assertEquals(EMOTION_ID, usersLinkuCaptor.getValue().getEmotion().getEmotionId());
             }
 
             @Test
@@ -135,7 +135,7 @@ class LinkuCreateServiceTest {
                 ArgumentCaptor<UsersLinku> usersLinkuCaptor = ArgumentCaptor.forClass(UsersLinku.class);
                 verify(usersLinkuRepository).save(usersLinkuCaptor.capture());
                 assertNull(usersLinkuCaptor.getValue().getImageUrl());
-                assertNotNull(usersLinkuCaptor.getValue().getEmotion());
+                assertEquals(EMOTION_ID, usersLinkuCaptor.getValue().getEmotion().getEmotionId());
             }
 
             @Test
@@ -152,7 +152,7 @@ class LinkuCreateServiceTest {
 
                 ArgumentCaptor<UsersLinku> usersLinkuCaptor = ArgumentCaptor.forClass(UsersLinku.class);
                 verify(usersLinkuRepository).save(usersLinkuCaptor.capture());
-                assertNotNull(usersLinkuCaptor.getValue().getEmotion());
+                assertEquals(EMOTION_ID, usersLinkuCaptor.getValue().getEmotion().getEmotionId());
             }
         }
     }
@@ -181,7 +181,7 @@ class LinkuCreateServiceTest {
                 ArgumentCaptor<UsersLinku> captor = ArgumentCaptor.forClass(UsersLinku.class);
                 verify(usersLinkuRepository).save(captor.capture());
                 assertEquals(S3_IMAGE_URL, captor.getValue().getImageUrl());
-                assertNotNull(captor.getValue().getEmotion());
+                assertEquals(EMOTION_ID, captor.getValue().getEmotion().getEmotionId());
             }
 
             @Test
@@ -196,7 +196,7 @@ class LinkuCreateServiceTest {
                 ArgumentCaptor<UsersLinku> captor = ArgumentCaptor.forClass(UsersLinku.class);
                 verify(usersLinkuRepository).save(captor.capture());
                 assertNull(captor.getValue().getImageUrl());
-                assertNotNull(captor.getValue().getEmotion());
+                assertEquals(EMOTION_ID, captor.getValue().getEmotion().getEmotionId());
 
                 // 기존 링크가 존재하면 upsert 로직이 수행되지 않아야 함
                 verify(linkuUpsertService, never()).upsert(any(), any(), any(), any(), any(), any(), any());

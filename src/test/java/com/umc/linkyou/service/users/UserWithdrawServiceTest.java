@@ -2,6 +2,7 @@ package com.umc.linkyou.service.users;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import jakarta.persistence.EntityManager;
@@ -122,15 +123,18 @@ class UserWithdrawServiceTest {
         reasonDTO.setReason("더 이상 사용하지 않음");
 
         // when
+        LocalDateTime beforeWithdraw = LocalDateTime.now();
         userWithdrawService.withdrawUser(testUserId, reasonDTO);
         em.flush();
         em.clear();
+        LocalDateTime afterWithdraw = LocalDateTime.now();
 
         // then
         Users foundUser = userRepository.findById(testUserId).orElseThrow();
         assertEquals(UserStatus.INACTIVE, foundUser.getStatus());
         assertEquals("더 이상 사용하지 않음", foundUser.getDeleted_reason());
-        assertNotNull(foundUser.getInactiveDate());
+        assertFalse(foundUser.getInactiveDate().isBefore(beforeWithdraw));
+        assertFalse(foundUser.getInactiveDate().isAfter(afterWithdraw));
     }
 
     @Test

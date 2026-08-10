@@ -133,9 +133,9 @@ class UserServiceImplTest {
                 // then
                 ArgumentCaptor<Users> savedUserCaptor = ArgumentCaptor.forClass(Users.class);
                 verify(userRepository).save(savedUserCaptor.capture());
-                assertNotNull(savedUserCaptor.getValue().getRole());
                 assertEquals(Role.USER, savedUserCaptor.getValue().getRole());
-                assertNotNull(result.getTokenResponse());
+                assertEquals("accessToken", result.getTokenResponse().getAccessToken());
+                assertEquals("refreshToken", result.getTokenResponse().getRefreshToken());
                 verify(termsAgreementService).upsertTerms(any(Users.class), any());
                 verify(alarmSettingRepository).save(any());
             }
@@ -264,7 +264,7 @@ class UserServiceImplTest {
                 UserResponseDTO.LoginResultDTO result = userService.loginUser(request);
 
                 // then
-                assertNotNull(result.getAccessToken());
+                assertEquals("mockAccess", result.getAccessToken());
                 verify(userStatusValidator).validateLoginAllowed(user);
                 verify(tokenIssueService)
                         .issueTokenPair(

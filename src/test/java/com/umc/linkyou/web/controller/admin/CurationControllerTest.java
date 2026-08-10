@@ -21,6 +21,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -66,7 +67,10 @@ class CurationControllerTest {
                                 .with(csrf()))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andExpect(jsonPath("$.code").value("COMMON200"));
+                        .andExpect(jsonPath("$.code").value("COMMON200"))
+                        .andExpect(jsonPath("$.result").isEmpty());
+
+                verify(curationService).generateCurationForUser(USER_ID, MONTH);
             }
 
             @Test
@@ -81,7 +85,10 @@ class CurationControllerTest {
                                 .with(csrf()))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andExpect(jsonPath("$.code").value("COMMON200"));
+                        .andExpect(jsonPath("$.code").value("COMMON200"))
+                        .andExpect(jsonPath("$.result").isEmpty());
+
+                verify(curationService).generateCurationForUser(USER_ID, MONTH);
             }
         }
 
@@ -101,7 +108,8 @@ class CurationControllerTest {
                                 .with(csrf()))
                         .andExpect(status().isNotFound())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(UserErrorStatus._USER_NOT_FOUND.getCode()));
+                        .andExpect(jsonPath("$.code").value(UserErrorStatus._USER_NOT_FOUND.getCode()))
+                        .andExpect(jsonPath("$.result").isEmpty());
             }
 
             @Test
@@ -124,7 +132,8 @@ class CurationControllerTest {
                                 .with(csrf()))
                         .andExpect(status().isForbidden())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(AuthErrorStatus.PERMISSION_DENIED.getCode()));
+                        .andExpect(jsonPath("$.code").value(AuthErrorStatus.PERMISSION_DENIED.getCode()))
+                        .andExpect(jsonPath("$.result").isEmpty());
 
                 verifyNoInteractions(curationService);
             }

@@ -1,50 +1,50 @@
 package com.umc.linkyou.web.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.domain.enums.Role;
-import com.umc.linkyou.jwt.AccessTokenBlackListManager;
-import com.umc.linkyou.jwt.CustomUserDetails;
-import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.config.common.WebConfig;
+import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
+import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.service.AiArticleService;
+import com.umc.linkyou.support.security.TestSecurityConfig;
+import com.umc.linkyou.support.security.WithCustomUser;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.List;
 
+import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResult;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AiArticleController.class)
-@AutoConfigureMockMvc(addFilters = false)
-@Import({WebConfig.class, CurrentUserArgumentResolver.class})
+@Import({WebConfig.class, CurrentUserArgumentResolver.class, TestSecurityConfig.class})
 @DisplayName("AiArticleController 테스트")
 class AiArticleControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @MockitoBean
     private AiArticleService aiArticleService;
@@ -60,31 +60,18 @@ class AiArticleControllerTest {
 
     private static final Long TEST_USER_ID = 1L;
 
-    @BeforeEach
-    void setUp() {
-        CustomUserDetails userDetails = new CustomUserDetails(TEST_USER_ID, Role.USER, "KAKAO");
-        UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
-    }
-
-    @AfterEach
-    void tearDown() {
-        SecurityContextHolder.clearContext();
-    }
-
     @Nested
-    @DisplayName("getMyAiArticlesByCategory")
+    @DisplayName("GET /api/v1/aiarticle - 카테고리별 AI 아티클 조회")
     class GetMyAiArticlesByCategory {
 
         @Nested
-        @DisplayName("성공 케이스")
+        @DisplayName("성공")
         class Success {
 
             @Test
-            @DisplayName("특정 카테고리 ID로 조회 시 커서 기반 페이징 결과를 반환한다")
-            void getMyAiArticlesByCategory_Success() throws Exception {
-                // given
+            @DisplayName("특정 카테고리로 조회하면 커서 기반 페이징 결과를 반환한다")
+            @WithCustomUser(userId = 1L)
+            void 특정_카테고리로_조회하면_커서_기반_페이징_결과를_반환한다() throws Exception {
                 Long categoryId = 1L;
 
                 LinkuResponseDTO.AiArticleSummaryDTO article1 = LinkuResponseDTO.AiArticleSummaryDTO.builder()
@@ -106,29 +93,30 @@ class AiArticleControllerTest {
                 given(aiArticleService.getMyAiArticlesByCategory(eq(TEST_USER_ID), eq(categoryId), any(), anyInt()))
                         .willReturn(mockSlice);
 
-                // when & then
-                mockMvc.perform(get("/api/v1/aiarticle")
+                MvcResult result = mockMvc.perform(get("/api/v1/aiarticle")
                                 .param("categoryId", String.valueOf(categoryId))
                                 .param("cursor", "0")
-                                .param("limit", "10")
-                                .contentType(MediaType.APPLICATION_JSON))
+                                .param("limit", "10"))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andExpect(jsonPath("$.result.linkuList.length()").value(1))
-                        .andExpect(jsonPath("$.result.linkuList[0].linkuId").value(101L))
-                        .andExpect(jsonPath("$.result.linkuList[0].linku").value("https://example.com/article"))
-                        .andExpect(jsonPath("$.result.linkuList[0].emotionId").value(2L))
-                        .andExpect(jsonPath("$.result.linkuList[0].domain").value("naver"))
-                        .andExpect(jsonPath("$.result.linkuList[0].title").value("첫 번째 AI 제목"))
-                        .andExpect(jsonPath("$.result.nextCursor").value("1001"))
-                        .andExpect(jsonPath("$.result.hasNext").value(true))
-                        .andDo(print());
+                        .andReturn();
+
+                LinkuResponseDTO.LinkuSliceResultDTO body =
+                        readResult(result, objectMapper, LinkuResponseDTO.LinkuSliceResultDTO.class);
+                assertThat(body.getLinkuList()).hasSize(1);
+                assertThat(body.getLinkuList().get(0).getLinkuId()).isEqualTo(101L);
+                assertThat(body.getLinkuList().get(0).getLinku()).isEqualTo("https://example.com/article");
+                assertThat(body.getLinkuList().get(0).getEmotionId()).isEqualTo(2L);
+                assertThat(body.getLinkuList().get(0).getDomain()).isEqualTo("naver");
+                assertThat(body.getLinkuList().get(0).getTitle()).isEqualTo("첫 번째 AI 제목");
+                assertThat(body.getNextCursor()).isEqualTo("1001");
+                assertThat(body.getHasNext()).isTrue();
             }
 
             @Test
-            @DisplayName("결과가 없는 카테고리 조회 시 빈 리스트와 null 커서를 반환한다")
-            void getMyAiArticlesByCategory_Empty() throws Exception {
-                // given
+            @DisplayName("결과가 없는 카테고리로 조회하면 빈 리스트와 null 커서를 반환한다")
+            @WithCustomUser(userId = 1L)
+            void 결과가_없는_카테고리로_조회하면_빈_리스트와_null_커서를_반환한다() throws Exception {
                 Long emptyCategoryId = 99L;
 
                 LinkuResponseDTO.LinkuSliceResultDTO emptySlice = LinkuResponseDTO.LinkuSliceResultDTO.builder()
@@ -140,22 +128,23 @@ class AiArticleControllerTest {
                 given(aiArticleService.getMyAiArticlesByCategory(eq(TEST_USER_ID), eq(emptyCategoryId), any(), anyInt()))
                         .willReturn(emptySlice);
 
-                // when & then
-                mockMvc.perform(get("/api/v1/aiarticle")
-                                .param("categoryId", String.valueOf(emptyCategoryId))
-                                .contentType(MediaType.APPLICATION_JSON))
+                MvcResult result = mockMvc.perform(get("/api/v1/aiarticle")
+                                .param("categoryId", String.valueOf(emptyCategoryId)))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andExpect(jsonPath("$.result.linkuList").isEmpty())
-                        .andExpect(jsonPath("$.result.hasNext").value(false))
-                        .andExpect(jsonPath("$.result.nextCursor").doesNotExist())
-                        .andDo(print());
+                        .andReturn();
+
+                LinkuResponseDTO.LinkuSliceResultDTO body =
+                        readResult(result, objectMapper, LinkuResponseDTO.LinkuSliceResultDTO.class);
+                assertThat(body.getLinkuList()).isEmpty();
+                assertThat(body.getHasNext()).isFalse();
+                assertThat(body.getNextCursor()).isNull();
             }
 
             @Test
-            @DisplayName("존재하지 않는 카테고리 ID여도 서비스가 빈 결과를 반환하면 정상 응답한다")
-            void getMyAiArticlesByCategory_NotFoundCategory_ReturnsEmptySlice() throws Exception {
-                // given
+            @DisplayName("존재하지 않는 카테고리로 조회해도 서비스가 빈 결과를 반환하면 정상 응답한다")
+            @WithCustomUser(userId = 1L)
+            void 존재하지_않는_카테고리로_조회해도_서비스가_빈_결과를_반환하면_정상_응답한다() throws Exception {
                 Long notFoundCategoryId = 999L;
 
                 LinkuResponseDTO.LinkuSliceResultDTO emptySlice = LinkuResponseDTO.LinkuSliceResultDTO.builder()
@@ -167,62 +156,68 @@ class AiArticleControllerTest {
                 given(aiArticleService.getMyAiArticlesByCategory(eq(TEST_USER_ID), eq(notFoundCategoryId), any(), anyInt()))
                         .willReturn(emptySlice);
 
-                // when & then
-                mockMvc.perform(get("/api/v1/aiarticle")
+                MvcResult result = mockMvc.perform(get("/api/v1/aiarticle")
                                 .param("categoryId", String.valueOf(notFoundCategoryId))
                                 .param("cursor", "0")
-                                .param("limit", "10")
-                                .contentType(MediaType.APPLICATION_JSON))
+                                .param("limit", "10"))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andExpect(jsonPath("$.result.linkuList").isEmpty())
-                        .andExpect(jsonPath("$.result.hasNext").value(false))
-                        .andExpect(jsonPath("$.result.nextCursor").doesNotExist())
-                        .andDo(print());
+                        .andReturn();
+
+                LinkuResponseDTO.LinkuSliceResultDTO body =
+                        readResult(result, objectMapper, LinkuResponseDTO.LinkuSliceResultDTO.class);
+                assertThat(body.getLinkuList()).isEmpty();
+                assertThat(body.getHasNext()).isFalse();
             }
         }
 
         @Nested
-        @DisplayName("실패 케이스")
+        @DisplayName("실패")
         class Failure {
 
             @Test
-            @DisplayName("categoryId가 문자열이면 400 Bad Request를 반환한다")
-            void getMyAiArticlesByCategory_InvalidCategoryIdType() throws Exception {
-                // when & then
+            @DisplayName("categoryId가 문자열이면 400을 반환한다")
+            @WithCustomUser(userId = 1L)
+            void categoryId가_문자열이면_400을_반환한다() throws Exception {
                 mockMvc.perform(get("/api/v1/aiarticle")
-                                .param("categoryId", "invalid")
-                                .contentType(MediaType.APPLICATION_JSON))
+                                .param("categoryId", "invalid"))
                         .andExpect(status().isBadRequest())
-                        .andDo(print());
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value(CommonErrorStatus._BAD_REQUEST.getCode()));
             }
 
             @Test
-            @DisplayName("categoryId가 없으면 400 Bad Request를 반환한다")
-            void getMyAiArticlesByCategory_MissingCategoryId() throws Exception {
-                // when & then
-                mockMvc.perform(get("/api/v1/aiarticle")
-                                .contentType(MediaType.APPLICATION_JSON))
+            @DisplayName("categoryId가 없으면 400을 반환한다")
+            @WithCustomUser(userId = 1L)
+            void categoryId가_없으면_400을_반환한다() throws Exception {
+                mockMvc.perform(get("/api/v1/aiarticle"))
                         .andExpect(status().isBadRequest())
-                        .andDo(print());
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value(CommonErrorStatus._BAD_REQUEST.getCode()));
             }
 
             @Test
             @DisplayName("서비스에서 예외가 발생하면 에러 응답을 반환한다")
-            void getMyAiArticlesByCategory_ServiceThrowsException_ReturnsErrorResponse() throws Exception {
-                // given
+            @WithCustomUser(userId = 1L)
+            void 서비스에서_예외가_발생하면_에러_응답을_반환한다() throws Exception {
                 given(aiArticleService.getMyAiArticlesByCategory(any(), any(), any(), anyInt()))
                         .willThrow(new GeneralException(ErrorStatus._INTERNAL_SERVER_ERROR));
 
-                // when & then
                 mockMvc.perform(get("/api/v1/aiarticle")
                                 .param("categoryId", "1")
                                 .param("cursor", "0")
-                                .param("limit", "10")
-                                .contentType(MediaType.APPLICATION_JSON))
+                                .param("limit", "10"))
                         .andExpect(status().isInternalServerError())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andDo(print());
+                        .andExpect(jsonPath("$.code").value(ErrorStatus._INTERNAL_SERVER_ERROR.getCode()));
+            }
+
+            @Test
+            @DisplayName("인증되지 않으면 401을 반환한다")
+            void 인증되지_않으면_401을_반환한다() throws Exception {
+                mockMvc.perform(get("/api/v1/aiarticle")
+                                .param("categoryId", "1"))
+                        .andExpect(status().isUnauthorized());
             }
         }
     }
