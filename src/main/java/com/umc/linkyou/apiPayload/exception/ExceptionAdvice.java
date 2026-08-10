@@ -5,6 +5,7 @@ import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;
 import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.ConstraintViolationException;
 import org.jspecify.annotations.NonNull;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -114,6 +116,13 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleInvalidFormat(InvalidFormatException e, WebRequest request) {
         log.warn("[InvalidFormatException] targetType: {}, value: {}", e.getTargetType(), e.getValue());
         return handleExceptionInternalConstraint(e, CommonErrorStatus._BAD_REQUEST, HttpHeaders.EMPTY, request);
+    }
+
+    // @PreAuthorize 등 인가 실패
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDenied(AccessDeniedException e, WebRequest request) {
+        log.warn("[AccessDeniedException] {}", e.getMessage());
+        return handleExceptionInternalConstraint(e, AuthErrorStatus.PERMISSION_DENIED, HttpHeaders.EMPTY, request);
     }
 
     @ExceptionHandler
