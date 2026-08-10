@@ -93,7 +93,7 @@ class InternalLinkCandidateServiceImplTest {
 
     @Test
     @DisplayName("해당 월에 저장한 링크가 없으면 빈 리스트를 반환한다")
-    void noLinks_returnsEmpty() {
+    void 저장한_링크가_없으면_빈_리스트를_반환한다() {
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(makeCuration()));
         when(usersLinkuRepository.findAllByUserIdAndCreatedAtBetween(eq(USER_ID), any(), any()))
                 .thenReturn(List.of());
@@ -105,7 +105,7 @@ class InternalLinkCandidateServiceImplTest {
 
     @Test
     @DisplayName("감정+상황 점수가 높은 링크가 먼저 반환된다")
-    void scoring_highScoreFirst() {
+    void 감정_상황_점수가_높은_링크가_먼저_반환된다() {
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(makeCuration()));
 
         LocalDateTime base = LocalDateTime.of(2026, 3, 15, 12, 0);
@@ -140,7 +140,7 @@ class InternalLinkCandidateServiceImplTest {
 
     @Test
     @DisplayName("limit 개수만큼만 반환된다")
-    void limit_applied() {
+    void limit_개수만큼만_반환된다() {
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(makeCuration()));
 
         LocalDateTime base = LocalDateTime.now();
@@ -165,7 +165,7 @@ class InternalLinkCandidateServiceImplTest {
 
     @Test
     @DisplayName("점수가 동일하면 최신 링크가 먼저 반환된다")
-    void tieBreak_byCreatedAtDesc() {
+    void 점수가_동일하면_최신_링크가_먼저_반환된다() {
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(makeCuration()));
 
         LocalDateTime older = LocalDateTime.of(2026, 3, 1, 0, 0);
@@ -190,7 +190,7 @@ class InternalLinkCandidateServiceImplTest {
 
     @Test
     @DisplayName("topEmotion이 없으면 감정 점수는 모두 0이다")
-    void noTopEmotion_zeroEmotionScore() {
+    void topEmotion이_없으면_감정_점수는_모두_0이다() {
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(makeCuration()));
 
         LocalDateTime base = LocalDateTime.now();
