@@ -6,7 +6,6 @@ import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.jwt.JwtTokenProvider;
-import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
 import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
@@ -58,9 +57,6 @@ class AiArticleControllerTest {
 
     @MockitoBean
     private AccessTokenBlackListManager accessTokenBlackListManager;
-
-    @MockitoBean
-    private SecurityErrorResponseWriter securityErrorResponseWriter;
 
     private static final Long TEST_USER_ID = 1L;
 

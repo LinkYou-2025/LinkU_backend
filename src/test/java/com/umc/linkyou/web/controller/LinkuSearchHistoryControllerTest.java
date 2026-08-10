@@ -7,7 +7,6 @@ import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
 import com.umc.linkyou.jwt.JwtTokenProvider;
-import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
 import com.umc.linkyou.service.Linku.LinkuSearchService;
 import com.umc.linkyou.support.security.TestSecurityConfig;
 import com.umc.linkyou.support.security.WithCustomUser;
@@ -49,9 +48,6 @@ class LinkuSearchHistoryControllerTest {
 
     @MockitoBean
     private AccessTokenBlackListManager accessTokenBlackListManager;
-
-    @MockitoBean
-    private SecurityErrorResponseWriter securityErrorResponseWriter;
 
     @Nested
     @DisplayName("GET /api/v1/links/search/history - 최근 검색어 조회")

@@ -9,7 +9,6 @@ import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
 import com.umc.linkyou.jwt.JwtTokenProvider;
-import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
 import com.umc.linkyou.service.folder.share.ShareFolderService;
 import com.umc.linkyou.support.security.TestSecurityConfig;
 import com.umc.linkyou.support.security.WithCustomUser;
@@ -63,9 +62,6 @@ class ShareFolderControllerTest {
 
     @MockitoBean
     private AccessTokenBlackListManager accessTokenBlackListManager;
-
-    @MockitoBean
-    private SecurityErrorResponseWriter securityErrorResponseWriter;
 
     private static final Long FOLDER_ID = 100L;
     private static final Long USERS_FOLDER_ID = 10L;

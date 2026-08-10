@@ -7,7 +7,6 @@ import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
 import com.umc.linkyou.jwt.JwtTokenProvider;
-import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
 import com.umc.linkyou.service.folder.share.InvitationService;
 import com.umc.linkyou.support.security.TestSecurityConfig;
 import com.umc.linkyou.support.security.WithCustomUser;
@@ -50,9 +49,6 @@ class InvitationControllerTest {
 
     @MockitoBean
     private AccessTokenBlackListManager accessTokenBlackListManager;
-
-    @MockitoBean
-    private SecurityErrorResponseWriter securityErrorResponseWriter;
 
     private static final String TOKEN = "invite-token";
 

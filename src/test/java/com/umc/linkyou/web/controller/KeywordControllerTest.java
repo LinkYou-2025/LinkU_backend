@@ -7,7 +7,6 @@ import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
 import com.umc.linkyou.jwt.JwtTokenProvider;
-import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
 import com.umc.linkyou.service.keyword.KeywordService;
 import com.umc.linkyou.support.security.TestSecurityConfig;
 import com.umc.linkyou.support.security.WithCustomUser;
@@ -51,9 +50,6 @@ class KeywordControllerTest {
 
     @MockitoBean
     private AccessTokenBlackListManager accessTokenBlackListManager;
-
-    @MockitoBean
-    private SecurityErrorResponseWriter securityErrorResponseWriter;
 
     private static final YearMonth MONTH = YearMonth.parse("2026-03");
 

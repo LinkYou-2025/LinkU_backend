@@ -7,7 +7,6 @@ import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
 import com.umc.linkyou.jwt.JwtTokenProvider;
-import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
 import com.umc.linkyou.service.curation.CurationService;
 import com.umc.linkyou.service.curation.recommend.CurationRecommendBuilderService;
 import com.umc.linkyou.support.security.TestSecurityConfig;
@@ -61,9 +60,6 @@ class CurationControllerTest {
 
     @MockitoBean
     private AccessTokenBlackListManager accessTokenBlackListManager;
-
-    @MockitoBean
-    private SecurityErrorResponseWriter securityErrorResponseWriter;
 
     private static final Long CURATION_ID = 1L;
     private static final String MONTH = "2026-05";

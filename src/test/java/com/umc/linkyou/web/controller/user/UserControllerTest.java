@@ -14,7 +14,6 @@ import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.jwt.JwtTokenProvider;
-import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
 import com.umc.linkyou.service.email.EmailVerificationService;
 import com.umc.linkyou.service.email.PasswordResetService;
 import com.umc.linkyou.service.users.TermsAgreementService;
@@ -82,9 +81,6 @@ class UserControllerTest {
 
     @MockitoBean
     private UserWithdrawService userWithdrawService;
-
-    @MockitoBean
-    private SecurityErrorResponseWriter securityErrorResponseWriter;
 
     @Nested
     @DisplayName("소셜 프로필 완성 엔드포인트")

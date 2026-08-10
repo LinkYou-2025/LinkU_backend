@@ -5,7 +5,6 @@ import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.JwtTokenProvider;
-import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
 import com.umc.linkyou.oauth2.mobile.dto.MobileLoginRequest;
 import com.umc.linkyou.oauth2.mobile.dto.MobileLoginResponse;
 import com.umc.linkyou.oauth2.mobile.service.GoogleMobileAuthService;
@@ -38,7 +37,6 @@ class MobileAuthControllerTest {
 
     @MockitoBean private JwtTokenProvider jwtTokenProvider;
     @MockitoBean private AccessTokenBlackListManager accessTokenBlackListManager;
-    @MockitoBean private SecurityErrorResponseWriter securityErrorResponseWriter;
     @MockitoBean private GoogleMobileAuthService googleService;
     @MockitoBean private KakaoMobileAuthService kakaoService;
     @MockitoBean private NaverMobileAuthService naverService;

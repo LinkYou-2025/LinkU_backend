@@ -8,7 +8,6 @@ import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
 import com.umc.linkyou.jwt.JwtTokenProvider;
-import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
 import com.umc.linkyou.service.Linku.LinkuCreateService;
 import com.umc.linkyou.service.Linku.LinkuRecommendService;
 import com.umc.linkyou.service.Linku.LinkuSearchService;
@@ -65,9 +64,6 @@ class LinkuControllerTest {
 
     @MockitoBean
     private AccessTokenBlackListManager accessTokenBlackListManager;
-
-    @MockitoBean
-    private SecurityErrorResponseWriter securityErrorResponseWriter;
 
     private static final Long LINKU_ID = 100L;
     private static final Long NEW_FOLDER_ID = 20L;
