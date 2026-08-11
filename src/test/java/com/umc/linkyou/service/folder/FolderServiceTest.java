@@ -410,6 +410,20 @@ class FolderServiceTest {
 
             assertThat(result.get(0).getIsSharing()).isEqualTo("private");
         }
+
+        @Test
+        @DisplayName("응답에 categoryId가 포함된다")
+        void 응답에_categoryId가_포함된다() {
+            Folder parent = parentFolder();
+            UsersFolder uf = UsersFolder.builder().user(owner()).folder(parent).permissionType(PermissionType.OWNER).isBookmarked(false).build();
+
+            given(usersFolderRepository.findParentFolders(OWNER_ID)).willReturn(List.of(uf));
+            given(usersFolderRepository.findAllSharedFolderIdsIn(List.of(PARENT_FOLDER_ID))).willReturn(Collections.emptySet());
+
+            List<FolderListResponseDTO> result = folderService.getParentFolders(OWNER_ID, "name");
+
+            assertThat(result.get(0).getCategoryId()).isEqualTo(CATEGORY_ID);
+        }
     }
 
     @Nested

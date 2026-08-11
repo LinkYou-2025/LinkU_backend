@@ -302,11 +302,11 @@ class FolderControllerTest {
         @DisplayName("성공")
         class Success {
             @Test
-            @DisplayName("정상 요청 시 중분류 폴더 목록을 반환한다")
+            @DisplayName("정상 요청 시 categoryId를 포함해 중분류 폴더 목록을 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_중분류폴더목록을_반환한다() throws Exception {
                 FolderListResponseDTO item = FolderListResponseDTO.builder()
-                        .folderId(PARENT_FOLDER_ID).folderName("중분류").isBookmarked(false).isSharing("private").build();
+                        .folderId(PARENT_FOLDER_ID).folderName("중분류").isBookmarked(false).isSharing("private").categoryId(10L).build();
 
                 given(folderService.getParentFolders(1L, "name")).willReturn(List.of(item));
 
@@ -318,6 +318,7 @@ class FolderControllerTest {
                 List<FolderListResponseDTO> folders = readResultList(result, objectMapper, FolderListResponseDTO.class);
                 assertThat(folders).hasSize(1);
                 assertThat(folders.get(0).getIsSharing()).isEqualTo("private");
+                assertThat(folders.get(0).getCategoryId()).isEqualTo(10L);
             }
         }
     }

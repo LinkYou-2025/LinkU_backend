@@ -51,7 +51,7 @@ public interface FolderApi {
             @CurrentUser CustomUserDetails userDetails
     );
 
-    @Operation(summary = "중분류 폴더 조회", description = "사용자의 모든 중분류 폴더 목록을 조회합니다. sort: name(가나다순, 기본값), updatedAt(최근 수정순)")
+    @Operation(summary = "중분류 폴더 조회", description = "사용자의 모든 중분류 폴더 목록을 조회합니다. sort: name(가나다순, 기본값), updatedAt(최근 수정순). 폴더색 조회를 위한 categoryId가 포함됩니다.")
     @GetMapping("/parentFolders")
     ApiResponse<List<FolderListResponseDTO>> getParentFolderList(
             @CurrentUser CustomUserDetails userDetails,

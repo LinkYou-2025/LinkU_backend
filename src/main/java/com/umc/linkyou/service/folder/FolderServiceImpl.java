@@ -225,6 +225,7 @@ public class FolderServiceImpl implements FolderService {
                         .folderName(usersFolder.getFolder().getFolderName())
                         .isBookmarked(usersFolder.getIsBookmarked())
                         .isSharing(sharedFolderIds.contains(usersFolder.getFolder().getFolderId()) ? "share" : "private")
+                        .categoryId(usersFolder.getFolder().getCategory().getCategoryId())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -247,6 +248,7 @@ public class FolderServiceImpl implements FolderService {
                         .parentFolderId(parentFolderId)
                         .isBookmarked(usersFolder.getIsBookmarked())
                         .isSharing(sharedFolderIds.contains(usersFolder.getFolder().getFolderId()) ? "share" : "private")
+                        .categoryId(usersFolder.getFolder().getCategory().getCategoryId())
                         .build())
                 .collect(Collectors.toList());
     }

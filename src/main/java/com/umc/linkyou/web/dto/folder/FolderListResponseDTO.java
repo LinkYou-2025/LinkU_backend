@@ -17,4 +17,5 @@ public class FolderListResponseDTO {
     private Long parentFolderId;
     private Boolean isBookmarked;
     private String isSharing;
+    private Long categoryId;
 }
