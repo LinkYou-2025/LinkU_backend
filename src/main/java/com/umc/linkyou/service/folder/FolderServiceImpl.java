@@ -62,11 +62,6 @@ public class FolderServiceImpl implements FolderService {
             throw new GeneralException(FolderErrorStatus._FOLDER_MAX_DEPTH_EXCEEDED);
         }
 
-        // 부모 폴더에 대한 생성 권한 확인 (소유자 또는 편집자만 가능)
-        if (!usersFolderRepository.existsFolderOwnerOrWriter(userId, parentFolderId)) {
-            throw new GeneralException(FolderErrorStatus._FOLDER_CREATE_FORBIDDEN);
-        }
-
         // 카테고리명과 동일한 이름 사용 방지
         if (categoryRepository.existsByCategoryName(req.getFolderName())) {
             throw new GeneralException(FolderErrorStatus._FOLDER_NAME_CONFLICT);

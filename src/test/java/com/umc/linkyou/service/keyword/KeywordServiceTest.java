@@ -2,6 +2,8 @@ package com.umc.linkyou.service.keyword;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.domain.Keyword;
+import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.repository.dto.KeywordCountRow;
@@ -26,6 +28,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("KeywordService 단위 테스트")
@@ -108,6 +114,76 @@ class KeywordServiceTest {
                         .isInstanceOf(GeneralException.class)
                         .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                                 .isEqualTo(UserErrorStatus._JOB_NOT_SET));
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("saveKeywords")
+    class SaveKeywords {
+
+        private final Linku linku = Linku.builder().linkuId(1L).build();
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("콤마로_구분된_키워드를_각각_upsert하여_저장한다")
+            void 콤마로_구분된_키워드를_각각_upsert하여_저장한다() {
+                Keyword spring = Keyword.builder().id(1L).name("스프링").build();
+                Keyword java = Keyword.builder().id(2L).name("자바").build();
+                given(keywordUpsertService.upsert("스프링")).willReturn(spring);
+                given(keywordUpsertService.upsert("자바")).willReturn(java);
+                given(linkuKeywordRepository.existsByLinkuAndKeyword(linku, spring)).willReturn(false);
+                given(linkuKeywordRepository.existsByLinkuAndKeyword(linku, java)).willReturn(false);
+
+                keywordService.saveKeywords(linku, "#스프링, 자바");
+
+                verify(keywordUpsertService).upsert("스프링");
+                verify(keywordUpsertService).upsert("자바");
+                verify(linkuKeywordRepository, times(2)).save(any());
+            }
+
+            @Test
+            @DisplayName("이미_연결된_키워드는_다시_저장하지_않는다")
+            void 이미_연결된_키워드는_다시_저장하지_않는다() {
+                Keyword spring = Keyword.builder().id(1L).name("스프링").build();
+                given(keywordUpsertService.upsert("스프링")).willReturn(spring);
+                given(linkuKeywordRepository.existsByLinkuAndKeyword(linku, spring)).willReturn(true);
+
+                keywordService.saveKeywords(linku, "스프링");
+
+                verify(linkuKeywordRepository, never()).save(any());
+            }
+
+            @Test
+            @DisplayName("빈_조각은_upsert하지_않고_건너뛴다")
+            void 빈_조각은_upsert하지_않고_건너뛴다() {
+                Keyword spring = Keyword.builder().id(1L).name("스프링").build();
+                given(keywordUpsertService.upsert("스프링")).willReturn(spring);
+                given(linkuKeywordRepository.existsByLinkuAndKeyword(linku, spring)).willReturn(false);
+
+                keywordService.saveKeywords(linku, "스프링,, #");
+
+                verify(keywordUpsertService).upsert("스프링");
+                verify(keywordUpsertService, never()).upsert("");
+            }
+
+            @Test
+            @DisplayName("null이면_아무_동작도_하지_않는다")
+            void null이면_아무_동작도_하지_않는다() {
+                keywordService.saveKeywords(linku, null);
+
+                verifyNoInteractions(keywordUpsertService, linkuKeywordRepository);
+            }
+
+            @Test
+            @DisplayName("공백_문자열이면_아무_동작도_하지_않는다")
+            void 공백_문자열이면_아무_동작도_하지_않는다() {
+                keywordService.saveKeywords(linku, "   ");
+
+                verifyNoInteractions(keywordUpsertService, linkuKeywordRepository);
             }
         }
     }

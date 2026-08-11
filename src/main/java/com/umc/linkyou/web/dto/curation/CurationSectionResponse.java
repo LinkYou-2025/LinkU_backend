@@ -1,11 +1,17 @@
 package com.umc.linkyou.web.dto.curation;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
+@Setter
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class CurationSectionResponse {
     @Schema(description = "섹션 번호", example = "1")
     private int section;

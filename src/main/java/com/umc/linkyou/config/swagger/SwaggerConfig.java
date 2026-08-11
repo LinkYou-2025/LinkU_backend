@@ -19,6 +19,8 @@ import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.gemini.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
+import com.umc.linkyou.validation.annotation.ApiAdmin;
+import com.umc.linkyou.validation.annotation.ApiManager;
 import com.umc.linkyou.validation.annotation.swagger.ApiAuthSuccessCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiDomainErrorCodes;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
@@ -37,17 +39,36 @@ import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.customizers.OperationCustomizer;
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.HandlerMethod;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+@Slf4j
 @Configuration
 public class SwaggerConfig {
+
+    private static final String BASE_PACKAGE = "com.umc.linkyou";
+
+    private enum ApiGroup { USER, MANAGER, ADMIN }
+
+    // 그룹별로 실제 @ApiErrorCode/@ApiDomainErrorCodes에 등장하는 에러 enum 집합 (지연 계산 후 캐시)
+    private Map<ApiGroup, Set<Class<? extends BaseErrorCode>>> errorEnumsByGroupCache;
 
     @Bean
     public OpenAPI linkyouAPI() {
@@ -78,6 +99,37 @@ public class SwaggerConfig {
                 .info(info)
                 .addSecurityItem(securityRequirement)
                 .components(components);
+    }
+
+    @Bean
+    public GroupedOpenApi userApi() {
+        return GroupedOpenApi.builder()
+                .group("user")
+                .pathsToMatch("/api/v1/**", "/api/v2/**")
+                .pathsToExclude("/api/v1/admin/**", "/api/v1/manage/**")
+                .addOpenApiCustomizer(openApi -> openApi.getInfo().setDescription(
+                        "linkyou API 명세서 (User)\n\n" + buildErrorCodeReference(errorEnumsForGroup(ApiGroup.USER))))
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi managerApi() {
+        return GroupedOpenApi.builder()
+                .group("manager")
+                .pathsToMatch("/api/v1/manage/**")
+                .addOpenApiCustomizer(openApi -> openApi.getInfo().setDescription(
+                        "linkyou API 명세서 (Manager)\n\n" + buildErrorCodeReference(errorEnumsForGroup(ApiGroup.MANAGER))))
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi adminApi() {
+        return GroupedOpenApi.builder()
+                .group("admin")
+                .pathsToMatch("/api/v1/admin/**")
+                .addOpenApiCustomizer(openApi -> openApi.getInfo().setDescription(
+                        "linkyou API 명세서 (Admin)\n\n" + buildErrorCodeReference(errorEnumsForGroup(ApiGroup.ADMIN))))
+                .build();
     }
 
     @Bean
@@ -253,7 +305,11 @@ public class SwaggerConfig {
     }
 
     private String buildErrorCodeReference() {
-        List<Class<? extends BaseErrorCode>> errorEnums = List.of(
+        return buildErrorCodeReference(allErrorEnums());
+    }
+
+    private List<Class<? extends BaseErrorCode>> allErrorEnums() {
+        return List.of(
                 AuthErrorStatus.class,
                 UserErrorStatus.class,
                 ErrorStatus.class,
@@ -268,7 +324,9 @@ public class SwaggerConfig {
                 LinkuErrorStatus.class,
                 CommonErrorStatus.class
         );
+    }
 
+    private String buildErrorCodeReference(Collection<Class<? extends BaseErrorCode>> errorEnums) {
         StringBuilder sb = new StringBuilder("---\n## 에러 코드 레퍼런스\n\n");
 
         for (Class<? extends BaseErrorCode> errorEnum : errorEnums) {
@@ -287,6 +345,89 @@ public class SwaggerConfig {
         }
 
         return sb.toString();
+    }
+
+    // 그룹(user/manager/admin)에 속한 컨트롤러가 실제로 선언한 에러 enum 목록을 구한다.
+    private Set<Class<? extends BaseErrorCode>> errorEnumsForGroup(ApiGroup group) {
+        return errorEnumsByGroup().getOrDefault(group, Set.of());
+    }
+
+    private Map<ApiGroup, Set<Class<? extends BaseErrorCode>>> errorEnumsByGroup() {
+        if (errorEnumsByGroupCache == null) {
+            errorEnumsByGroupCache = scanErrorEnumsByGroup();
+        }
+        return errorEnumsByGroupCache;
+    }
+
+    private Map<ApiGroup, Set<Class<? extends BaseErrorCode>>> scanErrorEnumsByGroup() {
+        Map<ApiGroup, Set<Class<? extends BaseErrorCode>>> result = new EnumMap<>(ApiGroup.class);
+        for (ApiGroup group : ApiGroup.values()) {
+            // 인증이 필요한 엔드포인트에는 401 예시가 자동으로 붙으므로 AuthErrorStatus는 모든 그룹에 기본 포함
+            Set<Class<? extends BaseErrorCode>> bucket = new LinkedHashSet<>();
+            bucket.add(AuthErrorStatus.class);
+            result.put(group, bucket);
+        }
+
+        ClassPathScanningCandidateComponentProvider scanner =
+                new ClassPathScanningCandidateComponentProvider(false);
+        scanner.addIncludeFilter(new AnnotationTypeFilter(RestController.class));
+
+        for (org.springframework.beans.factory.config.BeanDefinition bd : scanner.findCandidateComponents(BASE_PACKAGE)) {
+            try {
+                Class<?> controllerClass = Class.forName(bd.getBeanClassName());
+                ApiGroup group = controllerClass.isAnnotationPresent(ApiAdmin.class) ? ApiGroup.ADMIN
+                        : controllerClass.isAnnotationPresent(ApiManager.class) ? ApiGroup.MANAGER
+                        : ApiGroup.USER;
+
+                Set<Class<? extends BaseErrorCode>> bucket = result.get(group);
+
+                collectDomainErrorCodes(controllerClass, bucket);
+                collectMethodErrorCodes(controllerClass, bucket);
+                for (Class<?> iface : controllerClass.getInterfaces()) {
+                    collectDomainErrorCodes(iface, bucket);
+                    collectMethodErrorCodes(iface, bucket);
+                }
+            } catch (ClassNotFoundException | LinkageError e) {
+                // NoClassDefFoundError 등 복구 가능한 클래스 로딩 실패만 스킵하고 원인을 남긴다.
+                // OutOfMemoryError 등 치명적 오류(Error 중 LinkageError가 아닌 것)는 여기서 잡히지 않고 그대로 전파된다.
+                log.warn("Swagger 에러코드 문서 생성 중 컨트롤러 클래스 로딩 실패: {} - {}",
+                        bd.getBeanClassName(), e.toString());
+            }
+        }
+
+        return result;
+    }
+
+    private void collectDomainErrorCodes(Class<?> type, Set<Class<? extends BaseErrorCode>> bucket) {
+        ApiDomainErrorCodes domainCodes = type.getAnnotation(ApiDomainErrorCodes.class);
+        if (domainCodes != null) {
+            bucket.addAll(Arrays.asList(domainCodes.value()));
+        }
+    }
+
+    private void collectMethodErrorCodes(Class<?> type, Set<Class<? extends BaseErrorCode>> bucket) {
+        for (Method method : type.getMethods()) {
+            List<ApiErrorCode> codes = new ArrayList<>();
+            ApiErrorCode single = method.getAnnotation(ApiErrorCode.class);
+            if (single != null) codes.add(single);
+            ApiErrorCodes multiple = method.getAnnotation(ApiErrorCodes.class);
+            if (multiple != null) codes.addAll(Arrays.asList(multiple.value()));
+
+            for (ApiErrorCode code : codes) {
+                if (code.errorStatus().length > 0) bucket.add(ErrorStatus.class);
+                if (code.userErrorStatus().length > 0) bucket.add(UserErrorStatus.class);
+                if (code.authErrorStatus().length > 0) bucket.add(AuthErrorStatus.class);
+                if (code.alarmErrorStatus().length > 0) bucket.add(AlarmErrorStatus.class);
+                if (code.aiArticleErrorStatus().length > 0) bucket.add(AiArticleErrorStatus.class);
+                if (code.curationErrorStatus().length > 0) bucket.add(CurationErrorStatus.class);
+                if (code.linkuErrorStatus().length > 0) bucket.add(LinkuErrorStatus.class);
+                if (code.folderErrorStatus().length > 0) bucket.add(FolderErrorStatus.class);
+                if (code.shareFolderErrorStatus().length > 0) bucket.add(ShareFolderErrorStatus.class);
+                if (code.invitationErrorStatus().length > 0) bucket.add(InvitationErrorStatus.class);
+                if (code.categoryErrorStatus().length > 0) bucket.add(CategoryErrorStatus.class);
+                if (code.commonErrorStatus().length > 0) bucket.add(CommonErrorStatus.class);
+            }
+        }
     }
 
 }

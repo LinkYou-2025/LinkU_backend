@@ -58,7 +58,7 @@ class PasswordResetServiceTest {
 
     @Test
     @DisplayName("유효하지 않은 이메일 주소면 비밀번호 재설정 링크를 전송하지 않는다")
-    void sendResetLink_whenEmailAddressInvalid_throwsBadRequest() throws AddressException {
+    void 유효하지_않은_이메일_주소면_재설정_링크를_전송하지_않는다() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("user@invalid-domain.invalid")).willReturn(false);
 
         UserHandler exception = assertThrows(UserHandler.class,
@@ -70,7 +70,7 @@ class PasswordResetServiceTest {
 
     @Test
     @DisplayName("비밀번호 재설정 요청이 cooldown 중이면 차단한다")
-    void sendResetLink_whenCooldownActive_throwsTooManyRequests() throws AddressException {
+    void 재설정_요청이_cooldown_중이면_차단한다() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("user@example.com")).willReturn(true);
         willThrow(new UserHandler(ErrorStatus._TOO_MANY_REQUESTS))
                 .given(rateLimiter).enforce(anyString(), anyString(), anyString(), any(), any(), anyInt());
@@ -84,7 +84,7 @@ class PasswordResetServiceTest {
 
     @Test
     @DisplayName("비밀번호 재설정 요청이 일일 제한을 넘기면 차단한다")
-    void sendResetLink_whenDailyLimitExceeded_throwsTooManyRequests() throws AddressException {
+    void 재설정_요청이_일일_제한을_넘기면_차단한다() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("user@example.com")).willReturn(true);
         willThrow(new UserHandler(ErrorStatus._TOO_MANY_REQUESTS))
                 .given(rateLimiter).enforce(anyString(), anyString(), anyString(), any(), any(), anyInt());
@@ -98,7 +98,7 @@ class PasswordResetServiceTest {
 
     @Test
     @DisplayName("일반 계정이 없으면 비밀번호 재설정 링크를 보내지 않고 성공처럼 종료한다")
-    void sendResetLink_absentGeneralAccount_returnsSilently() throws AddressException {
+    void 일반_계정이_없으면_링크를_보내지_않고_성공처럼_종료한다() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("missing@example.com")).willReturn(true);
         given(authAccountRepository.findUserByEmailAndProvider("missing@example.com", com.umc.linkyou.domain.enums.Provider.GENERAL))
                 .willReturn(Optional.empty());
@@ -111,7 +111,7 @@ class PasswordResetServiceTest {
 
     @Test
     @DisplayName("일반 계정이면 비밀번호 재설정 링크를 전송한다")
-    void sendResetLink_generalAccount_sendsResetEmail() throws AddressException {
+    void 일반_계정이면_재설정_링크를_전송한다() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("user@example.com")).willReturn(true);
         Users user = Users.builder()
                 .id(1L)
@@ -129,7 +129,7 @@ class PasswordResetServiceTest {
 
     @Test
     @DisplayName("새 비밀번호가 비어 있으면 잘못된 비밀번호 예외를 던진다")
-    void resetPassword_blankPassword_throwsInvalidPassword() {
+    void 새_비밀번호가_비어있으면_예외를_던진다() {
         UserHandler exception = assertThrows(UserHandler.class,
                 () -> passwordResetService.resetPassword("token", " ", "Valid123!"));
 
@@ -139,7 +139,7 @@ class PasswordResetServiceTest {
 
     @Test
     @DisplayName("새 비밀번호가 정책에 맞지 않으면 잘못된 비밀번호 예외를 던진다")
-    void resetPassword_invalidPolicy_throwsInvalidPassword() {
+    void 새_비밀번호가_정책에_맞지_않으면_예외를_던진다() {
         UserHandler exception = assertThrows(UserHandler.class,
                 () -> passwordResetService.resetPassword("token", "short1!", "short1!"));
 

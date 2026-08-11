@@ -74,7 +74,7 @@ class LinkuRepositoryImplTest {
 
             @Test
             @DisplayName("본인이 저장한 링크만 최신 저장 순으로 검색된다")
-            void search() {
+            void 본인이_저장한_링크만_최신_저장_순으로_검색된다() {
                 Users user = userRepository.save(createUser("user1"));
                 Users otherUser = userRepository.save(createUser("user2"));
 
@@ -123,7 +123,7 @@ class LinkuRepositoryImplTest {
 
         @Test
         @DisplayName("제목에 키워드가 포함된 후보를 최대 3개 반환한다")
-        void returnsAtMostThree() {
+        void 제목에_키워드가_포함된_후보를_최대_3개_반환한다() {
             Users user = userRepository.save(createUser("autocomplete_u1"));
             Domain domain = domainRepository.save(createDomain("google.com", "구글", "https://img.com/a.png"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -143,7 +143,7 @@ class LinkuRepositoryImplTest {
 
         @Test
         @DisplayName("사용자 지정 제목(ul.title)으로 자동완성이 동작한다")
-        void matchesCustomTitle() {
+        void 사용자_지정_제목으로_자동완성이_동작한다() {
             Users user = userRepository.save(createUser("autocomplete_u2"));
             Domain domain = domainRepository.save(createDomain("google.com", "구글", "https://img.com/b.png"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -162,7 +162,7 @@ class LinkuRepositoryImplTest {
 
         @Test
         @DisplayName("다른 사용자의 링크는 포함되지 않는다")
-        void excludesOtherUsersLinks() {
+        void 다른_사용자의_링크는_포함되지_않는다() {
             Users user = userRepository.save(createUser("autocomplete_u3"));
             Users other = userRepository.save(createUser("autocomplete_u4"));
             Domain domain = domainRepository.save(createDomain("google.com", "구글", "https://img.com/c.png"));
@@ -190,7 +190,7 @@ class LinkuRepositoryImplTest {
 
             @Test
             @DisplayName("linku 값으로 정상 조회된다")
-            void success() {
+            void linku_값으로_정상_조회된다() {
                 Domain domain = domainRepository.save(
                         createDomain("google.com", "구글", "https://image.com/a.png")
                 );
@@ -221,7 +221,7 @@ class LinkuRepositoryImplTest {
 
             @Test
             @DisplayName("존재하지 않으면 empty를 반환한다")
-            void notFound() {
+            void 존재하지_않으면_empty를_반환한다() {
                 Optional<Linku> result = linkuRepository.findByLinku("not-exists");
 
                 assertThat(result).isEmpty();
@@ -231,7 +231,7 @@ class LinkuRepositoryImplTest {
 
     @Test
     @DisplayName("findByLinku 조회 후 domain 정보 접근이 가능하다")
-    void findByLinku_fetchesDomainSafely() {
+    void findByLinku_조회_후_domain_정보_접근이_가능하다() {
         Domain domain = domainRepository.save(
                 createDomain("google.com", "구글", "https://image.com/a.png")
         );

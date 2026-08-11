@@ -59,7 +59,7 @@ class EmailVerificationServiceTest {
 
     @Test
     @DisplayName("유효하지 않은 이메일 주소면 인증 코드를 전송하지 않는다")
-    void sendCode_whenEmailAddressInvalid_throwsBadRequest() throws AddressException {
+    void 유효하지_않은_이메일_주소면_인증_코드를_전송하지_않는다() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("test@invalid-domain.invalid")).willReturn(false);
 
         UserHandler exception = assertThrows(UserHandler.class,
@@ -71,7 +71,7 @@ class EmailVerificationServiceTest {
 
     @Test
     @DisplayName("cooldown 중이면 인증 코드를 전송하지 않는다")
-    void sendCode_whenCooldownActive_throwsTooManyRequests() throws AddressException {
+    void cooldown_중이면_인증_코드를_전송하지_않는다() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("test@example.com")).willReturn(true);
         given(authAccountRepository.existsByEmail("test@example.com")).willReturn(false);
         willThrow(new UserHandler(ErrorStatus._TOO_MANY_REQUESTS))
@@ -86,7 +86,7 @@ class EmailVerificationServiceTest {
 
     @Test
     @DisplayName("일일 제한을 넘기면 인증 코드를 전송하지 않는다")
-    void sendCode_whenDailyLimitExceeded_throwsTooManyRequests() throws AddressException {
+    void 일일_제한을_넘기면_인증_코드를_전송하지_않는다() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("test@example.com")).willReturn(true);
         given(authAccountRepository.existsByEmail("test@example.com")).willReturn(false);
         willThrow(new UserHandler(ErrorStatus._TOO_MANY_REQUESTS))
@@ -101,7 +101,7 @@ class EmailVerificationServiceTest {
 
     @Test
     @DisplayName("제한 이내면 인증 코드를 저장하고 메일을 전송한다")
-    void sendCode_whenAllowed_savesCodeAndSendsEmail() throws AddressException {
+    void 제한_이내면_인증_코드를_저장하고_메일을_전송한다() throws AddressException {
         given(emailAddressValidator.isDeliverableAddress("test@example.com")).willReturn(true);
         given(authAccountRepository.existsByEmail("test@example.com")).willReturn(false);
 
@@ -113,7 +113,7 @@ class EmailVerificationServiceTest {
 
     @Test
     @DisplayName("인증 코드가 틀리면 실패 카운터를 증가시키고 검증 실패 예외를 던진다")
-    void verifyCode_whenCodeMismatch_incrementsFailureCount() {
+    void 인증_코드가_틀리면_실패_카운터를_증가시키고_예외를_던진다() {
         given(emailVerificationRedisRepository.findById(HASHED_EMAIL))
                 .willReturn(java.util.Optional.of(EmailVerificationCache.of(HASHED_EMAIL, "123456")));
         given(stringRedisTemplate.opsForValue()).willReturn(valueOperations);
@@ -128,7 +128,7 @@ class EmailVerificationServiceTest {
 
     @Test
     @DisplayName("인증 코드 실패가 5회째면 코드를 만료 처리한다")
-    void verifyCode_whenFailureCountReached_expiresCode() {
+    void 인증_코드_실패가_5회째면_코드를_만료_처리한다() {
         given(emailVerificationRedisRepository.findById(HASHED_EMAIL))
                 .willReturn(java.util.Optional.of(EmailVerificationCache.of(HASHED_EMAIL, "123456")));
         given(stringRedisTemplate.opsForValue()).willReturn(valueOperations);
@@ -144,7 +144,7 @@ class EmailVerificationServiceTest {
 
     @Test
     @DisplayName("인증 코드가 맞으면 실패 카운터를 초기화한다")
-    void verifyCode_whenSuccess_resetsFailureCount() {
+    void 인증_코드가_맞으면_실패_카운터를_초기화한다() {
         given(emailVerificationRedisRepository.findById(HASHED_EMAIL))
                 .willReturn(java.util.Optional.of(EmailVerificationCache.of(HASHED_EMAIL, "123456")));
 

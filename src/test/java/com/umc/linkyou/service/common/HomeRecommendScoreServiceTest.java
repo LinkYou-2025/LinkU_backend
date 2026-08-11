@@ -43,26 +43,26 @@ class HomeRecommendScoreServiceTest {
 
         @Test
         @DisplayName("정확히 같은 감정이면 1.0(60/60)이다 (유저 직접 선택, 감쇠 없음)")
-        void exactMatch() {
+        void 정확히_같은_감정이면_만점을_받는다() {
             assertThat(service.emotionMatch(EMOTION_JOY, EMOTION_JOY, false)).isEqualTo(1.0);
         }
 
         @Test
         @DisplayName("유사 감정(40점)이면 40/60로 정규화된다 (유저 직접 선택, 감쇠 없음)")
-        void similarMatch() {
+        void 유사_감정이면_40점_기준으로_정규화된다() {
             assertThat(service.emotionMatch(EMOTION_EXCITEMENT, EMOTION_JOY, false))
                     .isCloseTo(40.0 / 60.0, within(1e-9));
         }
 
         @Test
         @DisplayName("관계 없는 감정이면 0이다")
-        void noRelation() {
+        void 관계_없는_감정이면_0점이다() {
             assertThat(service.emotionMatch(EMOTION_SADNESS, EMOTION_JOY, false)).isEqualTo(0.0);
         }
 
         @Test
         @DisplayName("AI가 추론한 감정이면 aiEmotionDiscount(0.8)만큼 감쇠된다")
-        void aiInferredIsDiscounted() {
+        void AI가_추론한_감정이면_감쇠된다() {
             double userChosen = service.emotionMatch(EMOTION_JOY, EMOTION_JOY, false);
             double aiInferred = service.emotionMatch(EMOTION_JOY, EMOTION_JOY, true);
             assertThat(aiInferred).isCloseTo(userChosen * 0.8, within(1e-9));
@@ -75,28 +75,28 @@ class HomeRecommendScoreServiceTest {
 
         @Test
         @DisplayName("저장 당시 situation이 요청 situationId와 직접 일치하면 1.0이다 (유저 직접 선택)")
-        void directMatch() {
+        void situation이_직접_일치하면_만점을_받는다() {
             double result = service.situationMatch(SITUATION_A, SITUATION_A, false);
             assertThat(result).isEqualTo(1.0);
         }
 
         @Test
         @DisplayName("일치하지 않으면 0이다")
-        void noMatch() {
+        void 일치하지_않으면_0점이다() {
             double result = service.situationMatch(SITUATION_B, SITUATION_A, false);
             assertThat(result).isEqualTo(0.0);
         }
 
         @Test
         @DisplayName("candidateSituationId가 null이어도 예외 없이 0이다")
-        void nullCandidateSituationIsZero() {
+        void candidateSituationId가_null이어도_0점이다() {
             double result = service.situationMatch(null, SITUATION_A, false);
             assertThat(result).isEqualTo(0.0);
         }
 
         @Test
         @DisplayName("AI가 추론한 situation이면 aiSituationDiscount(0.8)만큼 감쇠된다")
-        void aiInferredIsDiscounted() {
+        void AI가_추론한_situation이면_감쇠된다() {
             double userChosen = service.situationMatch(SITUATION_A, SITUATION_A, false);
             double aiInferred = service.situationMatch(SITUATION_A, SITUATION_A, true);
             assertThat(aiInferred).isCloseTo(userChosen * 0.8, within(1e-9));
@@ -109,21 +109,21 @@ class HomeRecommendScoreServiceTest {
 
         @Test
         @DisplayName("후보 category가 매핑 목록에 있으면 1.0이다")
-        void mappedCategoryIsOne() {
+        void 매핑_목록에_있으면_1점이다() {
             double result = service.categoryMatch(CATEGORY_MATCHED, List.of(CATEGORY_MATCHED));
             assertThat(result).isEqualTo(1.0);
         }
 
         @Test
         @DisplayName("후보 category가 매핑 목록에 없으면 0이다")
-        void unmappedCategoryIsZero() {
+        void 매핑_목록에_없으면_0점이다() {
             double result = service.categoryMatch(CATEGORY_UNMATCHED, List.of(CATEGORY_MATCHED));
             assertThat(result).isEqualTo(0.0);
         }
 
         @Test
         @DisplayName("candidateCategoryId 또는 mappedCategoryIds가 null이어도 예외 없이 0이다")
-        void nullInputsAreZero() {
+        void 입력값이_null이어도_0점이다() {
             assertThat(service.categoryMatch(null, List.of(CATEGORY_MATCHED))).isEqualTo(0.0);
             assertThat(service.categoryMatch(CATEGORY_MATCHED, null)).isEqualTo(0.0);
         }
@@ -137,13 +137,13 @@ class HomeRecommendScoreServiceTest {
 
         @Test
         @DisplayName("viewCount와 lastViewedAt이 전부 없으면 0이다")
-        void noEngagementIsZero() {
+        void viewCount와_lastViewedAt이_없으면_0점이다() {
             assertThat(service.personalEngagement(0, null, now)).isEqualTo(0.0);
         }
 
         @Test
         @DisplayName("viewCount가 cap 이상이면 빈도 항목은 1.0으로 캡핑된다")
-        void viewCountIsCapped() {
+        void viewCount가_cap_이상이면_1점으로_캡핑된다() {
             double atCap = service.personalEngagement(20, null, now);
             double overCap = service.personalEngagement(100, null, now);
             assertThat(atCap).isEqualTo(overCap); // 둘 다 캡에 걸려 빈도 항목은 0.5(=1.0/2)로 동일
@@ -151,7 +151,7 @@ class HomeRecommendScoreServiceTest {
 
         @Test
         @DisplayName("최근에 볼수록 recency 점수가 더 높다(더 오래 전일수록 감쇠)")
-        void recentViewScoresHigherThanOld() {
+        void 최근에_볼수록_점수가_더_높다() {
             double recent = service.personalEngagement(0, now.minusDays(1), now);
             double old = service.personalEngagement(0, now.minusDays(30), now);
             assertThat(recent).isGreaterThan(old);
@@ -164,13 +164,13 @@ class HomeRecommendScoreServiceTest {
 
         @Test
         @DisplayName("totalViewCount가 null이면 0이다")
-        void nullIsZero() {
+        void totalViewCount가_null이면_0점이다() {
             assertThat(service.popularity(null)).isEqualTo(0.0);
         }
 
         @Test
         @DisplayName("totalViewCount가 늘어날수록 점수도 증가하지만 1.0을 넘지 않는다")
-        void increasesButCapsAtOne() {
+        void totalViewCount가_늘어나도_1점을_넘지_않는다() {
             double low = service.popularity(10L);
             double high = service.popularity(100_000L);
             assertThat(low).isGreaterThan(0.0);
@@ -185,7 +185,7 @@ class HomeRecommendScoreServiceTest {
 
         @Test
         @DisplayName("각 feature * 가중치의 합과 정확히 같다")
-        void isWeightedSumOfFeatures() {
+        void 각_feature_가중치의_합과_같다() {
             HomeRecommendScoreService.FeatureVector features =
                     new HomeRecommendScoreService.FeatureVector(1.0, 1.0, 0.5, 0.2, 0.3, 0.1, 1.0);
 
@@ -196,7 +196,7 @@ class HomeRecommendScoreServiceTest {
 
         @Test
         @DisplayName("모든 feature가 0이면 최종 점수도 0이다")
-        void allZeroFeaturesGiveZeroScore() {
+        void 모든_feature가_0이면_최종_점수도_0이다() {
             HomeRecommendScoreService.FeatureVector features =
                     new HomeRecommendScoreService.FeatureVector(0, 0, 0, 0, 0, 0, 0);
             assertThat(service.score(features)).isEqualTo(0.0);

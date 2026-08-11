@@ -98,6 +98,8 @@ public class LinkuResponseDTO {
     @Getter
     @Setter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class AiArticleSummaryDTO {
         private Long linkuId;
         private String linku;
