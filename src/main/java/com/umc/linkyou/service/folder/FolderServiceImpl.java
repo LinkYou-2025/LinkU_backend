@@ -271,11 +271,11 @@ public class FolderServiceImpl implements FolderService {
                 .build();
     }
 
+    // 폴더 내부 링크, 폴더 목록 조회. includeLinks=false면 링크 조회를 생략하고 폴더 목록만 반환한다.
     @Transactional(readOnly = true)
-    // 폴더 내부 링크, 폴더 목록 조회
-    public FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort) {
+    public FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort, boolean includeLinks) {
         // check folder exist
-        Folder folder = folderRepository.findById(folderId)
+        folderRepository.findById(folderId)
                 .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
 
         // 접근 권한 확인 (소유자 또는 활성 공유 멤버)
@@ -317,6 +317,15 @@ public class FolderServiceImpl implements FolderService {
                     dto.setIsSharing(sharedFolderIds.contains(f.getFolderId()) ? "share" : "private");
                     return dto;
                 }).toList();
+
+        // includeLinks=false면 링크 조회(커서 파싱, 페이지 쿼리, 키워드/도메인 조립)를 전부 생략하고 폴더 목록만 반환
+        if (!includeLinks) {
+            FolderLinkusResponseDTO resp = new FolderLinkusResponseDTO();
+            resp.setFolders(subfolderDtos);
+            resp.setLinks(Collections.emptyList());
+            resp.setNextCursor(null);
+            return resp;
+        }
 
         // 커서: 없으면 Long.MAX_VALUE, 숫자가 아니면 400 반환
         Long cursorId;

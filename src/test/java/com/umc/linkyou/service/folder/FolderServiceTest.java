@@ -521,7 +521,7 @@ class FolderServiceTest {
                 given(folderRepository.findAllByParentFolderId(eq(FOLDER_ID), any(Sort.class))).willReturn(List.of());
                 given(linkuFolderRepository.findWithCursor(eq(FOLDER_ID), eq(Long.MAX_VALUE), any())).willReturn(List.of());
 
-                FolderLinkusResponseDTO result = folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name");
+                FolderLinkusResponseDTO result = folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name", true);
 
                 assertThat(result.getFolders()).isEmpty();
                 assertThat(result.getLinks()).isEmpty();
@@ -537,9 +537,30 @@ class FolderServiceTest {
                 given(folderRepository.findAllByParentFolderId(eq(FOLDER_ID), any(Sort.class))).willReturn(List.of());
                 given(linkuFolderRepository.findWithCursor(eq(FOLDER_ID), eq(Long.MAX_VALUE), any())).willReturn(List.of());
 
-                FolderLinkusResponseDTO result = folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name");
+                FolderLinkusResponseDTO result = folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name", true);
 
                 assertThat(result.getFolders()).isEmpty();
+            }
+
+            @Test
+            @DisplayName("includeLinks=false면 링크 조회 없이 폴더 목록만 반환한다")
+            void includeLinks가_false면_폴더목록만_반환한다() {
+                Folder parent = parentFolder();
+                Folder child = subFolder(parent);
+                UsersFolder uf = UsersFolder.builder().user(owner()).folder(child).permissionType(PermissionType.OWNER).isBookmarked(false).build();
+
+                given(folderRepository.findById(PARENT_FOLDER_ID)).willReturn(Optional.of(parent));
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, PARENT_FOLDER_ID)).willReturn(true);
+                given(folderRepository.findAllByParentFolderId(eq(PARENT_FOLDER_ID), any(Sort.class))).willReturn(List.of(child));
+                given(usersFolderRepository.findAllByUserIdAndFolderIdIn(OWNER_ID, List.of(FOLDER_ID))).willReturn(List.of(uf));
+                given(usersFolderRepository.findAllSharedFolderIdsIn(List.of(FOLDER_ID))).willReturn(Collections.emptySet());
+
+                FolderLinkusResponseDTO result = folderService.getFolderLinkus(OWNER_ID, PARENT_FOLDER_ID, 20, null, "name", false);
+
+                assertThat(result.getFolders()).hasSize(1);
+                assertThat(result.getLinks()).isEmpty();
+                assertThat(result.getNextCursor()).isNull();
+                verify(linkuFolderRepository, never()).findWithCursor(any(), any(), any());
             }
         }
 
@@ -551,7 +572,7 @@ class FolderServiceTest {
             void 폴더없음_예외() {
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.empty());
 
-                assertThatThrownBy(() -> folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name"))
+                assertThatThrownBy(() -> folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name", true))
                         .isInstanceOf(GeneralException.class)
                         .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                                 .isEqualTo(FolderErrorStatus._FOLDER_NOT_FOUND));
@@ -564,7 +585,7 @@ class FolderServiceTest {
                 given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(false);
                 given(usersFolderRepository.existsActiveMember(OWNER_ID, FOLDER_ID)).willReturn(false);
 
-                assertThatThrownBy(() -> folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name"))
+                assertThatThrownBy(() -> folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name", true))
                         .isInstanceOf(GeneralException.class)
                         .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                                 .isEqualTo(FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN));
@@ -577,7 +598,7 @@ class FolderServiceTest {
                 given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
                 given(folderRepository.findAllByParentFolderId(eq(FOLDER_ID), any(Sort.class))).willReturn(List.of());
 
-                assertThatThrownBy(() -> folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, "abc", "name"))
+                assertThatThrownBy(() -> folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, "abc", "name", true))
                         .isInstanceOf(GeneralException.class)
                         .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                                 .isEqualTo(FolderErrorStatus._FOLDER_INVALID_CURSOR));

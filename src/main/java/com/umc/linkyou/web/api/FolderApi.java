@@ -75,7 +75,7 @@ public interface FolderApi {
             @RequestBody BookmarkUpdateRequestDTO request
     );
 
-    @Operation(summary = "폴더 내부 링크, 폴더 목록 조회", description = "특정 폴더 내부의 링크와 하위 폴더 목록을 조회합니다. 커서 기반 페이지네이션을 지원합니다.")
+    @Operation(summary = "폴더 내부 링크, 폴더 목록 조회", description = "특정 폴더 내부의 링크와 하위 폴더 목록을 조회합니다. 커서 기반 페이지네이션을 지원합니다. includeLinks=false로 호출하면 링크 조회를 생략하고 폴더 목록만 반환합니다(기본값 true, 생략 시 기존과 동일하게 동작).")
     @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN, FolderErrorStatus._FOLDER_INVALID_CURSOR})
     @GetMapping("/{folderId}/linkus")
     ApiResponse<FolderLinkusResponseDTO> getFolderLinkus(
@@ -83,6 +83,7 @@ public interface FolderApi {
             @PathVariable Long folderId,
             @RequestParam(defaultValue = "20") @Min(1) int limit,
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "name") String sort
+            @RequestParam(defaultValue = "name") String sort,
+            @RequestParam(defaultValue = "true") boolean includeLinks
     );
 }
