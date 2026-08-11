@@ -100,6 +100,8 @@ class AiArticleControllerTest {
                         .domainImageUrl("https://img1.daumcdn.net/thumb/R800x0")
                         .title("첫 번째 AI 제목")
                         .linkuImageUrl("https://img1.daumcdn.net/thumb/R800x0")
+                        .categoryId(1L)
+                        .categoryName("어학")
                         .build();
 
                 LinkuResponseDTO.LinkuSliceResultDTO mockSlice = LinkuResponseDTO.LinkuSliceResultDTO.builder()
@@ -125,6 +127,8 @@ class AiArticleControllerTest {
                         .andExpect(jsonPath("$.result.linkuList[0].emotionId").value(2L))
                         .andExpect(jsonPath("$.result.linkuList[0].domain").value("naver"))
                         .andExpect(jsonPath("$.result.linkuList[0].title").value("첫 번째 AI 제목"))
+                        .andExpect(jsonPath("$.result.linkuList[0].categoryId").value(1L))
+                        .andExpect(jsonPath("$.result.linkuList[0].categoryName").value("어학"))
                         .andExpect(jsonPath("$.result.nextCursor").value("1001"))
                         .andExpect(jsonPath("$.result.hasNext").value(true))
                         .andDo(print());
@@ -198,6 +202,8 @@ class AiArticleControllerTest {
                         .domainImageUrl("https://img1.daumcdn.net/thumb/R800x0")
                         .title("카테고리 A 글")
                         .linkuImageUrl("https://img1.daumcdn.net/thumb/R800x0")
+                        .categoryId(1L)
+                        .categoryName("어학")
                         .build();
                 LinkuResponseDTO.AiArticleSummaryDTO articleFromCategoryB = LinkuResponseDTO.AiArticleSummaryDTO.builder()
                         .linkuId(202L)
@@ -207,6 +213,8 @@ class AiArticleControllerTest {
                         .domainImageUrl("https://img1.daumcdn.net/thumb/R800x0")
                         .title("카테고리 B 글")
                         .linkuImageUrl("https://img1.daumcdn.net/thumb/R800x0")
+                        .categoryId(2L)
+                        .categoryName("뉴스")
                         .build();
 
                 LinkuResponseDTO.LinkuSliceResultDTO mockSlice = LinkuResponseDTO.LinkuSliceResultDTO.builder()
@@ -226,7 +234,11 @@ class AiArticleControllerTest {
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.result.linkuList.length()").value(2))
                         .andExpect(jsonPath("$.result.linkuList[0].linkuId").value(201L))
+                        .andExpect(jsonPath("$.result.linkuList[0].categoryId").value(1L))
+                        .andExpect(jsonPath("$.result.linkuList[0].categoryName").value("어학"))
                         .andExpect(jsonPath("$.result.linkuList[1].linkuId").value(202L))
+                        .andExpect(jsonPath("$.result.linkuList[1].categoryId").value(2L))
+                        .andExpect(jsonPath("$.result.linkuList[1].categoryName").value("뉴스"))
                         .andDo(print());
             }
         }
