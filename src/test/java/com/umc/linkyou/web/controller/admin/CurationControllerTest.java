@@ -1,6 +1,7 @@
 package com.umc.linkyou.web.controller.admin;
 
 import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.curation.CurationSuccessStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.common.WebConfig;
@@ -67,7 +68,7 @@ class CurationControllerTest {
                                 .with(csrf()))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andExpect(jsonPath("$.code").value("COMMON200"))
+                        .andExpect(jsonPath("$.code").value(CurationSuccessStatus.CURATION_BATCH_TRIGGERED.getCode()))
                         .andExpect(jsonPath("$.result").isEmpty());
 
                 verify(curationService).generateCurationForUser(USER_ID, MONTH);
@@ -85,7 +86,7 @@ class CurationControllerTest {
                                 .with(csrf()))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andExpect(jsonPath("$.code").value("COMMON200"))
+                        .andExpect(jsonPath("$.code").value(CurationSuccessStatus.CURATION_BATCH_TRIGGERED.getCode()))
                         .andExpect(jsonPath("$.result").isEmpty());
 
                 verify(curationService).generateCurationForUser(USER_ID, MONTH);

@@ -1,7 +1,7 @@
 package com.umc.linkyou.web.controller.admin;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.apiPayload.code.status.curation.CurationSuccessStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.service.curation.CurationService;
 import com.umc.linkyou.validation.annotation.ApiAdmin;
@@ -31,6 +31,6 @@ public class CurationController {
             @RequestParam String month
     ) {
         curationService.generateCurationForUser(userId, month);
-        return ResponseEntity.ok(ApiResponse.onSuccess(SuccessStatus._OK));
+        return ResponseEntity.ok(ApiResponse.onSuccess(CurationSuccessStatus.CURATION_BATCH_TRIGGERED));
     }
 }

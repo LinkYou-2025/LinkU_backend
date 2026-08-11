@@ -35,12 +35,15 @@ class SecurityErrorResponseWriterTest {
                 writer.write(response, AuthErrorStatus.UNAUTHORIZED);
 
                 assertThat(response.getStatus()).isEqualTo(401);
-                assertThat(response.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
+                boolean isJson = MediaType.parseMediaType(response.getContentType())
+                        .isCompatibleWith(MediaType.APPLICATION_JSON);
+                assertThat(isJson).isTrue();
+                assertThat(response.getCharacterEncoding()).isEqualToIgnoringCase("UTF-8");
 
                 Map<String, Object> body = objectMapper.readValue(response.getContentAsString(), Map.class);
                 assertThat(body.get("isSuccess")).isEqualTo(false);
-                assertThat(body.get("code")).isEqualTo("AUTH4001");
-                assertThat(body.get("message")).isEqualTo("인증이 필요합니다.");
+                assertThat(body.get("code")).isEqualTo(AuthErrorStatus.UNAUTHORIZED.getCode());
+                assertThat(body.get("message")).isEqualTo(AuthErrorStatus.UNAUTHORIZED.getMessage());
                 assertThat(body.get("result")).isNull();
             }
         }
