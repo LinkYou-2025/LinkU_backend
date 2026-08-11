@@ -458,6 +458,9 @@ class AiArticleServiceTest {
             verify(usersLinkuRepository).fetchAiArticlesByCategoryIdWithCursor(USER_ID, null, CURSOR, LIMIT);
             assertEquals(1, result.getLinkuList().size());
             assertFalse(result.getHasNext());
+            // "전체" 탭에서는 여러 카테고리가 섞여 나오므로, 각 항목에 카테고리 정보가 실려 있어야 한다.
+            assertEquals(LinkuFixture.CATEGORY_ID, result.getLinkuList().get(0).getCategoryId());
+            assertEquals("기술", result.getLinkuList().get(0).getCategoryName());
         }
 
         @Test

@@ -83,6 +83,8 @@ class AiArticleControllerTest {
                         .domainImageUrl("https://img1.daumcdn.net/thumb/R800x0")
                         .title("첫 번째 AI 제목")
                         .linkuImageUrl("https://img1.daumcdn.net/thumb/R800x0")
+                        .categoryId(1L)
+                        .categoryName("어학")
                         .build();
 
                 LinkuResponseDTO.LinkuSliceResultDTO mockSlice = LinkuResponseDTO.LinkuSliceResultDTO.builder()
@@ -110,6 +112,8 @@ class AiArticleControllerTest {
                 assertThat(body.getLinkuList().get(0).getEmotionId()).isEqualTo(2L);
                 assertThat(body.getLinkuList().get(0).getDomain()).isEqualTo("naver");
                 assertThat(body.getLinkuList().get(0).getTitle()).isEqualTo("첫 번째 AI 제목");
+                assertThat(body.getLinkuList().get(0).getCategoryId()).isEqualTo(1L);
+                assertThat(body.getLinkuList().get(0).getCategoryName()).isEqualTo("어학");
                 assertThat(body.getNextCursor()).isEqualTo("1001");
                 assertThat(body.getHasNext()).isTrue();
             }
@@ -183,6 +187,8 @@ class AiArticleControllerTest {
                         .domainImageUrl("https://img1.daumcdn.net/thumb/R800x0")
                         .title("카테고리 A 글")
                         .linkuImageUrl("https://img1.daumcdn.net/thumb/R800x0")
+                        .categoryId(1L)
+                        .categoryName("어학")
                         .build();
                 LinkuResponseDTO.AiArticleSummaryDTO articleFromCategoryB = LinkuResponseDTO.AiArticleSummaryDTO.builder()
                         .linkuId(202L)
@@ -192,6 +198,8 @@ class AiArticleControllerTest {
                         .domainImageUrl("https://img1.daumcdn.net/thumb/R800x0")
                         .title("카테고리 B 글")
                         .linkuImageUrl("https://img1.daumcdn.net/thumb/R800x0")
+                        .categoryId(2L)
+                        .categoryName("뉴스")
                         .build();
 
                 LinkuResponseDTO.LinkuSliceResultDTO mockSlice = LinkuResponseDTO.LinkuSliceResultDTO.builder()
@@ -212,7 +220,9 @@ class AiArticleControllerTest {
                         readResult(result, objectMapper, LinkuResponseDTO.LinkuSliceResultDTO.class);
                 assertThat(body.getLinkuList()).hasSize(2);
                 assertThat(body.getLinkuList().get(0).getLinkuId()).isEqualTo(201L);
+                assertThat(body.getLinkuList().get(0).getCategoryId()).isEqualTo(1L);
                 assertThat(body.getLinkuList().get(1).getLinkuId()).isEqualTo(202L);
+                assertThat(body.getLinkuList().get(1).getCategoryId()).isEqualTo(2L);
             }
         }
 

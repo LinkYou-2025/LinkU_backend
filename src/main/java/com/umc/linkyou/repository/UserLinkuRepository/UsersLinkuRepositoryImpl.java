@@ -81,10 +81,12 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 .selectFrom(usersLinku)
                 .join(usersLinku.linku, linku).fetchJoin()
                 .leftJoin(linku.aiArticle, aiArticle)
-                // 서비스단(getMyAiArticlesByCategory)에서 ul.getEmotion()/l.getDomain()을 사용하므로
-                // emotion/domain은 페치 조인하되, AiArticle은 응답에서 읽지 않아 일반 LEFT JOIN으로 둔다.
+                // 서비스단(getMyAiArticlesByCategory)에서 ul.getEmotion()/l.getDomain()/l.getCategory()를
+                // 사용하므로 emotion/domain/category는 페치 조인하되, AiArticle은 응답에서 읽지 않아
+                // 일반 LEFT JOIN으로 둔다.
                 .join(usersLinku.emotion).fetchJoin()
                 .join(linku.domain).fetchJoin()
+                .join(linku.category).fetchJoin()
                 .where(
                         usersLinku.user.id.eq(userId),
                         eqCategoryId(categoryId), // null이면 카테고리 필터 없이 전체 조회
