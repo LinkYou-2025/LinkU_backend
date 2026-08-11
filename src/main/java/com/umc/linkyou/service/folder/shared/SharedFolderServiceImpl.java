@@ -1,7 +1,6 @@
 package com.umc.linkyou.service.folder.shared;
 
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
-import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.folder.Folder;
@@ -9,7 +8,6 @@ import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
-import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.SharedFolderGroupResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.*;
 
@@ -75,8 +73,13 @@ public class SharedFolderServiceImpl implements SharedFolderService {
             Users owner = folderOwnerMap.get(folders.get(0).getFolderId());
             String nickname = owner != null ? owner.getNickName() : "닉네임 없음";
 
-            List<FolderTreeResponseDTO> folderDTOs = folders.stream()
-                    .map(folder -> FolderConverter.toFolderTreeDTO(folder, bookmarkMap))
+            List<SharedFolderItemDTO> folderDTOs = folders.stream()
+                    .map(folder -> SharedFolderItemDTO.builder()
+                            .folderId(folder.getFolderId())
+                            .folderName(folder.getFolderName())
+                            .isBookmarked(bookmarkMap.getOrDefault(folder.getFolderId(), false))
+                            .categoryId(folder.getCategory().getCategoryId())
+                            .build())
                     .collect(Collectors.toList());
 
             SharedFolderGroupResponseDTO dto = SharedFolderGroupResponseDTO.builder()
