@@ -16,6 +16,7 @@ public enum ShareFolderErrorStatus implements BaseErrorCode {
     // 403 Forbidden
     _FOLDER_PERMISSION_NOT_ALLOWED(HttpStatus.FORBIDDEN, "SHAREFOLDER4031", "폴더 수정 권한을 가지고 있지 않습니다."),
     _FOLDER_OWNER_UPDATE_NOT_ALLOWED(HttpStatus.FORBIDDEN, "SHAREFOLDER4032", "폴더 주인의 권한은 수정할 수 없습니다."),
+    _FOLDER_SHARE_ONLY_SUBFOLDER_ALLOWED(HttpStatus.FORBIDDEN, "SHAREFOLDER4033", "중분류 폴더는 공유할 수 없습니다. 소분류 폴더만 공유 가능합니다."),
 
     // 404 Not Found
     _FOLDER_PERMISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "SHAREFOLDER4041", "해당 유저의 폴더 권한 정보를 찾을 수 없습니다."),
