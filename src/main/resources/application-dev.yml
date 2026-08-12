@@ -17,6 +17,13 @@ fcm:
   credentials:
     path: file:/app/config/linku-firebase-adminsdk.json
 
+# Swagger는 dev 환경에서만 노출 (base에서 기본 비활성화, prod는 명시적으로 재차 비활성화)
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
 logging:
   level:
     root: INFO

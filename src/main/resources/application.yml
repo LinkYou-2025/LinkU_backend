@@ -83,7 +83,10 @@ spring:
             user-name-attribute: id
 
 springdoc:
+  api-docs:
+    enabled: false
   swagger-ui:
+    enabled: false
     persist-authorization: true
 
 management:

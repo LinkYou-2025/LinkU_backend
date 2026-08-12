@@ -52,18 +52,12 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
-                                "/", "/css/**",
-                                "/api/v1/auth/**",
-                                "/swagger-ui/**", "/v3/api-docs/**",
-                                "/api/v1/auth/mobile/**",
+                                "/api/v1/auth/**", //로그인
+                                "/swagger-ui/**", "/v3/api-docs/**", //스웨거
                                 "/api/v1/webhooks/**",
-                                "/error/**",
-
-                                "/*.well-known/**",  // 여기부터 아래까지 삭제해도 되는지 확인해주세요
-                                "/open/**",
-                                "/password/reset",
                                 "/actuator/**",
-                                "/docs/**"
+                                "/password/reset",
+                                "/error/**"
                         ).permitAll()
                         // 역할별 접근 제한
                         .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -93,7 +87,8 @@ public class SecurityConfig {
         configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
+        // 안드로이드 클라이언트는 쿠키 등 자격증명을 사용하지 않으므로 비활성화
+        configuration.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
