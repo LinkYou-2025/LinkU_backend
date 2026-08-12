@@ -9,7 +9,7 @@ variable "instance_type" {
 }
 
 variable "ami_id" {
-  description = "prod EC2에 사용할 AMI ID (예: Ubuntu 24.04 LTS)"
+  description = "monitoring EC2에 사용할 AMI ID (예: Ubuntu 24.04 LTS)"
   type        = string
 }
 
