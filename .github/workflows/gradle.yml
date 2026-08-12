@@ -45,7 +45,9 @@ jobs:
           docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
           docker build -t app .
           docker tag app ${{ secrets.DOCKER_REPO_NAME }}:latest
+          docker tag app ${{ secrets.DOCKER_REPO_NAME }}:${{ github.sha }}
           docker push ${{ secrets.DOCKER_REPO_NAME }}:latest
+          docker push ${{ secrets.DOCKER_REPO_NAME }}:${{ github.sha }}
 
       - name: Copy compose file to dev
         uses: appleboy/scp-action@master
@@ -53,7 +55,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
-          source: "docker-compose.remote.yml,prometheus.yml,grafana"
+          source: "docker-compose.remote.yml"
           target: "/home/ubuntu/linkyou/"
 
       - name: Deploy to dev
@@ -74,10 +76,9 @@ jobs:
 
             cd /home/ubuntu/linkyou
             export DOCKER_REPO_NAME=${{ secrets.DOCKER_REPO_NAME }}
-            export GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
             sudo -E docker compose -f docker-compose.remote.yml down
             sudo -E docker compose -f docker-compose.remote.yml up -d
-      
+
             sudo docker image prune -a -f
 
       - name: Wait for Spring Boot to be ready
@@ -87,10 +88,15 @@ jobs:
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
           script: |
-            # Spring 컨테이너가 완전히 기동될 때까지 확인
+            # Spring 컨테이너가 완전히 기동될 때까지 확인. 끝까지 못 뜨면 배포 실패로 처리.
             RETRIES=10
-            until curl -s http://localhost:8080/actuator/health || [ $RETRIES -eq 0 ]; do
+            until curl -sf http://localhost:8080/actuator/health; do
+              RETRIES=$((RETRIES-1))
+              if [ $RETRIES -le 0 ]; then
+                echo "ERROR: Spring Boot app did not become healthy in time"
+                exit 1
+              fi
               echo "Waiting for Spring Boot app to start..."
               sleep 5
-              RETRIES=$((RETRIES-1))
             done
+            echo "Spring Boot app is healthy"
