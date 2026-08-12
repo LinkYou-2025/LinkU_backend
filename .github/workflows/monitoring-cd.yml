@@ -1,0 +1,73 @@
+name: monitoring-cd
+on:
+  push:
+    branches: [ "develop" ]
+    paths:
+      - "docker-compose.monitoring.yml"
+      - "prometheus.monitoring.yml"
+      - "grafana/**"
+      - ".github/workflows/monitoring-cd.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy monitoring files
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.MONITORING_HOST }}
+          username: ubuntu
+          key: ${{ secrets.PRIVATE_KEY }}
+          source: "docker-compose.monitoring.yml,prometheus.monitoring.yml,grafana"
+          target: "/home/ubuntu/linku-monitoring/"
+
+      - name: Deploy monitoring stack
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.MONITORING_HOST }}
+          username: ubuntu
+          key: ${{ secrets.PRIVATE_KEY }}
+          script: |
+            mkdir -p /home/ubuntu/linku-monitoring
+            echo "GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" > /home/ubuntu/linku-monitoring/.env
+
+            cd /home/ubuntu/linku-monitoring
+            docker compose -f docker-compose.monitoring.yml pull
+            docker compose -f docker-compose.monitoring.yml up -d
+            docker image prune -f
+
+      - name: Wait for Prometheus & Grafana to be ready
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.MONITORING_HOST }}
+          username: ubuntu
+          key: ${{ secrets.PRIVATE_KEY }}
+          script: |
+            RETRIES=10
+            until curl -sf http://localhost:9090/-/ready; do
+              RETRIES=$((RETRIES-1))
+              if [ $RETRIES -le 0 ]; then
+                echo "ERROR: Prometheus did not become ready in time"
+                exit 1
+              fi
+              echo "Waiting for Prometheus to start..."
+              sleep 5
+            done
+            echo "Prometheus is ready"
+
+            RETRIES=10
+            until curl -sf http://localhost:3000/api/health; do
+              RETRIES=$((RETRIES-1))
+              if [ $RETRIES -le 0 ]; then
+                echo "ERROR: Grafana did not become ready in time"
+                exit 1
+              fi
+              echo "Waiting for Grafana to start..."
+              sleep 5
+            done
+            echo "Grafana is ready"
