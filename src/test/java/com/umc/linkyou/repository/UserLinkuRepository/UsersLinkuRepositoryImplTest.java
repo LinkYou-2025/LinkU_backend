@@ -147,9 +147,13 @@ class UsersLinkuRepositoryImplTest {
             Linku lowKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
             Linku highKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
             Linku noKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
+            // low는 가중치가 가장 낮은 키워드 1개만 매칭시켜(합=1, KeywordMatch=1/20=0.05) high(전부
+            // 매칭, 합=55→cap 20, KeywordMatch=1.0)와의 점수 차를 크게 벌린다. score_bucket 해상도가
+            // 0.005(1/200)라 KeywordMatch 하나의 가중치(0.05) 안에서도 차이가 너무 작으면(예: 합 19 vs
+            // 20 → 차이 0.0025 → 0.5버킷) baseline 점수의 소수점 위치에 따라 같은 버킷에 묶여버릴 수
+            // 있다 — 실제로 #8/#9번 키워드(합 19)로는 이 문제가 났었다.
             linkuKeywordRepository.saveAll(List.of(
-                    LinkuKeyword.builder().linku(lowKeywordLinku).keyword(keywords.get(8)).build(),
-                    LinkuKeyword.builder().linku(lowKeywordLinku).keyword(keywords.get(9)).build()));
+                    LinkuKeyword.builder().linku(lowKeywordLinku).keyword(keywords.get(0)).build()));
             linkuKeywordRepository.saveAll(keywords.stream()
                     .map(keyword -> LinkuKeyword.builder().linku(highKeywordLinku).keyword(keyword).build())
                     .toList());
@@ -246,8 +250,9 @@ class UsersLinkuRepositoryImplTest {
 
             LocalDateTime now = LocalDateTime.now();
 
-            // 인기/재방문 빈도(viewCount)·totalViewCount가 낮은 링크. staleness는 오히려 낮은(=최근에 봄)
-            // 쪽이라 PersonalEngagement 항에서도 불리하다 — viewCount/popularity/staleness 모두 high가 이긴다.
+            // 인기/재방문 빈도(viewCount)·totalViewCount가 낮은 링크. staleness는 오히려 high보다 높지만
+            // (10일 경과 vs 1시간 전) viewCount=0·popularity=0 격차가 훨씬 커서 그 이점을 못 뒤집는다 —
+            // PersonalEngagement/popularity 종합적으로는 high가 이긴다.
             Linku linkuLow = createAndSaveLinku(domain, category, emotion, situation, 0L);
             UsersLinku low = usersLinkuRepository.save(
                     baseUsersLinku(user, linkuLow, emotion).situation(situation)

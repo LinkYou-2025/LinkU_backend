@@ -33,12 +33,13 @@ public class RecommendCursorUtil {
             JsonNode node = OBJECT_MAPPER.readTree(Base64.getDecoder().decode(cursor));
             Integer scoreBucket = readNullableInt(node, "scoreBucket");
             Long lastId = readNullableLong(node, "lastId");
-            // JSON 파싱 자체는 성공했지만 scoreBucket/lastId가 둘 다 없는 경우 — 예전 커서 포맷
-            // (noveltyBucket/normalBucket 등, 필드 구조가 바뀌기 전)이거나 알 수 없는 형식이다.
-            // encode()가 만드는 정상 커서는 이 케이스가 나올 수 없으므로(hasNext=true일 때만 인코딩하고
-            // 그때는 항상 마지막 행의 scoreBucket/lastId가 채워짐), 디코딩 실패와 동일하게 취급해
-            // 조용히 삼키지 않고 첫 페이지로 폴백한다.
-            if (scoreBucket == null && lastId == null) {
+            // JSON 파싱 자체는 성공했지만 scoreBucket/lastId 중 하나라도 없는 경우 — 예전 커서 포맷
+            // (noveltyBucket/normalBucket 등, 필드 구조가 바뀌기 전), 알 수 없는 형식, 또는 숫자가 아닌
+            // 값(readNullableInt/Long이 null로 취급)이다. encode()가 만드는 정상 커서는 둘 다 항상 함께
+            // 채워지므로(hasNext=true일 때만 인코딩하고 그때는 항상 마지막 행의 scoreBucket/lastId가
+            // 채워짐) 하나만 있는 상태가 나올 수 없다 — 디코딩 실패와 동일하게 취급해 조용히 삼키지
+            // 않고 첫 페이지로 폴백한다.
+            if (scoreBucket == null || lastId == null) {
                 log.warn("[추천 커서 디코딩 실패] 알 수 없는 커서 형식(예: 구버전 포맷)이라 첫 페이지로 폴백합니다. cursor={}", cursor);
                 return RecommendCursor.FIRST_PAGE;
             }
@@ -49,14 +50,16 @@ public class RecommendCursorUtil {
         }
     }
 
+    // canConvertToInt()는 없는/null 필드는 물론 숫자로 변환 불가능한 값(예: {"scoreBucket":"abc"})도
+    // false를 반환한다 — asInt()를 바로 쓰면 그런 값이 조용히 0으로 해석돼 이상 탐지를 피해간다.
     private static Integer readNullableInt(JsonNode node, String field) {
         JsonNode value = node.path(field);
-        return value.isMissingNode() || value.isNull() ? null : value.asInt();
+        return value.canConvertToInt() ? value.asInt() : null;
     }
 
     private static Long readNullableLong(JsonNode node, String field) {
         JsonNode value = node.path(field);
-        return value.isMissingNode() || value.isNull() ? null : value.asLong();
+        return value.canConvertToLong() ? value.asLong() : null;
     }
 
     /** 필드가 고정된 int/long뿐이라 실패할 일이 없어 try-catch 없이 직접 조립 */

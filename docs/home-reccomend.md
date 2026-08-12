@@ -4,7 +4,7 @@
 
 EmotionMatch: 현재 추천하려는 링크의 감정이랑, input으로 넣은 감정 유사도
 Situtation: 현재 추천하려는 링크의 상황이랑, input으로 넣은 상황 유사도
-PersonalEngagement: 사용자가 어떤 링크를 본 viewcount랑 마지막으로 본 날짜를 가지고 계산한 점수
+PersonalEngagement: 사용자가 어떤 링크를 본 viewcount랑, 오래 안 보거나 안 만든 정도(staleness)를 가지고 계산한 점수
 Popularity: 어떤 링크를 여러 사용자가 몇번 봤는지 계산한 점수
 TextMatch: title, summary가 사용자가 좋아하는 거 계산해서 모아놓은정보( 유저프로필)과 유사한지
 KeywordMatch:  유저 프로필과 keyword 유사도 점수
@@ -20,7 +20,7 @@ CategoryMatch: SituationCategory점수
 |---|---|---|---|---|
 | 1 | EmotionMatch | `UsersLinku.emotion` | 실시간 SQL (CASE WHEN, `EmotionSimilarityUtil` 재사용) | ✅ 구현 완료 |
 | 2 | SituationMatch | `UsersLinku.situation` | 실시간 SQL (저장 당시 situation == 요청 situationId면 1.0, 아니면 0) | ✅ 구현 완료 |
-| 3 | PersonalEngagement | `UsersLinku.viewCount`, `lastViewedAt` | 실시간 SQL (viewCount 캡 정규화 + lastViewedAt 지수감쇠 평균) | ✅ 구현 완료 |
+| 3 | PersonalEngagement | `UsersLinku.viewCount`, `lastViewedAt`(없으면 `createdAt`) | 실시간 SQL (viewCount 캡 정규화 + staleness(오래될수록 커지는 값)의 평균) | ✅ 구현 완료 |
 | 4 | Popularity | `Linku.totalViewCount` | 실시간 SQL (로그 정규화 + 캡) | ✅ 구현 완료 |
 | 5 | TextMatch | `Linku.title`, `AiArticle.summary` | 사전계산된 유저 프로필과 Postgres FTS 매칭 (trgm fallback) | ✅ 구현 완료 |
 | 6 | KeywordMatch | `LinkuKeyword`/`Keyword` | 사전계산된 유저 키워드 프로필과 스칼라 서브쿼리 매칭 | ✅ 구현 완료 |
