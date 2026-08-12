@@ -60,7 +60,13 @@ public class UserProfileRefreshWorker {
     private final UsersLinkuRepository usersLinkuRepository;
     private final LinkuKeywordRepository linkuKeywordRepository;
 
-    @Scheduled(cron = "0 */5 * * * *", zone = "Asia/Seoul")
+    // 10~23시(하루 168회)에만 돈다. 자정~오전 9시대는 다른 배치 스케줄(BatchScheduler의 새벽 3~4시
+    // 배치들, UserWithdrawService#deleteCompletelyInactiveUsers 새벽 3시, 매월 1일 0:59/8:00 큐레이션
+    // 배치)이 몰려있어 @Scheduled 스레드 풀(기본값 1개)을 두고 매일 부딪히는 시간대다 — 이 시간대엔
+    // 어차피 드레인할 게 적을 거라 보고 아예 비활성화해서 충돌을 피한다. 그만큼 이 시간대에 저장된
+    // 링크는 프로필 반영이 최대 오전 10시까지 늦어질 수 있다(TextMatch/KeywordMatch는 가중치가 작아
+    // 감내 가능한 트레이드오프로 판단).
+    @Scheduled(cron = "0 */5 10-23 * * *", zone = "Asia/Seoul")
     public void drainQueue() {
         List<UserProfileRefreshQueue> chunk =
                 refreshQueueRepository.findAllByOrderByRequestedAtAsc(PageRequest.of(0, CHUNK_SIZE));
