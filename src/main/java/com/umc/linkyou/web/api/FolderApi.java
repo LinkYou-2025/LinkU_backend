@@ -45,7 +45,8 @@ public interface FolderApi {
             @PathVariable Long folderId
     );
 
-    @Operation(summary = "내 폴더 목록(트리) 조회", description = "사용자의 모든 폴더를 트리 구조로 조회합니다.")
+    @Deprecated
+    @Operation(summary = "[삭제 예정] 내 폴더 목록(트리) 조회", description = "v2에서 삭제 예정입니다. 사용자의 모든 폴더를 트리 구조로 조회합니다.", deprecated = true)
     @GetMapping("/my")
     ApiResponse<List<FolderTreeResponseDTO>> getMyFolderTree(
             @CurrentUser CustomUserDetails userDetails
@@ -58,7 +59,8 @@ public interface FolderApi {
             @RequestParam(defaultValue = "name") String sort
     );
 
-    @Operation(summary = "중분류 내부의 하위 폴더 조회", description = "특정 중분류 폴더의 하위 소분류 폴더 목록을 조회합니다.")
+    @Deprecated
+    @Operation(summary = "[삭제 예정] 중분류 내부의 하위 폴더 조회", description = "v2에서 삭제 예정입니다. GET /folders/{folderId}/linkus?includeLinks=false로 대체됩니다. 특정 중분류 폴더의 하위 소분류 폴더 목록을 조회합니다.", deprecated = true)
     @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN})
     @GetMapping("/{parentFolderId}/subfolders")
     ApiResponse<List<FolderListResponseDTO>> getSubFolderList(
