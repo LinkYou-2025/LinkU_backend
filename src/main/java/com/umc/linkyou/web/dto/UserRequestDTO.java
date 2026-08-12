@@ -2,7 +2,10 @@ package com.umc.linkyou.web.dto;
 
 import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Gender;
+import com.umc.linkyou.domain.enums.Interest;
+import com.umc.linkyou.domain.enums.Purpose;
 import com.umc.linkyou.domain.enums.TermsType;
+import com.umc.linkyou.validation.annotation.ValidEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -23,8 +26,10 @@ public class UserRequestDTO {
             @Schema(example = "MALE", allowableValues = {"MALE", "FEMALE"})
             @NotNull(message = "성별은 필수입니다") Gender gender,
             @Schema(example = "1") @NotNull Long jobId,
-            @Schema(example = "[\"CAREER\", \"STUDY\"]") @NotEmpty(message = "목적 리스트는 최소 1개 이상 선택해야 합니다") List<String> purposeList,
-            @Schema(example = "[\"IT\", \"DESIGN\"]") @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다") List<String> interestList,
+            @Schema(example = "[\"CAREER\", \"STUDY\"]") @NotEmpty(message = "목적 리스트는 최소 1개 이상 선택해야 합니다")
+            List<@ValidEnum(enumClass = Purpose.class, message = "허용되지 않은 목적 값입니다.") String> purposeList,
+            @Schema(example = "[\"IT\", \"DESIGN\"]") @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다")
+            List<@ValidEnum(enumClass = Interest.class, message = "허용되지 않은 관심사 값입니다.") String> interestList,
             @Schema(description = "약관 동의 맵", example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}")  Map<TermsType, Boolean> termsMap,
             @Schema(example = "ios-iphone-16-pro") @NotBlank(message = "deviceId는 필수입니다.") String deviceId,
             @Schema(example = "PHONE") @NotNull(message = "deviceType은 필수입니다.") DeviceType deviceType
@@ -76,13 +81,13 @@ public class UserRequestDTO {
                 example = "[\"CAREER\", \"STUDY\"]",
                 allowableValues = {"CAREER", "STUDY", "WORK", "SIDE_PROJECT", "SELF_DEVELOPMENT",
                         "LATER_READING", "INSIGHTS", "CREATION_REFERENCE", "OTHERS"})
-        private List<String> purposes;              // 링크 활용 목적
+        private List<@ValidEnum(enumClass = Purpose.class, message = "허용되지 않은 목적 값입니다.") String> purposes;              // 링크 활용 목적
 
         @Schema(description = "변경할 관심 콘텐츠 리스트 (생략 시 변경하지 않음, 필드를 보내면 전체 대체됨)",
                 example = "[\"IT\", \"DESIGN\"]",
                 allowableValues = {"BUSINESS", "IT", "DESIGN", "PSYCHOLOGY", "CAREER",
                         "CURRENT_EVENTS", "STUDY", "STARTUP", "SOCIETY", "WRITING", "INSIGHTS", "COLLECT"})
-        private List<String> interests;             // 관심 콘텐츠
+        private List<@ValidEnum(enumClass = Interest.class, message = "허용되지 않은 관심사 값입니다.") String> interests;             // 관심 콘텐츠
     }
 
     @Getter
@@ -115,11 +120,11 @@ public class UserRequestDTO {
 
         @Schema(description = "사용 목적 리스트", example = "[\"CAREER\", \"STUDY\"]")
         @NotEmpty(message = "목적 리스트는 최소 1개 이상 선택해야 합니다")
-        private List<String> purposeList;
+        private List<@ValidEnum(enumClass = Purpose.class, message = "허용되지 않은 목적 값입니다.") String> purposeList;
 
         @Schema(description = "관심사 리스트", example = "[\"IT\", \"DESIGN\"]")
         @NotEmpty(message = "관심사 리스트는 최소 1개 이상 선택해야 합니다")
-        private List<String> interestList;
+        private List<@ValidEnum(enumClass = Interest.class, message = "허용되지 않은 관심사 값입니다.") String> interestList;
 
         @Schema(description = "약관 동의 맵", example = "{\"TERMS_OF_USE\": true, \"PRIVACY_POLICY\": true, \"MARKETING\": false}")
         @NotEmpty(message = "약관 동의 정보는 필수입니다.")
