@@ -12,8 +12,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record RecommendScoreProperties(
         Weight weight,
         Normalization normalization,
-        Confidence confidence,
-        Novelty novelty
+        Confidence confidence
 ) {
     /**
      * feature별 가중치. 합이 1일 필요는 없지만(내적일 뿐이므로), 튜닝 편의상 1로 맞추는 걸 권장한다.
@@ -32,12 +31,4 @@ public record RecommendScoreProperties(
      * UsersLinku.emotionAi/situationAi가 true(AI 추론)면 이 값을, false(유저 직접 선택)면 1.0을 곱한다.
      */
     public record Confidence(double aiEmotionDiscount, double aiSituationDiscount) {}
-
-    /**
-     * "최근에 안 본" 후보(novelty) 버킷 설정. HomeRecommendScoreService의 7축 가중합과는 별개로,
-     * LinkuRecommendService가 한 페이지를 구성할 때 이 버킷에서 quotaRatio만큼을 먼저 채우고
-     * (situation/emotion만으로 정렬), 나머지를 기존 가중합 랭킹(normal 버킷)으로 채운다.
-     * quotaRatio는 목표치일 뿐이라 novelty 후보가 모자라면 normal이 초과해서 채운다.
-     */
-    public record Novelty(int recencyThresholdDays, double quotaRatio) {}
 }

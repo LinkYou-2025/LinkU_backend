@@ -39,28 +39,8 @@ title_tsv/summary_tsv generated column + GIN 인덱스는 한 번 추가했다�
 단계에서는 그 값을 읽기만 한다 — 예전엔 이 계산식이 CASE 절 안에서 4번 반복 삽입돼 행마다 4번씩
 실행됐는데, 그 중복만 없앤 것으로 충분했다.
 
-## Novelty Quota (최근에 안 본 것 우선 노출) — 구현 완료
-
-7축 가중합과는 별개로, 한 페이지를 구성할 때 "최근에 안 본" 후보를 quota만큼 먼저 채우고 나머지를 기존
-가중합(normal)으로 채우는 2단계 조립을 추가했다. 7축에 새 feature를 추가한 게 아니라, DB 쿼리 결과를
-서비스 레이어에서 두 풀로 나눠 합치는 post-process 단계다.
-
-- **novelty 조건**: `COALESCE(usersLinku.lastViewedAt, usersLinku.createdAt) < now - recencyThresholdDays`.
-  `lastViewedAt`이 있으면 마지막으로 본 지 기준일이 넘었는지, null(한 번도 안 봄)이면 저장한 지(`createdAt`)
-  기준일이 넘었는지를 같은 기준으로 본다 — 방금 저장해서 아직 볼 기회가 없었던 링크가 novelty로 잘못
-  잡히는 것을 막기 위해서다. `viewCount`는 저장 시점에 항상 0으로 초기화되고(`LinkuConverter.toUsersLinku`가
-  `viewCount`/`lastViewedAt`을 세팅하지 않음), `incrementViewCount()`가 호출될 때만 `lastViewedAt`이 채워지므로
-  `viewCount=0` 조건은 `lastViewedAt IS NULL`과 동치라 별도로 쓰지 않는다.
-- **novelty 버킷 정렬**: 7축이 아니라 EmotionMatch/SituationMatch 두 축만으로 정렬한다
-  (`HomeRecommendScoreService#noveltyContextScoreExpression`, 기존 `emotionMatchExpression`/
-  `situationMatchExpression`을 그대로 재사용하므로 AI 추론 신뢰도 감쇠도 동일하게 적용됨).
-- **quota**: `RecommendScoreProperties.Novelty.quotaRatio`(기본 0.3)로 한 페이지(`size`)당 목표 개수를 정한다.
-  목표치일 뿐이라 novelty 후보가 모자라면 normal 버킷이 초과해서 채운다(`LinkuRecommendService
-  #fetchNoveltyAndNormalCandidates`).
-- **두 버킷은 서로소로 유지된다**: `findNormalRecommendCandidates`가 novelty 조건을 제외(`NOT COALESCE(...) <
-  threshold`)한 채로 조회하므로, 같은 링크가 novelty와 normal 양쪽에서 중복으로 뽑히는 일이 없다.
-  `findHomeRecommendCandidates`(novelty 필터 없는 OFFSET 원본)는 실제로 아무 서비스 호출부도 쓰지 않는
-  죽은 코드로 확인돼 제거했다 — `queryRankedCandidates`와 그 전용 QueryDSL Expression(scoreExpression/
-  textMatchExpression/keywordMatchExpression/personalEngagementExpression/popularityExpression/
-  categoryMatchExpression/notNoveltyCondition)도 함께 정리했다. 관련 테스트 2개는 `findNormalRecommendCandidates`
-  기준으로 다시 작성했다.
+## personalEngagement
+최근에 보거나, 최근에 수정한 것의 추천을 줄임
+PersonalEngagement
+= 1/2 × [ min(viewCount, cap) / cap
++ 1 - exp( - days(now - COALESCE(lastViewedAt, createdAt)) / 14 ) ]

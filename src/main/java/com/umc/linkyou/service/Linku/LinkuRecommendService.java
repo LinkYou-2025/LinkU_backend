@@ -4,7 +4,6 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.config.properties.RecommendScoreProperties;
 import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Emotion;
@@ -26,13 +25,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -52,7 +48,6 @@ public class LinkuRecommendService {
     private final LinkuFolderRepository linkuFolderRepository;
     private final SituationCategoryService situationCategoryService;
     private final UserContentProfileRepository userContentProfileRepository;
-    private final RecommendScoreProperties recommendScoreProperties;
 
     @Transactional(readOnly = true)
     public ApiResponse<LinkuResponseDTO.LinkuRecommendCursorPageDTO> recommendLinku(
@@ -76,9 +71,10 @@ public class LinkuRecommendService {
         String profileTsqueryText = contentProfile.map(UserContentProfile::getProfileTsqueryText).orElse(null);
         String profileText = contentProfile.map(UserContentProfile::getProfileText).orElse(null);
 
-        // novelty quota 우선 채우고 나머지는 normal(7축 가중합)로. 두 버킷을 각자 seek 커서로 페이징
+        // 7축 가중합 단일 랭킹 — PersonalEngagement의 staleness 항이 오래 안 본/안 만든 후보를 자연히
+        // 끌어올려주므로 별도 novelty 버킷 없이 seek 커서 하나로 페이징한다.
         RecommendCursorUtil.RecommendCursor decodedCursor = RecommendCursorUtil.decode(cursor);
-        CandidatePage page = fetchNoveltyAndNormalCandidates(
+        CandidatePage page = fetchRecommendCandidates(
                 userId, selectedEmotion.getEmotionId(), situationId, mappedCategories,
                 profileTsqueryText, profileText, decodedCursor, size);
 
@@ -97,73 +93,29 @@ public class LinkuRecommendService {
                 .build());
     }
 
-    // novelty quota + normal 조회 결과를 합치고 다음 seek 커서/hasNext를 계산한다.
-    private CandidatePage fetchNoveltyAndNormalCandidates(
+    // 7축 가중합 랭킹을 seek 커서로 한 페이지 조회하고 다음 커서/hasNext를 계산한다.
+    private CandidatePage fetchRecommendCandidates(
             Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
             String profileTsqueryText, String profileText,
             RecommendCursorUtil.RecommendCursor cursor, int size) {
 
-        RecommendScoreProperties.Novelty noveltyProps = recommendScoreProperties.novelty();
         LocalDateTime now = LocalDateTime.now();
 
-        int quotaCount = (int) Math.round(size * noveltyProps.quotaRatio());
-        quotaCount = Math.min(Math.max(quotaCount, 0), size);
+        // size+1개를 가져와 hasNext 판별
+        List<RankedUsersLinku> fetched = usersLinkuRepository.findNormalRecommendCandidates(
+                userId, selectedEmotionId, selectedSituationId, mappedCategoryIds,
+                now, profileTsqueryText, profileText,
+                cursor.scoreBucket(), cursor.lastId(), size + 1);
+        boolean hasNext = fetched.size() > size;
+        List<RankedUsersLinku> candidates = hasNext ? fetched.subList(0, size) : fetched;
 
-        // quota+1개를 가져와 hasMoreNovelty 판별. quota 0이거나 이미 exhausted면 조회 생략
-        boolean skipNoveltyQuery = quotaCount == 0 || cursor.noveltyExhausted();
-        List<RankedUsersLinku> noveltyFetched = skipNoveltyQuery
-                ? Collections.emptyList()
-                : usersLinkuRepository.findNoveltyRecommendCandidates(
-                        userId, selectedEmotionId, selectedSituationId,
-                        now, noveltyProps.recencyThresholdDays(),
-                        cursor.noveltyBucket(), cursor.noveltyLastId(), quotaCount + 1);
-        boolean hasMoreNovelty = noveltyFetched.size() > quotaCount;
-        List<RankedUsersLinku> noveltyCandidates =
-                hasMoreNovelty ? noveltyFetched.subList(0, quotaCount) : noveltyFetched;
-        boolean noveltyExhaustedNext = quotaCount == 0 || cursor.noveltyExhausted() || !hasMoreNovelty;
+        // 다음 seek 지점 = 이번 페이지 마지막 행의 (scoreBucket, userLinkuId). 못 뽑았으면 기존 커서 유지
+        RankedUsersLinku last = candidates.isEmpty() ? null : candidates.get(candidates.size() - 1);
+        RecommendCursorUtil.RecommendCursor nextCursor = last != null
+                ? new RecommendCursorUtil.RecommendCursor(last.scoreBucket(), last.userLinkuId())
+                : cursor;
 
-        int normalTarget = size - noveltyCandidates.size();
-        List<RankedUsersLinku> normalFetched = normalTarget == 0
-                ? Collections.emptyList()
-                : usersLinkuRepository.findNormalRecommendCandidates(
-                        userId, selectedEmotionId, selectedSituationId, mappedCategoryIds,
-                        now, profileTsqueryText, profileText,
-                        noveltyProps.recencyThresholdDays(),
-                        cursor.normalBucket(), cursor.normalLastId(), normalTarget + 1);
-        boolean hasMoreNormal = normalFetched.size() > normalTarget;
-        List<RankedUsersLinku> normalCandidates =
-                hasMoreNormal ? normalFetched.subList(0, normalTarget) : normalFetched;
-
-        // normal/novelty는 서로소라 중복 없지만 userLinkuId 기준으로 한 번 더 방어
-        Set<Long> seen = new LinkedHashSet<>();
-        List<RankedUsersLinku> merged = new ArrayList<>(noveltyCandidates.size() + normalCandidates.size());
-        for (RankedUsersLinku candidate : noveltyCandidates) {
-            if (seen.add(candidate.userLinkuId())) merged.add(candidate);
-        }
-        for (RankedUsersLinku candidate : normalCandidates) {
-            if (seen.add(candidate.userLinkuId())) merged.add(candidate);
-        }
-
-        // 다음 seek 지점 = 이번 페이지 마지막 행의 (scoreBucket, userLinkuId). 못 뽑았으면 기존 값 유지
-        RankedUsersLinku lastNovelty = noveltyCandidates.isEmpty()
-                ? null : noveltyCandidates.get(noveltyCandidates.size() - 1);
-        RankedUsersLinku lastNormal = normalCandidates.isEmpty()
-                ? null : normalCandidates.get(normalCandidates.size() - 1);
-
-        // 삼항연산자 한쪽이 primitive int(scoreBucket()), 다른 쪽이 Integer(cursor.xxxBucket())이면
-        // 자바가 전체 식의 타입을 int로 정해서 null인 Integer 쪽도 강제로 언박싱하다 NPE가 난다
-        // (첫 페이지처럼 lastNovelty/lastNormal이 null이라 cursor 쪽 값을 쓰는데, 그 cursor 값 자체도
-        // null인 경우 — RecommendCursor.FIRST_PAGE 참고). Integer.valueOf로 양쪽을 박싱 타입으로
-        // 맞춰서 언박싱이 안 일어나게 한다.
-        RecommendCursorUtil.RecommendCursor nextCursor = new RecommendCursorUtil.RecommendCursor(
-                lastNovelty != null ? Integer.valueOf(lastNovelty.scoreBucket()) : cursor.noveltyBucket(),
-                lastNovelty != null ? lastNovelty.userLinkuId() : cursor.noveltyLastId(),
-                lastNormal != null ? Integer.valueOf(lastNormal.scoreBucket()) : cursor.normalBucket(),
-                lastNormal != null ? lastNormal.userLinkuId() : cursor.normalLastId(),
-                noveltyExhaustedNext);
-        boolean hasNext = !noveltyExhaustedNext || hasMoreNormal;
-
-        return new CandidatePage(merged, nextCursor, hasNext);
+        return new CandidatePage(candidates, nextCursor, hasNext);
     }
 
     private record CandidatePage(
