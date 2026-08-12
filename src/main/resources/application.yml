@@ -97,6 +97,9 @@ management:
   metrics:
     tags:
       application: linkyou
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
 
 resilience4j:
   circuitbreaker:
@@ -201,6 +204,8 @@ google:
 server:
   forward-headers-strategy: framework
   tomcat:
+    mbeanregistry:
+      enabled: true
     remoteip:
       remote-ip-header: x-forwarded-for
       protocol-header: x-forwarded-proto
