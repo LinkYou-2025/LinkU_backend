@@ -24,6 +24,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class KeywordServiceImpl implements KeywordService {
 
     private final LinkuKeywordRepository linkuKeywordRepository;
@@ -52,7 +53,6 @@ public class KeywordServiceImpl implements KeywordService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<JobKeywordRankResponse> getJobTopKeywords(Long userId, YearMonth month, int limit) {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
@@ -75,7 +75,6 @@ public class KeywordServiceImpl implements KeywordService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<KeywordLinkuItemDTO> getLinkusByKeyword(Long userId, String keyword) {
         keywordRepository.findByName(keyword)
                 .orElseThrow(() -> new GeneralException(LinkuErrorStatus._KEYWORD_NOT_FOUND));

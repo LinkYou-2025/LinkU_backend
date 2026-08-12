@@ -31,7 +31,7 @@ public interface KeywordApi {
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit
     );
 
-    @Operation(summary = "키워드로 내 링크 목록 조회", description = "직업별 키워드 랭킹에서 선택한 키워드가 정확히 일치하는, 내가 저장한 링크 전체를 최신 저장순으로 조회합니다.")
+    @Operation(summary = "키워드로 내 링크 목록 조회", description = "선택한 키워드와 일치하는, 내가 저장한 링크 전체를 최신 저장순으로 조회합니다.")
     @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._KEYWORD_NOT_FOUND})
     @GetMapping("/{keyword}/linkus")
     ResponseEntity<ApiResponse<List<KeywordLinkuItemDTO>>> getLinkusByKeyword(
