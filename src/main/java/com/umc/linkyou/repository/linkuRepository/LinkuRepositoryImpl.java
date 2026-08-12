@@ -8,9 +8,12 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.QKeyword;
 import com.umc.linkyou.domain.QLinku;
+import com.umc.linkyou.domain.classification.QCategory;
 import com.umc.linkyou.domain.classification.QDomain;
+import com.umc.linkyou.domain.classification.QEmotion;
 import com.umc.linkyou.domain.mapping.QLinkuKeyword;
 import com.umc.linkyou.domain.mapping.QUsersLinku;
+import com.umc.linkyou.web.dto.keyword.KeywordLinkuItemDTO;
 import com.umc.linkyou.web.dto.linku.LinkuQuickSearchResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuSearchResponseDTO;
 import lombok.RequiredArgsConstructor;
@@ -90,6 +93,51 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
                         tagsByLinkuId.getOrDefault(r.get(l.linkuId), List.of()),
                         r.get(d.imageUrl),
                         r.get(d.name)
+                ))
+                .toList();
+    }
+
+    @Override
+    public List<KeywordLinkuItemDTO> findUserLinksByExactKeyword(Long userId, String keyword) {
+        QUsersLinku ul = QUsersLinku.usersLinku;
+        QLinku l = QLinku.linku;
+        QDomain d = QDomain.domain;
+        QCategory c = QCategory.category;
+        QEmotion e = QEmotion.emotion;
+        QLinkuKeyword lk = QLinkuKeyword.linkuKeyword;
+
+        StringExpression displayTitle = ul.title.coalesce(l.title);
+        StringExpression displayImage = ul.imageUrl.coalesce(l.imgUrl);
+
+        BooleanExpression keywordMatches = JPAExpressions
+                .selectOne()
+                .from(lk)
+                .where(lk.linku.eq(l), lk.keyword.name.eq(keyword))
+                .exists();
+
+        List<Tuple> rows = queryFactory
+                .select(ul.userLinkuId, l.linkuUrl, displayTitle, displayImage, d.name, d.imageUrl, c.categoryName, e.name)
+                .from(ul)
+                .join(ul.linku, l)
+                .leftJoin(l.domain, d)
+                .join(l.category, c)
+                .join(ul.emotion, e)
+                .where(
+                        ul.user.id.eq(userId),
+                        keywordMatches
+                )
+                .orderBy(ul.userLinkuId.desc())
+                .fetch();
+
+        return rows.stream()
+                .map(r -> new KeywordLinkuItemDTO(
+                        r.get(ul.userLinkuId),
+                        r.get(displayTitle),
+                        r.get(l.linkuUrl),
+                        r.get(displayImage),
+                        r.get(d.name),
+                        r.get(d.imageUrl),
+                        List.of(r.get(c.categoryName), r.get(e.name))
                 ))
                 .toList();
     }
