@@ -5,6 +5,7 @@ import com.umc.linkyou.domain.CurationSectionInfo;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
+import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
 import com.umc.linkyou.domain.mapping.CurationLinku;
 import com.umc.linkyou.domain.mapping.UsersLinku;
@@ -23,6 +24,7 @@ public class CurationConverter {
         Linku linku = usersLinku != null ? usersLinku.getLinku() : null;
         Domain domain = linku != null ? linku.getDomain() : null;
         Category category = linku != null ? linku.getCategory() : null;
+        Emotion emotion = usersLinku != null ? usersLinku.getEmotion() : null;
         return RecommendedLinkResponse.builder()
                 .userLinkuId(usersLinku != null ? usersLinku.getUserLinkuId() : null)
                 .url(entity.getUrl())
@@ -30,7 +32,8 @@ public class CurationConverter {
                 .domain(domain != null ? domain.getName() : null)
                 .domainImageUrl(domain != null ? domain.getImageUrl() : null)
                 .imageUrl(entity.getImageUrl())
-                .categories(category != null ? List.of(category.getCategoryName()) : null)
+                // 카테고리 + 감정 태그 (링크의 카테고리, 저장 시 남긴 감정)
+                .categories(category != null ? List.of(category.getCategoryName(), emotion.getName()) : null)
                 .type(CurationLinkuType.INTERNAL)
                 .build();
     }

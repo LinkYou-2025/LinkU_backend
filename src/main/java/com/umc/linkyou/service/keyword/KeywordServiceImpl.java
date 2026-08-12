@@ -1,14 +1,18 @@
 package com.umc.linkyou.service.keyword;
 
+import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Keyword;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.mapping.LinkuKeyword;
+import com.umc.linkyou.repository.keywordRepository.KeywordRepository;
+import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.mapping.LinkuKeywordRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.web.dto.keyword.JobKeywordRankResponse;
+import com.umc.linkyou.web.dto.keyword.KeywordLinkuItemDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -25,6 +29,8 @@ public class KeywordServiceImpl implements KeywordService {
     private final LinkuKeywordRepository linkuKeywordRepository;
     private final KeywordUpsertService keywordUpsertService;
     private final UserRepository userRepository;
+    private final KeywordRepository keywordRepository;
+    private final LinkuRepository linkuRepository;
 
     @Override
     @Transactional
@@ -66,5 +72,14 @@ public class KeywordServiceImpl implements KeywordService {
                         .count(row.count())
                         .build())
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<KeywordLinkuItemDTO> getLinkusByKeyword(Long userId, String keyword) {
+        keywordRepository.findByName(keyword)
+                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._KEYWORD_NOT_FOUND));
+
+        return linkuRepository.findUserLinksByExactKeyword(userId, keyword);
     }
 }
