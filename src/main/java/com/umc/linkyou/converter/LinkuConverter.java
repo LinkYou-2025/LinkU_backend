@@ -213,6 +213,7 @@ public class LinkuConverter {
     public static LinkuResponseDTO.AiArticleSummaryDTO toAiArticleSummaryDTO(UsersLinku usersLinku) {
         Linku linku = usersLinku.getLinku();
         Domain domain = linku.getDomain();
+        Category category = linku.getCategory();
         return LinkuResponseDTO.AiArticleSummaryDTO.builder()
                 .linkuId(linku.getLinkuId())
                 .linku(linku.getLinkuUrl())
@@ -221,6 +222,8 @@ public class LinkuConverter {
                 .domainImageUrl(domain != null ? domain.getImageUrl() : null)
                 .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
                 .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
+                .categoryId(category != null ? category.getCategoryId() : null)
+                .categoryName(category != null ? category.getCategoryName() : null)
                 .build();
     }
 

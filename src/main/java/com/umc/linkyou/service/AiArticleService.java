@@ -135,6 +135,7 @@ public class AiArticleService {
                 : linku.getTitle();
     }
 
+    // categoryId가 null이면(=쿼리 파라미터 생략) "전체" 카테고리로 간주해 필터 없이 조회한다.
     @Transactional(readOnly = true)
     public LinkuResponseDTO.LinkuSliceResultDTO getMyAiArticlesByCategory(Long userId, Long categoryId, Long cursor, int limit) {
         List<UsersLinku> usersLinkus = usersLinkuRepository.fetchAiArticlesByCategoryIdWithCursor(userId, categoryId, cursor, limit);

@@ -98,6 +98,8 @@ public class LinkuResponseDTO {
     @Getter
     @Setter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class AiArticleSummaryDTO {
         private Long linkuId;
         private String linku;
@@ -106,6 +108,8 @@ public class LinkuResponseDTO {
         private String domainImageUrl;
         private String title;
         private String linkuImageUrl;
+        private Long categoryId;
+        private String categoryName;
     }
 
     // 홈화면 링크 추천(GET /linku/recommend) 커서 페이징 응답.

@@ -2,8 +2,10 @@ package com.umc.linkyou.web.dto.curation;
 
 import com.umc.linkyou.domain.enums.CurationLinkuType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
@@ -11,6 +13,8 @@ import java.util.List;
 @Getter
 @Setter
 @Builder(toBuilder = true)
+@AllArgsConstructor
+@NoArgsConstructor
 public class RecommendedLinkResponse {
     @Schema(description = "저장된 링크 ID (사용자가 저장하지 않은 외부 추천이면 null)", example = "1")
     private Long userLinkuId;

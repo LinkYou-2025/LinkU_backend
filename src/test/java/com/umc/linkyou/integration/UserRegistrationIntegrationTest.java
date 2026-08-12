@@ -74,7 +74,7 @@ public class UserRegistrationIntegrationTest {
 
     @Test
     @DisplayName("일반 가입 -> 동일 이메일 소셜 로그인 -> 계정 통합 전체 흐름 검증")
-    void fullRegistrationAndLinkingFlow() {
+    void 일반_가입_후_동일_이메일_소셜_로그인_시_계정이_통합된다() {
         Job testJob = jobRepository.save(Job.builder().name("테스트직업").build());
 
         // 1. 일반 회원 가입 (JoinDTO가 record이므로 Builder 또는 전체 생성자 사용)
@@ -112,7 +112,7 @@ public class UserRegistrationIntegrationTest {
 
     @Test
     @DisplayName("소셜 프로필 완성 시 이미 ACTIVE 상태인 경우 예외 발생 검증")
-    void socialProfileCompleteFailWhenAlreadyActive() {
+    void 이미_ACTIVE_상태에서_소셜_프로필_완성_시_예외가_발생한다() {
         Job testJob = jobRepository.save(Job.builder().name("테스트직업").build());
 
         // 1. 이미 가입된(ACTIVE) 유저 생성

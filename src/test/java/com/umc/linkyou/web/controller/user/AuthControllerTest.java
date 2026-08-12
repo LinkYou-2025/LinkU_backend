@@ -29,7 +29,6 @@ import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.CurrentUserArgumentResolver;
 import com.umc.linkyou.jwt.JwtTokenProvider;
-import com.umc.linkyou.jwt.SecurityErrorResponseWriter;
 import com.umc.linkyou.jwt.TokenIssueService;
 import com.umc.linkyou.service.email.EmailVerificationService;
 import com.umc.linkyou.service.email.PasswordResetService;
@@ -61,8 +60,6 @@ class AuthControllerTest {
     @MockitoBean private PasswordResetService passwordResetService;
 
     @MockitoBean private UserWithdrawService userWithdrawService;
-
-    @MockitoBean private SecurityErrorResponseWriter securityErrorResponseWriter;
 
     @MockitoBean private TokenIssueService tokenIssueService;
 

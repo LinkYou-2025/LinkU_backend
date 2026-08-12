@@ -12,6 +12,7 @@ public interface UsersLinkuRepositoryCustom {
     // 특정 유저의 링크들을 카테고리별로 조회 (AiArticle 정보 포함)
     List<UsersLinku> fetchAiArticlesByCategoryId(Long userId, Long categoryId);
     List<UsersLinku> findRecentLinkCandidatesByUser(Long userId, int limit);
+    // categoryId가 null이면 카테고리 필터 없이 전체 카테고리를 조회한다 ("전체" 탭)
     List<UsersLinku> fetchAiArticlesByCategoryIdWithCursor(Long userId, Long categoryId, Long cursorId, int limit);
 
     // 7축 가중합 랭킹 (novelty 버킷 없이 단일 랭킹) — PersonalEngagement가 staleness(오래 안 본/안 만든

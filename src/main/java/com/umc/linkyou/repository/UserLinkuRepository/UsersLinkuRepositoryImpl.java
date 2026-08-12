@@ -72,19 +72,29 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 .selectFrom(usersLinku)
                 .join(usersLinku.linku, linku).fetchJoin()
                 .leftJoin(linku.aiArticle, aiArticle)
-                // 서비스단(getMyAiArticlesByCategory)에서 ul.getEmotion()/l.getDomain()을 사용하므로
-                // emotion/domain은 페치 조인하되, AiArticle은 응답에서 읽지 않아 일반 LEFT JOIN으로 둔다.
+                // 서비스단(getMyAiArticlesByCategory)에서 ul.getEmotion()/l.getDomain()/l.getCategory()를
+                // 사용하므로 emotion/domain/category는 페치 조인하되, AiArticle은 응답에서 읽지 않아
+                // 일반 LEFT JOIN으로 둔다.
                 .join(usersLinku.emotion).fetchJoin()
                 .join(linku.domain).fetchJoin()
+                .join(linku.category).fetchJoin()
                 .where(
                         usersLinku.user.id.eq(userId),
-                        linku.category.categoryId.eq(categoryId),
+                        eqCategoryId(categoryId), // null이면 카테고리 필터 없이 전체 조회
                         usersLinku.aiExist.isTrue(),
                         ltCursorId(cursorId) // 커서 조건 추가
                 )
                 .orderBy(usersLinku.createdAt.desc(), usersLinku.userLinkuId.desc()) // 정렬 순서 보장
                 .limit(limit + 1) // 다음 페이지 여부 확인용
                 .fetch();
+    }
+
+    // categoryId가 없으면(=전체 카테고리 조회) 조건을 걸지 않는다
+    private BooleanExpression eqCategoryId(Long categoryId) {
+        if (categoryId == null) {
+            return null;
+        }
+        return QLinku.linku.category.categoryId.eq(categoryId);
     }
 
     // 커서 조건 처리 (최신순이므로 현재 커서보다 작은 ID를 가져옴)

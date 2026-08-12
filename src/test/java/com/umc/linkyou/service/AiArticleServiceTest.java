@@ -436,6 +436,73 @@ class AiArticleServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("getMyAiArticlesByCategory() - 카테고리별 AI 요약 링크 조회")
+    class GetMyAiArticlesByCategory {
+
+        private static final Long CURSOR = null;
+        private static final int LIMIT = 10;
+
+        @Test
+        @DisplayName("categoryId가 null이면 카테고리 필터 없이 repository를 호출한다(전체 카테고리 조회)")
+        void categoryId가_null이면_전체_카테고리로_조회한다() {
+            Linku linku = LinkuFixture.linku(null);
+            Users user = LinkuFixture.user();
+            UsersLinku usersLinku = buildUsersLinku(linku, user);
+
+            given(usersLinkuRepository.fetchAiArticlesByCategoryIdWithCursor(USER_ID, null, CURSOR, LIMIT))
+                    .willReturn(List.of(usersLinku));
+
+            var result = aiArticleService.getMyAiArticlesByCategory(USER_ID, null, CURSOR, LIMIT);
+
+            verify(usersLinkuRepository).fetchAiArticlesByCategoryIdWithCursor(USER_ID, null, CURSOR, LIMIT);
+            assertEquals(1, result.getLinkuList().size());
+            assertFalse(result.getHasNext());
+            // "전체" 탭에서는 여러 카테고리가 섞여 나오므로, 각 항목에 카테고리 정보가 실려 있어야 한다.
+            assertEquals(LinkuFixture.CATEGORY_ID, result.getLinkuList().get(0).getCategoryId());
+            assertEquals("기술", result.getLinkuList().get(0).getCategoryName());
+        }
+
+        @Test
+        @DisplayName("categoryId가 있으면 해당 카테고리로 필터링해 repository를 호출한다")
+        void categoryId가_있으면_해당_카테고리로_필터링한다() {
+            Long categoryId = 3L;
+            Linku linku = LinkuFixture.linku(null);
+            Users user = LinkuFixture.user();
+            UsersLinku usersLinku = buildUsersLinku(linku, user);
+
+            given(usersLinkuRepository.fetchAiArticlesByCategoryIdWithCursor(USER_ID, categoryId, CURSOR, LIMIT))
+                    .willReturn(List.of(usersLinku));
+
+            var result = aiArticleService.getMyAiArticlesByCategory(USER_ID, categoryId, CURSOR, LIMIT);
+
+            verify(usersLinkuRepository).fetchAiArticlesByCategoryIdWithCursor(USER_ID, categoryId, CURSOR, LIMIT);
+            assertEquals(1, result.getLinkuList().size());
+        }
+
+        @Test
+        @DisplayName("결과가 limit보다 많으면 hasNext=true와 다음 커서를 반환한다")
+        void 결과가_limit보다_많으면_hasNext와_nextCursor를_반환한다() {
+            Linku linku = LinkuFixture.linku(null);
+            Users user = LinkuFixture.user();
+            UsersLinku first = UsersLinku.builder()
+                    .userLinkuId(1L).linku(linku).user(user)
+                    .emotion(LinkuFixture.emotion()).emotionAi(true).situationAi(true).build();
+            UsersLinku second = UsersLinku.builder()
+                    .userLinkuId(2L).linku(linku).user(user)
+                    .emotion(LinkuFixture.emotion()).emotionAi(true).situationAi(true).build();
+
+            given(usersLinkuRepository.fetchAiArticlesByCategoryIdWithCursor(USER_ID, null, CURSOR, 1))
+                    .willReturn(List.of(first, second)); // limit(1) + 1건 = 다음 페이지 있음
+
+            var result = aiArticleService.getMyAiArticlesByCategory(USER_ID, null, CURSOR, 1);
+
+            assertTrue(result.getHasNext());
+            assertEquals("1", result.getNextCursor());
+            assertEquals(1, result.getLinkuList().size());
+        }
+    }
+
     private UsersLinku buildUsersLinku(Linku linku, Users user) {
         return UsersLinku.builder()
                 .userLinkuId(10L)

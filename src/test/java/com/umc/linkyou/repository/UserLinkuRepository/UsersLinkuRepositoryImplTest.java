@@ -85,7 +85,7 @@ class UsersLinkuRepositoryImplTest {
 
         @Test
         @DisplayName("오래 안 본/안 만든 후보일수록 PersonalEngagement staleness가 높아 점수가 더 높다")
-        void staleCandidateRanksHigherThanRecent() {
+        void 오래_안_본_안_만든_후보일수록_점수가_더_높다() {
             Users user = userRepository.save(createUser("home-reco-staleness"));
             Domain domain = domainRepository.save(createDomain("staleness-test"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -190,7 +190,7 @@ class UsersLinkuRepositoryImplTest {
 
         @Test
         @DisplayName("직접 일치 > category 매핑만 일치 > 매칭 없음 순으로 정렬되고, situation=null인 후보도 결과에서 빠지지 않는다")
-        void directMatchBeatsCategoryMatchBeatsNone() {
+        void 직접_일치_category_매핑_매칭없음_순으로_정렬된다() {
             Users user = userRepository.save(createUser("home-reco-situation"));
             Domain domain = domainRepository.save(createDomain("situation-test"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -236,7 +236,7 @@ class UsersLinkuRepositoryImplTest {
 
         @Test
         @DisplayName("viewCount/lastViewedAt/totalViewCount가 높을수록 상위로 정렬된다")
-        void higherEngagementAndPopularityRanksHigher() {
+        void engagement와_popularity가_높을수록_상위로_정렬된다() {
             Users user = userRepository.save(createUser("home-reco-engagement"));
             Domain domain = domainRepository.save(createDomain("engagement-test"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());

@@ -36,7 +36,7 @@ public class AiArticleController implements AiArticleApi {
     @Override
     @GetMapping
     public ApiResponse<LinkuResponseDTO.LinkuSliceResultDTO> getMyAiArticlesByCategory(
-            @RequestParam("categoryId") Long categoryId,
+            @RequestParam(name = "categoryId", required = false) Long categoryId,
             @RequestParam(name = "cursor", required = false) Long cursor,
             @RequestParam(name = "limit", defaultValue = "10") int limit,
             @CurrentUser CustomUserDetails userDetails
