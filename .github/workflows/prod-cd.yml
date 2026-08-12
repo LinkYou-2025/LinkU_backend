@@ -52,7 +52,7 @@ jobs:
           host: ${{ secrets.PROD_HOST }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
-          source: "docker-compose.prod.yml"
+          source: "docker-compose.prod.yml,prometheus.yml,grafana"
           target: "/home/ubuntu/linkyou/"
 
       - name: Deploy to prod
@@ -69,6 +69,7 @@ jobs:
             fi
 
             echo "DOCKER_REPO_NAME=${{ secrets.DOCKER_REPO_NAME }}" > /home/ubuntu/linkyou/.env
+            echo "GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" >> /home/ubuntu/linkyou/.env
 
             sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
             sudo docker pull ${{ secrets.DOCKER_REPO_NAME }}:prod

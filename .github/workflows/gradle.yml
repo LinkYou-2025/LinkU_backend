@@ -53,7 +53,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
-          source: "docker-compose.remote.yml"
+          source: "docker-compose.remote.yml,prometheus.yml,grafana"
           target: "/home/ubuntu/linkyou/"
 
       - name: Deploy to dev
@@ -74,6 +74,7 @@ jobs:
 
             cd /home/ubuntu/linkyou
             export DOCKER_REPO_NAME=${{ secrets.DOCKER_REPO_NAME }}
+            export GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
             sudo -E docker compose -f docker-compose.remote.yml down
             sudo -E docker compose -f docker-compose.remote.yml up -d
       
