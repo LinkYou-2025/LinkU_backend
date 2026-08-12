@@ -19,5 +19,7 @@ public record KeywordLinkuItemDTO(
         @Schema(description = "도메인 아이콘 이미지 URL")
         String domainImageUrl,
         @Schema(description = "카테고리 + 감정 태그 (링크의 카테고리, 저장 시 남긴 감정)", example = "[\"라이프스타일\", \"평온\"]")
-        List<String> categories
+        List<String> categories,
+        @Schema(description = "AI 아티클 생성 여부")
+        Boolean aiArticleExists
 ) {}
