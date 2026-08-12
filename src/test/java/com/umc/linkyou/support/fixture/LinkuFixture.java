@@ -8,6 +8,7 @@ import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
+import com.umc.linkyou.domain.enums.AiArticleStatus;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.web.dto.linku.LinkuQuickSearchResponseDTO;
@@ -105,11 +106,14 @@ public final class LinkuFixture {
                 .build();
     }
 
+    // summary가 이미 채워진, 생성 완료(DONE) 상태의 AiArticle. PENDING/FAILED가 필요하면 호출부에서
+    // AiArticle.builder()로 직접 만들거나 ReflectionTestUtils로 status를 덮어쓴다.
     public static AiArticle aiArticle(Linku linku, String summary) {
         return AiArticle.builder()
                 .id(1L)
                 .linku(linku)
                 .summary(summary)
+                .status(AiArticleStatus.DONE)
                 .build();
     }
 }

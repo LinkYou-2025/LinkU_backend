@@ -1,11 +1,14 @@
 package com.umc.linkyou.service.Linku;
 
+import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awss3.AwsS3Service;
+import com.umc.linkyou.domain.AiArticle;
+import com.umc.linkyou.domain.Keyword;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
@@ -13,6 +16,7 @@ import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
+import com.umc.linkyou.domain.mapping.LinkuKeyword;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
@@ -71,6 +75,95 @@ class LinkuServiceTest {
 
     private static final Long NEW_EMOTION_ID = 3L;
     private static final Long NEW_SITUATION_ID = 3L;
+
+    @Nested
+    @DisplayName("detailGetLinku() - 링크 상세조회")
+    class DetailGetLinku {
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("aiArticleExists가 true면 키워드와 요약이 함께 내려간다")
+            void aiArticleExists_true면_키워드와_요약이_함께_내려간다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                usersLinku.markAiExist(true);
+                Linku linku = usersLinku.getLinku();
+
+                Keyword keyword1 = Keyword.builder().id(1L).name("스프링").build();
+                Keyword keyword2 = Keyword.builder().id(2L).name("백엔드").build();
+                linku.getLinkuKeywords().add(
+                        LinkuKeyword.builder().id(1L).linku(linku).keyword(keyword1).build());
+                linku.getLinkuKeywords().add(
+                        LinkuKeyword.builder().id(2L).linku(linku).keyword(keyword2).build());
+
+                AiArticle aiArticle = LinkuFixture.aiArticle(linku, "이 글은 스프링 백엔드에 대한 요약입니다.");
+
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()))
+                        .willReturn(Optional.empty());
+                given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.of(aiArticle));
+
+                // when
+                ApiResponse<LinkuResponseDTO.LinkuResultDTO> response =
+                        linkuService.detailGetLinku(USER_ID, 100L);
+
+                // then
+                LinkuResponseDTO.LinkuResultDTO result = response.getResult();
+                assertTrue(result.getAiArticleExists());
+                assertEquals("스프링, 백엔드", result.getKeyword());
+                assertEquals("이 글은 스프링 백엔드에 대한 요약입니다.", result.getSummary());
+                verify(linkuViewService).recordView(usersLinku.getUserLinkuId(), linku.getLinkuId());
+            }
+
+            @Test
+            @DisplayName("aiArticleExists가 false면 키워드와 요약은 내려가지 않는다")
+            void aiArticleExists_false면_키워드와_요약은_내려가지_않는다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                usersLinku.markAiExist(false);
+                Linku linku = usersLinku.getLinku();
+
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()))
+                        .willReturn(Optional.empty());
+                given(aiArticleRepository.findByLinku(linku)).willReturn(Optional.empty());
+
+                // when
+                ApiResponse<LinkuResponseDTO.LinkuResultDTO> response =
+                        linkuService.detailGetLinku(USER_ID, 100L);
+
+                // then
+                LinkuResponseDTO.LinkuResultDTO result = response.getResult();
+                assertFalse(result.getAiArticleExists());
+                assertNull(result.getKeyword());
+                assertNull(result.getSummary());
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+
+            @Test
+            @DisplayName("해당 사용자의 링크가 없으면 예외가 발생한다")
+            void 해당_사용자의_링크가_없으면_예외가_발생한다() {
+                // given
+                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
+                        .willReturn(List.of());
+
+                // when & then
+                assertThrows(GeneralException.class,
+                        () -> linkuService.detailGetLinku(USER_ID, 100L));
+            }
+        }
+    }
 
     @Nested
     @DisplayName("updateLinku() - 감정/상황 수정 및 AI 플래그")

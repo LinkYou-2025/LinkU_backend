@@ -118,4 +118,19 @@ public class AsyncConfig {
         ex.initialize();
         return ex;
     }
+
+    // AI 요약 생성용 (크롤링 + Gemini 호출, POST /aiarticle/{linkuid} 요청 스레드에서 분리)
+    @Bean(name = "aiArticleTaskExecutor")
+    public Executor aiArticleTaskExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(4);
+        ex.setMaxPoolSize(8);
+        ex.setQueueCapacity(200);
+        ex.setThreadNamePrefix("ai-article-");
+        ex.setWaitForTasksToCompleteOnShutdown(true);
+        ex.setAwaitTerminationSeconds(30);
+        ex.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        ex.initialize();
+        return ex;
+    }
 }

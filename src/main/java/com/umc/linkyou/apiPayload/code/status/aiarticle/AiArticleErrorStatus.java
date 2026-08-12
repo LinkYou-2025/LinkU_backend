@@ -23,6 +23,7 @@ public enum AiArticleErrorStatus implements BaseErrorCode {
 
     // 409 Conflict
     _DUPLICATE_AI_ARTICLE(HttpStatus.CONFLICT, "AIARTICLE4091", "이미 해당 링크로 생성된 AI Article이 존재합니다."),
+    _AI_ARTICLE_GENERATING(HttpStatus.CONFLICT, "AIARTICLE4092", "이미 AI 요약 생성이 진행 중입니다."),
 
     // 500 Internal Server Error
     _AI_INVALID_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR, "OPENAI5002", "AI 응답이 예상한 형식이 아닙니다."),

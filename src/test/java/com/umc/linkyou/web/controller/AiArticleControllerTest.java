@@ -3,6 +3,7 @@ package com.umc.linkyou.web.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
@@ -12,6 +13,7 @@ import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.service.AiArticleService;
 import com.umc.linkyou.support.security.TestSecurityConfig;
 import com.umc.linkyou.support.security.WithCustomUser;
+import com.umc.linkyou.web.dto.AiArticleResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -33,6 +35,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -60,6 +63,162 @@ class AiArticleControllerTest {
     private AccessTokenBlackListManager accessTokenBlackListManager;
 
     private static final Long TEST_USER_ID = 1L;
+    private static final Long TEST_LINKU_ID = 101L;
+
+    @Nested
+    @DisplayName("GET /api/v1/aiarticle/{linkuid} - AI 요약 조회")
+    class GetAiArticle {
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("생성이 완료된 링크를 조회하면 status=DONE과 summary를 반환한다")
+            @WithCustomUser(userId = 1L)
+            void 생성완료된_링크_조회시_DONE과_summary를_반환한다() throws Exception {
+                AiArticleResponseDTO.AiArticleResultDTO response = AiArticleResponseDTO.AiArticleResultDTO.builder()
+                        .id(1L)
+                        .linkuId(TEST_LINKU_ID)
+                        .status("DONE")
+                        .summary("요약된 내용입니다.")
+                        .tags("스프링, 백엔드")
+                        .title("테스트 제목")
+                        .build();
+
+                given(aiArticleService.getAiArticle(TEST_LINKU_ID, TEST_USER_ID)).willReturn(response);
+
+                MvcResult result = mockMvc.perform(get("/api/v1/aiarticle/{linkuid}", TEST_LINKU_ID))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andReturn();
+
+                AiArticleResponseDTO.AiArticleResultDTO body =
+                        readResult(result, objectMapper, AiArticleResponseDTO.AiArticleResultDTO.class);
+                assertThat(body.getStatus()).isEqualTo("DONE");
+                assertThat(body.getSummary()).isEqualTo("요약된 내용입니다.");
+            }
+
+            @Test
+            @DisplayName("생성이 진행 중인 링크를 조회하면 status=PENDING과 null summary를 반환한다")
+            @WithCustomUser(userId = 1L)
+            void 생성중인_링크_조회시_PENDING과_null_summary를_반환한다() throws Exception {
+                AiArticleResponseDTO.AiArticleResultDTO response = AiArticleResponseDTO.AiArticleResultDTO.builder()
+                        .id(1L)
+                        .linkuId(TEST_LINKU_ID)
+                        .status("PENDING")
+                        .build();
+
+                given(aiArticleService.getAiArticle(TEST_LINKU_ID, TEST_USER_ID)).willReturn(response);
+
+                MvcResult result = mockMvc.perform(get("/api/v1/aiarticle/{linkuid}", TEST_LINKU_ID))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andReturn();
+
+                AiArticleResponseDTO.AiArticleResultDTO body =
+                        readResult(result, objectMapper, AiArticleResponseDTO.AiArticleResultDTO.class);
+                assertThat(body.getStatus()).isEqualTo("PENDING");
+                assertThat(body.getSummary()).isNull();
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+
+            @Test
+            @DisplayName("아직 생성 요청조차 없었던 링크면 404를 반환한다")
+            @WithCustomUser(userId = 1L)
+            void 레코드가_없으면_404를_반환한다() throws Exception {
+                given(aiArticleService.getAiArticle(TEST_LINKU_ID, TEST_USER_ID))
+                        .willThrow(new GeneralException(AiArticleErrorStatus._AI_ARTICLE_NOT_FOUND));
+
+                mockMvc.perform(get("/api/v1/aiarticle/{linkuid}", TEST_LINKU_ID))
+                        .andExpect(status().isNotFound())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value(AiArticleErrorStatus._AI_ARTICLE_NOT_FOUND.getCode()));
+            }
+
+            @Test
+            @DisplayName("인증되지 않으면 401을 반환한다")
+            void 인증되지_않으면_401을_반환한다() throws Exception {
+                mockMvc.perform(get("/api/v1/aiarticle/{linkuid}", TEST_LINKU_ID))
+                        .andExpect(status().isUnauthorized());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/aiarticle/{linkuid} - AI 요약 생성 요청")
+    class CreateAiArticle {
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("생성 요청이 접수되면 status=PENDING을 즉시 반환한다")
+            @WithCustomUser(userId = 1L)
+            void 생성_요청이_접수되면_PENDING을_즉시_반환한다() throws Exception {
+                AiArticleResponseDTO.AiArticleResultDTO response = AiArticleResponseDTO.AiArticleResultDTO.builder()
+                        .id(1L)
+                        .linkuId(TEST_LINKU_ID)
+                        .status("PENDING")
+                        .build();
+
+                given(aiArticleService.createAiArticle(TEST_LINKU_ID, TEST_USER_ID)).willReturn(response);
+
+                MvcResult result = mockMvc.perform(post("/api/v1/aiarticle/{linkuid}", TEST_LINKU_ID))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andReturn();
+
+                AiArticleResponseDTO.AiArticleResultDTO body =
+                        readResult(result, objectMapper, AiArticleResponseDTO.AiArticleResultDTO.class);
+                assertThat(body.getStatus()).isEqualTo("PENDING");
+                assertThat(body.getSummary()).isNull();
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+
+            @Test
+            @DisplayName("이미 생성이 완료된 링크면 409를 반환한다")
+            @WithCustomUser(userId = 1L)
+            void 이미_DONE이면_409를_반환한다() throws Exception {
+                given(aiArticleService.createAiArticle(TEST_LINKU_ID, TEST_USER_ID))
+                        .willThrow(new GeneralException(AiArticleErrorStatus._DUPLICATE_AI_ARTICLE));
+
+                mockMvc.perform(post("/api/v1/aiarticle/{linkuid}", TEST_LINKU_ID))
+                        .andExpect(status().isConflict())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value(AiArticleErrorStatus._DUPLICATE_AI_ARTICLE.getCode()));
+            }
+
+            @Test
+            @DisplayName("이미 생성이 진행 중인 링크면 409를 반환한다")
+            @WithCustomUser(userId = 1L)
+            void 이미_PENDING이면_409를_반환한다() throws Exception {
+                given(aiArticleService.createAiArticle(TEST_LINKU_ID, TEST_USER_ID))
+                        .willThrow(new GeneralException(AiArticleErrorStatus._AI_ARTICLE_GENERATING));
+
+                mockMvc.perform(post("/api/v1/aiarticle/{linkuid}", TEST_LINKU_ID))
+                        .andExpect(status().isConflict())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value(AiArticleErrorStatus._AI_ARTICLE_GENERATING.getCode()));
+            }
+
+            @Test
+            @DisplayName("인증되지 않으면 401을 반환한다")
+            void 인증되지_않으면_401을_반환한다() throws Exception {
+                mockMvc.perform(post("/api/v1/aiarticle/{linkuid}", TEST_LINKU_ID))
+                        .andExpect(status().isUnauthorized());
+            }
+        }
+    }
 
     @Nested
     @DisplayName("GET /api/v1/aiarticle - 카테고리별 AI 아티클 조회")

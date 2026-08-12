@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
@@ -20,31 +21,53 @@ import org.springframework.web.bind.annotation.*;
 public interface AiArticleApi {
 
     @Operation(
-            summary = "AI 요약 저장 또는 조회",
+            summary = "AI 요약 조회",
             description = """
-                    - 해당 링크에 대한 AI 분석 결과(`ai_articles`)가 이미 존재하고 summary가 채워져 있으면, 새로 분석하지 않고 기존 데이터를 그대로 반환합니다.
-                    - 분석이 완료되면 `LINK_SUMMARY_COMPLETE` 알림이 발송됩니다.
+                    해당 링크에 대한 AI 요약(`ai_articles`) 레코드를 조회합니다. 생성은 하지 않습니다 — 레코드가 아예 없으면
+                    404(`AIARTICLE4041`)를 반환하며, 이 경우에만 `POST /aiarticle/{linkuid}`로 생성을 요청하세요.
 
-                   - 크롤링 대상 사이트의 robots.txt가 크롤링을 금지하는 경우 403(`CRAWLER4031`)이 반환되며, 이 경우 재시도해도 결과는 같습니다.
-                    - 그 외 크롤링 자체가 실패(네트워크 오류, 파싱 실패 등)하거나 Gemini 응답이 예상 형식이 아닌 경우 500이 반환될 수 있습니다. 이런 경우는 일시적인 문제일 수 있으니 API를 다시 요청해 보세요.
+                    응답의 `status` 필드로 진행 상태를 판단합니다.
+                    - `PENDING`: 생성 진행 중. summary는 아직 null이며, 프론트는 일정 간격으로 이 GET을 다시 호출(폴링)합니다.
+                    - `DONE`: 생성 완료. summary/tags 등을 그대로 표시합니다.
+                    - `FAILED`: 생성 실패. `failReason`에 실패 사유 코드가 담깁니다(예: `CRAWLER4031` - robots.txt 차단,
+                      재시도해도 동일한 사유로 다시 실패합니다). `POST`를 다시 호출하면 재시도합니다.
                     """
     )
     @ApiSuccessCode(SuccessStatus._OK)
-    // 공통 에러 (잘못된 요청 등)
     @ApiErrorCode(errorStatus = {ErrorStatus._BAD_REQUEST})
-    // 유저 관련 에러
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
-    // AI Article 도메인 전용 에러 (분리한 Enum 사용)
+    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._USER_LINKU_NOT_FOUND})
+    @ApiErrorCode(aiArticleErrorStatus = {AiArticleErrorStatus._AI_ARTICLE_NOT_FOUND})
+    @GetMapping("/{linkuid}")
+    ApiResponse<AiArticleResponseDTO.AiArticleResultDTO> getAiArticle(
+            @Parameter(description = "AI 요약을 조회할 대상 링크 ID (Linku 엔티티의 linkuId). 요청 유저가 저장한 링크여야 합니다.", example = "101") @PathVariable("linkuid") Long linkuId,
+            @CurrentUser CustomUserDetails userDetails
+    );
+
+    @Operation(
+            summary = "AI 요약 생성 요청",
+            description = """
+                    해당 링크에 대한 AI 요약 생성을 시작합니다. 크롤링/Gemini 호출을 기다리지 않고 즉시
+                    status=`PENDING` 응답을 반환합니다 — 실제 완료 여부는 `GET /aiarticle/{linkuid}`를 폴링해 확인하세요.
+
+                    - 이미 생성이 완료(`DONE`)된 링크에 다시 요청하면 409(`AIARTICLE4091`)가 반환됩니다. `GET`으로 조회하세요.
+                    - 이미 생성이 진행 중(`PENDING`)인 링크에 다시 요청하면 409(`AIARTICLE4092`)가 반환됩니다.
+                    - 이전 시도가 실패(`FAILED`)했던 링크는 재시도로 간주되어 다시 `PENDING`으로 생성을 시작합니다.
+                    - robots.txt 차단, 크롤링 실패, Gemini 오류 등 생성 자체의 실패는 이 API의 에러가 아니라, 이후
+                      `GET`에서 status=`FAILED`와 `failReason`으로 나타납니다.
+                    """
+    )
+    @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(errorStatus = {ErrorStatus._BAD_REQUEST})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._USER_LINKU_NOT_FOUND})
     @ApiErrorCode(aiArticleErrorStatus = {
-            AiArticleErrorStatus._AI_ARTICLE_NOT_FOUND,
-            AiArticleErrorStatus._AI_PARSE_ERROR,
-            AiArticleErrorStatus._AI_INVALID_RESPONSE,
-            AiArticleErrorStatus._CONTENT_EXTRACTION_FAILED,
-            AiArticleErrorStatus._CONTENT_EXTRACTION_PROHIBITED
+            AiArticleErrorStatus._DUPLICATE_AI_ARTICLE,
+            AiArticleErrorStatus._AI_ARTICLE_GENERATING
     })
     @PostMapping("/{linkuid}")
-    ApiResponse<AiArticleResponseDTO.AiArticleResultDTO> saveOrGetAiArticle(
-            @Parameter(description = "AI 요약을 저장/조회할 대상 링크 ID (Linku 엔티티의 linkuId). 요청 유저가 저장한 링크여야 합니다.", example = "101") @PathVariable("linkuid") Long linkuId,
+    ApiResponse<AiArticleResponseDTO.AiArticleResultDTO> createAiArticle(
+            @Parameter(description = "AI 요약을 생성할 대상 링크 ID (Linku 엔티티의 linkuId). 요청 유저가 저장한 링크여야 합니다.", example = "101") @PathVariable("linkuid") Long linkuId,
             @CurrentUser CustomUserDetails userDetails
     );
 

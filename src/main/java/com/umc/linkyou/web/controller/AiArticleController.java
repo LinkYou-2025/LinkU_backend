@@ -21,16 +21,29 @@ public class AiArticleController implements AiArticleApi {
     final private AiArticleService aiArticleService;
 
     @Override
-    @PostMapping("/{linkuid}")
-    public ApiResponse<AiArticleResponseDTO.AiArticleResultDTO> saveOrGetAiArticle(
+    @GetMapping("/{linkuid}")
+    public ApiResponse<AiArticleResponseDTO.AiArticleResultDTO> getAiArticle(
             @PathVariable("linkuid") Long linkuId,
             @CurrentUser CustomUserDetails userDetails
     ) {
         Long userId = userDetails.getUserId();
 
         AiArticleResponseDTO.AiArticleResultDTO result =
-                aiArticleService.saveOrGetAiArticle(linkuId, userId);
+                aiArticleService.getAiArticle(linkuId, userId);
         return ApiResponse.onSuccess(AiArticleSuccessStatus.AI_ARTICLE_OK, result);
+    }
+
+    @Override
+    @PostMapping("/{linkuid}")
+    public ApiResponse<AiArticleResponseDTO.AiArticleResultDTO> createAiArticle(
+            @PathVariable("linkuid") Long linkuId,
+            @CurrentUser CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUserId();
+
+        AiArticleResponseDTO.AiArticleResultDTO result =
+                aiArticleService.createAiArticle(linkuId, userId);
+        return ApiResponse.onSuccess(AiArticleSuccessStatus.AI_ARTICLE_CREATE_ACCEPTED, result);
     }
 
     @Override
