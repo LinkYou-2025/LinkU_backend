@@ -15,4 +15,6 @@ public class LinkuSummaryDTO {
     private Long userLinkuId;
     private String linkuImageUrl;
     private String createdAt;
+    private String domainImageUrl;
+    private String domainName;
 }

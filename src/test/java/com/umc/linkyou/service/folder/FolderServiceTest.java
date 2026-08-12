@@ -3,15 +3,22 @@ package com.umc.linkyou.service.folder;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.domain.Linku;
+import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.Folder;
+import com.umc.linkyou.domain.mapping.LinkuFolder;
+import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
+import com.umc.linkyou.repository.dto.LinkuKeywordRow;
+import com.umc.linkyou.repository.mapping.LinkuKeywordRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.service.alarm.event.FolderDeletedAlarmEvent;
+import com.umc.linkyou.support.fixture.LinkuFixture;
 import com.umc.linkyou.web.dto.folder.BookmarkUpdateResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderCreateRequestDTO;
 import com.umc.linkyou.web.dto.folder.FolderListResponseDTO;
@@ -19,6 +26,7 @@ import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderUpdateRequestDTO;
 import com.umc.linkyou.web.dto.folder.linku.FolderLinkusResponseDTO;
+import com.umc.linkyou.web.dto.folder.linku.LinkuSummaryDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -52,6 +60,7 @@ class FolderServiceTest {
     @Mock private CategoryRepository categoryRepository;
     @Mock private UsersFolderRepository usersFolderRepository;
     @Mock private LinkuFolderRepository linkuFolderRepository;
+    @Mock private LinkuKeywordRepository linkuKeywordRepository;
     @Mock private ApplicationEventPublisher eventPublisher;
 
     @Nested
@@ -543,6 +552,32 @@ class FolderServiceTest {
             }
 
             @Test
+            @DisplayName("링크는 키워드와 도메인 정보를 포함한 카드 DTO로 반환된다")
+            void 링크는_키워드와_도메인정보를_포함해_반환된다() {
+                Linku linku = LinkuFixture.linku("https://img.example.com/a.jpg");
+                Users user = owner();
+                UsersLinku usersLinku = UsersLinku.builder().user(user).linku(linku).build();
+                LinkuFolder linkuFolder = LinkuFolder.builder().folder(folder()).usersLinku(usersLinku).build();
+
+                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
+                given(folderRepository.findAllByParentFolderId(eq(FOLDER_ID), any(Sort.class))).willReturn(List.of());
+                given(linkuFolderRepository.findWithCursor(eq(FOLDER_ID), eq(Long.MAX_VALUE), any())).willReturn(List.of(linkuFolder));
+                given(linkuKeywordRepository.findKeywordNamesByLinkuIdIn(List.of(linku.getLinkuId())))
+                        .willReturn(List.of(new LinkuKeywordRow(linku.getLinkuId(), "자바"), new LinkuKeywordRow(linku.getLinkuId(), "스프링")));
+
+                FolderLinkusResponseDTO result = folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name", true);
+
+                assertThat(result.getLinks()).hasSize(1);
+                LinkuSummaryDTO item = result.getLinks().get(0);
+                assertThat(item.getLinkuId()).isEqualTo(linku.getLinkuId());
+                assertThat(item.getTitle()).isEqualTo("테스트 제목");
+                assertThat(item.getUrl()).isEqualTo(linku.getLinkuUrl());
+                assertThat(item.getKeyword()).isEqualTo("자바, 스프링");
+                assertThat(item.getDomainName()).isEqualTo("example");
+            }
+
+            @Test
             @DisplayName("includeLinks=false면 링크 조회 없이 폴더 목록만 반환한다")
             void includeLinks가_false면_폴더목록만_반환한다() {
                 Folder parent = parentFolder();
@@ -561,6 +596,7 @@ class FolderServiceTest {
                 assertThat(result.getLinks()).isEmpty();
                 assertThat(result.getNextCursor()).isNull();
                 verify(linkuFolderRepository, never()).findWithCursor(any(), any(), any());
+                verify(linkuKeywordRepository, never()).findKeywordNamesByLinkuIdIn(any());
             }
         }
 
