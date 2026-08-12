@@ -37,6 +37,11 @@ public class UserProfileRefreshWorker {
     // 한 번 드레인할 때 처리할 최대 유저 수. 너무 크게 잡으면 한 번에 도는 시간이 길어지고,
     // 너무 작게 잡으면 큐가 쌓이는 속도를 못 따라가니 운영하면서 조정 대상.
     private static final int CHUNK_SIZE = 200;
+    // 같은 유저가 연속으로 이 횟수만큼 실패하면 큐에서 포기(삭제)한다. 재시도 제한이 없으면 계속
+    // 실패하는 유저 하나가 requestedAt 오름차순 정렬 특성상 매 드레인 주기마다 청크 앞쪽을 차지해
+    // 정상 유저 처리를 밀어낼 수 있다 — 링크 저장 등으로 다시 enqueue되면 실패 카운트는 0으로
+    // 리셋되므로 유저 쪽에서 재시도할 방법이 막히는 건 아니다.
+    private static final int MAX_FAILURE_COUNT = 3;
     // 프로필 계산에 반영할 최근 저장 링크 수 캡 — 유저가 링크를 아주 많이 저장해도 이 워커의
     // 1회 작업량이 무한정 커지지 않게 막는다.
     private static final int PROFILE_LINK_LIMIT = 200;
@@ -64,7 +69,7 @@ public class UserProfileRefreshWorker {
         }
 
         log.info("[UserProfileRefresh] {}명 처리 시작", chunk.size());
-        int success = 0, failed = 0;
+        int success = 0, failed = 0, abandoned = 0;
         for (UserProfileRefreshQueue item : chunk) {
             Long userId = item.getUserId();
             try {
@@ -73,12 +78,22 @@ public class UserProfileRefreshWorker {
                 refreshQueueRepository.deleteByUserIdAndRequestedAt(userId, item.getRequestedAt());
                 success++;
             } catch (Exception e) {
-                // 실패한 유저는 큐에서 지우지 않고 다음 드레인 때 재시도한다.
-                log.warn("[UserProfileRefresh] userId={} 처리 실패", userId, e);
-                failed++;
+                int nextFailureCount = item.getFailureCount() + 1;
+                if (nextFailureCount >= MAX_FAILURE_COUNT) {
+                    // 재시도 한도 초과 — 큐에서 포기한다. requestedAt이 일치할 때만 지워서, 처리
+                    // 도중 재enqueue된(=failure_count가 이미 0으로 리셋된) 최신 요청은 건드리지 않는다.
+                    log.error("[UserProfileRefresh] userId={} {}회 연속 실패, 큐에서 포기", userId, nextFailureCount, e);
+                    refreshQueueRepository.deleteByUserIdAndRequestedAt(userId, item.getRequestedAt());
+                    abandoned++;
+                } else {
+                    log.warn("[UserProfileRefresh] userId={} 처리 실패 ({}/{}회)",
+                            userId, nextFailureCount, MAX_FAILURE_COUNT, e);
+                    refreshQueueRepository.incrementFailureCount(userId, item.getRequestedAt());
+                    failed++;
+                }
             }
         }
-        log.info("[UserProfileRefresh] 완료: 성공={}, 실패={}", success, failed);
+        log.info("[UserProfileRefresh] 완료: 성공={}, 실패={}, 포기={}", success, failed, abandoned);
     }
 
     // 개별 write(upsertProfile/deleteAllByUserId/upsertWeight)는 각각 리포지토리 메서드에
