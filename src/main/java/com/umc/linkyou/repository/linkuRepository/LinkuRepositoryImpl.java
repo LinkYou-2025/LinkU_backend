@@ -116,7 +116,7 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
                 .exists();
 
         List<Tuple> rows = queryFactory
-                .select(ul.userLinkuId, l.linkuUrl, displayTitle, displayImage, d.name, d.imageUrl, c.categoryName, e.name)
+                .select(ul.userLinkuId, l.linkuUrl, displayTitle, displayImage, d.name, d.imageUrl, c.categoryName, e.name, ul.aiExist)
                 .from(ul)
                 .join(ul.linku, l)
                 .leftJoin(l.domain, d)
@@ -137,7 +137,8 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
                         r.get(displayImage),
                         r.get(d.name),
                         r.get(d.imageUrl),
-                        List.of(r.get(c.categoryName), r.get(e.name))
+                        List.of(r.get(c.categoryName), r.get(e.name)),
+                        Boolean.TRUE.equals(r.get(ul.aiExist))
                 ))
                 .toList();
     }
