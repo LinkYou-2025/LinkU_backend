@@ -75,14 +75,6 @@ public interface LinkuApi {
             @PathVariable Long userLinkuId
     );
 
-    @Operation(summary = "링크 상세 조회 (사용자 ID 지정)", description = "특정 사용자 ID와 링크 ID로 링크 상세 정보를 조회합니다.")
-    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
-    @GetMapping("/{userId}/{userLinkuId}")
-    ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
-            @PathVariable Long userId,
-            @PathVariable Long userLinkuId
-    );
-
     @Operation(summary = "최근 열람한 링크 조회", description = "사용자가 최근에 열람한 링크 목록을 조회합니다. limit 파라미터로 조회 개수를 지정할 수 있습니다.")
     @GetMapping("/recent")
     ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getRecentViewedLinkus(

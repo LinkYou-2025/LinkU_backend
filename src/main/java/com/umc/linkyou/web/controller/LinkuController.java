@@ -55,11 +55,6 @@ public class LinkuController implements LinkuApi {
     }
 
     @Override
-    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(@PathVariable Long userId, @PathVariable Long userLinkuId) {
-        return linkuService.detailGetLinku(userId, userLinkuId);
-    }
-
-    @Override
     public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getRecentViewedLinkus(@CurrentUser CustomUserDetails userDetails, @RequestParam(defaultValue = "10") int limit) {
         return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_RECENT_OK, linkuService.getRecentViewedLinkus(userDetails.getUserId(), limit));
     }
