@@ -124,8 +124,8 @@ class AiArticleServiceTest {
             }
 
             @Test
-            @DisplayName("요약 완료 시 링크 요약 알림을 발송한다")
-            void 요약완료시_링크알림_발송() {
+            @DisplayName("요약 완료 시 사용자 링크 ID로 링크 요약 알림을 발송한다")
+            void 요약완료시_사용자_링크_ID로_링크알림을_발송한다() {
                 Linku linku = LinkuFixture.linku(null);
                 Users user = LinkuFixture.user();
                 UsersLinku usersLinku = UsersLinku.builder()
@@ -148,7 +148,7 @@ class AiArticleServiceTest {
                 aiArticleService.saveAiArticle(10L, USER_ID);
 
                 verify(alarmService).sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                        AlarmType.LINK_SUMMARY_COMPLETE, LINKU_ID,
+                        AlarmType.LINK_SUMMARY_COMPLETE, usersLinku.getUserLinkuId(),
                         new AlarmPayload.LinkTitle("내가 지은 링크 제목")));
             }
 
@@ -169,7 +169,7 @@ class AiArticleServiceTest {
                 aiArticleService.saveAiArticle(10L, USER_ID);
 
                 verify(alarmService).sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                        AlarmType.LINK_SUMMARY_COMPLETE, LINKU_ID,
+                        AlarmType.LINK_SUMMARY_COMPLETE, usersLinku.getUserLinkuId(),
                         new AlarmPayload.LinkTitle(linku.getTitle())));
             }
 

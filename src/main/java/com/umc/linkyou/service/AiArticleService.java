@@ -68,9 +68,9 @@ public class AiArticleService {
 
         String linkTitle = resolveTitle(linku, usersLinku);
 
-        // 요약 완료 시 링크 요약 알림 발송. 설정 필터링은 sendAlarm 내부에서 처리한다.
+        // 알림 클릭 시 요청한 사용자 저장 링크 화면으로 이동할 수 있도록 userLinkuId를 전달한다.
         alarmService.sendAlarm(userId, new AlarmRequestDTO.AlarmSendRequestDTO(
-                AlarmType.LINK_SUMMARY_COMPLETE, linku.getLinkuId(), new AlarmPayload.LinkTitle(linkTitle)));
+                AlarmType.LINK_SUMMARY_COMPLETE, usersLinku.getUserLinkuId(), new AlarmPayload.LinkTitle(linkTitle)));
 
         return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku));
     }
