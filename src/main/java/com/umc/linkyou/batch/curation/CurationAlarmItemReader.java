@@ -18,7 +18,7 @@ import java.util.List;
 /**
  * 큐레이션 알림 발송 배치 reader
  *
- * <p>지난달 생성된 큐레이션 중, CURATION_UPDATED 알림이 아직 발송되지 않은 건만 조회
+ * <p>이번 달(이슈 월 N)에 생성된 큐레이션 중, CURATION_UPDATED 알림이 아직 발송되지 않은 건만 조회
  * 발송 여부는 Alarm 테이블에 (alarmType, targetId=curationId) 조합이 존재하는지로 판단하므로,
  * 이전 실행에서 알림 발송에 실패한 유저도 다음 실행에서 다시 조회 대상이 됨
  */
@@ -35,7 +35,7 @@ public class CurationAlarmItemReader extends QuerydslPagingItemReader<CurationAl
         QUsers users = QUsers.users;
         QAlarm alarm = QAlarm.alarm;
         QAlarmSetting alarmSetting = QAlarmSetting.alarmSetting;
-        String baseMonth = YearMonth.now(ZoneId.of("Asia/Seoul")).minusMonths(1).toString();
+        String baseMonth = YearMonth.now(ZoneId.of("Asia/Seoul")).toString();
 
         return queryFactory
                 .select(Projections.constructor(

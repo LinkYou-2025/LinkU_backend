@@ -37,29 +37,30 @@ public class InternalLinkCandidateServiceImpl implements InternalLinkCandidateSe
         Curation curation = curationRepository.findById(curationId)
                 .orElseThrow(() -> new GeneralException(CurationErrorStatus._CURATION_NOT_FOUND));
 
-        String baseMonth = curation.getBaseMonth();
+        // curation.baseMonth는 큐레이션이 해당하는 "이슈 월"(N). 실제 데이터 집계 기간은 N-1월이다.
+        YearMonth issueMonth = YearMonth.parse(curation.getBaseMonth());
+        YearMonth dataMonth = issueMonth.minusMonths(1);
+        String dataBaseMonth = dataMonth.toString();
 
-        // 큐레이션 생성 월 계산
-        YearMonth ym = YearMonth.parse(baseMonth);
-        LocalDateTime monthStart = ym.atDay(1).atStartOfDay();
-        LocalDateTime monthEnd   = ym.plusMonths(1).atDay(1).atStartOfDay();
+        LocalDateTime monthStart = dataMonth.atDay(1).atStartOfDay();
+        LocalDateTime monthEnd   = dataMonth.plusMonths(1).atDay(1).atStartOfDay();
 
-        // 유저가 해당 월에 저장한 링크 조회 (없으면 빈 리스트 반환)
+        // 유저가 해당 월(N-1)에 저장한 링크 조회 (없으면 빈 리스트 반환)
         List<UsersLinku> candidates = usersLinkuRepository
                 .findAllByUserIdAndCreatedAtBetween(userId, monthStart, monthEnd);
         if (candidates.isEmpty()) {
             return List.of();
         }
 
-        // 해당 월 상위 감정 ID 조회
+        // 해당 월(N-1) 상위 감정 ID 조회
         Optional<Long> topEmotionId = keywordMonthlyCountRepository
-                .findTopByUserIdAndBaseMonthAndType(userId, baseMonth, KeywordType.EMOTION, PageRequest.of(0, 1))
+                .findTopByUserIdAndBaseMonthAndType(userId, dataBaseMonth, KeywordType.EMOTION, PageRequest.of(0, 1))
                 .stream().findFirst()
                 .map(KeywordMonthlyCount::getRefId);
 
-        // 해당 월 상위 상황 -> 추천 카테고리 ID 목록 조회
+        // 해당 월(N-1) 상위 상황 -> 추천 카테고리 ID 목록 조회
         Optional<KeywordMonthlyCount> topSituation = keywordMonthlyCountRepository
-                .findTopByUserIdAndBaseMonthAndType(userId, baseMonth, KeywordType.SITUATION, PageRequest.of(0, 1))
+                .findTopByUserIdAndBaseMonthAndType(userId, dataBaseMonth, KeywordType.SITUATION, PageRequest.of(0, 1))
                 .stream().findFirst();
 
         Set<Long> mappedCategoryIds = topSituation.isPresent()

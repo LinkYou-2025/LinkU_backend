@@ -23,7 +23,7 @@ public class CurationItemReader extends QuerydslPagingItemReader<Users> {
     protected List<Users> fetchQuery(Long lastId, int pageSize) {
         QUsers users = QUsers.users;
         QCuration curation = QCuration.curation;
-        String baseMonth = YearMonth.now(ZoneId.of("Asia/Seoul")).minusMonths(1).toString();
+        String baseMonth = YearMonth.now(ZoneId.of("Asia/Seoul")).toString();
 
         return queryFactory.selectFrom(users)
                 .where(
