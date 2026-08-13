@@ -40,6 +40,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -168,12 +170,22 @@ public class LinkuService {
     }
 
     //저번 달 저장만 하고 열어보지 않은 링크 가져오기  /linku/last-month/unread
+    //month(YYYY-MM) 기준 저번 달을 계산한다. 
     @Transactional(readOnly = true)
-    public List<LinkuResponseDTO.LinkuSimpleDTO> getLastMonthUnreadLinkus(Long userId) {
+    public List<LinkuResponseDTO.LinkuSimpleDTO> getLastMonthUnreadLinkus(Long userId, String month) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
-        YearMonth lastMonth = YearMonth.now().minusMonths(1);
+        YearMonth baseMonth = YearMonth.now(ZoneId.of("Asia/Seoul"));
+        if (month != null) {
+            try {
+                baseMonth = YearMonth.parse(month);
+            } catch (DateTimeParseException e) {
+                throw new GeneralException(LinkuErrorStatus._LINKU_INVALID_MONTH);
+            }
+        }
+
+        YearMonth lastMonth = baseMonth.minusMonths(1);
         LocalDateTime start = lastMonth.atDay(1).atStartOfDay();
         LocalDateTime end = lastMonth.plusMonths(1).atDay(1).atStartOfDay();
 

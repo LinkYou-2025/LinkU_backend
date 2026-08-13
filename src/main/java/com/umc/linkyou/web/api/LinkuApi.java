@@ -82,11 +82,12 @@ public interface LinkuApi {
             @RequestParam(defaultValue = "10") int limit
     );
 
-    @Operation(summary = "저번 달 미열람 링크 조회", description = "저번 달에 저장만 하고 한 번도 열어보지 않은 링크 목록을 조회합니다.")
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @Operation(summary = "저번 달 미열람 링크 조회", description = "month(YYYY-MM) 기준 저번 달에 저장만 하고 한 번도 열어보지 않은 링크 목록을 조회합니다. month를 생략하면 이번 달이 month가 됩니다.")
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND}, linkuErrorStatus = {LinkuErrorStatus._LINKU_INVALID_MONTH})
     @GetMapping("/unread")
     ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getLastMonthUnreadLinkus(
-            @CurrentUser CustomUserDetails userDetails
+            @CurrentUser CustomUserDetails userDetails,
+            @RequestParam(required = false) String month
     );
 
     @Operation(
