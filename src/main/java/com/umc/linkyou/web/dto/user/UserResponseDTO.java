@@ -1,4 +1,4 @@
-package com.umc.linkyou.web.dto;
+package com.umc.linkyou.web.dto.user;
 
 import java.time.LocalDateTime;
 import java.util.Collections;

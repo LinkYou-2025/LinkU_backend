@@ -17,8 +17,8 @@ import com.umc.linkyou.validation.annotation.swagger.ApiAuthSuccessCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
 import com.umc.linkyou.web.dto.EmailRequestDTO;
 import com.umc.linkyou.web.dto.PasswordResetRequestDTO;
-import com.umc.linkyou.web.dto.UserRequestDTO;
-import com.umc.linkyou.web.dto.UserResponseDTO;
+import com.umc.linkyou.web.dto.user.UserRequestDTO;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
