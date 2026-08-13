@@ -54,7 +54,7 @@ import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.config.TestExternalConfig;
-import com.umc.linkyou.web.dto.UserRequestDTO;
+import com.umc.linkyou.web.dto.user.UserRequestDTO;
 
 @ActiveProfiles("test")
 @SpringBootTest

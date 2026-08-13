@@ -58,6 +58,26 @@ services:
     volumes:
       - redis_data:/data
 
+  # 개발 서버 호스트 디스크/CPU/메모리 — 별도 모니터링 서버(linku-monitoring)가
+  # 여기 9100 포트를 원격으로 스크레이프함. prometheus/grafana는 이 서버에서 제거하고
+  # 모니터링 서버로 이전함 (docker-compose.monitoring.yml 참고)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: linku-node-exporter
+    restart: unless-stopped
+    pid: host
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
 volumes:
   redis_data:
   postgres_data:

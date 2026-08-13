@@ -33,6 +33,8 @@ resource "aws_instance" "this" {
   key_name               = var.key_name
   subnet_id              = var.subnet_id
   vpc_security_group_ids = var.create_security_group ? [aws_security_group.this[0].id] : var.security_group_ids
+  user_data              = var.user_data
+  user_data_replace_on_change = true
 
   root_block_device {
     volume_size = var.root_volume_size

@@ -8,8 +8,9 @@ import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
-import com.umc.linkyou.web.dto.UserRequestDTO;
-import com.umc.linkyou.web.dto.UserResponseDTO;
+import com.umc.linkyou.web.dto.user.UserRequestDTO;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
+import com.umc.linkyou.web.dto.user.MarketingAgreeResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -167,6 +168,6 @@ public interface UserApi {
     @ApiSuccessCode(SuccessStatus._OK)
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @PatchMapping("/terms/marketing/toggle")
-    ApiResponse<Object> toggleMarketing(
+    ApiResponse<MarketingAgreeResponseDTO> toggleMarketing(
             @CurrentUser CustomUserDetails userDetails);
 }

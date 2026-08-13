@@ -90,10 +90,16 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: health, info, prometheus
   endpoint:
     health:
       show-details: always
+  metrics:
+    tags:
+      application: linkyou
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
 
 resilience4j:
   circuitbreaker:
@@ -198,6 +204,8 @@ google:
 server:
   forward-headers-strategy: framework
   tomcat:
+    mbeanregistry:
+      enabled: true
     remoteip:
       remote-ip-header: x-forwarded-for
       protocol-header: x-forwarded-proto

@@ -36,8 +36,8 @@ import com.umc.linkyou.service.users.TermsAgreementService;
 import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.service.users.UserWithdrawService;
 import com.umc.linkyou.support.security.TestSecurityConfig;
-import com.umc.linkyou.web.dto.UserRequestDTO;
-import com.umc.linkyou.web.dto.UserResponseDTO;
+import com.umc.linkyou.web.dto.user.UserRequestDTO;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 
 @WebMvcTest(AuthController.class)
 @Import({WebConfig.class, CurrentUserArgumentResolver.class, TestSecurityConfig.class})

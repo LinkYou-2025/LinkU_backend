@@ -7,7 +7,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.QUsers;
 import com.umc.linkyou.domain.mapping.QUsersLinku;
 import com.umc.linkyou.domain.mapping.folder.QUsersFolder;
-import com.umc.linkyou.web.dto.UserResponseDTO;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import com.umc.linkyou.domain.QAuthAccount;

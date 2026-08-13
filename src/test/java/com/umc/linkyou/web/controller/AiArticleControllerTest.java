@@ -76,7 +76,6 @@ class AiArticleControllerTest {
                 Long categoryId = 1L;
 
                 LinkuResponseDTO.AiArticleSummaryDTO article1 = LinkuResponseDTO.AiArticleSummaryDTO.builder()
-                        .linkuId(101L)
                         .linku("https://example.com/article")
                         .emotionId(2L)
                         .domain("naver")
@@ -106,16 +105,15 @@ class AiArticleControllerTest {
 
                 LinkuResponseDTO.LinkuSliceResultDTO body =
                         readResult(result, objectMapper, LinkuResponseDTO.LinkuSliceResultDTO.class);
-                assertThat(body.getLinkuList()).hasSize(1);
-                assertThat(body.getLinkuList().get(0).getLinkuId()).isEqualTo(101L);
-                assertThat(body.getLinkuList().get(0).getLinku()).isEqualTo("https://example.com/article");
-                assertThat(body.getLinkuList().get(0).getEmotionId()).isEqualTo(2L);
-                assertThat(body.getLinkuList().get(0).getDomain()).isEqualTo("naver");
-                assertThat(body.getLinkuList().get(0).getTitle()).isEqualTo("첫 번째 AI 제목");
-                assertThat(body.getLinkuList().get(0).getCategoryId()).isEqualTo(1L);
-                assertThat(body.getLinkuList().get(0).getCategoryName()).isEqualTo("어학");
-                assertThat(body.getNextCursor()).isEqualTo("1001");
-                assertThat(body.getHasNext()).isTrue();
+                assertThat(body.linkuList()).hasSize(1);
+                assertThat(body.linkuList().get(0).linku()).isEqualTo("https://example.com/article");
+                assertThat(body.linkuList().get(0).emotionId()).isEqualTo(2L);
+                assertThat(body.linkuList().get(0).domain()).isEqualTo("naver");
+                assertThat(body.linkuList().get(0).title()).isEqualTo("첫 번째 AI 제목");
+                assertThat(body.linkuList().get(0).categoryId()).isEqualTo(1L);
+                assertThat(body.linkuList().get(0).categoryName()).isEqualTo("어학");
+                assertThat(body.nextCursor()).isEqualTo("1001");
+                assertThat(body.hasNext()).isTrue();
             }
 
             @Test
@@ -141,9 +139,9 @@ class AiArticleControllerTest {
 
                 LinkuResponseDTO.LinkuSliceResultDTO body =
                         readResult(result, objectMapper, LinkuResponseDTO.LinkuSliceResultDTO.class);
-                assertThat(body.getLinkuList()).isEmpty();
-                assertThat(body.getHasNext()).isFalse();
-                assertThat(body.getNextCursor()).isNull();
+                assertThat(body.linkuList()).isEmpty();
+                assertThat(body.hasNext()).isFalse();
+                assertThat(body.nextCursor()).isNull();
             }
 
             @Test
@@ -171,8 +169,8 @@ class AiArticleControllerTest {
 
                 LinkuResponseDTO.LinkuSliceResultDTO body =
                         readResult(result, objectMapper, LinkuResponseDTO.LinkuSliceResultDTO.class);
-                assertThat(body.getLinkuList()).isEmpty();
-                assertThat(body.getHasNext()).isFalse();
+                assertThat(body.linkuList()).isEmpty();
+                assertThat(body.hasNext()).isFalse();
             }
 
             @Test
@@ -180,7 +178,6 @@ class AiArticleControllerTest {
             @WithCustomUser(userId = 1L)
             void categoryId를_생략하면_전체_카테고리_결과를_반환한다() throws Exception {
                 LinkuResponseDTO.AiArticleSummaryDTO articleFromCategoryA = LinkuResponseDTO.AiArticleSummaryDTO.builder()
-                        .linkuId(201L)
                         .linku("https://example.com/a")
                         .emotionId(1L)
                         .domain("naver")
@@ -191,7 +188,6 @@ class AiArticleControllerTest {
                         .categoryName("어학")
                         .build();
                 LinkuResponseDTO.AiArticleSummaryDTO articleFromCategoryB = LinkuResponseDTO.AiArticleSummaryDTO.builder()
-                        .linkuId(202L)
                         .linku("https://example.com/b")
                         .emotionId(2L)
                         .domain("google")
@@ -218,11 +214,9 @@ class AiArticleControllerTest {
 
                 LinkuResponseDTO.LinkuSliceResultDTO body =
                         readResult(result, objectMapper, LinkuResponseDTO.LinkuSliceResultDTO.class);
-                assertThat(body.getLinkuList()).hasSize(2);
-                assertThat(body.getLinkuList().get(0).getLinkuId()).isEqualTo(201L);
-                assertThat(body.getLinkuList().get(0).getCategoryId()).isEqualTo(1L);
-                assertThat(body.getLinkuList().get(1).getLinkuId()).isEqualTo(202L);
-                assertThat(body.getLinkuList().get(1).getCategoryId()).isEqualTo(2L);
+                assertThat(body.linkuList()).hasSize(2);
+                assertThat(body.linkuList().get(0).categoryId()).isEqualTo(1L);
+                assertThat(body.linkuList().get(1).categoryId()).isEqualTo(2L);
             }
         }
 

@@ -35,5 +35,23 @@ services:
     volumes:
       - redis_data:/data
 
+  # EC2 호스트 디스크/CPU/메모리
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: linku-node-exporter
+    restart: unless-stopped
+    pid: host
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
 volumes:
   redis_data:

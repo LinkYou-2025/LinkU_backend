@@ -6,11 +6,10 @@ import lombok.Setter;
 
 public class AiArticleResponseDTO {
     @Getter
-    @Setter
     @Builder
     public static class AiArticleResultDTO {
         private Long id;
-        private Long linkuId;
+        private Long userLinkuId;
         private Long emotionId;
         private String emotionName;
         private String categoryName;
