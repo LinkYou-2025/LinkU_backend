@@ -57,10 +57,11 @@ cloud:
       base-url: https://test-bucket.s3.amazonaws.com
     cloudfront:
       domain: test.cloudfront.net
-    ses:
-      from: no-reply@test.com
-      access-key: test-ses-access-key
-      secret-key: test-ses-secret-key
+
+email:
+  resend:
+    api-key: test-resend-api-key
+    from: no-reply@test.com
 
 custom:
   search:
