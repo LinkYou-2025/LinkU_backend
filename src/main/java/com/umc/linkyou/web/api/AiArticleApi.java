@@ -42,7 +42,7 @@ public interface AiArticleApi {
             AiArticleErrorStatus._CONTENT_EXTRACTION_FAILED,
             AiArticleErrorStatus._CONTENT_EXTRACTION_PROHIBITED
     })
-    @PostMapping("/linku/saved/{userLinkuId}/ai-article")
+    @PostMapping("/linku/{userLinkuId}/ai-article")
     ApiResponse<AiArticleResponseDTO.AiArticleResultDTO> saveOrGetAiArticle(
             @Parameter(description = "AI 요약을 저장/조회할 대상 사용자 링크 ID", example = "101") @PathVariable Long userLinkuId,
             @CurrentUser CustomUserDetails userDetails

@@ -69,7 +69,7 @@ public interface LinkuApi {
 
     @Operation(summary = "링크 상세 조회 (인증된 사용자)", description = "인증된 사용자의 링크 상세 정보를 조회합니다.")
     @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
-    @GetMapping("/saved/{userLinkuId}")
+    @GetMapping("/{userLinkuId}")
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long userLinkuId
@@ -77,7 +77,7 @@ public interface LinkuApi {
 
     @Operation(summary = "링크 상세 조회 (사용자 ID 지정)", description = "특정 사용자 ID와 링크 ID로 링크 상세 정보를 조회합니다.")
     @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
-    @GetMapping("/saved/{userId}/{userLinkuId}")
+    @GetMapping("/{userId}/{userLinkuId}")
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
             @PathVariable Long userId,
             @PathVariable Long userLinkuId
@@ -114,7 +114,7 @@ public interface LinkuApi {
             categoryErrorStatus = {CategoryErrorStatus._CATEGORY_NOT_FOUND},
             folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}
     )
-    @PatchMapping(value = "/saved/{userLinkuId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PatchMapping(value = "/{userLinkuId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long userLinkuId,
@@ -129,7 +129,7 @@ public interface LinkuApi {
 
     @Operation(summary = "링크 폴더 이동", description = "링크가 속한 폴더를 변경합니다. 링크(Linku)는 동일 URL을 저장한 모든 유저가 공유하는 데이터이므로, 이 API는 해당 유저 소유의 폴더 매핑만 변경하며 링크 자체의 카테고리는 변경하지 않습니다. 이동 대상 폴더는 중분류(최상위 폴더)만 지정할 수 있습니다.")
     @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._USER_LINKU_NOT_FOUND}, folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN})
-    @PatchMapping(value = "/saved/{userLinkuId}/folder", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{userLinkuId}/folder", consumes = MediaType.APPLICATION_JSON_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuFolderChangeResultDTO> updateLinkuFolder(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long userLinkuId,
@@ -194,7 +194,7 @@ public interface LinkuApi {
 
     @Operation(summary = "링크 삭제", description = "사용자가 저장한 링크를 삭제합니다.")
     @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._USER_LINKU_NOT_FOUND})
-    @DeleteMapping("/saved/{userLinkuId}")
+    @DeleteMapping("/{userLinkuId}")
     ApiResponse<Object> deleteUsersLinku(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long userLinkuId
