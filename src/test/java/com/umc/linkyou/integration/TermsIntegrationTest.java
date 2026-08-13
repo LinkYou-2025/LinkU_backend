@@ -20,7 +20,7 @@ import com.umc.linkyou.repository.classification.PurposeRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.config.TestExternalConfig;
 import com.umc.linkyou.support.security.TestSecurityConfig;
-import com.umc.linkyou.web.dto.UserRequestDTO;
+import com.umc.linkyou.web.dto.user.UserRequestDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -152,7 +152,7 @@ class TermsIntegrationTest {
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("USERS2009"))
-                        .andExpect(jsonPath("$.result").exists());
+                        .andExpect(jsonPath("$.result.isMarketingAgreed").value(false));
 
                 TermsAgreement result = termsAgreementRepository
                         .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
@@ -171,7 +171,7 @@ class TermsIntegrationTest {
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("USERS2009"))
-                        .andExpect(jsonPath("$.result").exists());
+                        .andExpect(jsonPath("$.result.isMarketingAgreed").value(true));
 
                 TermsAgreement result = termsAgreementRepository
                         .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
@@ -189,7 +189,7 @@ class TermsIntegrationTest {
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("USERS2009"))
-                        .andExpect(jsonPath("$.result").exists());
+                        .andExpect(jsonPath("$.result.isMarketingAgreed").value(true));
 
                 TermsAgreement result = termsAgreementRepository
                         .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)
@@ -211,13 +211,13 @@ class TermsIntegrationTest {
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("USERS2009"))
-                        .andExpect(jsonPath("$.result").exists());
+                        .andExpect(jsonPath("$.result.isMarketingAgreed").value(false));
                 mockMvc.perform(patch("/api/v1/users/terms/marketing/toggle")
                                 .with(authentication(authFor(user))))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("USERS2009"))
-                        .andExpect(jsonPath("$.result").exists());
+                        .andExpect(jsonPath("$.result.isMarketingAgreed").value(true));
 
                 TermsAgreement result = termsAgreementRepository
                         .findByUserIdAndTermsType(user.getId(), TermsType.MARKETING)

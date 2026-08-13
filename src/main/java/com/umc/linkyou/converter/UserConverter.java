@@ -11,8 +11,8 @@ import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.domain.mapping.UsersInterest;
 import com.umc.linkyou.domain.mapping.UsersPurpose;
-import com.umc.linkyou.web.dto.UserRequestDTO;
-import com.umc.linkyou.web.dto.UserResponseDTO;
+import com.umc.linkyou.web.dto.user.UserRequestDTO;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 
 import lombok.extern.slf4j.Slf4j;
 

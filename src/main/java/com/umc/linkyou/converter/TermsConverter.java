@@ -3,7 +3,7 @@ package com.umc.linkyou.converter;
 import com.umc.linkyou.domain.TermsAgreement;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.TermsType;
-import com.umc.linkyou.web.dto.UserResponseDTO;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 

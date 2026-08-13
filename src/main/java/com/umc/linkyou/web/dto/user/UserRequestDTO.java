@@ -1,4 +1,4 @@
-package com.umc.linkyou.web.dto;
+package com.umc.linkyou.web.dto.user;
 
 import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Gender;

@@ -12,8 +12,9 @@ import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.service.users.UserWithdrawService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.api.UserApi;
-import com.umc.linkyou.web.dto.UserRequestDTO;
-import com.umc.linkyou.web.dto.UserResponseDTO;
+import com.umc.linkyou.web.dto.user.MarketingAgreeResponseDTO;
+import com.umc.linkyou.web.dto.user.UserRequestDTO;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -86,9 +87,10 @@ public class UserController implements UserApi {
     }
 
     @Override
-    public ApiResponse<Object> toggleMarketing(@CurrentUser CustomUserDetails userDetails) {
-        termsAgreementService.toggleMarketing(userDetails);
-        return ApiResponse.onSuccess(UserSuccessStatus.USER_MARKETING_AGREE_OK);
+    public ApiResponse<MarketingAgreeResponseDTO> toggleMarketing(@CurrentUser CustomUserDetails userDetails) {
+        return ApiResponse.onSuccess(
+                UserSuccessStatus.USER_MARKETING_AGREE_OK,
+                termsAgreementService.toggleMarketing(userDetails));
     }
 
 }

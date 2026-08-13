@@ -41,7 +41,6 @@ public class LinkuConverter {
         return LinkuResponseDTO.LinkuResultDTO.builder()
                 .userId(userId)
                 .userLinkuId(usersLinku != null ? usersLinku.getUserLinkuId() : null)
-                .linkuId(linku.getLinkuId())
                 .folderName(linkuFolder != null && linkuFolder.getFolder() != null ? linkuFolder.getFolder().getFolderName() : null)
                 .categoryId(category != null ? category.getCategoryId() : null)
                 .linku(linku.getLinkuUrl())
@@ -74,7 +73,7 @@ public class LinkuConverter {
     ) {
         return LinkuResponseDTO.LinkuResultDTO.builder()
                 .userId(userId)
-                .linkuId(linku.getLinkuId())
+                .userLinkuId(usersLinku.getUserLinkuId())
                 .folderName(linkuFolder != null && linkuFolder.getFolder() != null ? linkuFolder.getFolder().getFolderName() : null)
                 .categoryId(category != null ? category.getCategoryId() : null)
                 .linku(linku.getLinkuUrl())
@@ -96,16 +95,16 @@ public class LinkuConverter {
 
     // 링크 폴더 이동 → LinkuFolderChangeResultDTO 변환 (folderId는 실제 Folder PK, category는 직접 변경하지 않으므로 미포함)
     public static LinkuResponseDTO.LinkuFolderChangeResultDTO toLinkuFolderChangeResultDTO(
-            Linku linku,
+            UsersLinku usersLinku,
             LinkuFolder linkuFolder
     ) {
         Folder folder = linkuFolder != null ? linkuFolder.getFolder() : null;
         return LinkuResponseDTO.LinkuFolderChangeResultDTO.builder()
-                .linkuId(linku.getLinkuId())
+                .userLinkuId(usersLinku.getUserLinkuId())
                 .folderId(folder != null ? folder.getFolderId() : null)
                 .folderName(folder != null ? folder.getFolderName() : null)
-                .createdAt(linku.getCreatedAt())
-                .updatedAt(linku.getUpdatedAt())
+                .createdAt(usersLinku.getCreatedAt())
+                .updatedAt(usersLinku.getUpdatedAt())
                 .build();
     }
 
@@ -115,7 +114,6 @@ public class LinkuConverter {
             return LinkuResponseDTO.LinkuIsExistDTO.builder()
                     .isExist(false)
                     .userId(userId)
-                    .linkuId(null)
                     .title(null)
                     .memo(null)
                     .emotionId(null)
@@ -126,7 +124,6 @@ public class LinkuConverter {
         return LinkuResponseDTO.LinkuIsExistDTO.builder()
                 .isExist(true)
                 .userId(userId)
-                .linkuId(usersLinku.getLinku().getLinkuId())
                 .title(usersLinku.getLinku().getTitle())
                 .memo(usersLinku.getMemo())
                 .emotionId(usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
@@ -174,7 +171,6 @@ public class LinkuConverter {
     public static LinkuResponseDTO.LinkuSimpleDTO toLinkuSimpleDTO(Linku linku, UsersLinku usersLinku, Domain domain, boolean aiArticleExists, LinkuFolder linkuFolder) {
         return LinkuResponseDTO.LinkuSimpleDTO.builder()
                 .userLinkuId(usersLinku != null ? usersLinku.getUserLinkuId() : null)
-                .linkuId(linku.getLinkuId())
                 .categoryId(linku.getCategory() != null ? linku.getCategory().getCategoryId() : null)
                 .folderName(linkuFolder != null ? linkuFolder.getFolder().getFolderName() : null)
                 .linku(linku.getLinkuUrl())
@@ -193,7 +189,6 @@ public class LinkuConverter {
             RankedUsersLinku candidate, LinkuFolder linkuFolder) {
         return LinkuResponseDTO.LinkuSimpleDTO.builder()
                 .userLinkuId(candidate.userLinkuId())
-                .linkuId(candidate.linkuId())
                 .categoryId(candidate.categoryId())
                 .folderName(linkuFolder != null ? linkuFolder.getFolder().getFolderName() : null)
                 .linku(candidate.linku())
@@ -215,7 +210,6 @@ public class LinkuConverter {
         Domain domain = linku.getDomain();
         Category category = linku.getCategory();
         return LinkuResponseDTO.AiArticleSummaryDTO.builder()
-                .linkuId(linku.getLinkuId())
                 .linku(linku.getLinkuUrl())
                 .emotionId(usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
                 .domain(domain != null ? domain.getName() : null)

@@ -146,4 +146,14 @@ class PasswordResetServiceTest {
         assertEquals(UserErrorStatus._INVALID_PASSWORD, exception.getCode());
         verifyNoInteractions(passwordResetRedisRepository, authAccountRepository, userRepository, passwordEncoder);
     }
+
+    @Test
+    @DisplayName("새 비밀번호에 대문자가 없으면 잘못된 비밀번호 예외를 던진다")
+    void 새_비밀번호에_대문자가_없으면_예외를_던진다() {
+        UserHandler exception = assertThrows(UserHandler.class,
+                () -> passwordResetService.resetPassword("token", "password123!", "password123!"));
+
+        assertEquals(UserErrorStatus._INVALID_PASSWORD, exception.getCode());
+        verifyNoInteractions(passwordResetRedisRepository, authAccountRepository, userRepository, passwordEncoder);
+    }
 }

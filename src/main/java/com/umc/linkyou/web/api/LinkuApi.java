@@ -69,18 +69,10 @@ public interface LinkuApi {
 
     @Operation(summary = "링크 상세 조회 (인증된 사용자)", description = "인증된 사용자의 링크 상세 정보를 조회합니다.")
     @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
-    @GetMapping("/{linkuid}")
+    @GetMapping("/{userLinkuId}")
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
             @CurrentUser CustomUserDetails userDetails,
-            @PathVariable("linkuid") Long linkuid
-    );
-
-    @Operation(summary = "링크 상세 조회 (사용자 ID 지정)", description = "특정 사용자 ID와 링크 ID로 링크 상세 정보를 조회합니다.")
-    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
-    @GetMapping("/{userId}/{linkuId}")
-    ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
-            @PathVariable Long userId,
-            @PathVariable Long linkuId
+            @PathVariable Long userLinkuId
     );
 
     @Operation(summary = "최근 열람한 링크 조회", description = "사용자가 최근에 열람한 링크 목록을 조회합니다. limit 파라미터로 조회 개수를 지정할 수 있습니다.")
@@ -114,10 +106,10 @@ public interface LinkuApi {
             categoryErrorStatus = {CategoryErrorStatus._CATEGORY_NOT_FOUND},
             folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}
     )
-    @PatchMapping(value = "/{linkuId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PatchMapping(value = "/{userLinkuId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(
             @CurrentUser CustomUserDetails userDetails,
-            @PathVariable Long linkuId,
+            @PathVariable Long userLinkuId,
             @RequestParam(required = false) String memo,
             @RequestParam(required = false) Long emotionId,
             @RequestParam(required = false) Long situationId,
@@ -129,10 +121,10 @@ public interface LinkuApi {
 
     @Operation(summary = "링크 폴더 이동", description = "링크가 속한 폴더를 변경합니다. 링크(Linku)는 동일 URL을 저장한 모든 유저가 공유하는 데이터이므로, 이 API는 해당 유저 소유의 폴더 매핑만 변경하며 링크 자체의 카테고리는 변경하지 않습니다. 이동 대상 폴더는 중분류(최상위 폴더)만 지정할 수 있습니다.")
     @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._USER_LINKU_NOT_FOUND}, folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN})
-    @PatchMapping(value = "/{linkuId}/folder", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{userLinkuId}/folder", consumes = MediaType.APPLICATION_JSON_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuFolderChangeResultDTO> updateLinkuFolder(
             @CurrentUser CustomUserDetails userDetails,
-            @PathVariable Long linkuId,
+            @PathVariable Long userLinkuId,
             @Valid @RequestBody LinkuRequestDTO.LinkuFolderUpdateDTO updateDTO
     );
 
