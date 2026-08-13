@@ -87,7 +87,6 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
         return rows.stream()
                 .map(r -> new LinkuSearchResponseDTO.LinkuSearchItemDTO(
                         r.get(ul.userLinkuId),
-                        r.get(l.linkuId),
                         r.get(displayTitle),
                         r.get(displayImage),
                         tagsByLinkuId.getOrDefault(r.get(l.linkuId), List.of()),

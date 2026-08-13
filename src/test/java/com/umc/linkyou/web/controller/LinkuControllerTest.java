@@ -69,7 +69,7 @@ class LinkuControllerTest {
     private static final Long NEW_FOLDER_ID = 20L;
 
     @Nested
-    @DisplayName("PATCH /api/v1/linku/{linkuId}/folder - 링크 폴더 이동")
+    @DisplayName("PATCH /api/v1/linku/saved/{userLinkuId}/folder - 링크 폴더 이동")
     class UpdateLinkuFolder {
 
         @Nested
@@ -85,7 +85,7 @@ class LinkuControllerTest {
                         LinkuRequestDTO.LinkuFolderUpdateDTO.builder().folderId(NEW_FOLDER_ID).build();
 
                 LinkuResponseDTO.LinkuFolderChangeResultDTO result = LinkuResponseDTO.LinkuFolderChangeResultDTO.builder()
-                        .linkuId(LINKU_ID)
+                        .userLinkuId(LINKU_ID)
                         .folderId(NEW_FOLDER_ID)
                         .folderName("영어 공부")
                         .createdAt(LocalDateTime.now())
@@ -96,14 +96,14 @@ class LinkuControllerTest {
                         .willReturn(result);
 
                 // when & then
-                mockMvc.perform(patch("/api/v1/linku/{linkuId}/folder", LINKU_ID)
+                mockMvc.perform(patch("/api/v1/linku/saved/{userLinkuId}/folder", LINKU_ID)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                                 .with(csrf()))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("LINKU2007"))
-                        .andExpect(jsonPath("$.result.linkuId").value(LINKU_ID))
+                        .andExpect(jsonPath("$.result.userLinkuId").value(LINKU_ID))
                         .andExpect(jsonPath("$.result.folderId").value(NEW_FOLDER_ID))
                         .andExpect(jsonPath("$.result.folderName").value("영어 공부"));
             }
@@ -125,7 +125,7 @@ class LinkuControllerTest {
                         .willThrow(new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
 
                 // when & then
-                mockMvc.perform(patch("/api/v1/linku/{linkuId}/folder", LINKU_ID)
+                mockMvc.perform(patch("/api/v1/linku/saved/{userLinkuId}/folder", LINKU_ID)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                                 .with(csrf()))
@@ -146,7 +146,7 @@ class LinkuControllerTest {
                         .willThrow(new GeneralException(FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN));
 
                 // when & then
-                mockMvc.perform(patch("/api/v1/linku/{linkuId}/folder", LINKU_ID)
+                mockMvc.perform(patch("/api/v1/linku/saved/{userLinkuId}/folder", LINKU_ID)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                                 .with(csrf()))
@@ -167,7 +167,7 @@ class LinkuControllerTest {
                         .willThrow(new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
 
                 // when & then
-                mockMvc.perform(patch("/api/v1/linku/{linkuId}/folder", LINKU_ID)
+                mockMvc.perform(patch("/api/v1/linku/saved/{userLinkuId}/folder", LINKU_ID)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                                 .with(csrf()))

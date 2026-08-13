@@ -9,8 +9,6 @@ public class LinkuSearchResponseDTO {
     public record LinkuSearchItemDTO(
             @Schema(description = "사용자링크 ID (커서로 사용)")
             Long userLinkuId,
-            @Schema(description = "링크 ID (클릭 시 이동/조회용)")
-            Long linkuId,
             @Schema(description = "표시 제목")
             String title,
             @Schema(description = "링크 이미지 URL")
