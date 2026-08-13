@@ -45,20 +45,22 @@ public interface FolderApi {
             @PathVariable Long folderId
     );
 
-    @Operation(summary = "내 폴더 목록(트리) 조회", description = "사용자의 모든 폴더를 트리 구조로 조회합니다.")
+    @Deprecated
+    @Operation(summary = "[삭제 예정] 내 폴더 목록(트리) 조회", description = "v2에서 삭제 예정입니다. 사용자의 모든 폴더를 트리 구조로 조회합니다.", deprecated = true)
     @GetMapping("/my")
     ApiResponse<List<FolderTreeResponseDTO>> getMyFolderTree(
             @CurrentUser CustomUserDetails userDetails
     );
 
-    @Operation(summary = "중분류 폴더 조회", description = "사용자의 모든 중분류 폴더 목록을 조회합니다. sort: name(가나다순, 기본값), updatedAt(최근 수정순)")
+    @Operation(summary = "중분류 폴더 조회", description = "사용자의 모든 중분류 폴더 목록을 조회합니다. sort: name(가나다순, 기본값), updatedAt(최근 수정순). 폴더색 조회를 위한 categoryId가 포함됩니다.")
     @GetMapping("/parentFolders")
     ApiResponse<List<FolderListResponseDTO>> getParentFolderList(
             @CurrentUser CustomUserDetails userDetails,
             @RequestParam(defaultValue = "name") String sort
     );
 
-    @Operation(summary = "중분류 내부의 하위 폴더 조회", description = "특정 중분류 폴더의 하위 소분류 폴더 목록을 조회합니다.")
+    @Deprecated
+    @Operation(summary = "[삭제 예정] 중분류 내부의 하위 폴더 조회", description = "v2에서 삭제 예정입니다. GET /folders/{folderId}/linkus?includeLinks=false로 대체됩니다. 특정 중분류 폴더의 하위 소분류 폴더 목록을 조회합니다.", deprecated = true)
     @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN})
     @GetMapping("/{parentFolderId}/subfolders")
     ApiResponse<List<FolderListResponseDTO>> getSubFolderList(
@@ -75,7 +77,7 @@ public interface FolderApi {
             @RequestBody BookmarkUpdateRequestDTO request
     );
 
-    @Operation(summary = "폴더 내부 링크, 폴더 목록 조회", description = "특정 폴더 내부의 링크와 하위 폴더 목록을 조회합니다. 커서 기반 페이지네이션을 지원합니다.")
+    @Operation(summary = "폴더 내부 링크, 폴더 목록 조회", description = "특정 폴더 내부의 링크와 하위 폴더 목록을 조회합니다. 커서 기반 페이지네이션을 지원합니다. includeLinks=false로 호출하면 링크 조회를 생략하고 폴더 목록만 반환합니다(기본값 true, 생략 시 기존과 동일하게 동작).")
     @ApiErrorCode(folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN, FolderErrorStatus._FOLDER_INVALID_CURSOR})
     @GetMapping("/{folderId}/linkus")
     ApiResponse<FolderLinkusResponseDTO> getFolderLinkus(
@@ -83,6 +85,7 @@ public interface FolderApi {
             @PathVariable Long folderId,
             @RequestParam(defaultValue = "20") @Min(1) int limit,
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "name") String sort
+            @RequestParam(defaultValue = "name") String sort,
+            @RequestParam(defaultValue = "true") boolean includeLinks
     );
 }

@@ -6,6 +6,7 @@ import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Linku;
+import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
@@ -13,6 +14,8 @@ import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
+import com.umc.linkyou.repository.dto.LinkuKeywordRow;
+import com.umc.linkyou.repository.mapping.LinkuKeywordRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
@@ -40,6 +43,7 @@ public class FolderServiceImpl implements FolderService {
     private final UserRepository userRepository;
     private final UsersFolderRepository usersFolderRepository;
     private final LinkuFolderRepository linkuFolderRepository;
+    private final LinkuKeywordRepository linkuKeywordRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     // 하위 폴더 생성
@@ -225,6 +229,7 @@ public class FolderServiceImpl implements FolderService {
                         .folderName(usersFolder.getFolder().getFolderName())
                         .isBookmarked(usersFolder.getIsBookmarked())
                         .isSharing(sharedFolderIds.contains(usersFolder.getFolder().getFolderId()) ? "share" : "private")
+                        .categoryId(usersFolder.getFolder().getCategory().getCategoryId())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -247,6 +252,7 @@ public class FolderServiceImpl implements FolderService {
                         .parentFolderId(parentFolderId)
                         .isBookmarked(usersFolder.getIsBookmarked())
                         .isSharing(sharedFolderIds.contains(usersFolder.getFolder().getFolderId()) ? "share" : "private")
+                        .categoryId(usersFolder.getFolder().getCategory().getCategoryId())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -269,11 +275,11 @@ public class FolderServiceImpl implements FolderService {
                 .build();
     }
 
+    // 폴더 내부 링크, 폴더 목록 조회. includeLinks=false면 링크 조회를 생략하고 폴더 목록만 반환한다.
     @Transactional(readOnly = true)
-    // 폴더 내부 링크, 폴더 목록 조회
-    public FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort) {
+    public FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort, boolean includeLinks) {
         // check folder exist
-        Folder folder = folderRepository.findById(folderId)
+        folderRepository.findById(folderId)
                 .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
 
         // 접근 권한 확인 (소유자 또는 활성 공유 멤버)
@@ -316,6 +322,15 @@ public class FolderServiceImpl implements FolderService {
                     return dto;
                 }).toList();
 
+        // includeLinks=false면 링크 조회(커서 파싱, 페이지 쿼리, 키워드/도메인 조립)를 전부 생략하고 폴더 목록만 반환
+        if (!includeLinks) {
+            FolderLinkusResponseDTO resp = new FolderLinkusResponseDTO();
+            resp.setFolders(subfolderDtos);
+            resp.setLinks(Collections.emptyList());
+            resp.setNextCursor(null);
+            return resp;
+        }
+
         // 커서: 없으면 Long.MAX_VALUE, 숫자가 아니면 400 반환
         Long cursorId;
         if (cursor == null) {
@@ -340,21 +355,36 @@ public class FolderServiceImpl implements FolderService {
                 ? String.valueOf(resultList.get(resultList.size() - 1).getUsersLinku().getLinku().getLinkuId())
                 : null;
 
+        List<Long> linkuIds = resultList.stream()
+                .map(lf -> lf.getUsersLinku().getLinku().getLinkuId())
+                .distinct()
+                .toList();
+
+        Map<Long, List<String>> keywordsByLinkuId = linkuIds.isEmpty()
+                ? Collections.emptyMap()
+                : linkuKeywordRepository.findKeywordNamesByLinkuIdIn(linkuIds).stream()
+                        .collect(Collectors.groupingBy(
+                                LinkuKeywordRow::linkuId,
+                                Collectors.mapping(LinkuKeywordRow::name, Collectors.toList())
+                        ));
+
         List<LinkuSummaryDTO> linkDtos = resultList.stream().map(lf -> {
             UsersLinku usersLinku = lf.getUsersLinku();
             Linku link = usersLinku.getLinku();
+            Domain domain = link.getDomain();
+
+            String kw = String.join(", ", keywordsByLinkuId.getOrDefault(link.getLinkuId(), List.of()));
 
             LinkuSummaryDTO dto = new LinkuSummaryDTO();
             dto.setUserLinkuId(usersLinku.getUserLinkuId());
             dto.setLinkuId(link.getLinkuId());
-            dto.setTitle(link.getTitle());
+            dto.setTitle(usersLinku.getTitle() != null ? usersLinku.getTitle() : link.getTitle());
             dto.setUrl(link.getLinkuUrl());
-            String kw = link.getLinkuKeywords().stream()
-                    .map(lk -> lk.getKeyword().getName())
-                    .collect(Collectors.joining(", "));
             dto.setKeyword(kw.isEmpty() ? null : kw);
             dto.setLinkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : link.getImgUrl());
             dto.setCreatedAt(link.getCreatedAt().toString());
+            dto.setDomainImageUrl(domain != null ? domain.getImageUrl() : null);
+            dto.setDomainName(domain != null ? domain.getName() : null);
             return dto;
         }).toList();
 
