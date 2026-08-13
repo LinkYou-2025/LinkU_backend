@@ -37,7 +37,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -555,6 +557,7 @@ class FolderServiceTest {
             @DisplayName("링크는 키워드와 도메인 정보를 포함한 카드 DTO로 반환된다")
             void 링크는_키워드와_도메인정보를_포함해_반환된다() {
                 Linku linku = LinkuFixture.linku("https://img.example.com/a.jpg");
+                ReflectionTestUtils.setField(linku, "createdAt", LocalDateTime.now());
                 Users user = owner();
                 UsersLinku usersLinku = UsersLinku.builder().user(user).linku(linku).build();
                 LinkuFolder linkuFolder = LinkuFolder.builder().folder(folder()).usersLinku(usersLinku).build();
