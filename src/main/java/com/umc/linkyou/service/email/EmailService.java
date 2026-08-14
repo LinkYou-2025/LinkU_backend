@@ -47,7 +47,7 @@ public class EmailService {
         context.setVariable("year", Year.now().getValue());
 
         String htmlContent = templateEngine.process("email/password-reset", context);
-        send(toEmail, "Link You 비밀번호 재설정", htmlContent, PASSWORD_RESET_EMAIL);
+        send(toEmail, "LinkU 비밀번호 재설정 링크", htmlContent, PASSWORD_RESET_EMAIL);
     }
 
     private void send(String toEmail, String subject, String htmlContent, String emailType) {
