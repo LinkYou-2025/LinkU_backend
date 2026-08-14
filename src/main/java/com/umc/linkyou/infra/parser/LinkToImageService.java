@@ -77,7 +77,6 @@ public class LinkToImageService {
         }
     }
 
-    // 일반 웹페이지 대표 이미지 크롤링
     private String extractRepresentativeImage(String url) {
         try {
             if (!robotsTxtChecker.isAllowed(url, "Mozilla/5.0")) {
@@ -85,42 +84,51 @@ public class LinkToImageService {
                 return null;
             }
             Document doc = safeUrlFetcher.fetchDocument(url, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
-
-            String[] selectors = {
-                    "meta[property=og:image]",
-                    "meta[name=twitter:image]",
-                    "meta[itemprop=image]",
-                    "link[rel=image_src]"
-            };
-
-            for (String selector : selectors) {
-                String imgUrl = doc.select(selector).attr("content");
-                if (imgUrl.isEmpty()) {
-                    imgUrl = doc.select(selector).attr("href");
-                }
-                if (!imgUrl.isEmpty()) {
-                    return imgUrl;
-                }
-            }
-
-            String imgTag = doc.select("img").attr("src");
-            if (!imgTag.isEmpty()) {
-                return imgTag;
-            }
+            return extractRepresentativeImageFromDoc(doc);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    private String extractRepresentativeImageFromDoc(Document doc) {
+        if (doc == null) return null;
+
+        String[] selectors = {
+                "meta[property=og:image]",
+                "meta[name=twitter:image]",
+                "meta[itemprop=image]",
+                "link[rel=image_src]"
+        };
+
+        for (String selector : selectors) {
+            String imgUrl = doc.select(selector).attr("content");
+            if (imgUrl.isEmpty()) {
+                imgUrl = doc.select(selector).attr("href");
+            }
+            if (!imgUrl.isEmpty()) {
+                return imgUrl;
+            }
+        }
+
+        String imgTag = doc.select("img").attr("src");
+        if (!imgTag.isEmpty()) {
+            return imgTag;
         }
         return null;
     }
 
-    // 전체 플로우
     public String getRelatedImageFromUrl(String url, String title) {
+        return getRelatedImageFromUrl(url, title, null);
+    }
+
+    // 네이버 블로그는 iframe 안 다른 호스트를 따로 fetch해야 해서 doc 재사용 대상이 아님
+    public String getRelatedImageFromUrl(String url, String title, Document doc) {
         String imgUrl;
         if (isNaverFromDB(url)) {
             imgUrl = extractFromNaverBlog(url);
             if (imgUrl != null && !imgUrl.isEmpty()) return imgUrl;
         } else {
-            imgUrl = extractRepresentativeImage(url);
+            imgUrl = (doc != null) ? extractRepresentativeImageFromDoc(doc) : extractRepresentativeImage(url);
             if (imgUrl != null && !imgUrl.isEmpty()) return imgUrl;
         }
 
