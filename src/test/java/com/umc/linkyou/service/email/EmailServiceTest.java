@@ -67,7 +67,7 @@ class EmailServiceTest {
             given(
                             emailSender.send(
                                     "user@example.com",
-                                    "Link You 비밀번호 재설정",
+                                    "LinkU 비밀번호 재설정 링크",
                                     "<html>password reset</html>"))
                     .willReturn("email-id");
 
@@ -79,7 +79,7 @@ class EmailServiceTest {
             assertEquals(resetUrl, contextCaptor.getValue().getVariable("resetUrl"));
             assertEquals(10, contextCaptor.getValue().getVariable("expiresInMinutes"));
             verify(emailSender)
-                    .send("user@example.com", "Link You 비밀번호 재설정", "<html>password reset</html>");
+                    .send("user@example.com", "LinkU 비밀번호 재설정 링크", "<html>password reset</html>");
         }
     }
 
