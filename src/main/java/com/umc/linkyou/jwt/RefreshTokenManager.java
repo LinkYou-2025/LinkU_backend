@@ -32,6 +32,22 @@ public class RefreshTokenManager {
         local maxCount = tonumber(ARGV[3])
         local ttlMs = tonumber(ARGV[4])
         local nowMs = tonumber(ARGV[5])
+        local blacklistPrefix = ARGV[6]
+        local blacklistReason = ARGV[7]
+
+        local function blacklistInvalidatedSession(value)
+            if value == nil then
+                return
+            end
+
+            local decoded = cjson.decode(value)
+            if decoded.sessionId ~= nil and decoded.accessExpiresAt ~= nil then
+                local accessTtlMs = tonumber(decoded.accessExpiresAt) - nowMs
+                if accessTtlMs > 0 then
+                    redis.call('SET', blacklistPrefix .. decoded.sessionId, blacklistReason, 'PX', accessTtlMs)
+                end
+            end
+        end
 
         local tokens = redis.call('HGETALL', key)
         local count = 0
@@ -56,6 +72,7 @@ public class RefreshTokenManager {
 
         if redis.call('HEXISTS', key, deviceId) == 1 then
             invalidatedValue = redis.call('HGET', key, deviceId)
+            blacklistInvalidatedSession(invalidatedValue)
             redis.call('HSET', key, deviceId, newValue)
             redis.call('PEXPIRE', key, ttlMs)
             return invalidatedValue
@@ -64,6 +81,7 @@ public class RefreshTokenManager {
         if count >= maxCount then
             if oldestField then
                 invalidatedValue = redis.call('HGET', key, oldestField)
+                blacklistInvalidatedSession(invalidatedValue)
                 redis.call('HDEL', key, oldestField)
             end
         end
@@ -110,7 +128,9 @@ public class RefreshTokenManager {
                 tokenJson,
                 String.valueOf(MAX_SESSION),
                 String.valueOf(ttlMs),
-                String.valueOf(now)
+                String.valueOf(now),
+                AccessTokenBlackListManager.SESSION_BLACKLIST_PREFIX,
+                AccessTokenBlackListManager.BLACKLIST_REASON_LOGOUT
         );
 
         return toInvalidatedSession(invalidatedRaw);

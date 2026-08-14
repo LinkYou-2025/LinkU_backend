@@ -19,9 +19,9 @@ import java.util.HexFormat;
 public class AccessTokenBlackListManager {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private static final String BLACKLIST_PREFIX = "blacklist:access:session:";
+    static final String SESSION_BLACKLIST_PREFIX = "blacklist:access:session:";
     private static final String LEGACY_BLACKLIST_PREFIX = "blacklist:access:";
-    private static final String BLACKLIST_REASON_LOGOUT = "logout";
+    static final String BLACKLIST_REASON_LOGOUT = "logout";
     private final StringRedisTemplate redisTemplate;
 
     // 로그아웃 , 탈퇴시 블랙리스트로 등록(엑세스 토큰 남은 만료 시간만큼 ttl 설정)
@@ -52,7 +52,7 @@ public class AccessTokenBlackListManager {
     }
 
     private String blacklistKey(String sessionId) {
-        return BLACKLIST_PREFIX + sessionId;
+        return SESSION_BLACKLIST_PREFIX + sessionId;
     }
 
     private String legacyBlacklistKey(String token) {

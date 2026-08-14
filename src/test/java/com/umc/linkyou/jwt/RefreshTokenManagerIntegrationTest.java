@@ -1,6 +1,7 @@
 package com.umc.linkyou.jwt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
 
@@ -27,6 +28,7 @@ class RefreshTokenManagerIntegrationTest {
             new GenericContainer<>(DockerImageName.parse("redis:7.2-alpine")).withExposedPorts(6379);
 
     private LettuceConnectionFactory connectionFactory;
+    private StringRedisTemplate redisTemplate;
     private RefreshTokenManager refreshTokenManager;
 
     @BeforeEach
@@ -34,7 +36,7 @@ class RefreshTokenManagerIntegrationTest {
         connectionFactory = new LettuceConnectionFactory(REDIS.getHost(), REDIS.getMappedPort(6379));
         connectionFactory.afterPropertiesSet();
 
-        StringRedisTemplate redisTemplate = new StringRedisTemplate(connectionFactory);
+        redisTemplate = new StringRedisTemplate(connectionFactory);
         redisTemplate.afterPropertiesSet();
         redisTemplate.getConnectionFactory().getConnection().serverCommands().flushDb();
         refreshTokenManager = new RefreshTokenManager(redisTemplate, new ObjectMapper());
@@ -65,6 +67,7 @@ class RefreshTokenManagerIntegrationTest {
 
             // then
             assertEquals("session-1", invalidatedSession.orElseThrow().sessionId());
+            assertTrue(redisTemplate.hasKey("blacklist:access:session:session-1"));
         }
 
         @Test
@@ -79,7 +82,9 @@ class RefreshTokenManagerIntegrationTest {
 
             // then
             assertEquals("session-1", invalidatedSession.orElseThrow().sessionId());
+            assertTrue(redisTemplate.hasKey("blacklist:access:session:session-1"));
         }
+
     }
 
     private Optional<RefreshTokenManager.InvalidatedSession> saveToken(
