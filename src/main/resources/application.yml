@@ -143,11 +143,11 @@ cloud:
       auto: false
     cloudfront:
       domain: ${AWS_CLOUDFRONT_DOMAIN}
-    ses:
-      from: ${AWS_EMAIL_FROM}
-      access-key: ${AWS_SES_ACCESS_KEY}
-      secret-key: ${AWS_SES_SECRET_KEY}
-      region: ${AWS_SES_REGION:ap-northeast-2}
+
+email:
+  resend:
+    api-key: ${RESEND_API_KEY}
+    from: ${AWS_EMAIL_FROM}
 
 auth-code-expiration-millis: 600000
 
