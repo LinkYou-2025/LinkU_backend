@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.domain.enums.DeviceType;
@@ -30,6 +31,7 @@ class RefreshTokenManagerIntegrationTest {
     private LettuceConnectionFactory connectionFactory;
     private StringRedisTemplate redisTemplate;
     private RefreshTokenManager refreshTokenManager;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
@@ -39,7 +41,7 @@ class RefreshTokenManagerIntegrationTest {
         redisTemplate = new StringRedisTemplate(connectionFactory);
         redisTemplate.afterPropertiesSet();
         redisTemplate.getConnectionFactory().getConnection().serverCommands().flushDb();
-        refreshTokenManager = new RefreshTokenManager(redisTemplate, new ObjectMapper());
+        refreshTokenManager = new RefreshTokenManager(redisTemplate, objectMapper);
     }
 
     @AfterEach
@@ -85,6 +87,30 @@ class RefreshTokenManagerIntegrationTest {
             assertTrue(redisTemplate.hasKey("blacklist:access:session:session-1"));
         }
 
+        @Test
+        @DisplayName("구형 세션 레코드를 퇴출하면 블랙리스트 등록 없이 빈 결과를 반환한다")
+        void 구형_세션_레코드를_퇴출하면_블랙리스트_등록_없이_빈_결과를_반환한다() throws Exception {
+            // given
+            long now = System.currentTimeMillis();
+            redisTemplate.opsForHash().put(
+                    "sessions:1:KAKAO",
+                    "legacy-device",
+                    objectMapper.writeValueAsString(Map.of(
+                            "tokenId", "legacy-refresh-token-id",
+                            "deviceType", DeviceType.PHONE.name(),
+                            "createdAt", now - 100L,
+                            "expiresAt", now + 1_209_600_000L)));
+            saveToken("device-2", "session-2");
+            saveToken("device-3", "session-3");
+
+            // when
+            Optional<RefreshTokenManager.InvalidatedSession> invalidatedSession =
+                    saveToken("device-4", "session-4");
+
+            // then
+            assertTrue(invalidatedSession.isEmpty());
+            assertTrue(redisTemplate.keys("blacklist:access:session:*").isEmpty());
+        }
     }
 
     private Optional<RefreshTokenManager.InvalidatedSession> saveToken(

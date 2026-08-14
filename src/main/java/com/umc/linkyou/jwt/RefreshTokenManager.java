@@ -249,6 +249,16 @@ public class RefreshTokenManager {
 
         try {
             Map<String, Object> sessionData = objectMapper.readValue(raw, Map.class);
+            boolean hasSessionId = sessionData.containsKey("sessionId");
+            boolean hasAccessExpiresAt = sessionData.containsKey("accessExpiresAt");
+
+            if (!hasSessionId && !hasAccessExpiresAt) {
+                if (isLegacySession(sessionData)) {
+                    return Optional.empty();
+                }
+                throw new UserHandler(UserErrorStatus._REFRESH_TOKEN_SESSION_INVALID);
+            }
+
             String sessionId = (String) sessionData.get("sessionId");
             Long accessExpiresAt = toLong(sessionData.get("accessExpiresAt"));
 
@@ -262,6 +272,20 @@ public class RefreshTokenManager {
         } catch (Exception e) {
             throw new UserHandler(UserErrorStatus._REFRESH_TOKEN_PARSE_ERROR);
         }
+    }
+
+    private boolean isLegacySession(Map<String, Object> sessionData) {
+        String tokenId = (String) sessionData.get("tokenId");
+        String deviceType = (String) sessionData.get("deviceType");
+        Long createdAt = toLong(sessionData.get("createdAt"));
+        Long expiresAt = toLong(sessionData.get("expiresAt"));
+
+        return tokenId != null
+                && !tokenId.isBlank()
+                && deviceType != null
+                && !deviceType.isBlank()
+                && createdAt != null
+                && expiresAt != null;
     }
 
     private Long toLong(Object value) {

@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,7 +29,6 @@ class TokenIssueServiceTest {
 
     @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private RefreshTokenManager refreshTokenManager;
-    @Mock private AccessTokenBlackListManager accessTokenBlackListManager;
     @Mock private JwtProperties jwtProperties;
     @Mock private JwtProperties.Expiration expiration;
 
@@ -39,14 +37,10 @@ class TokenIssueServiceTest {
     class IssueTokenPair {
 
         @Test
-        @DisplayName("퇴출된 세션이 있으면 sid를 블랙리스트에 등록한다")
-        void 퇴출된_세션이_있으면_sid를_블랙리스트에_등록한다() {
+        @DisplayName("새 sid를 액세스 토큰과 리프레시 세션에 함께 사용한다")
+        void 새_sid를_액세스_토큰과_리프레시_세션에_함께_사용한다() {
             // given
-            long refreshExpiresAt = System.currentTimeMillis() + 1_209_600_000L;
             long accessExpiresAt = System.currentTimeMillis() + 3_600_000L;
-            RefreshTokenManager.InvalidatedSession invalidatedSession =
-                    new RefreshTokenManager.InvalidatedSession("previous-session-id", accessExpiresAt);
-
             when(jwtTokenProvider.createAccessToken(
                             eq(1L), eq("user@test.com"), eq("KAKAO"), eq(Role.USER), anyString()))
                     .thenReturn("access-token");
@@ -66,7 +60,7 @@ class TokenIssueServiceTest {
                             anyLong(),
                             anyString(),
                             eq(accessExpiresAt)))
-                    .thenReturn(Optional.of(invalidatedSession));
+                    .thenReturn(Optional.empty());
 
             // when
             TokenIssueService.IssuedTokenPair result =
@@ -100,43 +94,6 @@ class TokenIssueServiceTest {
                             anyLong(),
                             eq(issuedSessionIdCaptor.getValue()),
                             eq(accessExpiresAt));
-            verify(accessTokenBlackListManager)
-                    .addSessionToBlacklist(eq("previous-session-id"), anyLong());
-        }
-
-        @Test
-        @DisplayName("퇴출된 세션이 없으면 블랙리스트에 등록하지 않는다")
-        void 퇴출된_세션이_없으면_블랙리스트에_등록하지_않는다() {
-            // given
-            long accessExpiresAt = System.currentTimeMillis() + 3_600_000L;
-
-            when(jwtTokenProvider.createAccessToken(
-                            eq(1L), eq("user@test.com"), eq("KAKAO"), eq(Role.USER), anyString()))
-                    .thenReturn("access-token");
-            when(jwtTokenProvider.createRefreshToken("user@test.com", "KAKAO"))
-                    .thenReturn("refresh-token");
-            when(jwtTokenProvider.normalizeStrict("refresh-token")).thenReturn("refresh-token");
-            when(jwtTokenProvider.hmac("refresh-token")).thenReturn("refresh-token-id");
-            when(jwtTokenProvider.getAccessTokenExpiresAt("access-token")).thenReturn(accessExpiresAt);
-            when(jwtProperties.expiration()).thenReturn(expiration);
-            when(expiration.refresh()).thenReturn(1_209_600_000L);
-            when(refreshTokenManager.saveToken(
-                            eq(1L),
-                            eq("KAKAO"),
-                            eq("device-1"),
-                            eq("refresh-token-id"),
-                            eq(DeviceType.PHONE),
-                            anyLong(),
-                            anyString(),
-                            eq(accessExpiresAt)))
-                    .thenReturn(Optional.empty());
-
-            // when
-            tokenIssueService.issueTokenPair(
-                    1L, "user@test.com", "KAKAO", Role.USER, "device-1", DeviceType.PHONE);
-
-            // then
-            verify(accessTokenBlackListManager, never()).addSessionToBlacklist(anyString(), anyLong());
         }
     }
 }
