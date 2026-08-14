@@ -7,6 +7,8 @@ import com.umc.linkyou.domain.enums.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 /**
  * 액세스 토큰과 리프레시 토큰을 발급하는 서비스
  */
@@ -16,6 +18,7 @@ public class TokenIssueService {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenManager refreshTokenManager;
+    private final AccessTokenBlackListManager accessTokenBlackListManager;
     private final JwtProperties jwtProperties;
 
     // 액세스 토큰 발급 (리프레시 토큰은 DB에 저장되어야 하므로, 별도 메서드에서 발급)
@@ -37,19 +40,26 @@ public class TokenIssueService {
             String deviceId,
             DeviceType deviceType
     ) {
-        String accessToken = issueAccessToken(userId, email, provider, role);
+        String sessionId = UUID.randomUUID().toString();
+        String accessToken = jwtTokenProvider.createAccessToken(userId, email, provider, role, sessionId);
         String refreshToken = jwtTokenProvider.createRefreshToken(email, provider);
         String tokenId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
         long expiresAt = System.currentTimeMillis() + jwtProperties.expiration().refresh();
 
-        refreshTokenManager.saveToken(
-                userId,
-                provider,
-                deviceId,
-                tokenId,
-                deviceType,
-                expiresAt
-        );
+        refreshTokenManager
+                .saveToken(
+                        userId,
+                        provider,
+                        deviceId,
+                        tokenId,
+                        deviceType,
+                        expiresAt,
+                        sessionId,
+                        jwtTokenProvider.getAccessTokenExpiresAt(accessToken))
+                .ifPresent(invalidatedSession ->
+                        accessTokenBlackListManager.addSessionToBlacklist(
+                                invalidatedSession.sessionId(),
+                                invalidatedSession.accessExpiresAt() - System.currentTimeMillis()));
 
         return new IssuedTokenPair(accessToken, refreshToken);
     }

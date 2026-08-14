@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -23,7 +24,7 @@ public class RefreshTokenManager {
     private final ObjectMapper objectMapper;  //JSON 직렬화/역직렬화
     private static final int MAX_SESSION = 3; //동시 접속 인원 = 3
 
-    //세션초과체크 + 만료세션정리 + 동일기기갱신 + 신규추가 + TTL설정
+    // 세션초과체크 + 만료세션정리 + 동일기기갱신 + 신규추가 + TTL설정
     private static final String ADD_TOKEN_SCRIPT = """
         local key = KEYS[1]
         local deviceId = ARGV[1]
@@ -51,14 +52,18 @@ public class RefreshTokenManager {
             end
         end
 
+        local invalidatedValue = nil
+
         if redis.call('HEXISTS', key, deviceId) == 1 then
+            invalidatedValue = redis.call('HGET', key, deviceId)
             redis.call('HSET', key, deviceId, newValue)
             redis.call('PEXPIRE', key, ttlMs)
-            return 1
+            return invalidatedValue
         end
 
         if count >= maxCount then
             if oldestField then
+                invalidatedValue = redis.call('HGET', key, oldestField)
                 redis.call('HDEL', key, oldestField)
             end
         end
@@ -66,16 +71,27 @@ public class RefreshTokenManager {
         redis.call('HSET', key, deviceId, newValue)
         redis.call('PEXPIRE', key, ttlMs)
 
-        return 1
+        return invalidatedValue
     """;
 
-    public void saveToken(Long userId, String provider, String deviceId, String tokenId, DeviceType deviceType, long expiresAt) {
+    public Optional<InvalidatedSession> saveToken(
+            Long userId,
+            String provider,
+            String deviceId,
+            String tokenId,
+            DeviceType deviceType,
+            long expiresAt,
+            String sessionId,
+            long accessExpiresAt
+    ) {
         String key = buildKey(userId, provider);
         long now = System.currentTimeMillis();
         long ttlMs = Math.max(1L, expiresAt - now);
         Map<String, Object> tokenData = Map.of(
                 "tokenId", tokenId,
                 "deviceType", deviceType.name(),
+                "sessionId", sessionId,
+                "accessExpiresAt", accessExpiresAt,
                 "createdAt", now,
                 "expiresAt", expiresAt
         );
@@ -87,8 +103,8 @@ public class RefreshTokenManager {
             throw new UserHandler(AuthErrorStatus._REFRESH_TOKEN_SESSION_SAVE_ERROR);
         }
 
-        redisTemplate.execute(
-                new DefaultRedisScript<>(ADD_TOKEN_SCRIPT, Long.class),
+        String invalidatedRaw = redisTemplate.execute(
+                new DefaultRedisScript<>(ADD_TOKEN_SCRIPT, String.class),
                 List.of(key),
                 deviceId,
                 tokenJson,
@@ -96,8 +112,11 @@ public class RefreshTokenManager {
                 String.valueOf(ttlMs),
                 String.valueOf(now)
         );
+
+        return toInvalidatedSession(invalidatedRaw);
     }
 
+    // 토큰 검증
     public boolean validateToken(Long userId, String provider, String deviceId, String tokenId) {
         Map<String, Object> sessionData = getSessionData(userId, provider, deviceId);
         String storedTokenId = (String) sessionData.get("tokenId");
@@ -119,6 +138,7 @@ public class RefreshTokenManager {
         redisTemplate.delete(keys);
     }
 
+    // deviceId에 해당하는 AccessToken과 RefreshToken을 삭제
     public void deleteTokenForDevice(Long userId, String deviceId) {
         List<String> keys = new ArrayList<>();
         for (Provider provider : Provider.values()) {
@@ -202,6 +222,28 @@ public class RefreshTokenManager {
         }
     }
 
+    private Optional<InvalidatedSession> toInvalidatedSession(String raw) {
+        if (raw == null) {
+            return Optional.empty();
+        }
+
+        try {
+            Map<String, Object> sessionData = objectMapper.readValue(raw, Map.class);
+            String sessionId = (String) sessionData.get("sessionId");
+            Long accessExpiresAt = toLong(sessionData.get("accessExpiresAt"));
+
+            if (sessionId == null || sessionId.isBlank() || accessExpiresAt == null) {
+                throw new UserHandler(UserErrorStatus._REFRESH_TOKEN_SESSION_INVALID);
+            }
+
+            return Optional.of(new InvalidatedSession(sessionId, accessExpiresAt));
+        } catch (UserHandler e) {
+            throw e;
+        } catch (Exception e) {
+            throw new UserHandler(UserErrorStatus._REFRESH_TOKEN_PARSE_ERROR);
+        }
+    }
+
     private Long toLong(Object value) {
         if (value == null) {
             return null;
@@ -214,5 +256,8 @@ public class RefreshTokenManager {
 
     private String buildKey(Long userId, String provider) {
         return "sessions:" + userId + ":" + provider;
+    }
+
+    public record InvalidatedSession(String sessionId, long accessExpiresAt) {
     }
 }
