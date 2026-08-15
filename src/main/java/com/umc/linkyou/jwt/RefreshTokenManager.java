@@ -247,28 +247,42 @@ public class RefreshTokenManager {
             return Optional.empty();
         }
 
+        Map<String, Object> sessionData;
         try {
-            Map<String, Object> sessionData = objectMapper.readValue(raw, Map.class);
-            boolean hasSessionId = sessionData.containsKey("sessionId");
-            boolean hasAccessExpiresAt = sessionData.containsKey("accessExpiresAt");
+            sessionData = objectMapper.readValue(raw, Map.class);
+        } catch (Exception e) {
+            throw new UserHandler(UserErrorStatus._REFRESH_TOKEN_PARSE_ERROR);
+        }
 
-            if (!hasSessionId && !hasAccessExpiresAt) {
-                if (isLegacySession(sessionData)) {
-                    return Optional.empty();
-                }
-                throw new UserHandler(UserErrorStatus._REFRESH_TOKEN_SESSION_INVALID);
+        boolean hasSessionId = sessionData.containsKey("sessionId");
+        boolean hasAccessExpiresAt = sessionData.containsKey("accessExpiresAt");
+
+        if (!hasSessionId && !hasAccessExpiresAt) {
+            if (isValidLegacySession(sessionData)) {
+                return Optional.empty();
             }
+            throw new UserHandler(UserErrorStatus._REFRESH_TOKEN_SESSION_INVALID);
+        }
 
-            String sessionId = (String) sessionData.get("sessionId");
-            Long accessExpiresAt = toLong(sessionData.get("accessExpiresAt"));
+        String sessionId;
+        Long accessExpiresAt;
+        try {
+            sessionId = (String) sessionData.get("sessionId");
+            accessExpiresAt = toLong(sessionData.get("accessExpiresAt"));
+        } catch (Exception e) {
+            throw new UserHandler(UserErrorStatus._REFRESH_TOKEN_PARSE_ERROR);
+        }
 
-            if (sessionId == null || sessionId.isBlank() || accessExpiresAt == null) {
-                throw new UserHandler(UserErrorStatus._REFRESH_TOKEN_SESSION_INVALID);
-            }
+        if (sessionId == null || sessionId.isBlank() || accessExpiresAt == null) {
+            throw new UserHandler(UserErrorStatus._REFRESH_TOKEN_SESSION_INVALID);
+        }
 
-            return Optional.of(new InvalidatedSession(sessionId, accessExpiresAt));
-        } catch (UserHandler e) {
-            throw e;
+        return Optional.of(new InvalidatedSession(sessionId, accessExpiresAt));
+    }
+
+    private boolean isValidLegacySession(Map<String, Object> sessionData) {
+        try {
+            return isLegacySession(sessionData);
         } catch (Exception e) {
             throw new UserHandler(UserErrorStatus._REFRESH_TOKEN_PARSE_ERROR);
         }
