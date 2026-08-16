@@ -46,6 +46,8 @@ public interface LinkuApi {
                       - job_id 6 → situation 41~48
                     - **title** (선택): 미입력 시 AI 분석값이 사용됩니다.
                     - **image** (선택): 대표 이미지. 미첨부 시 URL에서 자동 추출합니다.
+                    
+                    Content-Type 주의: 이 API는 파일 업로드(image)를 지원하기 위해 multipart/form-data로만 요청을 받습니다. Swagger UI에는 (MultipartFile을 제외한) 나머지 파라미터들이 편의상 query 타입으로 표시되지만, 이는 문서화 라이브러리(springdoc)의 표기 방식일 뿐이며 실제로는 반드시 multipart/form-data 요청의 폼 필드로 함께 전송해야 합니다. 순수 쿼리스트링이나 application/json으로 보내면 415(Unsupported Media Type)가 발생합니다.
                     """
     )
     @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_INVALID_URL, LinkuErrorStatus._LINKU_VIDEO_NOT_ALLOWED, LinkuErrorStatus._KEYWORD_NOT_FOUND, LinkuErrorStatus._SITUATION_NOT_MATCH_JOB,LinkuErrorStatus._LINKU_CONFLICT})
@@ -98,6 +100,8 @@ public interface LinkuApi {
                     - **categoryId** (선택): 카테고리를 변경하면 링크(Linku)의 공유 카테고리 자체는 바뀌지 않고, 내 폴더 중 해당 카테고리의 중분류(루트) 폴더로 이 링크가 이동합니다. 소분류로는 이동하지 않습니다.
                     - URL 자체는 이 API로 변경할 수 없습니다.
                     - 소분류 폴더로의 이동은 이 API로 처리하지 않고 별도의 링크 폴더 이동 API(`PATCH /linku/{linkuId}/folder`)를 사용해야 합니다.
+                    
+                    Content-Type 주의: 이 API는 파일 업로드(image)를 지원하기 위해 multipart/form-data로만 요청을 받습니다. Swagger UI에는 (MultipartFile을 제외한) 나머지 파라미터들이 편의상 query 타입으로 표시되지만, 이는 문서화 라이브러리(springdoc)의 표기 방식일 뿐이며 실제로는 반드시 multipart/form-data 요청의 폼 필드로 함께 전송해야 합니다. 순수 쿼리스트링이나 application/json으로 보내면 415(Unsupported Media Type)가 발생합니다.
                     """
     )
     @ApiErrorCode(
