@@ -107,6 +107,7 @@ public class SwaggerConfig {
                 .group("user")
                 .pathsToMatch("/api/v1/**", "/api/v2/**")
                 .pathsToExclude("/api/v1/admin/**", "/api/v1/manage/**")
+                .addOperationCustomizer(customize())
                 .addOpenApiCustomizer(openApi -> openApi.getInfo().setDescription(
                         "linkyou API 명세서 (User)\n\n" + buildErrorCodeReference(errorEnumsForGroup(ApiGroup.USER))))
                 .build();
@@ -117,6 +118,7 @@ public class SwaggerConfig {
         return GroupedOpenApi.builder()
                 .group("manager")
                 .pathsToMatch("/api/v1/manage/**")
+                .addOperationCustomizer(customize())
                 .addOpenApiCustomizer(openApi -> openApi.getInfo().setDescription(
                         "linkyou API 명세서 (Manager)\n\n" + buildErrorCodeReference(errorEnumsForGroup(ApiGroup.MANAGER))))
                 .build();
@@ -127,6 +129,7 @@ public class SwaggerConfig {
         return GroupedOpenApi.builder()
                 .group("admin")
                 .pathsToMatch("/api/v1/admin/**")
+                .addOperationCustomizer(customize())
                 .addOpenApiCustomizer(openApi -> openApi.getInfo().setDescription(
                         "linkyou API 명세서 (Admin)\n\n" + buildErrorCodeReference(errorEnumsForGroup(ApiGroup.ADMIN))))
                 .build();
