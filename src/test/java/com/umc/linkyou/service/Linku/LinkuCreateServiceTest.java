@@ -11,6 +11,7 @@ import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
 import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
 import com.umc.linkyou.infra.net.SafeUrlFetcher;
 import com.umc.linkyou.infra.parser.LinkToImageService;
+import com.umc.linkyou.infra.parser.RobotsTxtChecker;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
@@ -67,6 +68,7 @@ class LinkuCreateServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private AwsS3Service awsS3Service;
     @Mock private LinkToImageService linkToImageService;
+    @Mock private RobotsTxtChecker robotsTxtChecker;
     @Mock private SituationRepository situationRepository;
     @Mock private AiArticleRepository aiArticleRepository;
     @Mock private GeminiLinkuService geminiLinkuService;
@@ -361,7 +363,7 @@ class LinkuCreateServiceTest {
                 EMOTION_ID,
                 SITUATION_ID
         );
-        lenient().when(geminiLinkuService.analyzeByUrl(any(), any(), any(), any())).thenReturn(Optional.of(mockAiResult));
+        lenient().when(geminiLinkuService.analyzeByUrl(any(), any(), any(), any(), any())).thenReturn(Optional.of(mockAiResult));
 
         lenient().when(categoryRepository.findById(any()))
                 .thenAnswer(inv -> Optional.of(LinkuFixture.category()));
@@ -371,7 +373,7 @@ class LinkuCreateServiceTest {
         lenient().when(domainRepository.findById(anyLong()))
                 .thenAnswer(inv -> Optional.of(LinkuFixture.domain()));
 
-        lenient().when(linkToImageService.getRelatedImageFromUrl(eq(TEST_URL), any())).thenReturn(crawledImageUrl);
+        lenient().when(linkToImageService.getRelatedImageFromUrl(eq(TEST_URL), any(), any())).thenReturn(crawledImageUrl);
 
         // linkuUpsertService.upsert() 결과 모킹 추가
         Linku mockLinku = LinkuFixture.linku(crawledImageUrl);
