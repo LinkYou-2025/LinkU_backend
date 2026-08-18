@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
 
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.List;
 
@@ -22,6 +23,21 @@ public class LinkToImageService {
     private final CustomSearchImageClient customSearchImageClient;
 
     private static final int IMAGE_FETCH_TIMEOUT_MS = 5000;
+
+    // 대표 이미지 최소 용량 기준, 아이콘류 방지용임
+    private static final long MIN_IMAGE_BYTES = 15 * 1024;
+
+    // Content-Length만 확인, 실패하면 false로 처리함
+    private boolean isLargeEnough(String imageUrl) {
+        try {
+            HttpURLConnection conn = safeUrlFetcher.openConnection(imageUrl, "Mozilla/5.0", 1500, 1500);
+            long length = conn.getContentLengthLong();
+            conn.disconnect();
+            return length >= MIN_IMAGE_BYTES;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     // URL에서 도메인 추출
     private String extractDomainFromUrl(String url) {
@@ -68,10 +84,10 @@ public class LinkToImageService {
             Document realDoc = safeUrlFetcher.fetchDocument(realUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
 
             String ogImage = realDoc.select("meta[property=og:image]").attr("content");
-            if (!ogImage.isEmpty()) return ogImage;
+            if (!ogImage.isEmpty() && isLargeEnough(ogImage)) return ogImage;
 
             String firstImg = realDoc.select("img").attr("src");
-            return !firstImg.isEmpty() ? firstImg : null;
+            return (!firstImg.isEmpty() && isLargeEnough(firstImg)) ? firstImg : null;
         } catch (Exception e) {
             return null;
         }
@@ -105,13 +121,13 @@ public class LinkToImageService {
             if (imgUrl.isEmpty()) {
                 imgUrl = doc.select(selector).attr("href");
             }
-            if (!imgUrl.isEmpty()) {
+            if (!imgUrl.isEmpty() && isLargeEnough(imgUrl)) {
                 return imgUrl;
             }
         }
 
         String imgTag = doc.select("img").attr("src");
-        if (!imgTag.isEmpty()) {
+        if (!imgTag.isEmpty() && isLargeEnough(imgTag)) {
             return imgTag;
         }
         return null;
