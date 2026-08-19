@@ -29,9 +29,10 @@ public interface LinkuFolderRepository  extends JpaRepository<LinkuFolder, Long>
     @Query("""
         select lf from LinkuFolder lf
         join fetch lf.usersLinku ul
-        join fetch ul.linku l 
-        where lf.folder.folderId = :folderId 
-          and l.linkuId < :cursorId 
+        join fetch ul.linku l
+        left join fetch l.domain d
+        where lf.folder.folderId = :folderId
+          and l.linkuId < :cursorId
         order by l.linkuId desc
     """)
     List<LinkuFolder> findWithCursor(

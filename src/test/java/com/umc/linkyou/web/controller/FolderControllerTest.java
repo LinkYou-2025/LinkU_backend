@@ -302,11 +302,11 @@ class FolderControllerTest {
         @DisplayName("성공")
         class Success {
             @Test
-            @DisplayName("정상 요청 시 중분류 폴더 목록을 반환한다")
+            @DisplayName("정상 요청 시 categoryId를 포함해 중분류 폴더 목록을 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_중분류폴더목록을_반환한다() throws Exception {
                 FolderListResponseDTO item = FolderListResponseDTO.builder()
-                        .folderId(PARENT_FOLDER_ID).folderName("중분류").isBookmarked(false).isSharing("private").build();
+                        .folderId(PARENT_FOLDER_ID).folderName("중분류").isBookmarked(false).isSharing("private").categoryId(10L).build();
 
                 given(folderService.getParentFolders(1L, "name")).willReturn(List.of(item));
 
@@ -318,6 +318,7 @@ class FolderControllerTest {
                 List<FolderListResponseDTO> folders = readResultList(result, objectMapper, FolderListResponseDTO.class);
                 assertThat(folders).hasSize(1);
                 assertThat(folders.get(0).getIsSharing()).isEqualTo("private");
+                assertThat(folders.get(0).getCategoryId()).isEqualTo(10L);
             }
         }
     }
@@ -439,7 +440,7 @@ class FolderControllerTest {
                 response.setLinks(List.of());
                 response.setNextCursor(null);
 
-                given(folderService.getFolderLinkus(1L, FOLDER_ID, 20, null, "name")).willReturn(response);
+                given(folderService.getFolderLinkus(1L, FOLDER_ID, 20, null, "name", true)).willReturn(response);
 
                 MvcResult result = mockMvc.perform(get("/api/v1/folders/{folderId}/linkus", FOLDER_ID))
                         .andExpect(status().isOk())
@@ -452,6 +453,22 @@ class FolderControllerTest {
                 assertThat(linkus.getLinks()).isEmpty();
                 assertThat(linkus.getNextCursor()).isNull();
             }
+
+            @Test
+            @DisplayName("includeLinks=false로 요청하면 폴더 목록만 반환한다")
+            @WithCustomUser(userId = 1L)
+            void includeLinks가_false면_폴더목록만_반환한다() throws Exception {
+                FolderLinkusResponseDTO response = new FolderLinkusResponseDTO();
+                response.setFolders(List.of());
+                response.setLinks(List.of());
+                response.setNextCursor(null);
+
+                given(folderService.getFolderLinkus(1L, FOLDER_ID, 20, null, "name", false)).willReturn(response);
+
+                mockMvc.perform(get("/api/v1/folders/{folderId}/linkus", FOLDER_ID).param("includeLinks", "false"))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true));
+            }
         }
 
         @Nested
@@ -461,7 +478,7 @@ class FolderControllerTest {
             @DisplayName("커서가 유효하지 않으면 400과 에러코드를 반환한다")
             @WithCustomUser(userId = 1L)
             void 커서가_유효하지_않으면_400을_반환한다() throws Exception {
-                given(folderService.getFolderLinkus(1L, FOLDER_ID, 20, "abc", "name"))
+                given(folderService.getFolderLinkus(1L, FOLDER_ID, 20, "abc", "name", true))
                         .willThrow(new GeneralException(FolderErrorStatus._FOLDER_INVALID_CURSOR));
 
                 mockMvc.perform(get("/api/v1/folders/{folderId}/linkus", FOLDER_ID).param("cursor", "abc"))

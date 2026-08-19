@@ -10,8 +10,8 @@ import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.service.folder.shared.SharedFolderService;
 import com.umc.linkyou.support.security.TestSecurityConfig;
 import com.umc.linkyou.support.security.WithCustomUser;
-import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.SharedFolderGroupResponseDTO;
+import com.umc.linkyou.web.dto.folder.share.SharedFolderItemDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -68,8 +68,8 @@ class SharedFolderControllerTest {
             @DisplayName("정상 요청 시 소유자별로 그룹핑된 폴더 목록을 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_그룹핑된_목록을_반환한다() throws Exception {
-                FolderTreeResponseDTO folder = FolderTreeResponseDTO.builder()
-                        .folderId(FOLDER_ID).folderName("어학").isBookmarked(false).build();
+                SharedFolderItemDTO folder = SharedFolderItemDTO.builder()
+                        .folderId(FOLDER_ID).folderName("어학").isBookmarked(false).categoryId(10L).build();
                 SharedFolderGroupResponseDTO group = SharedFolderGroupResponseDTO.builder()
                         .userId(2L).nickname("친구").folders(List.of(folder)).build();
 
@@ -86,6 +86,7 @@ class SharedFolderControllerTest {
                 assertThat(groups.get(0).getNickname()).isEqualTo("친구");
                 assertThat(groups.get(0).getFolders()).hasSize(1);
                 assertThat(groups.get(0).getFolders().get(0).getFolderId()).isEqualTo(FOLDER_ID);
+                assertThat(groups.get(0).getFolders().get(0).getCategoryId()).isEqualTo(10L);
             }
         }
 

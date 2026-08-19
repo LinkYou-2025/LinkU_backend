@@ -57,6 +57,11 @@ public class ShareFolderServiceImpl implements ShareFolderService {
             throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
+        // 정책: 소분류 폴더만 공유 가능 (중분류 폴더는 공유 불가)
+        if (folder.getParentFolder() == null) {
+            throw new GeneralException(ShareFolderErrorStatus._FOLDER_SHARE_ONLY_SUBFOLDER_ALLOWED);
+        }
+
         // 이미 존재하는 링크 확인
         Optional<FolderShareLink> existingLink = folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(folderId);
 

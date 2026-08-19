@@ -1,4 +1,4 @@
-package com.umc.linkyou.web.dto.folder;
+package com.umc.linkyou.web.dto.folder.share;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,11 +11,9 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FolderListResponseDTO {
+public class SharedFolderItemDTO {
     private Long folderId;
     private String folderName;
-    private Long parentFolderId;
     private Boolean isBookmarked;
-    private String isSharing;
     private Long categoryId;
 }

@@ -1,163 +1,159 @@
-# backend-server
+# LinkU Server
 
-🔗 **링큐(Link:U)**: **Link**+**You**  
-링크와 당신을 잇다
-당신을 생각하는 링큐
+**LinkU**는 저장한 링크를 다시 발견하고, 나에게 맞는 콘텐츠를 큐레이션하는 링크 아카이빙 플랫폼입니다.
 
-> **유저맞춤 링크추천**으로 _"사용자에게 가장 적합한 콘텐츠를 제공"_ 하며,  
-> 단순 아카이빙을 넘어, 정보 재소비와 재발견의 즐거움을 제공.
-- 사용자가 앱에 저장한 링크를 바탕으로 AI가 정보를 간단히 요약하고 분류
-- 저장된 링크 기반으로 사용자의 라이프스타일, 감정 상태 등을 고려한 맞춤형 큐레이션 서비스 제공
-- 저장한 링크를 맞춤형 뉴스레터 형식으로 제공
-  <img width="1920" height="1400" alt="표지" src="https://github.com/user-attachments/assets/7e92645c-c528-42fa-a393-73c301b2bf28" />
+> 링크와 당신을 잇다, **LinkU**
 
+- 링크 저장·분류·검색과 폴더 기반 아카이빙
+- AI 요약과 개인화 큐레이션을 통한 콘텐츠 재발견
+- 공유 폴더와 알림으로 이어지는 링크 경험
 
-### ✅ 진행 사항 확인
-- **Notion**에서 자세한 진행사항 보러가기 ->   
-  [![Notion](https://img.shields.io/badge/Notion-000000?style=flat-square&logo=notion&logoColor=white)](https://sapphire-lamprey-5db.notion.site/1f393020f65580249c69d231b96abbec?source=copy_link)
+<img width="600" alt="LinkU cover" src="https://github.com/user-attachments/assets/7e92645c-c528-42fa-a393-73c301b2bf28" />
 
+## 프로젝트 진행 기간
 
-### 💙 팀원 소개
+| 구분 | 기간                 |
+| --- |--------------------|
+| 데모데이 | 2025.06 ~ 2025.08  |
+| 런칭 준비 | ~ ing              |
 
-|장서원|이지원|나현주|                                                         조효림                                                          |
-|:---:|:---:|:---:|:--------------------------------------------------------------------------------------------------------------------:|
-|<img src="https://github.com/user-attachments/assets/65b56c2f-15f4-4dcd-9871-ac4656773441" width="300" height="230">|<img width="320" height="320" src="https://github.com/user-attachments/assets/5e6f4ba3-af45-4219-b5ed-a0cd71aa5237" />|<img src="https://github.com/HyeonJooooo.png" width="300" height="230">| <img src="https://github.com/user-attachments/assets/8becc477-f7d2-4d85-96ba-0b9e8719413a" width="300" height="230"> |
-|[@oculo0204](https://github.com/oculo0204)|[@JiwonLee42](https://github.com/JiwonLee42)|[@HyeonJooooo](https://github.com/HyeonJooooo)|                                      [@hyorim-jo](https://github.com/hyorim-jo)                                      |
-|ai기반 링크 생성 및 추천, 회원 탈퇴, 서버 배포| 로그인/이메일 인증, FCM 알림 기능 |ai기반 링크 큐레이션, cloudwatch 설정|                                 폴더 공유 포함 폴더 관련 기능, 큐레이션, AI 기반 내/외부 링크 추천 (큐레이션 내부)                                  |
+## 🛠 Tech Stack
 
+<p>
+  <strong>Language</strong><br />
+  <img src="https://img.shields.io/badge/Java_17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 17" />
+</p>
 
+<p>
+  <strong>Framework · Security · Test</strong><br />
+  <img src="https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot" />
+  <img src="https://img.shields.io/badge/Spring_Data_JPA-6DB33F?style=for-the-badge&logo=spring&logoColor=white" alt="Spring Data JPA" />
+  <img src="https://img.shields.io/badge/Spring_Batch-6DB33F?style=for-the-badge&logo=spring&logoColor=white" alt="Spring Batch" />
+  <img src="https://img.shields.io/badge/QueryDSL-005571?style=for-the-badge&logoColor=white" alt="QueryDSL" />
+  <img src="https://img.shields.io/badge/Spring_Security-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white" alt="Spring Security" />
+  <img src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white" alt="JWT" />
+  <img src="https://img.shields.io/badge/OAuth2-4285F4?style=for-the-badge&logo=openid&logoColor=white" alt="OAuth2" />
+  <img src="https://img.shields.io/badge/JUnit_5-25A162?style=for-the-badge&logo=junit5&logoColor=white" alt="JUnit 5" />
+  <img src="https://img.shields.io/badge/Testcontainers-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Testcontainers" />
+  <img src="https://img.shields.io/badge/JaCoCo-B4A76C?style=for-the-badge&logoColor=white" alt="JaCoCo" />
+  <img src="https://img.shields.io/badge/Resilience4j-6DB33F?style=for-the-badge&logo=spring&logoColor=white" alt="Resilience4j" />
+</p>
 
+<p>
+  <strong>Data · Storage</strong><br />
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis" />
+  <img src="https://img.shields.io/badge/Flyway-CC0200?style=for-the-badge&logo=flyway&logoColor=white" alt="Flyway" />
+  <img src="https://img.shields.io/badge/AWS_S3-569A31?style=for-the-badge&logo=amazons3&logoColor=white" alt="AWS S3" />
+</p>
 
-## 🛠 기술 스택 및 환경
+<p>
+  <strong>Infra · Monitoring</strong><br />
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+  <img src="https://img.shields.io/badge/Terraform-844FBA?style=for-the-badge&logo=terraform&logoColor=white" alt="Terraform" />
+  <img src="https://img.shields.io/badge/AWS_EC2-FF9900?style=for-the-badge&logo=amazonec2&logoColor=white" alt="AWS EC2" />
+  <img src="https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="GitHub Actions" />
+  <img src="https://img.shields.io/badge/Spring_Actuator-6DB33F?style=for-the-badge&logo=spring&logoColor=white" alt="Spring Actuator" />
+  <img src="https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white" alt="Prometheus" />
+  <img src="https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white" alt="Grafana" />
+</p>
 
-- **Backend**
-  - Java 17
-  - Spring Boot 3.4.7
-  - Gradle 8.14.2
-  - Hibernate ORM 6.0.2
-
-- **Database**
-  - MariaDB 3.3.3 (JDBC 드라이버)
-
-- **캐싱 및 세션**
-  - Redis (spring-boot-starter-data-redis)
-
-- **보안 및 인증**
-  - Spring Security
-  - JWT (jjwt 라이브러리)
-
-- **API 문서화**
-  - Swagger (springdoc-openapi-starter-webmvc-ui 2.7.0)
-
-- **UI 템플릿**
-  - Thymeleaf + Spring Security
-
-- **클라우드 & 인프라**
-  - AWS EC2, S3, Route53
-
-- **CI/CD**
-  - GitHub Actions
-
-- **주요 라이브러리**
-  - Lombok, QueryDSL, JavaMail, SendGrid, Jsoup, Spring WebFlux
-
-- **Gradle 설정**
-  - `java`, `org.springframework.boot`, `io.spring.dependency-management` 플러그인 적용
-  - QueryDSL 자동 생성, 컴파일러 추가 옵션 설정
+<p>
+  <strong>Documentation · External</strong><br />
+  <img src="https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black" alt="Swagger" />
+  <img src="https://img.shields.io/badge/Firebase_Cloud_Messaging-DD2C00?style=for-the-badge&logo=firebase&logoColor=white" alt="Firebase Cloud Messaging" />
+  <img src="https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white" alt="Google Gemini" />
+</p>
 
 ---
 
-## 📚 문서
+## 📚 목차
 
-- **[로깅 및 에러 처리 가이드](./LOGGING.md)** - API 에러 로그 확인 및 Docker 로그 모니터링 방법
+1. [프로젝트 소개](#-프로젝트-소개)
+2. [백엔드 팀원 소개](#-백엔드-팀원-소개)
+3. [기술 스택](#-tech-stack)
+4. [ERD](#-erd)
+5. [서버 아키텍처](#-서버-아키텍처)
+6. [프로젝트 구조](#-프로젝트-구조)
+7. [브랜치 전략](#-브랜치-전략)
+
+---
+
+## 📖 프로젝트 소개
+
+LinkU는 링크를 단순히 저장하는 데서 그치지 않고, AI 요약·분류와 개인화 큐레이션을 통해 사용자가 필요한 정보를 다시 찾을 수 있도록 돕습니다.
+
+**주요 기능**
+
+- 링크 저장, AI 요약·분류, 키워드 및 링크 검색
+- 개인 폴더와 공유 폴더를 통한 링크 관리
+- 개인화 큐레이션과 추천 링크 제공
+- OAuth2·JWT 기반 회원 인증 및 마이페이지
+- FCM 기반 알림, 배치 작업, 운영 모니터링
+
+## 👤 백엔드 팀원 소개
+
+<div align="center">
+
+| Backend | Backend | Backend |
+|:---:|:---:|:---:|
+| <img src="https://github.com/oculo0204.png" width="150" alt="서원" /> | <img src="https://github.com/JiwonLee42.png" width="150" alt="지원" /> | <img src="https://github.com/hyorim-jo.png" width="150" alt="효림" /> |
+| [서원](https://github.com/oculo0204)<br />링크 기능 · 회원 · 마이페이지 | [지원](https://github.com/JiwonLee42)<br />알림 · 서버 배포 · 회원<br />검색 · 배치 작업 | [효림](https://github.com/hyorim-jo)<br />큐레이션 · 모니터링<br />폴더 · 공유 폴더 |
+
+</div>
+
+---
+
+## 🗂 ERD
+
+<img width="700" height="500" alt="LinkU ERD" src="https://github.com/user-attachments/assets/920add42-371d-4b07-b7af-52fda4b913c2" />
+
+---
+
+## 🖥 서버 아키텍처
+
+<img width="700" height="800" alt="LinkU 서비스 아키텍처" src="https://github.com/user-attachments/assets/77e646eb-1ccc-4a62-a5cd-7af6719fa669" />
 
 ---
 
 ## 📂 프로젝트 구조
+
+```plaintext
+src
+ ├── main
+ │   ├── java/com/umc/linkyou
+ │   │   ├── apiPayload     # 공통 응답·예외·상태 코드
+ │   │   ├── batch          # 배치 작업
+ │   │   ├── config         # 보안·인프라·프로퍼티 설정
+ │   │   ├── converter      # Entity ↔ DTO 변환
+ │   │   ├── domain         # JPA 엔티티·도메인 enum
+ │   │   ├── infra          # AI·S3·FCM·파서 외부 연동
+ │   │   ├── jwt            # JWT 인증·세션 관리
+ │   │   ├── repository     # 데이터 접근 계층
+ │   │   ├── service        # 비즈니스 로직
+ │   │   └── web            # Controller·API·DTO
+ │   └── resources
+ │       ├── application.yml
+ │       └── db             # 마이그레이션·초기 데이터
+ └── test
+     └── java/com/umc/linkyou
 ```
-backend-server/
-├── src/
-│   ├── main/
-│   │   ├── java/com/linku/
-│   │   │   ├── controller/   # API 엔드포인트
-│   │   │   ├── service/      # 비즈니스 로직
-│   │   │   ├── repository/   # 데이터 접근 계층
-│   │   │   ├── config/       # 설정
-│   │   │   └── utils/        # 유틸리티 클래스
-│   │   └── resources/
-│   │       ├── application.properties
-│   │       └── data.sql      # 초기값 설정
-│   └── test/
-│       └── java/com/linku/
-└── build.gradle
-```
 
 
+---
 
-## 📌 Branch 전략 ##
-## Branch
+## 🌿 브랜치 전략
 
-본 프로젝트는 Gitflow 브랜치 전략을 따릅니다.
+- 기본 통합 브랜치: `develop`
+- 기능 개발: `feat/#이슈번호-간단한설명`
+- 버그 수정: `fix/#이슈번호-간단한설명`
+- 리팩터링: `refactor/#이슈번호-간단한설명`
+- 설정·문서: `chore/#이슈번호-간단한설명`, `docs/#이슈번호-간단한설명`
 
+모든 작업은 이슈를 등록한 뒤 `develop`에서 분기합니다. 완료된 변경은 Pull Request에서 리뷰를 거쳐 `develop`에 병합합니다.
 
-<div align=center>
-    <img src="https://techblog.woowahan.com/wp-content/uploads/img/2017-10-30/git-flow_overall_graph.png" width=50% alt="브랜치 전략 설명 이미지"/>
-</div>
-
-모든 기능 개발은 다음 흐름을 따릅니다.
-
-1. 개발하고자 하는 기능에 대한 이슈를 등록하여 번호를 발급합니다.
-2. `main` 브랜치로부터 분기하여 이슈 번호를 사용해 이름을 붙인 `feature` 브랜치를 만든 후 작업합니다.
-3. 작업이 완료되면 `develop` 브랜치에 풀 요청을 작성하고, 팀원의 동의를 얻으면 병합합니다.
-
-# Branch	종류
-- main	기능 개발 통합 브랜치 (pull request하고 동료들에게 merge요청, 확인이 오래걸리면 스스로 merge)
-  데모용 프로젝트이기 때문에 배포용 브랜치를 따로 두지 않습니다.
-- feature/{이슈번호}{간단한설명}	새로운 기능 개발 브랜치
-- fix/{이슈번호}{간단한설명}	버그 수정 브랜치
-- hotfix/{이슈번호}{간단한설명}	긴급 수정 브랜치
-- refactor/{이슈번호}{간단한설명}	리팩토링 브랜치
-- chore/{이슈번호}{간단한설명}	기타 설정, 패키지 변경 등
-# Branch    설명
-1. 기능개발이 완료된 브랜치는 develop브랜치에 merge합니다.
-2. merge된 Branch는 삭제합니다.
-   </br></br>
-   ✅ 예시
-- feature/#12-login-api
-- fix/#17-cors-error
-- chore/#20-env-setting
-  </br></br>
-  ✅ Git 사용 규칙
-# 커밋 메시지 형식
-- #이슈번호 <타입>: <변경 요약>
-  </br>
-- <타입> 종류</br>
-  태그 이름	설명</br>
-  [init] 초기설정</br>
-  [chore]	코드 수정, 내부 파일 수정</br>
-  [feat]	새로운 기능 구현</br>
-  [add]	FEAT 이외의 부수적인 코드 추가, 라이브러리 추가, 새로운 파일 생성</br>
-  [hotfix]	issue나 QA에서 급한 버그 수정에 사용</br>
-  [fix]	버그, 오류 해결</br>
-  [del]	쓸모 없는 코드 삭제</br>
-  [docs]	README나 WIKI 등의 문서 개정</br>
-  [correct]	주로 문법의 오류나 타입의 변경, 이름 변경에 사용</br>
-  [move]	프로젝트 내 파일이나 코드의 이동</br>
-  [rename]	파일 이름 변경이 있을 때 사용</br>
-  [improve]	향상이 있을 때 사용</br>
-  [refactor]	전면 수정이 있을 때 사용</br>
-  [test]	테스트 코드 추가 시 사용 </br>
-
-# 💙서비스 아키텍처
-
-<img width="876" height="977" alt="링큐 서비스 아키텍쳐 drawio (2)" src="https://github.com/user-attachments/assets/77e646eb-1ccc-4a62-a5cd-7af6719fa669" />
-
-# erd
-<img width="5340" height="2092" alt="linkU-BE" src="https://github.com/user-attachments/assets/920add42-371d-4b07-b7af-52fda4b913c2" />
+---
 
 ## Copyright
 
-© 2025 LinkU Team. All rights reserved.
-
-This project and its source code are proprietary and confidential.
-Unauthorized copying, modification, distribution, or use of this software is strictly prohibited.
+© 2026 LinkU Team. All rights reserved.

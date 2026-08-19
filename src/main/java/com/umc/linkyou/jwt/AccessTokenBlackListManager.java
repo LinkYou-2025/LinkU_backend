@@ -19,14 +19,25 @@ import java.util.HexFormat;
 public class AccessTokenBlackListManager {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private static final String BLACKLIST_PREFIX = "blacklist:access:";
-    private static final String BLACKLIST_REASON_LOGOUT = "logout";
+    static final String SESSION_BLACKLIST_PREFIX = "blacklist:access:session:";
+    private static final String LEGACY_BLACKLIST_PREFIX = "blacklist:access:";
+    static final String BLACKLIST_REASON_LOGOUT = "logout";
     private final StringRedisTemplate redisTemplate;
 
     // 로그아웃 , 탈퇴시 블랙리스트로 등록(엑세스 토큰 남은 만료 시간만큼 ttl 설정)
     public void addToBlacklist(String token, long ttlMs) {
-        String key = blacklistKey(token);
+        String sessionId = jwtTokenProvider.getSessionId(token);
+        String key = sessionId == null || sessionId.isBlank() ? legacyBlacklistKey(token) : blacklistKey(sessionId);
         redisTemplate.opsForValue().set(key, BLACKLIST_REASON_LOGOUT, Duration.ofMillis(ttlMs));
+    }
+
+    public void addSessionToBlacklist(String sessionId, long ttlMs) {
+        if (sessionId == null || sessionId.isBlank() || ttlMs <= 0) {
+            return;
+        }
+
+        redisTemplate.opsForValue().set(
+                blacklistKey(sessionId), BLACKLIST_REASON_LOGOUT, Duration.ofMillis(ttlMs));
     }
 
     // 토큰이 블랙리스트에 있는지 확인
@@ -35,12 +46,18 @@ public class AccessTokenBlackListManager {
             return false;
         }
 
-        return redisTemplate.hasKey(blacklistKey(token));
+        String sessionId = jwtTokenProvider.getSessionId(token);
+        String key = sessionId == null || sessionId.isBlank() ? legacyBlacklistKey(token) : blacklistKey(sessionId);
+        return redisTemplate.hasKey(key);
     }
 
-    private String blacklistKey(String token) {
+    private String blacklistKey(String sessionId) {
+        return SESSION_BLACKLIST_PREFIX + sessionId;
+    }
+
+    private String legacyBlacklistKey(String token) {
         String normalizedToken = jwtTokenProvider.normalizeStrict(token);
-        return BLACKLIST_PREFIX + sha256Hex(normalizedToken);
+        return LEGACY_BLACKLIST_PREFIX + sha256Hex(normalizedToken);
     }
 
     private String sha256Hex(String value) {

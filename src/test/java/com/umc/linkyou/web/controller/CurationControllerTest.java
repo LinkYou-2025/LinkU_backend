@@ -185,13 +185,15 @@ class CurationControllerTest {
             }
 
             @Test
-            @DisplayName("최근 큐레이션이 없으면 204를 반환한다")
+            @DisplayName("최근 큐레이션이 없으면 200과 빈 result 객체를 반환한다")
             @WithCustomUser(userId = 1L)
-            void 최근큐레이션없음_시_204를_반환한다() throws Exception {
+            void 최근큐레이션없음_시_200과_빈result객체를_반환한다() throws Exception {
                 given(curationService.getLatestCuration(1L)).willReturn(Optional.empty());
 
                 mockMvc.perform(get("/api/v1/curations/latest"))
-                        .andExpect(status().isNoContent());
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.result").isEmpty());
             }
         }
     }
