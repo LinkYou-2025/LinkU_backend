@@ -20,8 +20,7 @@ public enum LinkuErrorStatus implements BaseErrorCode {
     _KEYWORD_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU4042", "해당 키워드를 찾을 수 없습니다."),
     _SITUATION_NOT_MATCH_JOB(HttpStatus.BAD_REQUEST, "LINKU4004", "선택한 상황이 사용자의 직업과 맞지 않습니다."),
     _LINKU_CONFLICT(HttpStatus.CONFLICT, "LINKU4091", "링크 저장 중 충돌이 발생했습니다."),
-    _SEARCH_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU4043", "검색 기록이 존재하지 않습니다."),
-    _LINKU_INVALID_MONTH(HttpStatus.BAD_REQUEST, "LINKU4006", "month는 YYYY-MM 형식이어야 합니다.");
+    _SEARCH_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "LINKU4043", "검색 기록이 존재하지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
