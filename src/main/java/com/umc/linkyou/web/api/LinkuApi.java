@@ -1,6 +1,7 @@
 package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
@@ -25,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.YearMonth;
 import java.util.List;
 
 @Tag(name = "linku-controller", description = "링크(Linku) 관련 API")
@@ -84,11 +86,12 @@ public interface LinkuApi {
             @RequestParam(defaultValue = "10") int limit
     );
 
-    @Operation(summary = "저번 달 미열람 링크 조회", description = "저번 달에 저장만 하고 한 번도 열어보지 않은 링크 목록을 조회합니다.")
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @Operation(summary = "저번 달 미열람 링크 조회", description = "month(YYYY-MM) 기준 저번 달에 저장만 하고 한 번도 열어보지 않은 링크 목록을 조회합니다. month를 생략하면 이번 달이 month가 됩니다.")
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND}, commonErrorStatus = {CommonErrorStatus._BAD_REQUEST})
     @GetMapping("/unread")
     ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getLastMonthUnreadLinkus(
-            @CurrentUser CustomUserDetails userDetails
+            @CurrentUser CustomUserDetails userDetails,
+            @RequestParam(required = false) YearMonth month
     );
 
     @Operation(

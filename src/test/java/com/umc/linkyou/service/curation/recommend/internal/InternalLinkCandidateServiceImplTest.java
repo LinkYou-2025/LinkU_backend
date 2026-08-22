@@ -42,7 +42,8 @@ class InternalLinkCandidateServiceImplTest {
 
     private static final Long USER_ID = 48L;
     private static final Long CURATION_ID = 181L;
-    private static final String MONTH = "2026-04";
+    private static final String MONTH = "2026-04"; // 큐레이션 이슈 월(N)
+    private static final String DATA_MONTH = "2026-03"; // 데이터 집계 월(N-1)
 
     private static final long EMOTION_JOY = 1L;
     private static final long EMOTION_EXCITEMENT = 3L;
@@ -86,7 +87,7 @@ class InternalLinkCandidateServiceImplTest {
         return KeywordMonthlyCount.builder()
                 .type(type)
                 .refId(refId)
-                .baseMonth(MONTH)
+                .baseMonth(DATA_MONTH)
                 .count(5)
                 .build();
     }
@@ -120,11 +121,11 @@ class InternalLinkCandidateServiceImplTest {
                 .thenReturn(List.of(link3, link2, link1));
 
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
                 .thenReturn(List.of(makeKmc(KeywordType.EMOTION, EMOTION_JOY)));
 
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
                 .thenReturn(List.of(makeKmc(KeywordType.SITUATION, SITUATION_ID)));
 
         when(situationCategoryRepository.findCategoryIdsBySituationId(SITUATION_ID))
@@ -152,10 +153,10 @@ class InternalLinkCandidateServiceImplTest {
         when(usersLinkuRepository.findAllByUserIdAndCreatedAtBetween(eq(USER_ID), any(), any()))
                 .thenReturn(links);
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
                 .thenReturn(List.of());
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
                 .thenReturn(List.of());
 
         List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 2);
@@ -176,10 +177,10 @@ class InternalLinkCandidateServiceImplTest {
         when(usersLinkuRepository.findAllByUserIdAndCreatedAtBetween(eq(USER_ID), any(), any()))
                 .thenReturn(List.of(oldLink, newLink));
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
                 .thenReturn(List.of());
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
                 .thenReturn(List.of());
 
         List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);
@@ -200,10 +201,10 @@ class InternalLinkCandidateServiceImplTest {
         when(usersLinkuRepository.findAllByUserIdAndCreatedAtBetween(eq(USER_ID), any(), any()))
                 .thenReturn(List.of(link1, link2));
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
                 .thenReturn(List.of());
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
                 .thenReturn(List.of());
 
         List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);

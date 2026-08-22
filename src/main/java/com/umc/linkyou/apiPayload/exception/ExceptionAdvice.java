@@ -32,6 +32,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 
+import java.time.YearMonth;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -65,9 +66,14 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         return handleExceptionInternalArgs(e, HttpHeaders.EMPTY, request, errors);
     }
 
+    private static final Map<Class<?>, String> TYPE_MISMATCH_MESSAGES = Map.of(
+            YearMonth.class, "month는 YYYY-MM 형식이어야 합니다. (예: 2026-08)"
+    );
+
     @ExceptionHandler
     public ResponseEntity<Object> handleTypeMismatch(MethodArgumentTypeMismatchException e, WebRequest request) {
-        Map<String, String> errors = Map.of(e.getName(), "형식이 올바르지 않습니다.");
+        String message = TYPE_MISMATCH_MESSAGES.getOrDefault(e.getRequiredType(), "형식이 올바르지 않습니다.");
+        Map<String, String> errors = Map.of(e.getName(), message);
 
         log.warn("[Method Argument Type Mismatch] Parameter: {}, Value: {}", e.getName(), e.getValue(), e);
         return handleExceptionInternalArgs(e, HttpHeaders.EMPTY, request, errors);

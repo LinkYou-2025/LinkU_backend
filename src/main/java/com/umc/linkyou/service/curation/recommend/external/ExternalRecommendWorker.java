@@ -26,6 +26,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,7 +61,10 @@ public class ExternalRecommendWorker {
         Users user = curation.getUser();
         Long userId = user.getId();
 
-        List<String> topTags = keywordMonthlyCountRepository.findTopByUserIdAndBaseMonth(userId, curation.getBaseMonth(), PageRequest.of(0, 3))
+        // curation.baseMonth는 이슈 월(N). 데이터 집계 기간은 N-1월이다.
+        String dataBaseMonth = YearMonth.parse(curation.getBaseMonth()).minusMonths(1).toString();
+
+        List<String> topTags = keywordMonthlyCountRepository.findTopByUserIdAndBaseMonth(userId, dataBaseMonth, PageRequest.of(0, 3))
                 .stream()
                 .map(kmc -> kmc.getType() == KeywordType.EMOTION
                         ? emotionMapper.getEmotionName(kmc.getRefId())

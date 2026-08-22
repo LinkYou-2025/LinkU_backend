@@ -1,6 +1,7 @@
 package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
@@ -23,7 +24,7 @@ import java.util.List;
 public interface KeywordApi {
 
     @Operation(summary = "같은 직업 유저들이 해당 월에 저장한 링크의 상위 키워드 조회")
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus._JOB_NOT_SET})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND, UserErrorStatus._JOB_NOT_SET}, commonErrorStatus = {CommonErrorStatus._BAD_REQUEST})
     @GetMapping("/job")
     ResponseEntity<ApiResponse<List<JobKeywordRankResponse>>> getJobTopKeywords(
             @CurrentUser CustomUserDetails userDetails,

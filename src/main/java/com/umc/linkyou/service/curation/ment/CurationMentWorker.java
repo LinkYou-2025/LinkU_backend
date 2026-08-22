@@ -19,6 +19,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -42,11 +43,12 @@ public class CurationMentWorker {
         Users user = curation.getUser();
         Long userId = user.getId();
         String nickname = user.getNickName();
-        String baseMonth = curation.getBaseMonth();
+        // curation.baseMonth는 이슈 월(N). 데이터 집계 기간은 N-1월이다.
+        String dataBaseMonth = YearMonth.parse(curation.getBaseMonth()).minusMonths(1).toString();
 
         // 상위 1개 감정 조회
         Optional<KeywordMonthlyCount> topEmotionCount = keywordMonthlyCountRepository
-                .findTopByUserIdAndBaseMonthAndType(userId, baseMonth, KeywordType.EMOTION, PageRequest.of(0, 1))
+                .findTopByUserIdAndBaseMonthAndType(userId, dataBaseMonth, KeywordType.EMOTION, PageRequest.of(0, 1))
                 .stream().findFirst();
 
         String emotionName;

@@ -21,6 +21,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.YearMonth;
 import java.util.List;
 
 @ApiV1
@@ -60,8 +61,8 @@ public class LinkuController implements LinkuApi {
     }
 
     @Override
-    public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getLastMonthUnreadLinkus(@CurrentUser CustomUserDetails userDetails) {
-        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_LAST_MONTH_UNREAD_OK, linkuService.getLastMonthUnreadLinkus(userDetails.getUserId()));
+    public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getLastMonthUnreadLinkus(@CurrentUser CustomUserDetails userDetails, @RequestParam(required = false) YearMonth month) {
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_LAST_MONTH_UNREAD_OK, linkuService.getLastMonthUnreadLinkus(userDetails.getUserId(), month));
     }
 
     @Override

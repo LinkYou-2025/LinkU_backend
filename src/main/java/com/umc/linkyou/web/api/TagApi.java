@@ -1,6 +1,7 @@
 package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
@@ -21,7 +22,7 @@ import java.util.List;
 public interface TagApi {
 
     @Operation(summary = "내 월별 상위 태그 조회")
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND}, commonErrorStatus = {CommonErrorStatus._BAD_REQUEST})
     @GetMapping("/my")
     ResponseEntity<ApiResponse<List<MyTagRankResponse>>> getMyTopTags(
             @CurrentUser CustomUserDetails userDetails,

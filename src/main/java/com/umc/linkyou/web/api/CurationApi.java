@@ -1,6 +1,7 @@
 package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
@@ -28,6 +29,7 @@ public interface CurationApi {
             - 해당 월의 큐레이션이 아직 생성되지 않은 경우, 빈 배열(`[]`)을 반환합니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(commonErrorStatus = {CommonErrorStatus._BAD_REQUEST})
     @GetMapping("/sections")
     ApiResponse<List<CurationSectionResponse>> getSectionInfo(
             @Parameter(description = "섹션 정보 월입니다. 미입력 시 이번 달을 기준으로 합니다.", example = "2025-07") @RequestParam(required = false) YearMonth month
