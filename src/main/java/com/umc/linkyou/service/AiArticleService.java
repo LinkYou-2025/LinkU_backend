@@ -145,8 +145,8 @@ public class AiArticleService {
         boolean hasNext = usersLinkus.size() > limit;
         List<UsersLinku> resultList = hasNext ? usersLinkus.subList(0, limit) : usersLinkus;
 
-        String nextCursor = hasNext
-                ? String.valueOf(resultList.get(resultList.size() - 1).getUserLinkuId())
+        Long nextCursor = hasNext
+                ? resultList.get(resultList.size() - 1).getUserLinkuId()
                 : null;
 
         List<LinkuResponseDTO.AiArticleSummaryDTO> linkuResultDTOs = resultList.stream()

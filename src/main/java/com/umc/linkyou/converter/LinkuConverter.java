@@ -210,6 +210,7 @@ public class LinkuConverter {
         Domain domain = linku.getDomain();
         Category category = linku.getCategory();
         return LinkuResponseDTO.AiArticleSummaryDTO.builder()
+                .userLinkuId(usersLinku.getUserLinkuId())
                 .linku(linku.getLinkuUrl())
                 .emotionId(usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
                 .domain(domain != null ? domain.getName() : null)

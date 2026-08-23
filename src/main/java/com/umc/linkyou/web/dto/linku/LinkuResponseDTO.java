@@ -45,11 +45,11 @@ public class LinkuResponseDTO {
     public record LinkuCreateResult(LinkuResultDTO data, boolean validUrl) {}
 
     @Builder
-    public record LinkuSliceResultDTO(List<AiArticleSummaryDTO> linkuList, String nextCursor, Boolean hasNext) {}
+    public record LinkuSliceResultDTO(List<AiArticleSummaryDTO> linkuList, Long nextCursor, Boolean hasNext) {}
 
     @Builder
     public record AiArticleSummaryDTO(
-            String linku, Long emotionId, String domain, String domainImageUrl, String title,
+           Long userLinkuId, String linku, Long emotionId, String domain, String domainImageUrl, String title,
             String linkuImageUrl, Long categoryId, String categoryName
     ) {}
 
