@@ -60,7 +60,7 @@ public interface AiArticleApi {
                     - `hasNext=false`이면 `nextCursor`는 null이며 더 이상 가져올 데이터가 없다는 뜻입니다.
 
                     **응답 항목 (linkuList의 각 원소)**
-                    - `linkuId`, `linku`(원본 URL), `emotionId`, `domain`(도메인명), `domainImageUrl`, `title`, `linkuImageUrl`, `categoryId`, `categoryName`을 반환합니다.
+                    - `userLinkuId`, `linku`(원본 URL), `emotionId`, `domain`(도메인명), `domainImageUrl`, `title`, `linkuImageUrl`, `categoryId`, `categoryName`을 반환합니다.
                     - `categoryId`/`categoryName`은 "전체" 탭처럼 여러 카테고리가 섞여 조회될 때 각 항목이 어느 카테고리인지 구분하기 위해 항상 포함됩니다.
 
                     **전체 카테고리 조회**
