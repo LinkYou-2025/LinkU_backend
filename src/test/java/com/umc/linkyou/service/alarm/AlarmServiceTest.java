@@ -16,6 +16,7 @@ import com.umc.linkyou.support.fixture.AlarmFixture;
 import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmResponseDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmSettingResponseDTO;
+import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -295,6 +297,28 @@ class AlarmServiceTest {
                         .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                                 .isEqualTo(AlarmErrorStatus.ALARM_SETTING_NOT_INITIALIZED));
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("테스트 알림 생성 (createTestAlarm)")
+    class CreateTestAlarm {
+
+        @Test
+        @DisplayName("알림과 사용자 알림을 저장하고 생성된 alarmId를 반환한다")
+        void 테스트알림_생성_성공() {
+            Alarm savedAlarm = Alarm.create(AlarmType.ANNOUNCEMENT_UPDATE, 100L);
+            ReflectionTestUtils.setField(savedAlarm, "id", ALARM_ID);
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
+            given(alarmRepository.save(any(Alarm.class))).willReturn(savedAlarm);
+
+            FcmSendRequestDTO result = alarmService.createTestAlarm(
+                    USER_ID,
+                    new AlarmRequestDTO.TestAlarmSendDTO(FCM_TOKEN, AlarmType.ANNOUNCEMENT_UPDATE, 100L));
+
+            assertThat(result.getAlarmId()).isEqualTo(ALARM_ID);
+            assertThat(result.getTargetId()).isEqualTo(100L);
+            verify(userAlarmRepository).save(any(UserAlarm.class));
         }
     }
 

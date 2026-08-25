@@ -58,7 +58,7 @@ public class AlarmController implements AlarmApi {
     ) {
         fcmPushSender.sendToToken(
                 request.fcmToken(),
-                FcmSendRequestDTO.of(request.type(), request.targetId())
+                alarmService.createTestAlarm(userDetails.getUserId(), request)
         );
         return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_TEST_SENT);
     }
