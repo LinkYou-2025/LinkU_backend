@@ -175,8 +175,10 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
                 .setNotification(buildNotification(requestDTO))
                 .putData("title", requestDTO.getTitle())
                 .putData("body", requestDTO.getMessage())
-                .putData("type", requestDTO.getType().getResponseType().name())
-                .putData("targetId", requestDTO.getTargetId().toString());
+                .putData("type", requestDTO.getType().getResponseType().name());
+        if (requestDTO.getTargetId() != null) {
+            builder.putData("targetId", requestDTO.getTargetId().toString());
+        }
         if (requestDTO.getAlarmId() != null) {
             builder.putData("alarmId", requestDTO.getAlarmId().toString());
         }
@@ -189,19 +191,22 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
     }
 
     private Message buildMessage(String token, FcmSendRequestDTO requestDTO) {
-        return Message.builder()
-                .setNotification(buildNotification(requestDTO))
-                .putData("title", requestDTO.getTitle())
-                .putData("body", requestDTO.getMessage())
-                .putData("type", requestDTO.getType().getResponseType().name())
-                .putData("targetId", requestDTO.getTargetId().toString())
-                .setToken(token)
-                .setAndroidConfig(AndroidConfig.builder()
-                        .setNotification(AndroidNotification.builder()
-                                .setClickAction(CLICK_ACTION)
-                                .build())
-                        .build())
-                .build();
+        Message.Builder builder =
+                Message.builder()
+                        .setNotification(buildNotification(requestDTO))
+                        .putData("title", requestDTO.getTitle())
+                        .putData("body", requestDTO.getMessage())
+                        .putData("type", requestDTO.getType().getResponseType().name())
+                        .setToken(token)
+                        .setAndroidConfig(AndroidConfig.builder()
+                                .setNotification(AndroidNotification.builder()
+                                        .setClickAction(CLICK_ACTION)
+                                        .build())
+                                .build());
+        if (requestDTO.getTargetId() != null) {
+            builder.putData("targetId", requestDTO.getTargetId().toString());
+        }
+        return builder.build();
     }
 
     private Message buildTopicMessage(String topic, FcmSendRequestDTO requestDTO) {
@@ -209,8 +214,10 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
                 .setNotification(buildNotification(requestDTO))
                 .putData("title", requestDTO.getTitle())
                 .putData("body", requestDTO.getMessage())
-                .putData("type", requestDTO.getType().getResponseType().name())
-                .putData("targetId", requestDTO.getTargetId().toString());
+                .putData("type", requestDTO.getType().getResponseType().name());
+        if (requestDTO.getTargetId() != null) {
+            builder.putData("targetId", requestDTO.getTargetId().toString());
+        }
         if (requestDTO.getAlarmId() != null) {
             builder.putData("alarmId", requestDTO.getAlarmId().toString());
         }
