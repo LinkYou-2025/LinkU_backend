@@ -58,7 +58,7 @@ public interface AlarmApi {
 
     @Operation(summary = "테스트 알림 전송", description = """
             발급받은 FCM 토큰으로 테스트 알림을 전송합니다.
-            - `fcmToken`, `type`은 필수값이고, `targetId`는 선택값입니다.
+            - `fcmToken`, `type`, `targetId`는 필수값입니다.
             - `type`에 지정한 `AlarmType`의 제목/본문으로 알림이 전송됩니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
