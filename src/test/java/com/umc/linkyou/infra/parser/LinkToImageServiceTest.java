@@ -13,12 +13,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.net.HttpURLConnection;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -40,6 +43,13 @@ class LinkToImageServiceTest {
 
     private static final String UA = "Mozilla/5.0";
 
+    // isLargeEnough()가 여는 HttpURLConnection을 흉내낸다. Content-Length만 필요하다.
+    private HttpURLConnection connectionWithLength(long contentLength) throws Exception {
+        HttpURLConnection conn = mock(HttpURLConnection.class);
+        given(conn.getContentLengthLong()).willReturn(contentLength);
+        return conn;
+    }
+
     @Nested
     @DisplayName("extractRepresentativeImage (일반 웹페이지)")
     class ExtractRepresentativeImage {
@@ -47,19 +57,41 @@ class LinkToImageServiceTest {
         private static final String URL = "https://example.com/post";
 
         @Test
-        @DisplayName("robots.txt가 허용하면 og:image를 추출한다")
+        @DisplayName("robots.txt가 허용하고 og:image 용량이 기준 이상이면 og:image를 추출한다")
         void robots_허용시_og_image를_추출한다() throws Exception {
             // given
             given(robotsTxtChecker.isAllowed(URL, UA)).willReturn(true);
             Document doc = Jsoup.parse(
                     "<html><head><meta property=\"og:image\" content=\"https://example.com/thumb.jpg\"></head><body></body></html>");
             given(safeUrlFetcher.fetchDocument(eq(URL), eq(UA), anyInt())).willReturn(doc);
+            HttpURLConnection thumbConn = connectionWithLength(50_000);
+            given(safeUrlFetcher.openConnection(eq("https://example.com/thumb.jpg"), eq(UA), anyInt(), anyInt()))
+                    .willReturn(thumbConn);
 
             // when
             String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractRepresentativeImage", URL);
 
             // then
             assertEquals("https://example.com/thumb.jpg", result);
+        }
+
+        @Test
+        @DisplayName("og:image 용량이 기준보다 작으면 채택하지 않는다")
+        void og_image가_작으면_채택하지_않는다() throws Exception {
+            // given
+            given(robotsTxtChecker.isAllowed(URL, UA)).willReturn(true);
+            Document doc = Jsoup.parse(
+                    "<html><head><meta property=\"og:image\" content=\"https://example.com/icon.png\"></head><body></body></html>");
+            given(safeUrlFetcher.fetchDocument(eq(URL), eq(UA), anyInt())).willReturn(doc);
+            HttpURLConnection iconConn = connectionWithLength(2_000);
+            given(safeUrlFetcher.openConnection(eq("https://example.com/icon.png"), eq(UA), anyInt(), anyInt()))
+                    .willReturn(iconConn);
+
+            // when
+            String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractRepresentativeImage", URL);
+
+            // then
+            assertNull(result);
         }
 
         @Test
@@ -117,7 +149,7 @@ class LinkToImageServiceTest {
         }
 
         @Test
-        @DisplayName("둘 다 허용되면 iframe 본문에서 대표 이미지를 추출한다")
+        @DisplayName("둘 다 허용되고 og:image 용량이 기준 이상이면 대표 이미지를 추출한다")
         void 모두_허용되면_대표이미지를_추출한다() throws Exception {
             // given
             given(robotsTxtChecker.isAllowed(BLOG_URL, UA)).willReturn(true);
@@ -128,6 +160,9 @@ class LinkToImageServiceTest {
             Document iframeDoc = Jsoup.parse(
                     "<html><head><meta property=\"og:image\" content=\"https://blog.naver.com/real-thumb.jpg\"></head><body></body></html>");
             given(safeUrlFetcher.fetchDocument(eq(IFRAME_URL), eq(UA), anyInt())).willReturn(iframeDoc);
+            HttpURLConnection realThumbConn = connectionWithLength(80_000);
+            given(safeUrlFetcher.openConnection(eq("https://blog.naver.com/real-thumb.jpg"), eq(UA), anyInt(), anyInt()))
+                    .willReturn(realThumbConn);
 
             // when
             String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractFromNaverBlog", BLOG_URL);

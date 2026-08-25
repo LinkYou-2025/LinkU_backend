@@ -38,8 +38,8 @@ public class KeywordServiceImpl implements KeywordService {
     public void saveKeywords(Linku linku, String rawKeywords) {
         if (rawKeywords == null || rawKeywords.isBlank()) return;
 
-        for (String part : rawKeywords.split(",")) {
-            String name = part.strip().replaceAll("^#", "");
+        for (String part : rawKeywords.split("[#,]")) {
+            String name = part.strip();
             if (name.isBlank()) continue;
 
             Keyword keyword = keywordUpsertService.upsert(name);

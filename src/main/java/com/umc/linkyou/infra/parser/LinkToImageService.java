@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
 
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.List;
 
@@ -22,6 +23,21 @@ public class LinkToImageService {
     private final CustomSearchImageClient customSearchImageClient;
 
     private static final int IMAGE_FETCH_TIMEOUT_MS = 5000;
+
+    // 대표 이미지 최소 용량 기준, 아이콘류 방지용임
+    private static final long MIN_IMAGE_BYTES = 15 * 1024;
+
+    // Content-Length만 확인, 실패하면 false로 처리함
+    private boolean isLargeEnough(String imageUrl) {
+        try {
+            HttpURLConnection conn = safeUrlFetcher.openConnection(imageUrl, "Mozilla/5.0", 1500, 1500);
+            long length = conn.getContentLengthLong();
+            conn.disconnect();
+            return length >= MIN_IMAGE_BYTES;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     // URL에서 도메인 추출
     private String extractDomainFromUrl(String url) {
@@ -68,16 +84,15 @@ public class LinkToImageService {
             Document realDoc = safeUrlFetcher.fetchDocument(realUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
 
             String ogImage = realDoc.select("meta[property=og:image]").attr("content");
-            if (!ogImage.isEmpty()) return ogImage;
+            if (!ogImage.isEmpty() && isLargeEnough(ogImage)) return ogImage;
 
             String firstImg = realDoc.select("img").attr("src");
-            return !firstImg.isEmpty() ? firstImg : null;
+            return (!firstImg.isEmpty() && isLargeEnough(firstImg)) ? firstImg : null;
         } catch (Exception e) {
             return null;
         }
     }
 
-    // 일반 웹페이지 대표 이미지 크롤링
     private String extractRepresentativeImage(String url) {
         try {
             if (!robotsTxtChecker.isAllowed(url, "Mozilla/5.0")) {
@@ -85,42 +100,51 @@ public class LinkToImageService {
                 return null;
             }
             Document doc = safeUrlFetcher.fetchDocument(url, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
-
-            String[] selectors = {
-                    "meta[property=og:image]",
-                    "meta[name=twitter:image]",
-                    "meta[itemprop=image]",
-                    "link[rel=image_src]"
-            };
-
-            for (String selector : selectors) {
-                String imgUrl = doc.select(selector).attr("content");
-                if (imgUrl.isEmpty()) {
-                    imgUrl = doc.select(selector).attr("href");
-                }
-                if (!imgUrl.isEmpty()) {
-                    return imgUrl;
-                }
-            }
-
-            String imgTag = doc.select("img").attr("src");
-            if (!imgTag.isEmpty()) {
-                return imgTag;
-            }
+            return extractRepresentativeImageFromDoc(doc);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    private String extractRepresentativeImageFromDoc(Document doc) {
+        if (doc == null) return null;
+
+        String[] selectors = {
+                "meta[property=og:image]",
+                "meta[name=twitter:image]",
+                "meta[itemprop=image]",
+                "link[rel=image_src]"
+        };
+
+        for (String selector : selectors) {
+            String imgUrl = doc.select(selector).attr("content");
+            if (imgUrl.isEmpty()) {
+                imgUrl = doc.select(selector).attr("href");
+            }
+            if (!imgUrl.isEmpty() && isLargeEnough(imgUrl)) {
+                return imgUrl;
+            }
+        }
+
+        String imgTag = doc.select("img").attr("src");
+        if (!imgTag.isEmpty() && isLargeEnough(imgTag)) {
+            return imgTag;
         }
         return null;
     }
 
-    // 전체 플로우
     public String getRelatedImageFromUrl(String url, String title) {
+        return getRelatedImageFromUrl(url, title, null);
+    }
+
+    // 네이버 블로그는 iframe 안 다른 호스트를 따로 fetch해야 해서 doc 재사용 대상이 아님
+    public String getRelatedImageFromUrl(String url, String title, Document doc) {
         String imgUrl;
         if (isNaverFromDB(url)) {
             imgUrl = extractFromNaverBlog(url);
             if (imgUrl != null && !imgUrl.isEmpty()) return imgUrl;
         } else {
-            imgUrl = extractRepresentativeImage(url);
+            imgUrl = (doc != null) ? extractRepresentativeImageFromDoc(doc) : extractRepresentativeImage(url);
             if (imgUrl != null && !imgUrl.isEmpty()) return imgUrl;
         }
 
