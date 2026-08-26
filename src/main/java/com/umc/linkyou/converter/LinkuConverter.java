@@ -12,6 +12,7 @@ import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.repository.dto.RankedUsersLinku;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
+import com.umc.linkyou.web.dto.folder.linku.LinkuSummaryDTO;
 
 public class LinkuConverter {
     // Converter: RequestParam으로 받은 데이터 -> LinkuCreateDTO 생성
@@ -219,6 +220,27 @@ public class LinkuConverter {
                 .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
                 .categoryId(category != null ? category.getCategoryId() : null)
                 .categoryName(category != null ? category.getCategoryName() : null)
+                .build();
+    }
+
+    public static LinkuSummaryDTO toFolderLinkuSummaryDTO(UsersLinku usersLinku, String keyword) {
+        Linku linku = usersLinku.getLinku();
+        Domain domain = linku.getDomain();
+        Category category = linku.getCategory();
+
+        return LinkuSummaryDTO.builder()
+                .userLinkuId(usersLinku.getUserLinkuId())
+                .linkuId(linku.getLinkuId())
+                .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
+                .url(linku.getLinkuUrl())
+                .keyword(keyword.isEmpty() ? null : keyword)
+                .linkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : linku.getImgUrl())
+                .emotionId(usersLinku.getEmotion() != null ? usersLinku.getEmotion().getEmotionId() : null)
+                .situationId(usersLinku.getSituation() != null ? usersLinku.getSituation().getId() : null)
+                .categoryId(category != null ? category.getCategoryId() : null)
+                .createdAt(linku.getCreatedAt().toString())
+                .domainImageUrl(domain != null ? domain.getImageUrl() : null)
+                .domainName(domain != null ? domain.getName() : null)
                 .build();
     }
 

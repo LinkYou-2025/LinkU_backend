@@ -559,7 +559,12 @@ class FolderServiceTest {
                 Linku linku = LinkuFixture.linku("https://img.example.com/a.jpg");
                 ReflectionTestUtils.setField(linku, "createdAt", LocalDateTime.now());
                 Users user = owner();
-                UsersLinku usersLinku = UsersLinku.builder().user(user).linku(linku).build();
+                UsersLinku usersLinku = UsersLinku.builder()
+                        .user(user)
+                        .linku(linku)
+                        .emotion(LinkuFixture.emotion())
+                        .situation(LinkuFixture.situation())
+                        .build();
                 LinkuFolder linkuFolder = LinkuFolder.builder().folder(folder()).usersLinku(usersLinku).build();
 
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
@@ -578,6 +583,9 @@ class FolderServiceTest {
                 assertThat(item.getUrl()).isEqualTo(linku.getLinkuUrl());
                 assertThat(item.getKeyword()).isEqualTo("자바, 스프링");
                 assertThat(item.getDomainName()).isEqualTo("example");
+                assertThat(item.getCategoryId()).isEqualTo(LinkuFixture.CATEGORY_ID);
+                assertThat(item.getEmotionId()).isEqualTo(LinkuFixture.EMOTION_ID);
+                assertThat(item.getSituationId()).isEqualTo(LinkuFixture.SITUATION_ID);
             }
 
             @Test
