@@ -435,10 +435,11 @@ class FolderControllerTest {
             @DisplayName("정상 요청 시 링크와 하위 폴더 목록을 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_링크와_하위폴더목록을_반환한다() throws Exception {
-                FolderLinkusResponseDTO response = new FolderLinkusResponseDTO();
-                response.setFolders(List.of());
-                response.setLinks(List.of());
-                response.setNextCursor(null);
+                FolderLinkusResponseDTO response = FolderLinkusResponseDTO.builder()
+                        .folders(List.of())
+                        .links(List.of())
+                        .nextCursor(null)
+                        .build();
 
                 given(folderService.getFolderLinkus(1L, FOLDER_ID, 20, null, "name", true)).willReturn(response);
 
@@ -458,10 +459,11 @@ class FolderControllerTest {
             @DisplayName("includeLinks=false로 요청하면 폴더 목록만 반환한다")
             @WithCustomUser(userId = 1L)
             void includeLinks가_false면_폴더목록만_반환한다() throws Exception {
-                FolderLinkusResponseDTO response = new FolderLinkusResponseDTO();
-                response.setFolders(List.of());
-                response.setLinks(List.of());
-                response.setNextCursor(null);
+                FolderLinkusResponseDTO response = FolderLinkusResponseDTO.builder()
+                        .folders(List.of())
+                        .links(List.of())
+                        .nextCursor(null)
+                        .build();
 
                 given(folderService.getFolderLinkus(1L, FOLDER_ID, 20, null, "name", false)).willReturn(response);
 

@@ -2,11 +2,10 @@ package com.umc.linkyou.service.folder;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.converter.FolderConverter;
+import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.domain.Linku;
-import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
@@ -313,22 +312,19 @@ public class FolderServiceImpl implements FolderService {
 
         // 하위 폴더 DTO 변환
         List<FolderSummaryDTO> subfolderDtos = subFolders.stream()
-                .map(f -> {
-                    FolderSummaryDTO dto = new FolderSummaryDTO();
-                    dto.setFolderId(f.getFolderId());
-                    dto.setFolderName(f.getFolderName());
-                    dto.setIsBookmarked(bookmarkMap.getOrDefault(f.getFolderId(), false));
-                    dto.setIsSharing(sharedFolderIds.contains(f.getFolderId()) ? "share" : "private");
-                    return dto;
-                }).toList();
+                .map(folder -> FolderConverter.toFolderSummaryDTO(
+                        folder,
+                        bookmarkMap.getOrDefault(folder.getFolderId(), false),
+                        sharedFolderIds.contains(folder.getFolderId())))
+                .toList();
 
         // includeLinks=false면 링크 조회(커서 파싱, 페이지 쿼리, 키워드/도메인 조립)를 전부 생략하고 폴더 목록만 반환
         if (!includeLinks) {
-            FolderLinkusResponseDTO resp = new FolderLinkusResponseDTO();
-            resp.setFolders(subfolderDtos);
-            resp.setLinks(Collections.emptyList());
-            resp.setNextCursor(null);
-            return resp;
+            return FolderLinkusResponseDTO.builder()
+                    .folders(subfolderDtos)
+                    .links(Collections.emptyList())
+                    .nextCursor(null)
+                    .build();
         }
 
         // 커서: 없으면 Long.MAX_VALUE, 숫자가 아니면 400 반환
@@ -370,30 +366,16 @@ public class FolderServiceImpl implements FolderService {
 
         List<LinkuSummaryDTO> linkDtos = resultList.stream().map(lf -> {
             UsersLinku usersLinku = lf.getUsersLinku();
-            Linku link = usersLinku.getLinku();
-            Domain domain = link.getDomain();
-
-            String kw = String.join(", ", keywordsByLinkuId.getOrDefault(link.getLinkuId(), List.of()));
-
-            LinkuSummaryDTO dto = new LinkuSummaryDTO();
-            dto.setUserLinkuId(usersLinku.getUserLinkuId());
-            dto.setLinkuId(link.getLinkuId());
-            dto.setTitle(usersLinku.getTitle() != null ? usersLinku.getTitle() : link.getTitle());
-            dto.setUrl(link.getLinkuUrl());
-            dto.setKeyword(kw.isEmpty() ? null : kw);
-            dto.setLinkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : link.getImgUrl());
-            dto.setCreatedAt(link.getCreatedAt().toString());
-            dto.setDomainImageUrl(domain != null ? domain.getImageUrl() : null);
-            dto.setDomainName(domain != null ? domain.getName() : null);
-            return dto;
+            Long linkuId = usersLinku.getLinku().getLinkuId();
+            String keyword = String.join(", ", keywordsByLinkuId.getOrDefault(linkuId, List.of()));
+            return LinkuConverter.toFolderLinkuSummaryDTO(usersLinku, keyword);
         }).toList();
 
-        FolderLinkusResponseDTO resp = new FolderLinkusResponseDTO();
-        resp.setFolders(subfolderDtos);
-        resp.setLinks(linkDtos);
-        resp.setNextCursor(nextCursor);
-
-        return resp;
+        return FolderLinkusResponseDTO.builder()
+                .folders(subfolderDtos)
+                .links(linkDtos)
+                .nextCursor(nextCursor)
+                .build();
     }
 
 }

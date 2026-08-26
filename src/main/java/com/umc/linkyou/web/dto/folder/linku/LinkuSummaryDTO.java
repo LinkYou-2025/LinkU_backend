@@ -1,11 +1,14 @@
 package com.umc.linkyou.web.dto.folder.linku;
 
-import com.umc.linkyou.domain.classification.Domain;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 @Getter
-@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 // 중폴더 내부에 있는 링크 응답 형식
 public class LinkuSummaryDTO {
     private Long linkuId;
@@ -14,6 +17,9 @@ public class LinkuSummaryDTO {
     private String keyword;
     private Long userLinkuId;
     private String linkuImageUrl;
+    private Long emotionId;
+    private Long categoryId;
+    private Long situationId;
     private String createdAt;
     private String domainImageUrl;
     private String domainName;
