@@ -1,6 +1,7 @@
 spring:
   config:
     import: optional:file:/app/config/application-secret.properties
+
   jpa:
     show-sql: false
 
@@ -8,6 +9,11 @@ spring:
     locations:
       - classpath:db/migration
       - classpath:db/seed
+
+cloud:
+  aws:
+    region:
+      static-region: ap-northeast-2
 
 fcm:
   credentials:
