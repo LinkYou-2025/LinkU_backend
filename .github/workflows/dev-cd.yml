@@ -58,6 +58,18 @@ jobs:
           source: "docker-compose.remote.yml"
           target: "/home/ubuntu/linkyou/"
 
+      - name: "Discord: 배포 시작"
+        uses: sarisia/actions-status-discord@v1
+        continue-on-error: true
+        with:
+          webhook: ${{ secrets.DISCORD_DEPLOY_WEBHOOK_URL }}
+          status: success
+          noprefix: true
+          title: "[DEV] 배포 시작"
+          description: "지금부터 잠시 5xx 에러가 발생할 수 있습니다."
+          color: 0xf1c40f
+          username: LinkU Deploy Bot
+
       - name: Deploy to dev
         uses: appleboy/ssh-action@master
         with:
@@ -100,3 +112,30 @@ jobs:
               sleep 5
             done
             echo "Spring Boot app is healthy"
+
+      - name: "Discord: 배포 완료"
+        uses: sarisia/actions-status-discord@v1
+        if: success()
+        continue-on-error: true
+        with:
+          webhook: ${{ secrets.DISCORD_DEPLOY_WEBHOOK_URL }}
+          status: success
+          noprefix: true
+          title: "[DEV] 배포 완료"
+          description: "정상 서비스 중입니다."
+          color: 0x2ecc71
+          username: LinkU Deploy Bot
+
+      - name: "Discord: 배포 실패"
+        uses: sarisia/actions-status-discord@v1
+        if: failure()
+        continue-on-error: true
+        with:
+          webhook: ${{ secrets.DISCORD_DEPLOY_WEBHOOK_URL }}
+          status: failure
+          noprefix: true
+          title: "[DEV] 배포 실패"
+          description: "확인이 필요합니다."
+          color: 0xe74c3c
+          url: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          username: LinkU Deploy Bot

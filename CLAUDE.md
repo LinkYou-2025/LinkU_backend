@@ -80,7 +80,9 @@ com.umc.linkyou/
 | 워크플로우 | 트리거 | 내용 |
 |---|---|---|
 | `ci.yml` | PR → develop | Spotless + build + test + JaCoCo |
-| `gradle.yml` | push → develop | Gradle 캐싱 검증 |
+| `dev-cd.yml` | push → develop | dev 서버 배포 + Discord 알림 |
+| `prod-cd.yml` | push → production | prod 서버 배포 + Discord 알림 |
+| `monitoring-cd.yml` | push → develop (모니터링 관련 파일만) | Prometheus/Grafana 스택 배포 |
 
 ## Language Conventions
 
