@@ -1,0 +1,13 @@
+# Discord 알림 채널 정의
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: discord-alerts
+    receivers:
+      - uid: discord-alerts-receiver
+        type: discord
+        settings:
+          url: __DISCORD_ALERT_WEBHOOK_URL__
+          use_discord_username: true
+        disableResolveMessage: false
