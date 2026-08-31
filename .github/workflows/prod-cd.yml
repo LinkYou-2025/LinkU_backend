@@ -58,7 +58,7 @@ jobs:
           target: "/home/ubuntu/linkyou/"
 
       - name: "Discord: 배포 시작"
-        uses: sarisia/actions-status-discord@v1
+        uses: sarisia/actions-status-discord@eb045afee445dc055c18d3d90bd0f244fd062708 # v1.16.0
         continue-on-error: true
         with:
           webhook: ${{ secrets.DISCORD_DEPLOY_WEBHOOK_URL }}
@@ -114,7 +114,7 @@ jobs:
             echo "Spring Boot app is healthy"
 
       - name: "Discord: 배포 완료"
-        uses: sarisia/actions-status-discord@v1
+        uses: sarisia/actions-status-discord@eb045afee445dc055c18d3d90bd0f244fd062708 # v1.16.0
         if: success()
         continue-on-error: true
         with:
@@ -127,7 +127,7 @@ jobs:
           username: LinkU Deploy Bot
 
       - name: "Discord: 배포 실패"
-        uses: sarisia/actions-status-discord@v1
+        uses: sarisia/actions-status-discord@eb045afee445dc055c18d3d90bd0f244fd062708 # v1.16.0
         if: failure()
         continue-on-error: true
         with:
