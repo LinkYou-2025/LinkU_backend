@@ -35,9 +35,7 @@ jobs:
           script: |
             mkdir -p /home/ubuntu/linku-monitoring
             echo "GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" > /home/ubuntu/linku-monitoring/.env
-
-            sed -i "s|__DISCORD_ALERT_WEBHOOK_URL__|${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}|" \
-              /home/ubuntu/linku-monitoring/grafana/provisioning/alerting/contact-points.yaml
+            echo "DISCORD_ALERT_WEBHOOK_URL=${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}" >> /home/ubuntu/linku-monitoring/.env
 
             cd /home/ubuntu/linku-monitoring
             docker compose -f docker-compose.monitoring.yml pull

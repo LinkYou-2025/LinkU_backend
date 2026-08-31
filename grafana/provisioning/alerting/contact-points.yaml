@@ -8,6 +8,7 @@ contactPoints:
       - uid: discord-alerts-receiver
         type: discord
         settings:
-          url: __DISCORD_ALERT_WEBHOOK_URL__
           use_discord_username: true
+        secure_settings:
+          url: $DISCORD_ALERT_WEBHOOK_URL
         disableResolveMessage: false
