@@ -35,10 +35,12 @@ jobs:
           script: |
             mkdir -p /home/ubuntu/linku-monitoring
             echo "GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" > /home/ubuntu/linku-monitoring/.env
+            echo "DISCORD_ALERT_WEBHOOK_URL=${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}" >> /home/ubuntu/linku-monitoring/.env
 
             cd /home/ubuntu/linku-monitoring
             docker compose -f docker-compose.monitoring.yml pull
             docker compose -f docker-compose.monitoring.yml up -d
+            docker compose -f docker-compose.monitoring.yml restart grafana
             docker image prune -f
 
       - name: Wait for Prometheus & Grafana to be ready

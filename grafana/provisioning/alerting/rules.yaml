@@ -1,0 +1,135 @@
+# 실제 장애 감지용 알림 규칙
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: linku-app-alerts
+    folder: LinkU Alerts
+    interval: 1m
+    rules:
+      - uid: linku-5xx-rate-high
+        title: "5xx 에러율 급증"
+        condition: C
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.env }} 서버의 5xx 에러율이 5%를 초과했습니다."
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: bdytqyy1v4glce
+            model:
+              refId: A
+              instant: true
+              expr: >-
+                sum(rate(http_server_requests_seconds_count{job="linku-app",status=~"5.."}[5m])) by (env)
+                /
+                sum(rate(http_server_requests_seconds_count{job="linku-app"}[5m])) by (env)
+                * 100
+          - refId: C
+            datasourceUid: "-100"
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [5]
+
+      - uid: linku-instance-down
+        title: "linku-app 인스턴스 다운"
+        condition: B
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.env }} linku-app 인스턴스가 응답하지 않습니다 (Prometheus 스크랩 실패)."
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 120
+              to: 0
+            datasourceUid: bdytqyy1v4glce
+            model:
+              refId: A
+              instant: true
+              expr: 'up{job="linku-app"}'
+          - refId: B
+            datasourceUid: "-100"
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: lt
+                    params: [1]
+
+      - uid: linku-heap-usage-high
+        title: "JVM 힙 사용률 임계치 초과"
+        condition: C
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.env }} linku-app 힙 사용률이 90%를 초과했습니다. (OOM 위험)"
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: bdytqyy1v4glce
+            model:
+              refId: A
+              instant: true
+              expr: >-
+                sum(jvm_memory_used_bytes{job="linku-app",area="heap"}) by (env)
+                /
+                sum(jvm_memory_max_bytes{job="linku-app",area="heap"}) by (env)
+                * 100
+          - refId: C
+            datasourceUid: "-100"
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [90]
+
+      - uid: linku-disk-usage-high
+        title: "디스크 사용률 임계치 초과"
+        condition: C
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.env }} 서버 디스크(/) 사용률이 85%를 초과했습니다."
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: bdytqyy1v4glce
+            model:
+              refId: A
+              instant: true
+              expr: >-
+                (1 - sum(node_filesystem_avail_bytes{job="node-exporter",mountpoint="/",fstype!="tmpfs"}) by (env)
+                / sum(node_filesystem_size_bytes{job="node-exporter",mountpoint="/",fstype!="tmpfs"}) by (env))
+                * 100
+          - refId: C
+            datasourceUid: "-100"
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [85]
