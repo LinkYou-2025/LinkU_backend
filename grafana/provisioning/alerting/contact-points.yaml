@@ -9,6 +9,5 @@ contactPoints:
         type: discord
         settings:
           use_discord_username: true
-        secure_settings:
-          url: $DISCORD_ALERT_WEBHOOK_URL
+          url: __DISCORD_ALERT_WEBHOOK_URL__
         disableResolveMessage: false
