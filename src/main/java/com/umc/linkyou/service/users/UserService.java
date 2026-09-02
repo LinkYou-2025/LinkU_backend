@@ -95,58 +95,50 @@ public class UserService {
     @Value("${jwt.hmac-secret}")
     private String hmacSecret;
 
-    // 일반로그인 & 회원가입
+    // 일반 회원가입
     @Transactional
     public UserResponseDTO.JoinResultDTO joinUser(UserRequestDTO.JoinDTO request) {
+        // 404 (job은 db에 있는 직업중하나로 골라야 함)
+        Job job =jobRepository.findById(request.jobId()).orElseThrow(() -> new UserHandler(UserErrorStatus._JOB_NOT_SET));
+
         // 1. 닉네임 중복 체크
         validateNickNameNotDuplicate(request.nickName());
 
-        // 2. 현재 시도하는 경로(GENERAL)로 이미 가입된 계정이 있는지 체크
+        // 2. 현재 같은 이메일로 일반회원가입된 계정이 있는지 체크
         if (authAccountRepository.existsByProviderAndExternalId(
                 Provider.GENERAL, request.email())) {
             throw new UserHandler(UserErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
 
-        // 3. 기존 유저 통합 로직: 이메일로 가입된 다른 소셜 계정이 있는지 확인
-        Users user =
-                authAccountRepository
-                        .findUserByEmailAndProvider(request.email(), Provider.GENERAL)
-                        .orElseGet(
-                                () -> {
-                                    // 3-1. 기존 유저가 아예 없으면 새로 생성
-                                    Job job =
-                                            jobRepository
-                                                    .findById(request.jobId())
-                                                    .orElseThrow(
-                                                            () ->
-                                                                    new UserHandler(
-                                                                            UserErrorStatus
-                                                                                    ._JOB_NOT_SET));
 
-                                    Users newUser = UserConverter.toUser(request, job);
-                                    // 일반 로그인용 비밀번호 인코딩
-                                    newUser.encodePassword(
-                                            passwordEncoder.encode(request.password()));
+        // 3. 소셜로그인으로 가입된 유저 있으면 병합, 없으면 신규 생성
+        Users user =authAccountRepository.findUserByEmailExcludingProvider(request.email(), Provider.GENERAL)
+                .map(existing -> {  // 일반회원가입으로 새로 받은 값으로 기존 소셜 계정의 회원정보 업데이트
+                    existing.completeSocialProfile(request.nickName(), request.gender(), job);
+                    return existing;
+                })
+                .orElseGet(() -> userRepository.save(UserConverter.toUser(request, job)));
 
-                                    Users savedUser = userRepository.save(newUser);
-                                    usersPurposeRepository.saveAll(
-                                            UserConverter.toUsersPurposes(
-                                                    savedUser,
-                                                    resolvePurposes(request.purposeList())));
-                                    usersInterestRepository.saveAll(
-                                            UserConverter.toUsersInterests(
-                                                    savedUser,
-                                                    resolveInterests(request.interestList())));
-                                    termsAgreementService.upsertTerms(
-                                            savedUser, request.termsMap());
-                                    setupUserAlarmSetting(savedUser);
-                                    return savedUser;
-                                });
+        // 목적/관심사 최신값으로 교체
+        usersPurposeRepository.deleteAllByUser(user);
+        usersPurposeRepository.flush();
+        usersPurposeRepository.saveAll(
+                UserConverter.toUsersPurposes(user, resolvePurposes(request.purposeList())));
 
-        // 4. 기존 유저가 소셜 유저였다면, 일반 로그인용 비밀번호가 없을 수 있으므로 업데이트
-        if (user.getPassword() == null || user.getPassword().startsWith("social_")) {
-            user.encodePassword(passwordEncoder.encode(request.password()));
+        usersInterestRepository.deleteAllByUser(user);
+        usersInterestRepository.flush();
+        usersInterestRepository.saveAll(
+                UserConverter.toUsersInterests(user, resolveInterests(request.interestList())));
+
+        termsAgreementService.upsertTerms(user, request.termsMap());
+
+        // 알림 설정 없으면 생성
+        if (alarmSettingRepository.findByUserId(user.getId()).isEmpty()) {
+            setupUserAlarmSetting(user);
         }
+
+        // 4. 일반 로그인 비밀번호 설정
+        user.encodePassword(passwordEncoder.encode(request.password()));
 
         // 5. 일반(GENERAL) 가입 정보(AuthAccount) 저장
         authAccountRepository.save(
@@ -158,7 +150,6 @@ public class UserService {
                         .build());
 
         // 6. 상태 업데이트 및 초기 폴더 설정
-        // 기존 유저가 있더라도 폴더가 없는 경우(TEMP 상태 등)를 대비해 체크 후 초기화
         if (user.getStatus() == UserStatus.TEMP
                 || !usersFolderRepository.existsByUser_Id(user.getId())) {
             initUserFolders(user);
