@@ -57,46 +57,12 @@ public class UserSocialLoginHelper {
         return createNewUserWithAccount(email, name, provider, externalId, profileImage, socialToken);
     }
 
-    /**
-     * 1. 재로그인: 일반(GENERAL) 로그인이 연동되어 있지 않은, 즉 소셜 로그인만 사용하는 계정에 한해
-     * 소셜 정보로 닉네임/프로필 이미지를 동기화한다. 일반 로그인이 연동된 계정은 사용자가 앱 내에서
-     * 직접 변경해야만 닉네임/프로필 이미지가 바뀐다.
-     */
+    // 재로그인: 소셜 토큰만 갱신, 닉네임/프로필은 더 이상 동기화 안 함
     private Users reLogin(AuthAccount authAccount, String email, String name,
                           String profileImage, String socialToken) {
         Users user = authAccount.getUser();
-
-        if (!hasGeneralAccount(user.getId())) {
-            syncNickname(user, name, email);
-            syncProfileImage(authAccount, profileImage);
-        }
-
         if (socialToken != null) authAccount.updateToken(socialToken);
         return user;
-    }
-
-    private boolean hasGeneralAccount(Long userId) {
-        return authAccountRepository.existsByUserIdAndProvider(userId, Provider.GENERAL);
-    }
-
-    /** 닉네임 동기화 (값이 다를 때만 실행하여 쿼리 절약) */
-    private void syncNickname(Users user, String name, String email) {
-        if (name == null) return;
-
-        String normalizedInput = name.replaceAll("[^a-zA-Z0-9가-힣]", "").toLowerCase().trim();
-        // 정규화된 이름이 비어있거나 현재 닉네임과 같으면 업데이트 불필요
-        if (normalizedInput.isEmpty() || normalizedInput.equals(user.getNickName())) return;
-
-        // generateUniqueNickname에 현재 user 객체를 넘겨서 자기 자신은 중복에서 제외하게 함
-        String uniqueNickname = generateUniqueNickname(normalizedInput, email, user);
-        user.updateNickname(uniqueNickname);
-        log.debug("기존 사용자 닉네임 동기화: userId={}, nickname={}", user.getId(), uniqueNickname);
-    }
-
-    /** 프로필 이미지 동기화 */
-    private void syncProfileImage(AuthAccount authAccount, String profileImage) {
-        if (profileImage == null || profileImage.equals(authAccount.getProfileImage())) return;
-        authAccount.updateProfileImage(profileImage);
     }
 
     /** 모바일용 (socialToken 없음) */
