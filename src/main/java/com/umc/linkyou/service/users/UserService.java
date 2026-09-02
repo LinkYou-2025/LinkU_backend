@@ -112,12 +112,18 @@ public class UserService {
 
 
         // 3. 소셜로그인으로 가입된 유저 있으면 병합, 없으면 신규 생성
+        String encodedPassword = passwordEncoder.encode(request.password());
         Users user =authAccountRepository.findUserByEmailExcludingProvider(request.email(), Provider.GENERAL)
                 .map(existing -> {  // 일반회원가입으로 새로 받은 값으로 기존 소셜 계정의 회원정보 업데이트
                     existing.completeSocialProfile(request.nickName(), request.gender(), job);
+                    existing.encodePassword(encodedPassword);
                     return existing;
                 })
-                .orElseGet(() -> userRepository.save(UserConverter.toUser(request, job)));
+                .orElseGet(() -> {
+                    Users newUser = UserConverter.toUser(request, job);
+                    newUser.encodePassword(encodedPassword);
+                    return userRepository.save(newUser);
+                });
 
         // 목적/관심사 최신값으로 교체
         usersPurposeRepository.deleteAllByUser(user);
@@ -137,10 +143,7 @@ public class UserService {
             setupUserAlarmSetting(user);
         }
 
-        // 4. 일반 로그인 비밀번호 설정
-        user.encodePassword(passwordEncoder.encode(request.password()));
-
-        // 5. 일반(GENERAL) 가입 정보(AuthAccount) 저장
+        // 4. 일반(GENERAL) 가입 정보(AuthAccount) 저장
         authAccountRepository.save(
                 AuthAccount.builder()
                         .user(user)
@@ -149,14 +152,14 @@ public class UserService {
                         .email(request.email())
                         .build());
 
-        // 6. 상태 업데이트 및 초기 폴더 설정
+        // 5. 상태 업데이트 및 초기 폴더 설정
         if (user.getStatus() == UserStatus.TEMP
                 || !usersFolderRepository.existsByUser_Id(user.getId())) {
             initUserFolders(user);
             user.activate();
         }
 
-        // 7. 회원가입 후 토큰 발급
+        // 6. 회원가입 후 토큰 발급
         TokenIssueService.IssuedTokenPair tokenPair =
                 tokenIssueService.issueTokenPair(
                         user.getId(),

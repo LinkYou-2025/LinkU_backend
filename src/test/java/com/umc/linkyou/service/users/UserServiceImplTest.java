@@ -113,7 +113,7 @@ class UserServiceImplTest {
                 when(authAccountRepository.existsByProviderAndExternalId(
                                 eq(Provider.GENERAL), anyString()))
                         .thenReturn(false);
-                when(authAccountRepository.findUserByEmailAndProvider(
+                when(authAccountRepository.findUserByEmailExcludingProvider(
                                 anyString(), eq(Provider.GENERAL)))
                         .thenReturn(Optional.empty());
                 when(userRepository.save(any(Users.class)))
