@@ -13,9 +13,10 @@ spring:
   flyway:
     baseline-on-migrate: true
     locations:
-      - classpath:db/migration
-      - classpath:db/seed
-      - classpath:db/local
+      - classpath:db/local/migration
+      - classpath:db/local/seed
+    placeholders:
+      cloudfrontDomain: ${AWS_CLOUDFRONT_DOMAIN}
 
 logging:
   level:

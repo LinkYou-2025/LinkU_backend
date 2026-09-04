@@ -52,7 +52,7 @@ import com.umc.linkyou.support.config.TestExternalConfig;
             "spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect",
             "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect",
             "spring.flyway.enabled=true",
-            "spring.flyway.locations=classpath:db/migration",
+            "spring.flyway.locations=classpath:db/prod/migration",
             "spring.sql.init.mode=never"
         })
 @Import(TestExternalConfig.class)

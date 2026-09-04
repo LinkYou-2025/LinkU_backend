@@ -35,7 +35,7 @@ create table keywords
     constraint uq_keyword_name unique (name)
 );
 
--- alarms: V1(body TEXT) + V4(alarm_type CHECK) 최종 반영
+-- 알림: body는 자유 텍스트, alarm_type은 정해진 값만 허용
 create table alarms
 (
     alarm_id   bigserial    primary key,
@@ -69,7 +69,7 @@ create table curation_section_infos
     constraint uq_curation_section unique (base_month, section_number)
 );
 
--- domains: V1 + V4(crawl_strategy CHECK, seed의 V5 VIDEO 추가는 이번 범위 밖)
+-- 도메인: crawl_strategy는 정해진 값만 허용 (VIDEO 값은 seed 쪽에서 추가됨)
 create table domains
 (
     domain_id      bigserial    primary key,
@@ -151,9 +151,7 @@ create table users
 );
 
 -- ── linkus (categories, domains, emotions, situations 의존) ───
--- V1의 ai_article_id 컬럼/FK는 V6에서 제거되었고, 대신 emotion_id/situation_id가
--- 추가되었으므로(V6) 최종 구조에는 처음부터 이 컬럼들로 생성한다.
--- (V1에 있던 ai_articles와의 순환 의존성도 이 구조에서는 더 이상 없다.)
+-- 링크: 감정/상황 태그를 가지며, ai_articles와는 단방향 참조만 존재
 
 create table linkus
 (
@@ -179,7 +177,7 @@ create table linkus
         foreign key (situation_id) references situations (situation_id)
 );
 
--- ai_articles (linkus 의존) — V1 + V12(title 컬럼 제거) 최종 반영
+-- ai_articles (linkus 의존): 링크별 AI 요약
 
 create table ai_articles
 (
@@ -245,7 +243,7 @@ create table alarm_settings
         foreign key (user_id) references users (user_id) on delete cascade
 );
 
--- auth_accounts: V1 + V4(provider CHECK)
+-- 소셜/일반 로그인 계정: provider는 정해진 값만 허용
 create table auth_accounts
 (
     social_account_id bigserial    primary key,
@@ -282,9 +280,7 @@ create table curations
         foreign key (user_id) references users (user_id) on delete cascade
 );
 
--- interests / purposes: V9에서 유저별 자유 문자열 테이블 -> 카탈로그(마스터) 테이블로
--- 재정의되었으므로, 최종 구조인 카탈로그 테이블 + 고정 시드값만 반영한다.
--- (레거시 유저 데이터를 새 값으로 이관하는 DML은 새 DB에는 대상이 없어 제외)
+-- interests / purposes: 고정된 값 목록을 관리하는 카탈로그(마스터) 테이블
 
 create table interests
 (
@@ -325,7 +321,7 @@ values ('CAREER'),
        ('CREATION_REFERENCE'),
        ('OTHERS');
 
--- terms_agreements: V1 + V4(terms_type CHECK)
+-- 약관 동의: terms_type은 정해진 값만 허용
 create table terms_agreements
 (
     terms_agreement_id bigserial    primary key,
@@ -348,7 +344,7 @@ create table terms_agreements
         foreign key (user_id) references users (user_id) on delete cascade
 );
 
--- user_alarms: V1 + V7(미읽음 조회용 복합 인덱스)
+-- 유저별 알림 수신함: 미읽음 조회용 인덱스 포함
 create table user_alarms
 (
     user_alarm_id bigserial    primary key,
@@ -397,7 +393,7 @@ create table users_category_colors
         foreign key (fcolor_id) references fcolors (fcolor_id)
 );
 
--- folder_share_links: V1 + V4(permission_type CHECK)
+-- 폴더 공유 링크: permission_type은 정해진 값만 허용
 create table folder_share_links
 (
     folder_share_link_id bigserial    primary key,
@@ -422,7 +418,7 @@ create table folder_share_links
         foreign key (creator_id) references users (user_id) on delete cascade
 );
 
--- keyword_monthly_counts: V1 + V4(type CHECK)
+-- 키워드 월별 집계: type은 정해진 값만 허용
 create table keyword_monthly_counts
 (
     keyword_monthly_count_id bigserial   primary key,
@@ -441,7 +437,7 @@ create table keyword_monthly_counts
         foreign key (user_id) references users (user_id) on delete cascade
 );
 
--- users_linkus: V1 + V10(user_id FK를 ON DELETE CASCADE로 재생성) + V11(user_id 인덱스)
+-- 유저별 저장 링크: 유저 삭제 시 함께 삭제(CASCADE), user_id 조회용 인덱스 포함
 create table users_linkus
 (
     user_linku_id   bigserial    primary key,
@@ -485,7 +481,7 @@ create table linku_folders
         foreign key (user_linku_id) references users_linkus (user_linku_id) on delete cascade
 );
 
--- users_folders: V1 + V4(permission_type CHECK)
+-- 유저-폴더 권한: permission_type은 정해진 값만 허용
 create table users_folders
 (
     users_folder_id bigserial    primary key,
@@ -508,7 +504,7 @@ create table users_folders
         foreign key (folder_id) references folders (folder_id)
 );
 
--- curation_linkus: V1 + V4(type CHECK) + V18(RECOMMENDED->INTERNAL) + V19(url_normalized 컬럼 제거)
+-- 큐레이션에 포함된 링크: type은 정해진 값만 허용
 create table curation_linkus
 (
     curation_linku_id bigserial     primary key,
@@ -529,8 +525,7 @@ create table curation_linkus
         foreign key (user_linku_id) references users_linkus (user_linku_id) on delete cascade
 );
 
--- linku_search_histories: V8(생성) + V10(user_id FK ON DELETE CASCADE)
--- 새 DB에는 FK 없이 쌓인 고아 데이터가 없으므로 V10의 정리(DELETE) 구문은 불필요.
+-- 유저별 검색 기록: 유저 삭제 시 함께 삭제(CASCADE)
 create table linku_search_histories
 (
     linku_search_history_id bigserial primary key,
@@ -545,7 +540,7 @@ create table linku_search_histories
 create index idx_search_histories_user_id_created_at
     on linku_search_histories (user_id, created_at desc);
 
--- users_interests / users_purposes: V9에서 신규 생성된 N:M 조인 테이블
+-- 유저-관심사, 유저-목적: 다대다 연결 테이블
 create table users_interests
 (
     id          bigserial    primary key,
@@ -572,7 +567,7 @@ create table users_purposes
     constraint uk_users_purposes_user_purpose unique (user_id, purpose_id)
 );
 
--- ── V13: 홈화면 추천 프로필 테이블 3종 ────────────────────────
+-- ── 홈화면 링크 추천용 프로필 테이블 ────────────────────────
 create extension if not exists pg_trgm;
 
 create table user_content_profiles
@@ -606,7 +601,7 @@ create table user_profile_refresh_queue
     requested_at timestamp(6) not null default now()
 );
 
--- ── V20: Spring Batch 5.2.2 공식 메타데이터 스키마 ────────────
+-- ── Spring Batch 메타데이터 스키마 ────────────
 
 CREATE TABLE BATCH_JOB_INSTANCE  (
 	JOB_INSTANCE_ID BIGINT  NOT NULL PRIMARY KEY ,
