@@ -24,19 +24,6 @@ spring:
       url: redis://localhost:6379
       timeout: 3000ms
 
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: test-google-client-id
-            client-secret: test-google-client-secret
-            redirect-uri: http://localhost:8080/login/oauth2/code/google
-          kakao:
-            client-id: test-kakao-client-id
-            client-secret: test-kakao-client-secret
-            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
-
 jwt:
   redis:
     host: localhost
