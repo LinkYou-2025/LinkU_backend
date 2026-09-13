@@ -9,9 +9,10 @@ spring:
 
   flyway:
     locations:
-      - classpath:db/migration
-      - classpath:db/seed
-      - classpath:db/local
+      - classpath:db/dev/migration
+      - classpath:db/dev/seed
+    placeholders:
+      cloudfrontDomain: ${AWS_CLOUDFRONT_DOMAIN}
 
 fcm:
   credentials:

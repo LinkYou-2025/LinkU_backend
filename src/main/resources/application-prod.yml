@@ -7,8 +7,10 @@ spring:
 
   flyway:
     locations:
-      - classpath:db/migration
-      - classpath:db/seed
+      - classpath:db/prod/migration
+      - classpath:db/prod/seed
+    placeholders:
+      cloudfrontDomain: ${AWS_CLOUDFRONT_DOMAIN}
 
 cloud:
   aws:
