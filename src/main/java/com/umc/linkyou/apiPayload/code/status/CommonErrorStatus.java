@@ -16,6 +16,7 @@ public enum CommonErrorStatus implements BaseErrorCode {
     _UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "COMMON401", "인증이 필요합니다."),
     _FORBIDDEN(HttpStatus.FORBIDDEN, "COMMON403", "금지된 요청입니다."),
     _TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "COMMON429", "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
+    _CONFLICT(HttpStatus.CONFLICT, "COMMON409", "이미 존재하는 리소스입니다."),
 
     // S3 관련 에러
     _S3_FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "S3404", "S3 파일을 찾을 수 없습니다."),

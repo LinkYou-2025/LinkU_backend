@@ -21,9 +21,6 @@ public class AiArticle extends BaseEntity {
     @JoinColumn(name = "linku_id", nullable = false, unique = true)
     private Linku linku;
 
-    @Column(name = "title", columnDefinition = "TEXT", nullable = false)
-    private String title;
-
     @Column(name = "summary", nullable = false, length = 255)
     private String summary;
 

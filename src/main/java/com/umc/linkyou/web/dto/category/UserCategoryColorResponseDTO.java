@@ -5,6 +5,8 @@ import lombok.*;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserCategoryColorResponseDTO {
     private Long categoryId;
     private Long fcolorId;

@@ -15,7 +15,7 @@ public class ExternalRecommendMaterializer {
     private final ExternalRecommendWorker worker;
     private final Semaphore externalRecoLimiter;
 
-    @Async("defaultTaskExecutor")
+    @Async("externalRecoTaskExecutor")
     public void generateExternalAsync(Long curationId) {
         boolean acquired = false;
         try {

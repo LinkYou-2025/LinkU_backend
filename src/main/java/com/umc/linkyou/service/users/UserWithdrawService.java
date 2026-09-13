@@ -3,14 +3,19 @@ package com.umc.linkyou.service.users;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.converter.UserConverter;
+import com.umc.linkyou.jwt.AccessTokenBlackListManager;
+import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.jwt.RefreshTokenManager;
+import com.umc.linkyou.jwt.TokenIssueService;
 import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.web.dto.UserRequestDTO;
+import com.umc.linkyou.web.dto.user.UserRequestDTO;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +23,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import java.time.temporal.ChronoUnit;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -30,42 +34,128 @@ public class UserWithdrawService{
     private final UserRepository userRepository;
     private final RefreshTokenManager refreshTokenManager;
     private final AuthAccountRepository authAccountRepository;
+    private final UserStatusValidator userStatusValidator;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final AccessTokenBlackListManager accessTokenBlackListManager;
+    private final TokenIssueService tokenIssueService;
 
     // 탈퇴 유예 기간
     private static final int GRACE_PERIOD_DAYS = 14;
 
+    /**
+     * 회원 탈퇴 (accessToken 미지정)
+     * 웹훅 등 현재 요청의 accessToken을 알 수 없는 내부 호출용.
+     */
     @Transactional
     public Users withdrawUser(Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO) {
+        return withdrawUser(userId, deleteReasonDTO, null);
+    }
+
+    /**
+     * 회원 탈퇴
+     * - Refresh Token 전체 삭제
+     * - 현재 요청의 Access Token을 블랙리스트에 등록하여 탈퇴 즉시 로그아웃 처리
+     */
+    @Transactional
+    public Users withdrawUser(
+            Long userId, UserRequestDTO.DeleteReasonDTO deleteReasonDTO, String accessToken) {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
-        // 1. 토큰 즉시 무효화
-        refreshTokenManager.deleteAllTokens(userId);
+
         user.withdraw(deleteReasonDTO.getReason(), LocalDateTime.now());
         userRepository.save(user);
+
+        // DB 커밋 후에만 Redis 반영 (커밋 실패 시 Redis는 건드리지 않음)
+        runAfterCommit(() -> invalidateTokens(userId, accessToken));
+
         return user;
     }
 
     /**
+     * 트랜잭션 동기화가 활성 상태면 커밋 후에 실행되도록 등록하고,
+     * 활성 상태가 아니면(예: 순수 단위 테스트처럼 트랜잭션 밖에서 호출된 경우) 즉시 실행한다.
+     */
+    private void runAfterCommit(Runnable task) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    task.run();
+                }
+            });
+        } else {
+            task.run();
+        }
+    }
+
+    /**
+     * 리프레시 토큰 전체 삭제 + 현재 액세스 토큰 블랙리스트 등록.
+     */
+    private void invalidateTokens(Long userId, String accessToken) {
+        try {
+            refreshTokenManager.deleteAllTokens(userId);
+        } catch (Exception e) {
+            log.warn("탈퇴 처리 중 리프레시 토큰 삭제 실패 (userId={})", userId, e);
+        }
+        blacklistAccessToken(accessToken);
+    }
+
+    private void blacklistAccessToken(String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            return;
+        }
+        // 만료/위조 등으로 파싱이 실패해도 탈퇴 자체는 계속 진행되어야 하므로
+        // 블랙리스트 등록 실패는 로그만 남기고 흐름을 막지 않는다.
+        try {
+            long ttlMs = jwtTokenProvider.getRemainingExpiryMs(accessToken);
+            if (ttlMs > 0) {
+                accessTokenBlackListManager.addToBlacklist(accessToken, ttlMs);
+            }
+        } catch (Exception e) {
+            log.warn("탈퇴 처리 중 액세스 토큰 블랙리스트 등록 실패 (탈퇴는 계속 진행됨)", e);
+        }
+    }
+
+    /**
      * 회원 탈퇴 복구 API
-     * INACTIVE 상태의 사용자를 다시 ACTIVE로 전환합니다.
+     * - INACTIVE 상태의 사용자를 다시 ACTIVE로 전환합니다.
+     * - 복구 성공 시 재로그인 없이 바로 홈 화면에 진입할 수 있도록 정식 액세스/리프레시 토큰 쌍을 함께 발급
      */
     @Transactional
-    public Users recoverUser(Long userId) {
+    public UserResponseDTO.withDrawalResultDTO recoverUser(
+            Long userId, String providerStr, UserRequestDTO.RecoverDTO request) {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
         if (user.getStatus() != UserStatus.INACTIVE) {
             throw new GeneralException(ErrorStatus._BAD_REQUEST); // 이미 활성 상태인 경우
         }
-        // 2. inactiveDate가 null이거나 14일이 경과했는지 확인
-        LocalDateTime inactiveDate = user.getInactiveDate();
-        if (inactiveDate == null || ChronoUnit.DAYS.between(inactiveDate, LocalDateTime.now()) > GRACE_PERIOD_DAYS) {
+        // 2. 유예 기간(14일) 이내인지 확인
+        if (!userStatusValidator.isWithinWithdrawGracePeriod(user)) {
             throw new GeneralException(ErrorStatus._BAD_REQUEST);
         }
         // 상태 및 탈퇴 관련 필드 초기화
         user.recover();
+        Users savedUser = userRepository.save(user);
 
-        return userRepository.save(user);
+        // 3. 복구 완료 시점에 정식 토큰 쌍 발급
+        Provider provider = Provider.valueOf(providerStr);
+        String email =
+                authAccountRepository
+                        .findEmailByUserIdAndProvider(userId, provider)
+                        .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+
+        TokenIssueService.IssuedTokenPair tokenPair =
+                tokenIssueService.issueTokenPair(
+                        userId,
+                        email,
+                        providerStr,
+                        savedUser.getRole(),
+                        request.deviceId(),
+                        request.deviceType());
+
+        return UserConverter.toWithDrawalResultDTO(
+                savedUser, tokenPair.accessToken(), tokenPair.refreshToken());
     }
 
     //14 일 이후 삭제
@@ -85,11 +175,12 @@ public class UserWithdrawService{
         userRepository.deleteAll(toDelete);
 
         // 2. DB 커밋 후에만 Redis 토큰 삭제
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                for (Long userId : inactiveUserIds) {
+        runAfterCommit(() -> {
+            for (Long userId : inactiveUserIds) {
+                try {
                     refreshTokenManager.deleteAllTokens(userId);
+                } catch (Exception e) {
+                    log.warn("완전삭제 후 리프레시 토큰 삭제 실패 (userId={})", userId, e);
                 }
             }
         });
@@ -107,11 +198,17 @@ public class UserWithdrawService{
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
-        // 2. Redis 토큰 삭제
-        refreshTokenManager.deleteAllTokens(userId);
-
-        // 3. 부모 엔티티 삭제. 연관 데이터는 DB ON DELETE CASCADE가 정리합니다.
+        // 2. 부모 엔티티 삭제. 연관 데이터는 DB ON DELETE CASCADE가 정리합니다.
         userRepository.delete(user);
+
+        // 3. Redis 토큰 삭제는 DB 커밋 후에만 (삭제가 롤백되면 Redis는 건드리지 않음)
+        runAfterCommit(() -> {
+            try {
+                refreshTokenManager.deleteAllTokens(userId);
+            } catch (Exception e) {
+                log.warn("테스트 삭제 후 리프레시 토큰 삭제 실패 (userId={})", userId, e);
+            }
+        });
 
         log.info("🧪 테스트 삭제 완료: 사용자 ID {}", userId);
 

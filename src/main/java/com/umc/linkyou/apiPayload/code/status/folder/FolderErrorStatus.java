@@ -12,6 +12,7 @@ public enum FolderErrorStatus implements BaseErrorCode {
 
     // 400 Bad Request
     _FOLDER_INVALID_CURSOR(HttpStatus.BAD_REQUEST, "FOLDER4001", "유효하지 않은 커서 값입니다."),
+    _FOLDER_MAX_DEPTH_EXCEEDED(HttpStatus.BAD_REQUEST, "FOLDER4002", "소분류 폴더 하위에는 폴더를 생성할 수 없습니다."),
 
     // 403 Forbidden
     _FOLDER_CREATE_FORBIDDEN(HttpStatus.FORBIDDEN, "FOLDER4031", "해당하는 폴더를 생성할 권한이 없습니다."),

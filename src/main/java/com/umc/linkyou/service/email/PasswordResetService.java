@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
 public class PasswordResetService {
 
     private static final Pattern PASSWORD_POLICY_PATTERN =
-            Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,64}$");
+            Pattern.compile("^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,64}$");
 
     private final AuthAccountRepository authAccountRepository;
     private final UserRepository userRepository;

@@ -11,7 +11,8 @@ import org.springframework.http.HttpStatus;
 public enum CategoryErrorStatus implements BaseErrorCode {
 
     // 404 Not Found
-    _CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CATEGORY4041", "해당하는 카테고리를 찾을 수 없습니다.");
+    _CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CATEGORY4041", "해당하는 카테고리를 찾을 수 없습니다."),
+    _FCOLOR_NOT_FOUND(HttpStatus.NOT_FOUND, "CATEGORY4042", "해당하는 색상을 찾을 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

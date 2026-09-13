@@ -8,11 +8,11 @@ import com.umc.linkyou.service.folder.share.ShareFolderService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.api.ShareFolderApi;
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
+import com.umc.linkyou.web.dto.folder.share.MySharedFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,13 +23,10 @@ public class ShareFolderController implements ShareFolderApi {
 
     private final ShareFolderService shareFolderService;
 
-    @Value("${app.deeplink.base-url}")
-    private String deeplinkBaseUrl;
-
     @Override
     public ApiResponse<String> createInviteLink(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
         String token = shareFolderService.createInviteLink(userDetails.getUserId(), folderId);
-        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_INVITE_LINK_CREATED, deeplinkBaseUrl + "/open?action=share&folderId=" + token);
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_INVITE_LINK_CREATED, token);
     }
 
     @Override
@@ -51,5 +48,15 @@ public class ShareFolderController implements ShareFolderApi {
     @Override
     public ApiResponse<ShareFolderResponseDTO> unshareFolder(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
         return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_UNSHARE_OK, shareFolderService.unshare(userDetails.getUserId(), folderId));
+    }
+
+    @Override
+    public ApiResponse<ShareFolderResponseDTO> leaveFolder(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_OWNERSHIP_TRANSFERRED_OK, shareFolderService.leaveFolder(userDetails.getUserId(), folderId));
+    }
+
+    @Override
+    public ApiResponse<List<MySharedFolderResponseDTO>> getMySharedFolders(@CurrentUser CustomUserDetails userDetails) {
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_MY_SHARED_OK, shareFolderService.getMySharedFolders(userDetails.getUserId()));
     }
 }

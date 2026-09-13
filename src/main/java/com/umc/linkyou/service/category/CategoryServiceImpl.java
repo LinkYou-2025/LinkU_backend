@@ -1,5 +1,7 @@
 package com.umc.linkyou.service.category;
 
+import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.CategoryConverter;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Fcolor;
@@ -56,8 +58,14 @@ public class CategoryServiceImpl implements CategoryService {
             Long categoryId,
             UpdateCategoryColorRequestDTO request) {
         UsersCategoryColor ucc = usersCategoryColorRepository.searchCategoryColor(userId, categoryId);
+        if (ucc == null) {
+            throw new GeneralException(CategoryErrorStatus._CATEGORY_NOT_FOUND);
+        }
 
         Fcolor fcolor = fcolorRepository.searchColorCode(request.getFcolorId());
+        if (fcolor == null) {
+            throw new GeneralException(CategoryErrorStatus._FCOLOR_NOT_FOUND);
+        }
 
         ucc.updateFcolor(fcolor);
 

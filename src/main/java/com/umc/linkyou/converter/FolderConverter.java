@@ -7,26 +7,11 @@ import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
+import com.umc.linkyou.web.dto.folder.linku.FolderSummaryDTO;
 
 import java.util.Map;
 
 public class FolderConverter {
-
-    public static FolderResponseDTO toFolderResponseDTO(Folder folder) {
-        if (folder == null) {
-            return null;
-        }
-        Category category = folder.getCategory();
-        return FolderResponseDTO.builder()
-                .folderId(folder.getFolderId())
-                .folderName(folder.getFolderName())
-                .categoryId(category != null ? category.getCategoryId() : null)
-                .categoryName(category != null ? category.getCategoryName() : null)
-                .parentFolderId(folder.getParentFolder() != null ? folder.getParentFolder().getFolderId() : null)
-                .createdAt(folder.getCreatedAt())
-                .updatedAt(folder.getUpdatedAt())
-                .build();
-    }
 
     public static FolderResponseDTO toFolderResponseDTO(Folder folder, Boolean isBookmarked) {
         if (folder == null) {
@@ -55,6 +40,15 @@ public class FolderConverter {
                 .build();
     }
 
+    public static FolderSummaryDTO toFolderSummaryDTO(Folder folder, boolean isBookmarked, boolean isSharing) {
+        return FolderSummaryDTO.builder()
+                .folderId(folder.getFolderId())
+                .folderName(folder.getFolderName())
+                .isBookmarked(isBookmarked)
+                .isSharing(isSharing ? "share" : "private")
+                .build();
+    }
+
     public static Folder toFolder(Category category) {
         return Folder.builder()
                 .category(category)
@@ -63,11 +57,11 @@ public class FolderConverter {
                 .build();
     }
 
-    public static UsersFolder toUsersFolder(Users user, Folder folder) {
+    public static UsersFolder toUsersFolder(Users user, Folder folder, PermissionType permissionType) {
         return UsersFolder.builder()
                 .user(user)
                 .folder(folder)
-                .permissionType(PermissionType.OWNER)
+                .permissionType(permissionType)
                 .isBookmarked(false)
                 .build();
     }

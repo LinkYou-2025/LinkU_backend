@@ -42,7 +42,8 @@ class InternalLinkCandidateServiceImplTest {
 
     private static final Long USER_ID = 48L;
     private static final Long CURATION_ID = 181L;
-    private static final String MONTH = "2026-04";
+    private static final String MONTH = "2026-04"; // 큐레이션 이슈 월(N)
+    private static final String DATA_MONTH = "2026-03"; // 데이터 집계 월(N-1)
 
     private static final long EMOTION_JOY = 1L;
     private static final long EMOTION_EXCITEMENT = 3L;
@@ -86,14 +87,14 @@ class InternalLinkCandidateServiceImplTest {
         return KeywordMonthlyCount.builder()
                 .type(type)
                 .refId(refId)
-                .baseMonth(MONTH)
+                .baseMonth(DATA_MONTH)
                 .count(5)
                 .build();
     }
 
     @Test
     @DisplayName("해당 월에 저장한 링크가 없으면 빈 리스트를 반환한다")
-    void noLinks_returnsEmpty() {
+    void 저장한_링크가_없으면_빈_리스트를_반환한다() {
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(makeCuration()));
         when(usersLinkuRepository.findAllByUserIdAndCreatedAtBetween(eq(USER_ID), any(), any()))
                 .thenReturn(List.of());
@@ -105,7 +106,7 @@ class InternalLinkCandidateServiceImplTest {
 
     @Test
     @DisplayName("감정+상황 점수가 높은 링크가 먼저 반환된다")
-    void scoring_highScoreFirst() {
+    void 감정_상황_점수가_높은_링크가_먼저_반환된다() {
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(makeCuration()));
 
         LocalDateTime base = LocalDateTime.of(2026, 3, 15, 12, 0);
@@ -120,11 +121,11 @@ class InternalLinkCandidateServiceImplTest {
                 .thenReturn(List.of(link3, link2, link1));
 
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
                 .thenReturn(List.of(makeKmc(KeywordType.EMOTION, EMOTION_JOY)));
 
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
                 .thenReturn(List.of(makeKmc(KeywordType.SITUATION, SITUATION_ID)));
 
         when(situationCategoryRepository.findCategoryIdsBySituationId(SITUATION_ID))
@@ -140,7 +141,7 @@ class InternalLinkCandidateServiceImplTest {
 
     @Test
     @DisplayName("limit 개수만큼만 반환된다")
-    void limit_applied() {
+    void limit_개수만큼만_반환된다() {
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(makeCuration()));
 
         LocalDateTime base = LocalDateTime.now();
@@ -152,10 +153,10 @@ class InternalLinkCandidateServiceImplTest {
         when(usersLinkuRepository.findAllByUserIdAndCreatedAtBetween(eq(USER_ID), any(), any()))
                 .thenReturn(links);
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
                 .thenReturn(List.of());
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
                 .thenReturn(List.of());
 
         List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 2);
@@ -165,7 +166,7 @@ class InternalLinkCandidateServiceImplTest {
 
     @Test
     @DisplayName("점수가 동일하면 최신 링크가 먼저 반환된다")
-    void tieBreak_byCreatedAtDesc() {
+    void 점수가_동일하면_최신_링크가_먼저_반환된다() {
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(makeCuration()));
 
         LocalDateTime older = LocalDateTime.of(2026, 3, 1, 0, 0);
@@ -176,10 +177,10 @@ class InternalLinkCandidateServiceImplTest {
         when(usersLinkuRepository.findAllByUserIdAndCreatedAtBetween(eq(USER_ID), any(), any()))
                 .thenReturn(List.of(oldLink, newLink));
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
                 .thenReturn(List.of());
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
                 .thenReturn(List.of());
 
         List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);
@@ -190,7 +191,7 @@ class InternalLinkCandidateServiceImplTest {
 
     @Test
     @DisplayName("topEmotion이 없으면 감정 점수는 모두 0이다")
-    void noTopEmotion_zeroEmotionScore() {
+    void topEmotion이_없으면_감정_점수는_모두_0이다() {
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(makeCuration()));
 
         LocalDateTime base = LocalDateTime.now();
@@ -200,10 +201,10 @@ class InternalLinkCandidateServiceImplTest {
         when(usersLinkuRepository.findAllByUserIdAndCreatedAtBetween(eq(USER_ID), any(), any()))
                 .thenReturn(List.of(link1, link2));
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
                 .thenReturn(List.of());
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
+                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
                 .thenReturn(List.of());
 
         List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);

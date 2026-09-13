@@ -46,6 +46,9 @@ public class LinkuRequestDTO {
         @Schema(example = "1", description = "도메인(domain) ID")
         private Long domainId;
 
+        @Schema(example = "5", description = "변경할 카테고리 ID. 내 폴더 중 해당 카테고리의 중분류(루트) 폴더로 링크가 이동합니다.")
+        private Long categoryId;
+
         @Schema(example = "수정된 제목", description = "링크의 제목(TITLE)")
         private String title;
 

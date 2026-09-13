@@ -1,5 +1,7 @@
 package com.umc.linkyou.converter;
 
+import java.util.List;
+
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.domain.Users;
@@ -7,18 +9,18 @@ import com.umc.linkyou.domain.classification.Interests;
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.classification.Purposes;
 import com.umc.linkyou.domain.enums.UserStatus;
-import com.umc.linkyou.web.dto.UserRequestDTO;
-import com.umc.linkyou.web.dto.UserResponseDTO;
-import lombok.extern.slf4j.Slf4j;
+import com.umc.linkyou.domain.mapping.UsersInterest;
+import com.umc.linkyou.domain.mapping.UsersPurpose;
+import com.umc.linkyou.web.dto.user.UserRequestDTO;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class UserConverter {
 
     // 기존 toUser는 joinUser에서 사용
-    public static Users toUser(UserRequestDTO.JoinDTO request, Job job){
+    public static Users toUser(UserRequestDTO.JoinDTO request, Job job) {
         // joinUser는 컨트롤러 밖에서도 직접 호출될 수 있어 서비스 경계에서 gender null 방어
         if (request.gender() == null) {
             throw new UserHandler(UserErrorStatus._INVALID_GENDER);
@@ -31,14 +33,17 @@ public class UserConverter {
                 .build();
     }
 
-    public static UserResponseDTO.JoinResultDTO toJoinResultDTO(Users users){
+    public static UserResponseDTO.JoinResultDTO toJoinResultDTO(
+            Users users, String accessToken, String refreshToken) {
         return UserResponseDTO.JoinResultDTO.builder()
                 .userId(users.getId())
-                .createdAt(LocalDateTime.now())
+                .createdAt(users.getCreatedAt())
+                .tokenResponse(new UserResponseDTO.TokenPair(accessToken, refreshToken))
                 .build();
     }
 
-    public static UserResponseDTO.LoginResultDTO toLoginResultDTO(Users user, String accessToken, String refreshToken) {
+    public static UserResponseDTO.LoginResultDTO toLoginResultDTO(
+            Users user, String accessToken, String refreshToken) {
 
         return UserResponseDTO.LoginResultDTO.builder()
                 .userId(user.getId())
@@ -54,11 +59,10 @@ public class UserConverter {
             String email,
             List<String> purposes,
             List<String> interests,
-            String loginProvider
-    ) {
+            String loginProvider) {
         return UserResponseDTO.UserProfileSummaryDto.builder()
                 .nickName(s.getNickName())
-                .email(email != null ? email : s.getEmail())  // 우선순위: 인자 > 기존
+                .email(email != null ? email : s.getEmail()) // 우선순위: 인자 > 기존
                 .gender(s.getGender())
                 .job(s.getJob())
                 .myLinku(s.getMyLinku())
@@ -71,30 +75,34 @@ public class UserConverter {
     }
 
     public static UserResponseDTO.withDrawalResultDTO toWithDrawalResultDTO(Users user) {
+        return toWithDrawalResultDTO(user, null, null);
+    }
+
+    // 회원복구 성공 시 accessToken/refreshToken을 함께 담기 위한 오버로드
+    public static UserResponseDTO.withDrawalResultDTO toWithDrawalResultDTO(
+            Users user, String accessToken, String refreshToken) {
         if (user == null) return null;
-        return UserResponseDTO.withDrawalResultDTO.builder()
+        return UserResponseDTO.withDrawalResultDTO
+                .builder()
                 .userId(user.getId())
                 .nickname(user.getNickName())
                 .createdAt(user.getCreatedAt())
                 .status(user.getStatus())
                 .inactiveDate(user.getInactiveDate())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 
-
-
-    public static List<Purposes> toPurposes(Users user, List<String> purposeNames) {
-        if (purposeNames == null || purposeNames.isEmpty()) return List.of();
-        return purposeNames.stream()
-                .map(name -> Purposes.of(name, user))
-                .toList();
+    // Users - Purposes 다대다 조인 엔티티 생성 (마스터 엔티티는 서비스 레이어에서 조회/생성 후 전달받음)
+    public static List<UsersPurpose> toUsersPurposes(Users user, List<Purposes> purposes) {
+        if (purposes == null || purposes.isEmpty()) return List.of();
+        return purposes.stream().map(purpose -> UsersPurpose.of(user, purpose)).toList();
     }
 
-    // 엔티티의 초기 Interests 설정
-    public static List<Interests> toInterests(Users user, List<String> interestNames) {
-        if (interestNames == null || interestNames.isEmpty()) return List.of();
-        return interestNames.stream()
-                .map(name -> Interests.of(name, user))
-                .toList();
+    // Users - Interests 다대다 조인 엔티티 생성 (마스터 엔티티는 서비스 레이어에서 조회/생성 후 전달받음)
+    public static List<UsersInterest> toUsersInterests(Users user, List<Interests> interests) {
+        if (interests == null || interests.isEmpty()) return List.of();
+        return interests.stream().map(interest -> UsersInterest.of(user, interest)).toList();
     }
 }

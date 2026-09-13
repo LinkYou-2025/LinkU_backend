@@ -5,6 +5,8 @@ import lombok.*;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CategoryListResponseDTO {
     private Long categoryId;
     private String categoryName;

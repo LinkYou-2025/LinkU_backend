@@ -24,6 +24,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final AccessTokenBlackListManager accessTokenBlackListManager;
 
+    private static final String RECOVERY_ENDPOINT = "/api/v1/users/recover";
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -38,6 +40,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (accessTokenBlackListManager.isBlacklisted(token)) {
             throw new JwtException("Blacklisted access token");
+        }
+
+        if (jwtTokenProvider.isRecoveryToken(token) && !RECOVERY_ENDPOINT.equals(request.getRequestURI())) {
+            throw new JwtException("복구 전용 토큰은 회원 복구 API에서만 사용할 수 있습니다.");
         }
 
         Authentication authentication = jwtTokenProvider.getAuthentication(token);

@@ -57,7 +57,7 @@ class AlarmApiIntegrationTest {
 
     @Test
     @DisplayName("알림 리스트 조회 - alarmType 파라미터로 정상 조회된다")
-    void viewAlarmList_withAlarmTypeParam_success() throws Exception {
+    void alarmType_파라미터로_정상_조회된다() throws Exception {
         Users user = createUser("alarm_user_1");
         saveUserAlarm(user, AlarmType.CURATION_UPDATED, 101L);
 
@@ -75,7 +75,7 @@ class AlarmApiIntegrationTest {
 
     @Test
     @DisplayName("알림 리스트 조회 - alarmType 필터가 적용된다")
-    void viewAlarmList_withAlarmTypeFilter_success() throws Exception {
+    void alarmType_필터가_적용된다() throws Exception {
         Users user = createUser("alarm_user_2");
 
         saveUserAlarm(user, AlarmType.FOLDER_DELETED, 201L);
@@ -94,7 +94,7 @@ class AlarmApiIntegrationTest {
 
     @Test
     @DisplayName("알림 리스트 조회 - 구 파라미터 alarmSettingType 사용 시 400")
-    void viewAlarmList_withLegacyParam_badRequest() throws Exception {
+    void 구_파라미터_alarmSettingType_사용_시_400을_반환한다() throws Exception {
         Users user = createUser("alarm_user_3");
         saveUserAlarm(user, AlarmType.CURATION_UPDATED, 301L);
 
@@ -107,7 +107,7 @@ class AlarmApiIntegrationTest {
 
     @Test
     @DisplayName("알림 설정 수정 - AlarmSettingResponseDTO 형태로 반환된다")
-    void updateAlarmSetting_returnsFullDto() throws Exception {
+    void AlarmSettingResponseDTO_형태로_반환된다() throws Exception {
         Users user = createUser("alarm_user_4");
         alarmSettingRepository.save(AlarmSetting.createDefault(user));
 
@@ -126,7 +126,7 @@ class AlarmApiIntegrationTest {
 
     @Test
     @DisplayName("알림 설정 수정 - 개별 설정 4개 모두 off 시 isAllEnabled도 false가 된다")
-    void updateAlarmSetting_allIndividualOff_disablesMaster() throws Exception {
+    void 개별_설정_4개_모두_off_시_isAllEnabled도_false가_된다() throws Exception {
         Users user = createUser("alarm_user_5");
         AlarmSetting setting = AlarmSetting.createDefault(user);
         setting.updateNotice(false);
@@ -148,7 +148,7 @@ class AlarmApiIntegrationTest {
 
     @Test
     @DisplayName("알림 설정 수정 - 전체 off 상태에서 개별 ON 시 isAllEnabled는 false 유지된다")
-    void updateAlarmSetting_individualOn_masterStaysFalse() throws Exception {
+    void 전체_off_상태에서_개별_ON_시_isAllEnabled는_false_유지된다() throws Exception {
         Users user = createUser("alarm_user_5");
         AlarmSetting setting = AlarmSetting.createDefault(user);
         setting.updateAll(false);
@@ -165,7 +165,7 @@ class AlarmApiIntegrationTest {
 
     @Test
     @DisplayName("알림 설정 수정 - 개별 설정 모두 OFF 이후 개별 ON 시 해당 항목이 다시 활성화된다")
-    void updateAlarmSetting_reenableAfterAllOff() throws Exception {
+    void 개별_설정_모두_OFF_이후_개별_ON_시_다시_활성화된다() throws Exception {
         Users user = createUser("alarm_user_6");
         AlarmSetting setting = AlarmSetting.createDefault(user);
         setting.updateLink(false);

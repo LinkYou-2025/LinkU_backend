@@ -1,0 +1,7 @@
+# 이 파일을 terraform.tfvars로 복사한 뒤 콘솔에서 확인한 실제 값으로 채울 것
+# (EC2 콘솔 → 인스턴스 상세에서 전부 확인 가능)
+
+ami_id             = "ami-xxxxxxxxxxxxxxxxx"
+key_name           = "linku-key"
+subnet_id          = "subnet-xxxxxxxxxxxxxxxxx"
+vpc_id             = "vpc-xxxxxxxxxxxxxxxxx"

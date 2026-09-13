@@ -53,15 +53,47 @@ public class JwtTokenProvider {
 
     // 액세스 토큰 생성 (subject 기반)
     public String createAccessToken(Long userId, String subject, String provider, Role role) {
-        return Jwts.builder()
+        return createAccessToken(userId, subject, provider, role, null);
+    }
+
+    public String createAccessToken(Long userId, String subject, String provider, Role role, String sessionId) {
+        JwtBuilder builder = Jwts.builder()
                 .setSubject(subject)
                 .claim("userId", userId)
                 .claim("provider", provider)
                 .claim("role", role.getAuthority())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.expiration().access()))
+                .signWith(accessKey, SignatureAlgorithm.HS256);
+
+        // sessionId가 null이 아니고 공백이 아닌 경우에만 claim에 추가
+        if (sessionId != null && !sessionId.isBlank()) {
+            builder.claim("sid", sessionId);
+        }
+
+        return builder.compact();
+    }
+
+    private static final String RECOVERY_PURPOSE = "RECOVER";
+    private static final long RECOVERY_TOKEN_EXPIRATION_MS = 10 * 60 * 1000L; // 10분
+
+    // 탈퇴 유예 기간 복구 전용 토큰 — 회원 복구 API 외 다른 엔드포인트에는 사용할 수 없음
+    public String createRecoveryToken(Long userId, String subject, String provider, Role role) {
+        return Jwts.builder()
+                .setSubject(subject)
+                .claim("userId", userId)
+                .claim("provider", provider)
+                .claim("role", role.getAuthority())
+                .claim("purpose", RECOVERY_PURPOSE)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + RECOVERY_TOKEN_EXPIRATION_MS))
                 .signWith(accessKey, SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    public boolean isRecoveryToken(String token) {
+        Claims claims = validateAndParseAccess(token).getBody();
+        return RECOVERY_PURPOSE.equals(claims.get("purpose", String.class));
     }
 
     // 클레임 기반으로 Authentication 구성 — DB 조회 없음
@@ -174,6 +206,14 @@ public class JwtTokenProvider {
         Claims claims = validateAndParseAccess(normalizeStrict(token)).getBody();
         long expiry = claims.getExpiration().getTime() - System.currentTimeMillis();
         return Math.max(expiry, 0);
+    }
+
+    public long getAccessTokenExpiresAt(String token) {
+        return validateAndParseAccess(normalizeStrict(token)).getBody().getExpiration().getTime();
+    }
+
+    public String getSessionId(String token) {
+        return validateAndParseAccess(normalizeStrict(token)).getBody().get("sid", String.class);
     }
 
 

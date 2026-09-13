@@ -2,8 +2,10 @@ package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.converter.LinkuConverter;
@@ -27,15 +29,19 @@ import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -57,39 +63,33 @@ public class LinkuService {
     private final AiArticleRepository aiArticleRepository;
     private final CurationLinkuRepository curationLinkuRepository;
     private final LinkuViewService linkuViewService;
+    private final UserRepository userRepository;
     private final AwsS3Service awsS3Service;
 
 
     @Transactional
     public ApiResponse<LinkuResponseDTO.LinkuIsExistDTO> existLinku(Long userId, String url) {
 
-        // 1. 영상 링크 차단 , 유효하지 않은 링크 차단 → 예외 던지기
-        UrlValidUtils.validateLinkuUrl(url);
+        // 1. 정규화 + 영상 링크/유효하지 않은 링크 차단
+        String normalizedUrl = UrlValidUtils.normalizeAndValidateLinkuUrl(url);
 
         // 3. 기존에 링크 저장 여부 확인
-        Optional<UsersLinku> usersLinkuOpt =
-                usersLinkuRepository.findByUserIdAndLinku_LinkuUrl(userId, url);
+        List<UsersLinku> usersLinkuList =
+                usersLinkuRepository.findByUserIdAndLinku_LinkuUrlOrderByCreatedAtDesc(userId, normalizedUrl);
+
+        UsersLinku usersLinku = usersLinkuList.isEmpty() ? null : usersLinkuList.get(0);
 
         LinkuResponseDTO.LinkuIsExistDTO dto =
-                LinkuConverter.toLinkuIsExistDTO(userId, usersLinkuOpt.orElse(null));
+                LinkuConverter.toLinkuIsExistDTO(userId, usersLinku);
 
-        if (usersLinkuOpt.isPresent()) {
-            return ApiResponse.onSuccess(dto);
-        } else {
-            return ApiResponse.onSuccess(dto);
-        }
+        return ApiResponse.onSuccess(dto);
     }//링크가 이미 존재하는 지 여부 판단
 
 
 
     @Transactional(readOnly = true)
-    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailGetLinku(Long userId, Long linkuId) {
-        // 1. 해당 사용자가 이 링크(linkuId)를 저장한 UsersLinku 찾기.
-        List<UsersLinku> list = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId);
-
-        UsersLinku usersLinku = list.stream()
-                .max(Comparator.comparing(UsersLinku::getCreatedAt)) // 혹은 정렬해서 가장 최근꺼 선택
-                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailGetLinku(Long userId, Long userLinkuId) {
+        UsersLinku usersLinku = getOwnedUsersLinku(userId, userLinkuId);
 
         // 2. Linku는 UsersLinku에서 직접 꺼낼 수 있음
         Linku linku = usersLinku.getLinku();
@@ -131,11 +131,9 @@ public class LinkuService {
 
     @Transactional(readOnly = true)
     public List<LinkuResponseDTO.LinkuSimpleDTO> getRecentViewedLinkus(Long userId, int limit) {
+        // 최근 열람 + 최근 생성(아직 안 본 링크)을 함께 보여준다. (홈 화면 전용, 기준 로직은 findRecentByUserId 참고)
         List<UsersLinku> recentList = usersLinkuRepository
-                .findTop10ByUser_IdAndLastViewedAtIsNotNullOrderByLastViewedAtDesc(userId)
-                .stream()
-                .limit(limit)
-                .collect(Collectors.toList());
+                .findRecentByUserId(userId, PageRequest.of(0, limit));
 
         Map<Long, LinkuFolder> latestFolderByUserLinkuId = fetchLatestLinkuFolders(recentList);
 
@@ -164,14 +162,38 @@ public class LinkuService {
                 ));
     }
 
-    @Transactional
-    public LinkuResponseDTO.LinkuResultDTO updateLinku(Long userId, Long linkuId, LinkuRequestDTO.LinkuUpdateDTO dto) {
-        // 1. 본인이 소유한 UsersLinku 찾기 (= 내 userId와 linkuId로 찾음. 못 찾으면 오류)
-        List<UsersLinku> list = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId);
+    //저번 달 저장만 하고 열어보지 않은 링크 가져오기  /linku/last-month/unread
+    //month(YYYY-MM) 기준 저번 달을 계산한다. 
+    @Transactional(readOnly = true)
+    public List<LinkuResponseDTO.LinkuSimpleDTO> getLastMonthUnreadLinkus(Long userId, YearMonth month) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
-        UsersLinku usersLinku = list.stream()
-                .max(Comparator.comparing(UsersLinku::getCreatedAt))// 혹은 정렬해서 가장 최근꺼 선택
-                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
+        YearMonth baseMonth = (month != null) ? month : YearMonth.now(ZoneId.of("Asia/Seoul"));
+
+        YearMonth lastMonth = baseMonth.minusMonths(1);
+        LocalDateTime start = lastMonth.atDay(1).atStartOfDay();
+        LocalDateTime end = lastMonth.plusMonths(1).atDay(1).atStartOfDay();
+
+        List<UsersLinku> unreadList = usersLinkuRepository
+                .findUnviewedByUserIdAndCreatedAtBetween(userId, start, end);
+
+        Map<Long, LinkuFolder> latestFolderByUserLinkuId = fetchLatestLinkuFolders(unreadList);
+
+        return unreadList.stream()
+                .map(ul -> {
+                    Linku linku = ul.getLinku();
+                    boolean aiArticleExists = Boolean.TRUE.equals(ul.getAiExist());
+                    Domain domain = linku.getDomain();
+                    LinkuFolder linkuFolder = latestFolderByUserLinkuId.get(ul.getUserLinkuId());
+                    return toLinkuSimpleDTO(linku, ul, domain, aiArticleExists, linkuFolder);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public LinkuResponseDTO.LinkuResultDTO updateLinku(Long userId, Long userLinkuId, LinkuRequestDTO.LinkuUpdateDTO dto) {
+        UsersLinku usersLinku = getOwnedUsersLinku(userId, userLinkuId);
 
         // 2. 연관 Linku 엔티티 가져오기 (실제 링크 정보) 및 변경 플래그 준비
         Linku linku = usersLinku.getLinku();
@@ -210,6 +232,26 @@ public class LinkuService {
             linkuModified = true;
         }
 
+        // 5-1. 카테고리(중분류) 변경
+        //      Linku는 동일 URL을 저장한 모든 유저가 공유하는 엔티티이므로 category 자체를 바꾸지 않고,
+        //      이 유저 소유의 해당 카테고리 중분류(루트) 폴더로 LinkuFolder 매핑만 이동한다.
+        LinkuFolder linkuFolder = linkuFolderRepository
+                .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId())
+                .orElse(null);
+
+        if (dto.getCategoryId() != null) {
+            Category newCategory = categoryRepository.findById(dto.getCategoryId())
+                    .orElseThrow(() -> new GeneralException(CategoryErrorStatus._CATEGORY_NOT_FOUND));
+            Folder targetFolder = usersFolderRepository.findFolderByUserIdAndCategory(userId, newCategory)
+                    .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
+
+            if (linkuFolder == null) {
+                throw new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND);
+            }
+            linkuFolder.updateFolder(targetFolder);
+            linkuFolderRepository.save(linkuFolder);
+        }
+
         // 6. 제목(title) 변경 (개인화: 공용 Linku가 아닌 이 유저의 UsersLinku.title만 변경)
         if (dto.getTitle() != null) {
             usersLinku.updateTitle(dto.getTitle());
@@ -229,11 +271,10 @@ public class LinkuService {
         if (linkuModified) linkuRepository.save(linku);
         if (usersLinkuModified) usersLinkuRepository.save(usersLinku);
 
-        // 8. 최신 폴더 매핑 정보, 카테고리, 도메인 등 다시 조회해 응답 준비
-        LinkuFolder linkuFolder = linkuFolderRepository
-                .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId())
-                .orElse(null);
-        Category category = linku.getCategory();
+        // 8. 카테고리, 도메인 등 응답 준비
+        //    categoryId는 공유 Linku가 아니라 이 유저가 속한 폴더(중분류) 기준으로 내려준다.
+        //    (폴더 매핑이 없는 예외적인 경우에만 공유 Linku의 category로 대체)
+        Category category = linkuFolder != null ? linkuFolder.getFolder().getCategory() : linku.getCategory();
         Domain domain = linku.getDomain();
 
         // 9. DTO 변환해 반환 (모든 정보 최신상태로 응답)
@@ -248,12 +289,8 @@ public class LinkuService {
      * 이 유저 소유의 LinkuFolder 매핑(folder_id)만 바꾸고 linku/category는 건드리지 않는다.
      */
     @Transactional
-    public LinkuResponseDTO.LinkuFolderChangeResultDTO updateLinkuFolder(Long userId, Long linkuId, LinkuRequestDTO.LinkuFolderUpdateDTO dto) {
-        // 1. 본인이 소유한 UsersLinku 찾기
-        List<UsersLinku> list = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linkuId);
-        UsersLinku usersLinku = list.stream()
-                .max(Comparator.comparing(UsersLinku::getCreatedAt))
-                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
+    public LinkuResponseDTO.LinkuFolderChangeResultDTO updateLinkuFolder(Long userId, Long userLinkuId, LinkuRequestDTO.LinkuFolderUpdateDTO dto) {
+        UsersLinku usersLinku = getOwnedUsersLinku(userId, userLinkuId);
 
         Linku linku = usersLinku.getLinku();
 
@@ -276,19 +313,14 @@ public class LinkuService {
         linkuFolder.updateFolder(folder);
         linkuFolderRepository.save(linkuFolder);
 
-        return LinkuConverter.toLinkuFolderChangeResultDTO(linku, linkuFolder);
+        return LinkuConverter.toLinkuFolderChangeResultDTO(usersLinku, linkuFolder);
     } //링크 폴더 이동
 
 
 
     @Transactional
     public void deleteUsersLinku(Long userId, Long userLinkuId) {
-        UsersLinku usersLinku = usersLinkuRepository.findById(userLinkuId)
-                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
-
-        if (!usersLinku.getUser().getId().equals(userId)) {
-            throw new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND);
-        }
+        UsersLinku usersLinku = getOwnedUsersLinku(userId, userLinkuId);
 
         // 1. linku_folder 관련 삭제
         List<LinkuFolder> linkuFolders = linkuFolderRepository.findByUsersLinku(usersLinku);
@@ -302,8 +334,12 @@ public class LinkuService {
         usersLinkuRepository.delete(usersLinku);
     }
 
-
-
-
+    private UsersLinku getOwnedUsersLinku(Long userId, Long userLinkuId) {
+        UsersLinku usersLinku = usersLinkuRepository.findById(userLinkuId)
+                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
+        if (!usersLinku.getUser().getId().equals(userId)) {
+            throw new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND);
+        }
+        return usersLinku;
+    }
 }
-

@@ -1,6 +1,7 @@
 package com.umc.linkyou.service.Linku;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -85,15 +86,14 @@ class LinkuServiceTest {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku(); // emotionAi=true
                 Emotion newEmotion = Emotion.builder().emotionId(NEW_EMOTION_ID).name("불안").build();
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(emotionRepository.findById(NEW_EMOTION_ID)).willReturn(Optional.of(newEmotion));
                 given(linkuFolderRepository
                         .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
                         .willReturn(Optional.empty());
 
                 // when
-                linkuService.updateLinku(USER_ID, 100L, LinkuRequestDTO.LinkuUpdateDTO.builder()
+                linkuService.updateLinku(USER_ID, 10L, LinkuRequestDTO.LinkuUpdateDTO.builder()
                         .emotionId(NEW_EMOTION_ID)
                         .build());
 
@@ -112,14 +112,13 @@ class LinkuServiceTest {
             void emotionId_미제공_시_emotion_변경되지_않고_emotionAi는_true를_유지한다() {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku(); // emotionAi=true, emotion=EMOTION_ID
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(linkuFolderRepository
                         .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
                         .willReturn(Optional.empty());
 
                 // when: emotionId 없는 DTO
-                linkuService.updateLinku(USER_ID, 100L, LinkuRequestDTO.LinkuUpdateDTO.builder().build());
+                linkuService.updateLinku(USER_ID, 10L, LinkuRequestDTO.LinkuUpdateDTO.builder().build());
 
                 // then: emotion 변경 없음, emotionAi 여전히 true
                 assertEquals(EMOTION_ID, usersLinku.getEmotion().getEmotionId());
@@ -132,15 +131,14 @@ class LinkuServiceTest {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku(); // situationAi=true
                 Situation newSituation = Situation.builder().id(NEW_SITUATION_ID).name("휴식").build();
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(situationRepository.findById(NEW_SITUATION_ID)).willReturn(Optional.of(newSituation));
                 given(linkuFolderRepository
                         .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
                         .willReturn(Optional.empty());
 
                 // when
-                linkuService.updateLinku(USER_ID, 100L, LinkuRequestDTO.LinkuUpdateDTO.builder()
+                linkuService.updateLinku(USER_ID, 10L, LinkuRequestDTO.LinkuUpdateDTO.builder()
                         .situationId(NEW_SITUATION_ID)
                         .build());
 
@@ -159,14 +157,13 @@ class LinkuServiceTest {
             void situationId_미제공_시_situation_변경되지_않고_situationAi는_true를_유지한다() {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku(); // situationAi=true
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(linkuFolderRepository
                         .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
                         .willReturn(Optional.empty());
 
                 // when
-                linkuService.updateLinku(USER_ID, 100L, LinkuRequestDTO.LinkuUpdateDTO.builder().build());
+                linkuService.updateLinku(USER_ID, 10L, LinkuRequestDTO.LinkuUpdateDTO.builder().build());
 
                 // then: situation 변경 없음, situationAi 여전히 true
                 assertEquals(SITUATION_ID, usersLinku.getSituation().getId());
@@ -180,8 +177,7 @@ class LinkuServiceTest {
                 UsersLinku usersLinku = createDefaultUsersLinku(); // both AI=true
                 Emotion newEmotion = Emotion.builder().emotionId(NEW_EMOTION_ID).name("불안").build();
                 Situation newSituation = Situation.builder().id(NEW_SITUATION_ID).name("휴식").build();
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(emotionRepository.findById(NEW_EMOTION_ID)).willReturn(Optional.of(newEmotion));
                 given(situationRepository.findById(NEW_SITUATION_ID)).willReturn(Optional.of(newSituation));
                 given(linkuFolderRepository
@@ -189,7 +185,7 @@ class LinkuServiceTest {
                         .willReturn(Optional.empty());
 
                 // when
-                linkuService.updateLinku(USER_ID, 100L, LinkuRequestDTO.LinkuUpdateDTO.builder()
+                linkuService.updateLinku(USER_ID, 10L, LinkuRequestDTO.LinkuUpdateDTO.builder()
                         .emotionId(NEW_EMOTION_ID)
                         .situationId(NEW_SITUATION_ID)
                         .build());
@@ -215,15 +211,14 @@ class LinkuServiceTest {
                         .situationAi(true)
                         .build();
                 Emotion newEmotion = Emotion.builder().emotionId(NEW_EMOTION_ID).name("평온").build();
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(emotionRepository.findById(NEW_EMOTION_ID)).willReturn(Optional.of(newEmotion));
                 given(linkuFolderRepository
                         .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
                         .willReturn(Optional.empty());
 
                 // when
-                linkuService.updateLinku(USER_ID, 100L, LinkuRequestDTO.LinkuUpdateDTO.builder()
+                linkuService.updateLinku(USER_ID, 10L, LinkuRequestDTO.LinkuUpdateDTO.builder()
                         .emotionId(NEW_EMOTION_ID)
                         .build());
 
@@ -240,12 +235,11 @@ class LinkuServiceTest {
             @DisplayName("해당 사용자의 링크가 없으면 예외가 발생한다")
             void 해당_사용자의_링크가_없으면_예외가_발생한다() {
                 // given
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of());
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.empty());
 
                 // when & then
                 assertThrows(GeneralException.class,
-                        () -> linkuService.updateLinku(USER_ID, 100L,
+                        () -> linkuService.updateLinku(USER_ID, 10L,
                                 LinkuRequestDTO.LinkuUpdateDTO.builder().build()));
             }
 
@@ -254,13 +248,12 @@ class LinkuServiceTest {
             void 존재하지_않는_emotionId면_예외가_발생한다() {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku();
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(emotionRepository.findById(999L)).willReturn(Optional.empty());
 
                 // when & then
                 GeneralException ex = assertThrows(GeneralException.class,
-                        () -> linkuService.updateLinku(USER_ID, 100L,
+                        () -> linkuService.updateLinku(USER_ID, 10L,
                                 LinkuRequestDTO.LinkuUpdateDTO.builder().emotionId(999L).build()));
                 assertEquals(ErrorStatus._EMOTION_NOT_FOUND, ex.getCode());
                 verify(usersLinkuRepository, never()).save(any());
@@ -271,13 +264,12 @@ class LinkuServiceTest {
             void 존재하지_않는_situationId면_예외가_발생한다() {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku();
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(situationRepository.findById(999L)).willReturn(Optional.empty());
 
                 // when & then
                 GeneralException ex = assertThrows(GeneralException.class,
-                        () -> linkuService.updateLinku(USER_ID, 100L,
+                        () -> linkuService.updateLinku(USER_ID, 10L,
                                 LinkuRequestDTO.LinkuUpdateDTO.builder().situationId(999L).build()));
                 assertEquals(ErrorStatus._SITUATION_NOT_FOUND, ex.getCode());
                 verify(usersLinkuRepository, never()).save(any());
@@ -298,14 +290,13 @@ class LinkuServiceTest {
             void memo_제공_시_UsersLinku_memo가_변경된다() {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku();
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(linkuFolderRepository
                         .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
                         .willReturn(Optional.empty());
 
                 // when
-                linkuService.updateLinku(USER_ID, 100L,
+                linkuService.updateLinku(USER_ID, 10L,
                         LinkuRequestDTO.LinkuUpdateDTO.builder().memo("새로운 메모").build());
 
                 // then
@@ -332,20 +323,19 @@ class LinkuServiceTest {
                 Linku linku = usersLinku.getLinku();
                 Domain newDomain = Domain.builder().domainId(2L).name("네이버").build();
 
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(domainRepository.findById(2L)).willReturn(Optional.of(newDomain));
                 given(linkuFolderRepository
                         .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
                         .willReturn(Optional.empty());
 
                 // when
-                LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(USER_ID, 100L,
+                LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(USER_ID, 10L,
                         LinkuRequestDTO.LinkuUpdateDTO.builder().domainId(2L).build());
 
                 // then: 공용 Linku가 실제로 변경됨 (아직 개인화되지 않은 필드라는 걸 명시적으로 확인)
                 assertEquals(newDomain, linku.getDomain());
-                assertEquals("네이버", result.getDomain());
+                assertEquals("네이버", result.domain());
                 verify(linkuRepository).save(linku);
             }
         }
@@ -359,13 +349,12 @@ class LinkuServiceTest {
             void 존재하지_않는_domainId면_예외가_발생한다() {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku();
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(domainRepository.findById(999L)).willReturn(Optional.empty());
 
                 // when & then
                 GeneralException ex = assertThrows(GeneralException.class,
-                        () -> linkuService.updateLinku(USER_ID, 100L,
+                        () -> linkuService.updateLinku(USER_ID, 10L,
                                 LinkuRequestDTO.LinkuUpdateDTO.builder().domainId(999L).build()));
                 assertEquals(ErrorStatus._DOMAIN_NOT_FOUND, ex.getCode());
                 verify(linkuRepository, never()).save(any());
@@ -390,20 +379,19 @@ class LinkuServiceTest {
                 String originalTitle = linku.getTitle();
                 String newTitle = "내가 정한 제목";
 
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(linkuFolderRepository
                         .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
                         .willReturn(Optional.empty());
 
                 // when
-                LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(USER_ID, 100L,
+                LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(USER_ID, 10L,
                         LinkuRequestDTO.LinkuUpdateDTO.builder().title(newTitle).build());
 
                 // then: UsersLinku.title만 변경, 공용 Linku는 그대로
                 assertEquals(newTitle, usersLinku.getTitle());
                 assertEquals(originalTitle, linku.getTitle());
-                assertEquals(newTitle, result.getTitle());
+                assertEquals(newTitle, result.title());
                 verify(usersLinkuRepository).save(usersLinku);
                 verify(linkuRepository, never()).save(any());
             }
@@ -430,14 +418,13 @@ class LinkuServiceTest {
                 given(awsS3Service.replaceFile("https://cdn.example.com/old.jpg", image, "linkucreate"))
                         .willReturn("https://cdn.example.com/new.jpg");
 
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(linkuFolderRepository
                         .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
                         .willReturn(Optional.empty());
 
                 // when
-                linkuService.updateLinku(USER_ID, 100L,
+                linkuService.updateLinku(USER_ID, 10L,
                         LinkuRequestDTO.LinkuUpdateDTO.builder().image(image).build());
 
                 // then: 기존 imageUrl을 넘겨서 replaceFile 호출(삭제+업로드는 AwsS3Service 내부 책임), 새 URL로 교체
@@ -457,14 +444,13 @@ class LinkuServiceTest {
                 given(awsS3Service.replaceFile(null, image, "linkucreate"))
                         .willReturn("https://cdn.example.com/new.jpg");
 
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(linkuFolderRepository
                         .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
                         .willReturn(Optional.empty());
 
                 // when
-                linkuService.updateLinku(USER_ID, 100L,
+                linkuService.updateLinku(USER_ID, 10L,
                         LinkuRequestDTO.LinkuUpdateDTO.builder().image(image).build());
 
                 // then
@@ -477,19 +463,188 @@ class LinkuServiceTest {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku();
                 usersLinku.updateImageUrl("https://cdn.example.com/old.jpg");
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(linkuFolderRepository
                         .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(any()))
                         .willReturn(Optional.empty());
 
                 // when: image 없는 DTO (memo만 변경)
-                linkuService.updateLinku(USER_ID, 100L,
+                linkuService.updateLinku(USER_ID, 10L,
                         LinkuRequestDTO.LinkuUpdateDTO.builder().memo("메모만 변경").build());
 
                 // then
                 assertEquals("https://cdn.example.com/old.jpg", usersLinku.getImageUrl());
                 verify(awsS3Service, never()).replaceFile(any(), any(), any());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("updateLinku() - 카테고리(중분류) 변경")
+    class UpdateLinkuCategory {
+
+        private static final Long NEW_CATEGORY_ID = 5L;
+
+        private Category newCategory() {
+            return Category.builder()
+                    .categoryId(NEW_CATEGORY_ID)
+                    .categoryName("여행")
+                    .build();
+        }
+
+        private Folder newRootFolder(Category category) {
+            return Folder.builder()
+                    .folderId(40L)
+                    .folderName("여행")
+                    .category(category)
+                    .build();
+        }
+
+        @Nested
+        @DisplayName("성공")
+        class Success {
+
+            @Test
+            @DisplayName("categoryId 제공 시 내 소유 중분류 폴더로 LinkuFolder 매핑이 이동하고, 공용 Linku는 변경되지 않는다")
+            void categoryId_제공_시_내_중분류_폴더로_매핑이_이동한다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                Linku linku = usersLinku.getLinku();
+                Category newCategory = newCategory();
+                Folder oldFolder = LinkuFixture.folder();
+                Folder targetFolder = newRootFolder(newCategory);
+                LinkuFolder linkuFolder = LinkuFolder.builder()
+                        .linkuFolderId(2000L)
+                        .folder(oldFolder)
+                        .usersLinku(usersLinku)
+                        .build();
+
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()))
+                        .willReturn(Optional.of(linkuFolder));
+                given(categoryRepository.findById(NEW_CATEGORY_ID)).willReturn(Optional.of(newCategory));
+                given(usersFolderRepository.findFolderByUserIdAndCategory(USER_ID, newCategory))
+                        .willReturn(Optional.of(targetFolder));
+
+                // when
+                LinkuResponseDTO.LinkuResultDTO result = linkuService.updateLinku(USER_ID, 10L,
+                        LinkuRequestDTO.LinkuUpdateDTO.builder().categoryId(NEW_CATEGORY_ID).build());
+
+                // then: LinkuFolder의 folder만 교체되고 저장됨. 공유 Linku 엔티티는 건드리지 않음
+                assertEquals(targetFolder, linkuFolder.getFolder());
+                verify(linkuFolderRepository).save(linkuFolder);
+                verify(linkuRepository, never()).save(any());
+                assertNotEquals(NEW_CATEGORY_ID, linku.getCategory().getCategoryId());
+
+                // then: 응답은 새로 이동한 폴더 기준 정보를 반영
+                assertEquals(NEW_CATEGORY_ID, result.categoryId());
+                assertEquals("여행", result.folderName());
+            }
+
+            @Test
+            @DisplayName("categoryId 미제공 시 폴더 매핑은 변경되지 않는다")
+            void categoryId_미제공_시_폴더_매핑_변경없다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                Folder oldFolder = LinkuFixture.folder();
+                LinkuFolder linkuFolder = LinkuFolder.builder()
+                        .folder(oldFolder)
+                        .usersLinku(usersLinku)
+                        .build();
+
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()))
+                        .willReturn(Optional.of(linkuFolder));
+
+                // when
+                linkuService.updateLinku(USER_ID, 10L,
+                        LinkuRequestDTO.LinkuUpdateDTO.builder().memo("메모만 변경").build());
+
+                // then
+                assertEquals(oldFolder, linkuFolder.getFolder());
+                verify(linkuFolderRepository, never()).save(any());
+                verify(categoryRepository, never()).findById(any());
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+
+            @Test
+            @DisplayName("존재하지 않는 categoryId면 예외가 발생한다")
+            void 존재하지_않는_categoryId면_예외가_발생한다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                LinkuFolder linkuFolder = LinkuFolder.builder()
+                        .folder(LinkuFixture.folder())
+                        .usersLinku(usersLinku)
+                        .build();
+
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()))
+                        .willReturn(Optional.of(linkuFolder));
+                given(categoryRepository.findById(999L)).willReturn(Optional.empty());
+
+                // when & then
+                GeneralException ex = assertThrows(GeneralException.class,
+                        () -> linkuService.updateLinku(USER_ID, 10L,
+                                LinkuRequestDTO.LinkuUpdateDTO.builder().categoryId(999L).build()));
+                assertEquals(CategoryErrorStatus._CATEGORY_NOT_FOUND, ex.getCode());
+                verify(linkuFolderRepository, never()).save(any());
+            }
+
+            @Test
+            @DisplayName("해당 카테고리의 내 소유 중분류 폴더가 없으면 예외가 발생한다")
+            void 카테고리에_해당하는_내_폴더가_없으면_예외가_발생한다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                Category newCategory = newCategory();
+                LinkuFolder linkuFolder = LinkuFolder.builder()
+                        .folder(LinkuFixture.folder())
+                        .usersLinku(usersLinku)
+                        .build();
+
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()))
+                        .willReturn(Optional.of(linkuFolder));
+                given(categoryRepository.findById(NEW_CATEGORY_ID)).willReturn(Optional.of(newCategory));
+                given(usersFolderRepository.findFolderByUserIdAndCategory(USER_ID, newCategory))
+                        .willReturn(Optional.empty());
+
+                // when & then
+                GeneralException ex = assertThrows(GeneralException.class,
+                        () -> linkuService.updateLinku(USER_ID, 10L,
+                                LinkuRequestDTO.LinkuUpdateDTO.builder().categoryId(NEW_CATEGORY_ID).build()));
+                assertEquals(FolderErrorStatus._FOLDER_NOT_FOUND, ex.getCode());
+                verify(linkuFolderRepository, never()).save(any());
+            }
+
+            @Test
+            @DisplayName("이 사용자의 링크-폴더 매핑이 없으면 예외가 발생한다")
+            void 링크_폴더_매핑이_없으면_예외가_발생한다() {
+                // given
+                UsersLinku usersLinku = createDefaultUsersLinku();
+                Category newCategory = newCategory();
+                Folder targetFolder = newRootFolder(newCategory);
+
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
+                given(linkuFolderRepository
+                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId()))
+                        .willReturn(Optional.empty());
+                given(categoryRepository.findById(NEW_CATEGORY_ID)).willReturn(Optional.of(newCategory));
+                given(usersFolderRepository.findFolderByUserIdAndCategory(USER_ID, newCategory))
+                        .willReturn(Optional.of(targetFolder));
+
+                // when & then
+                GeneralException ex = assertThrows(GeneralException.class,
+                        () -> linkuService.updateLinku(USER_ID, 10L,
+                                LinkuRequestDTO.LinkuUpdateDTO.builder().categoryId(NEW_CATEGORY_ID).build()));
+                assertEquals(LinkuErrorStatus._USER_LINKU_NOT_FOUND, ex.getCode());
             }
         }
     }
@@ -526,8 +681,7 @@ class LinkuServiceTest {
                         .usersLinku(usersLinku)
                         .build();
 
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(folderRepository.findById(NEW_FOLDER_ID)).willReturn(Optional.of(newFolder));
                 given(usersFolderRepository.existsFolderOwnerOrWriter(USER_ID, NEW_FOLDER_ID)).willReturn(true);
                 given(linkuFolderRepository
@@ -536,14 +690,14 @@ class LinkuServiceTest {
 
                 // when
                 LinkuResponseDTO.LinkuFolderChangeResultDTO result = linkuService.updateLinkuFolder(
-                        USER_ID, 100L,
+                        USER_ID, 10L,
                         LinkuRequestDTO.LinkuFolderUpdateDTO.builder().folderId(NEW_FOLDER_ID).build());
 
                 // then: LinkuFolder의 folder만 교체, Linku 엔티티는 저장되지 않음(공유 엔티티라 건드리면 안 됨)
                 assertEquals(newFolder, linkuFolder.getFolder());
-                assertEquals(NEW_FOLDER_ID, result.getFolderId());
-                assertEquals("영어 공부", result.getFolderName());
-                assertEquals(linku.getLinkuId(), result.getLinkuId());
+                assertEquals(NEW_FOLDER_ID, result.folderId());
+                assertEquals("영어 공부", result.folderName());
+                assertEquals(usersLinku.getUserLinkuId(), result.userLinkuId());
                 verify(linkuFolderRepository).save(linkuFolder);
                 verify(linkuRepository, never()).save(any());
             }
@@ -571,8 +725,7 @@ class LinkuServiceTest {
                         .usersLinku(usersLinku)
                         .build();
 
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(folderRepository.findById(31L)).willReturn(Optional.of(subFolder));
                 given(usersFolderRepository.existsFolderOwnerOrWriter(USER_ID, 31L)).willReturn(true);
                 given(linkuFolderRepository
@@ -581,13 +734,13 @@ class LinkuServiceTest {
 
                 // when
                 LinkuResponseDTO.LinkuFolderChangeResultDTO result = linkuService.updateLinkuFolder(
-                        USER_ID, 100L,
+                        USER_ID, 10L,
                         LinkuRequestDTO.LinkuFolderUpdateDTO.builder().folderId(31L).build());
 
                 // then: 중분류/소분류 구분 없이 동일하게 폴더가 교체된다
                 assertEquals(subFolder, linkuFolder.getFolder());
-                assertEquals(31L, result.getFolderId());
-                assertEquals("영어 회화", result.getFolderName());
+                assertEquals(31L, result.folderId());
+                assertEquals("영어 회화", result.folderName());
                 verify(linkuFolderRepository).save(linkuFolder);
             }
         }
@@ -600,12 +753,11 @@ class LinkuServiceTest {
             @DisplayName("해당 사용자의 링크가 없으면 예외가 발생한다")
             void 해당_사용자의_링크가_없으면_예외가_발생한다() {
                 // given
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of());
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.empty());
 
                 // when & then
                 GeneralException ex = assertThrows(GeneralException.class,
-                        () -> linkuService.updateLinkuFolder(USER_ID, 100L,
+                        () -> linkuService.updateLinkuFolder(USER_ID, 10L,
                                 LinkuRequestDTO.LinkuFolderUpdateDTO.builder().folderId(NEW_FOLDER_ID).build()));
                 assertEquals(LinkuErrorStatus._USER_LINKU_NOT_FOUND, ex.getCode());
             }
@@ -615,13 +767,12 @@ class LinkuServiceTest {
             void 이동할_폴더가_존재하지_않으면_예외가_발생한다() {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku();
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(folderRepository.findById(NEW_FOLDER_ID)).willReturn(Optional.empty());
 
                 // when & then
                 GeneralException ex = assertThrows(GeneralException.class,
-                        () -> linkuService.updateLinkuFolder(USER_ID, 100L,
+                        () -> linkuService.updateLinkuFolder(USER_ID, 10L,
                                 LinkuRequestDTO.LinkuFolderUpdateDTO.builder().folderId(NEW_FOLDER_ID).build()));
                 assertEquals(FolderErrorStatus._FOLDER_NOT_FOUND, ex.getCode());
             }
@@ -632,14 +783,13 @@ class LinkuServiceTest {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku();
                 Folder newFolder = newFolder();
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(folderRepository.findById(NEW_FOLDER_ID)).willReturn(Optional.of(newFolder));
                 given(usersFolderRepository.existsFolderOwnerOrWriter(USER_ID, NEW_FOLDER_ID)).willReturn(false);
 
                 // when & then
                 GeneralException ex = assertThrows(GeneralException.class,
-                        () -> linkuService.updateLinkuFolder(USER_ID, 100L,
+                        () -> linkuService.updateLinkuFolder(USER_ID, 10L,
                                 LinkuRequestDTO.LinkuFolderUpdateDTO.builder().folderId(NEW_FOLDER_ID).build()));
                 assertEquals(FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN, ex.getCode());
                 verify(linkuFolderRepository, never()).save(any());
@@ -651,8 +801,7 @@ class LinkuServiceTest {
                 // given
                 UsersLinku usersLinku = createDefaultUsersLinku();
                 Folder newFolder = newFolder();
-                given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(USER_ID, 100L))
-                        .willReturn(List.of(usersLinku));
+                given(usersLinkuRepository.findById(10L)).willReturn(Optional.of(usersLinku));
                 given(folderRepository.findById(NEW_FOLDER_ID)).willReturn(Optional.of(newFolder));
                 given(usersFolderRepository.existsFolderOwnerOrWriter(USER_ID, NEW_FOLDER_ID)).willReturn(true);
                 given(linkuFolderRepository
@@ -661,7 +810,7 @@ class LinkuServiceTest {
 
                 // when & then
                 GeneralException ex = assertThrows(GeneralException.class,
-                        () -> linkuService.updateLinkuFolder(USER_ID, 100L,
+                        () -> linkuService.updateLinkuFolder(USER_ID, 10L,
                                 LinkuRequestDTO.LinkuFolderUpdateDTO.builder().folderId(NEW_FOLDER_ID).build()));
                 assertEquals(LinkuErrorStatus._USER_LINKU_NOT_FOUND, ex.getCode());
             }

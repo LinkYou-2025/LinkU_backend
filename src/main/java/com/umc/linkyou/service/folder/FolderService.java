@@ -26,7 +26,7 @@ public interface FolderService {
     // 북마크 설정/해제
     BookmarkUpdateResponseDTO updateBookmark(Long userId, Long folderId, Boolean isBookmarked);
 
-    // 폴더 내부 링크, 폴더 목록 조회
-    FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort);
+    // 폴더 내부 링크, 폴더 목록 조회. includeLinks=false면 링크 조회를 생략하고 폴더 목록만 반환한다.
+    FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort, boolean includeLinks);
 
 }

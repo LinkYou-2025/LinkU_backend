@@ -37,33 +37,11 @@ public class UserSocialLoginHelper {
                                   String profileImage, Provider provider, String socialToken) {
 
         validateRequiredIdentifiers(email, externalId, provider);
+
         Optional<AuthAccount> authAccountOpt =
                 authAccountRepository.findByProviderAndExternalId(provider, externalId);
-        /** 1. 재로그인: 소셜로그인 정보로 동기화하지만, 닉네임 유니크 보장 */
         if (authAccountOpt.isPresent()) {
-            AuthAccount authAccount = authAccountOpt.get();
-            Users user = authAccount.getUser();
-
-            // 닉네임 무조건 동기화 (단, 값이 다를 때만 실행하여 쿼리 절약)
-            if (name != null) {
-                String normalizedInput = name.replaceAll("[^a-zA-Z0-9가-힣]", "").toLowerCase().trim();
-
-                // 정규화된 이름이 현재 닉네임과 다를 때만 업데이트 시도
-                if (!normalizedInput.isEmpty() && !normalizedInput.equals(user.getNickName())) {
-                    // generateUniqueNickname에 현재 user 객체를 넘겨서 자기 자신은 중복에서 제외하게 함
-                    String uniqueNickname = generateUniqueNickname(normalizedInput, email, user);
-                    user.updateNickname(uniqueNickname);
-                    log.debug("기존 사용자 닉네임 동기화: userId={}, nickname={}", user.getId(), uniqueNickname);
-                }
-            }
-
-            // 프로필 이미지 무조건 동기화
-            if (profileImage != null && !profileImage.equals(authAccount.getProfileImage())) {
-                authAccount.updateProfileImage(profileImage);
-            }
-
-            if (socialToken != null) authAccount.updateToken(socialToken);
-            return user;
+            return reLogin(authAccountOpt.get(), email, name, profileImage, socialToken);
         }
 
         /** 2. 이메일이 있지만 다른 소셜로그인 계정 */
@@ -77,6 +55,14 @@ public class UserSocialLoginHelper {
 
         /** 3.완전 신규 사용자 + AuthAccount 일괄 생성*/
         return createNewUserWithAccount(email, name, provider, externalId, profileImage, socialToken);
+    }
+
+    // 재로그인: 소셜 토큰만 갱신, 닉네임/프로필은 더 이상 동기화 안 함
+    private Users reLogin(AuthAccount authAccount, String email, String name,
+                          String profileImage, String socialToken) {
+        Users user = authAccount.getUser();
+        if (socialToken != null) authAccount.updateToken(socialToken);
+        return user;
     }
 
     /** 모바일용 (socialToken 없음) */

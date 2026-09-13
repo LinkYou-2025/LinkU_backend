@@ -61,16 +61,20 @@ class XxxControllerTest {
             @WithCustomUser(userId = 1L)
             void 정상_입력_시_생성_결과를_반환한다() throws Exception {
                 // given
+                given(xxxService.create(any(), any())).willReturn(response);
 
-                // when & then
-                mockMvc.perform(post("/api/v1/...")
+                // when & then — 상태값(isSuccess/code)은 JsonPath, result는 ObjectMapper로 역직렬화
+                MvcResult result = mockMvc.perform(post("/api/v1/...")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                                 .with(csrf()))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("DOMAIN201"))
-                        .andExpect(jsonPath("$.result.id").value(1L));
+                        .andReturn();
+
+                XxxResponseDTO created = readResult(result, objectMapper, XxxResponseDTO.class);
+                assertThat(created.getId()).isEqualTo(1L);
             }
         }
 
@@ -100,6 +104,35 @@ class XxxControllerTest {
 - `$.code` — 실제 `SuccessStatus` / `ErrorStatus` 코드값
 - `$.result` 주요 필드
 - 인증 API는 `@WithCustomUser`로 인증 성공 시나리오를 반드시 포함
+
+**`$.result` 검증 방식 — ObjectMapper 역직렬화 우선, JsonPath는 예외적으로만**
+
+응답 DTO(또는 `List<DTO>`)가 있는 성공 케이스는 `MvcResult`를 받아 `com.umc.linkyou.support.util.ApiResponseTestUtils`로 `result`를 역직렬화하고, AssertJ getter로 검증한다:
+
+```java
+import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResult;
+import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResultList;
+
+MvcResult result = mockMvc.perform(get("/api/v1/xxx"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.isSuccess").value(true))
+        .andReturn();
+
+// 단건
+XxxResponseDTO dto = readResult(result, objectMapper, XxxResponseDTO.class);
+assertThat(dto.getName()).isEqualTo("...");
+
+// 목록
+List<XxxResponseDTO> list = readResultList(result, objectMapper, XxxResponseDTO.class);
+assertThat(list).hasSize(1);
+```
+
+JsonPath는 다음 경우에만 사용한다:
+- **상태값 확인**: `$.isSuccess`, `$.code`, `$.message` — 항상 JsonPath
+- **단순 단건 값**: `result`가 DTO가 아니라 `String`/`Long` 같은 단일 값일 때 (예: 초대 링크 토큰) → `jsonPath("$.result").value(...)`
+- **DTO를 만들기 애매한 응답**: `result`가 없는 삭제/비활성화류(`ApiResponse<Object>`, 빈 map) → `$.result` 자체를 검증하지 않음
+
+**응답 DTO를 ObjectMapper로 역직렬화하려면 `@NoArgsConstructor` + (`@Setter` 또는 필드 접근 가능한 생성자)가 필요하다.** `@Getter @Builder`만 있는 DTO는 Jackson이 기본 생성자를 못 찾아 역직렬화에 실패하거나 필드가 채워지지 않은 채 조용히 통과할 수 있다 — 새 응답 DTO를 추가할 때는 `@NoArgsConstructor` + `@AllArgsConstructor`(빌더와 병행 시)를 함께 선언한다.
 
 **`@WebMvcTest` 필수 MockitoBean**
 
@@ -296,3 +329,4 @@ public final class UserFixture {
 - [ ] 인증 API에 `@WithCustomUser` 인증 성공 케이스가 있는가?
 - [ ] `assertNotNull` 대신 `assertEquals`를 쓰는가?
 - [ ] 하나의 테스트가 하나의 핵심 동작만 검증하는가?
+- [ ] 컨트롤러 테스트의 `$.result`(DTO/목록)는 JsonPath 체이닝 대신 `ApiResponseTestUtils`로 역직렬화해 AssertJ로 검증하는가? (상태값·단순값·DTO 없는 응답은 예외)

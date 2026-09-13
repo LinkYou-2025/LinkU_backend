@@ -22,6 +22,7 @@ services:
       JWT_REDIS_PORT: 6379
     volumes:
       - /home/ubuntu/secrets/application-secret.properties:/app/config/application-secret.properties:ro
+      - /home/ubuntu/secrets/linku-firebase-adminsdk.json:/app/config/linku-firebase-adminsdk.json:ro
     depends_on:
       redis:
         condition: service_started
@@ -33,6 +34,24 @@ services:
     command: ["redis-server", "--appendonly", "yes", "--timeout", "300"]
     volumes:
       - redis_data:/data
+
+  # EC2 호스트 디스크/CPU/메모리
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: linku-node-exporter
+    restart: unless-stopped
+    pid: host
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
 
 volumes:
   redis_data:

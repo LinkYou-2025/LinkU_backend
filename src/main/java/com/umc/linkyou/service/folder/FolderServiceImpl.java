@@ -2,11 +2,10 @@ package com.umc.linkyou.service.folder;
 
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.converter.FolderConverter;
+import com.umc.linkyou.converter.LinkuConverter;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.domain.Linku;
-import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.UsersLinku;
@@ -14,6 +13,8 @@ import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.repository.FolderRepository.FolderRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
+import com.umc.linkyou.repository.dto.LinkuKeywordRow;
+import com.umc.linkyou.repository.mapping.LinkuKeywordRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
@@ -41,6 +42,7 @@ public class FolderServiceImpl implements FolderService {
     private final UserRepository userRepository;
     private final UsersFolderRepository usersFolderRepository;
     private final LinkuFolderRepository linkuFolderRepository;
+    private final LinkuKeywordRepository linkuKeywordRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     // 하위 폴더 생성
@@ -53,9 +55,14 @@ public class FolderServiceImpl implements FolderService {
             throw new GeneralException(FolderErrorStatus._FOLDER_PARENT_NOT_FOUND);
         }
 
-        // 부모 폴더에 대한 생성 권한 확인 (소유자 또는 편집자만 가능)
+        // 부모 폴더에 대한 생성 권한 확인
         if (!usersFolderRepository.existsFolderOwnerOrWriter(userId, parentFolderId)) {
             throw new GeneralException(FolderErrorStatus._FOLDER_CREATE_FORBIDDEN);
+        }
+
+        // 폴더는 중분류-소분류 2단계까지만 허용 (부모가 이미 소분류면 생성 불가)
+        if (parent.getParentFolder() != null) {
+            throw new GeneralException(FolderErrorStatus._FOLDER_MAX_DEPTH_EXCEEDED);
         }
 
         // 카테고리명과 동일한 이름 사용 방지
@@ -87,16 +94,7 @@ public class FolderServiceImpl implements FolderService {
                 .isBookmarked(false)
                 .build());
 
-        return FolderResponseDTO.builder()
-                .folderId(folder.getFolderId())
-                .folderName(folder.getFolderName())
-                .isBookmarked(false)
-                .categoryId(parent.getCategory().getCategoryId())
-                .categoryName(parent.getCategory().getCategoryName())
-                .parentFolderId(parent.getFolderId())
-                .createdAt(folder.getCreatedAt())
-                .updatedAt(folder.getUpdatedAt())
-                .build();
+        return FolderConverter.toFolderResponseDTO(folder, false);
     }
 
     // 폴더 이름 수정
@@ -202,14 +200,9 @@ public class FolderServiceImpl implements FolderService {
                         .collect(Collectors.toList())
                 : null;
 
-        Category category = folder.getCategory();
-        return FolderTreeResponseDTO.builder()
-                .folderId(folder.getFolderId())
-                .folderName(folder.getFolderName())
-                .isBookmarked(bookmarkMap.getOrDefault(folder.getFolderId(), false))
-                .categoryId(category != null ? category.getCategoryId() : null)
-                .children(childDTOs)
-                .build();
+        FolderTreeResponseDTO dto = FolderConverter.toFolderTreeDTO(folder, bookmarkMap);
+        dto.setChildren(childDTOs);
+        return dto;
     }
 
     // 중분류 폴더 목록 조회
@@ -235,35 +228,30 @@ public class FolderServiceImpl implements FolderService {
                         .folderName(usersFolder.getFolder().getFolderName())
                         .isBookmarked(usersFolder.getIsBookmarked())
                         .isSharing(sharedFolderIds.contains(usersFolder.getFolder().getFolderId()) ? "share" : "private")
+                        .categoryId(usersFolder.getFolder().getCategory().getCategoryId())
                         .build())
                 .collect(Collectors.toList());
     }
 
     // 자식 폴더 목록 조회
     public List<FolderListResponseDTO> getSubFolders(Long userId, Long parentFolderId) {
-        List<Folder> subFolders = usersFolderRepository.findAllByUserIdAndParentFolderId(userId, parentFolderId);
+        List<UsersFolder> subFolders = usersFolderRepository.findAllByUserIdAndParentFolderId(userId, parentFolderId);
 
         if (subFolders.isEmpty()) return Collections.emptyList();
 
-        List<Long> subFolderIds = subFolders.stream().map(Folder::getFolderId).toList();
-
-        // 해당 하위 폴더들의 북마크 상태만 조회 (전체 조회 대신 최적화)
-        Map<Long, Boolean> bookmarkMap = usersFolderRepository.findAllByUserIdAndFolderIdIn(userId, subFolderIds).stream()
-                .collect(Collectors.toMap(
-                        uf -> uf.getFolder().getFolderId(),
-                        UsersFolder::getIsBookmarked
-                ));
+        List<Long> subFolderIds = subFolders.stream().map(uf -> uf.getFolder().getFolderId()).toList();
 
         // 공유 중인 폴더 ID 일괄 조회 (N+1 제거)
         Set<Long> sharedFolderIds = usersFolderRepository.findAllSharedFolderIdsIn(subFolderIds);
 
         return subFolders.stream()
-                .map(folder -> FolderListResponseDTO.builder()
-                        .folderId(folder.getFolderId())
-                        .folderName(folder.getFolderName())
+                .map(usersFolder -> FolderListResponseDTO.builder()
+                        .folderId(usersFolder.getFolder().getFolderId())
+                        .folderName(usersFolder.getFolder().getFolderName())
                         .parentFolderId(parentFolderId)
-                        .isBookmarked(bookmarkMap.getOrDefault(folder.getFolderId(), Boolean.FALSE))
-                        .isSharing(sharedFolderIds.contains(folder.getFolderId()) ? "share" : "private")
+                        .isBookmarked(usersFolder.getIsBookmarked())
+                        .isSharing(sharedFolderIds.contains(usersFolder.getFolder().getFolderId()) ? "share" : "private")
+                        .categoryId(usersFolder.getFolder().getCategory().getCategoryId())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -273,6 +261,11 @@ public class FolderServiceImpl implements FolderService {
     public BookmarkUpdateResponseDTO updateBookmark(Long userId, Long folderId, Boolean isBookmarked) {
         UsersFolder usersFolder = usersFolderRepository.findByUserIdAndFolderId(userId, folderId).orElseThrow(() -> new GeneralException(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND));
 
+        // 공유 해제 등으로 권한이 회수(NONE)된 관계는 존재하지 않는 것과 동일하게 처리
+        if (usersFolder.getPermissionType() == PermissionType.NONE) {
+            throw new GeneralException(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND);
+        }
+
         usersFolder.updateBookmark(isBookmarked);
 
         return BookmarkUpdateResponseDTO.builder()
@@ -281,11 +274,11 @@ public class FolderServiceImpl implements FolderService {
                 .build();
     }
 
+    // 폴더 내부 링크, 폴더 목록 조회. includeLinks=false면 링크 조회를 생략하고 폴더 목록만 반환한다.
     @Transactional(readOnly = true)
-    // 폴더 내부 링크, 폴더 목록 조회
-    public FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort) {
+    public FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort, boolean includeLinks) {
         // check folder exist
-        Folder folder = folderRepository.findById(folderId)
+        folderRepository.findById(folderId)
                 .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
 
         // 접근 권한 확인 (소유자 또는 활성 공유 멤버)
@@ -319,14 +312,20 @@ public class FolderServiceImpl implements FolderService {
 
         // 하위 폴더 DTO 변환
         List<FolderSummaryDTO> subfolderDtos = subFolders.stream()
-                .map(f -> {
-                    FolderSummaryDTO dto = new FolderSummaryDTO();
-                    dto.setFolderId(f.getFolderId());
-                    dto.setFolderName(f.getFolderName());
-                    dto.setIsBookmarked(bookmarkMap.getOrDefault(f.getFolderId(), false));
-                    dto.setIsSharing(sharedFolderIds.contains(f.getFolderId()) ? "share" : "private");
-                    return dto;
-                }).toList();
+                .map(folder -> FolderConverter.toFolderSummaryDTO(
+                        folder,
+                        bookmarkMap.getOrDefault(folder.getFolderId(), false),
+                        sharedFolderIds.contains(folder.getFolderId())))
+                .toList();
+
+        // includeLinks=false면 링크 조회(커서 파싱, 페이지 쿼리, 키워드/도메인 조립)를 전부 생략하고 폴더 목록만 반환
+        if (!includeLinks) {
+            return FolderLinkusResponseDTO.builder()
+                    .folders(subfolderDtos)
+                    .links(Collections.emptyList())
+                    .nextCursor(null)
+                    .build();
+        }
 
         // 커서: 없으면 Long.MAX_VALUE, 숫자가 아니면 400 반환
         Long cursorId;
@@ -352,30 +351,31 @@ public class FolderServiceImpl implements FolderService {
                 ? String.valueOf(resultList.get(resultList.size() - 1).getUsersLinku().getLinku().getLinkuId())
                 : null;
 
+        List<Long> linkuIds = resultList.stream()
+                .map(lf -> lf.getUsersLinku().getLinku().getLinkuId())
+                .distinct()
+                .toList();
+
+        Map<Long, List<String>> keywordsByLinkuId = linkuIds.isEmpty()
+                ? Collections.emptyMap()
+                : linkuKeywordRepository.findKeywordNamesByLinkuIdIn(linkuIds).stream()
+                        .collect(Collectors.groupingBy(
+                                LinkuKeywordRow::linkuId,
+                                Collectors.mapping(LinkuKeywordRow::name, Collectors.toList())
+                        ));
+
         List<LinkuSummaryDTO> linkDtos = resultList.stream().map(lf -> {
             UsersLinku usersLinku = lf.getUsersLinku();
-            Linku link = usersLinku.getLinku();
-
-            LinkuSummaryDTO dto = new LinkuSummaryDTO();
-            dto.setUserLinkuId(usersLinku.getUserLinkuId());
-            dto.setLinkuId(link.getLinkuId());
-            dto.setTitle(link.getTitle());
-            dto.setUrl(link.getLinkuUrl());
-            String kw = link.getLinkuKeywords().stream()
-                    .map(lk -> lk.getKeyword().getName())
-                    .collect(Collectors.joining(", "));
-            dto.setKeyword(kw.isEmpty() ? null : kw);
-            dto.setLinkuImageUrl(usersLinku.getImageUrl() != null ? usersLinku.getImageUrl() : link.getImgUrl());
-            dto.setCreatedAt(link.getCreatedAt().toString());
-            return dto;
+            Long linkuId = usersLinku.getLinku().getLinkuId();
+            String keyword = String.join(", ", keywordsByLinkuId.getOrDefault(linkuId, List.of()));
+            return LinkuConverter.toFolderLinkuSummaryDTO(usersLinku, keyword);
         }).toList();
 
-        FolderLinkusResponseDTO resp = new FolderLinkusResponseDTO();
-        resp.setFolders(subfolderDtos);
-        resp.setLinks(linkDtos);
-        resp.setNextCursor(nextCursor);
-
-        return resp;
+        return FolderLinkusResponseDTO.builder()
+                .folders(subfolderDtos)
+                .links(linkDtos)
+                .nextCursor(nextCursor)
+                .build();
     }
 
 }

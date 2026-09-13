@@ -22,8 +22,8 @@ public class PersonalAlarmEventListener {
     public void handle(PersonalAlarmEvent event) {
         Map<String, String> values = event.payload().toValues();
         FcmSendRequestDTO requestDTO = values.isEmpty()
-                ? FcmSendRequestDTO.of(event.alarmType(), event.targetId()) // data 없을 때
-                : FcmSendRequestDTO.withValues(event.alarmType(), event.targetId(), values); // data 있을 때
+                ? FcmSendRequestDTO.of(event.alarmType(), event.targetId(), event.alarmId()) // data 없을 때
+                : FcmSendRequestDTO.withValues(event.alarmType(), event.targetId(), event.alarmId(), values); // data 있을 때
 
         fcmPushSender.sendToUser(event.userId(), requestDTO);
     }

@@ -25,7 +25,7 @@ public interface CategoryApi {
     );
 
     @Operation(summary = "유저 카테고리(중분류 폴더) 색상 수정", description = "사용자의 카테고리(중분류 폴더) 색상을 수정합니다.")
-    @ApiErrorCode(categoryErrorStatus = {CategoryErrorStatus._CATEGORY_NOT_FOUND})
+    @ApiErrorCode(categoryErrorStatus = {CategoryErrorStatus._CATEGORY_NOT_FOUND, CategoryErrorStatus._FCOLOR_NOT_FOUND})
     @PutMapping("/{categoryId}/color")
     ApiResponse<UserCategoryColorResponseDTO> updateUserCategoryColor(
             @CurrentUser CustomUserDetails userDetails,

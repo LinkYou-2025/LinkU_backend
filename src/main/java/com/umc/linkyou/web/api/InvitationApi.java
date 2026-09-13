@@ -10,7 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "invitation-controller", description = "초대 관련 API")
+@Tag(name = "초대장 API", description = "공유 폴더에 참가 가능한 초대장과 관련 된 API 입니다")
 @RequestMapping("/invitations")
 public interface InvitationApi {
 

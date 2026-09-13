@@ -4,7 +4,6 @@ import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleSuccessStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
-import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.service.AiArticleService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.api.AiArticleApi;
@@ -15,30 +14,27 @@ import org.springframework.web.bind.annotation.*;
 
 @ApiV1
 @RestController
-@RequestMapping("/aiarticle")
 @RequiredArgsConstructor
 public class AiArticleController implements AiArticleApi {
 
     final private AiArticleService aiArticleService;
-    final private AiArticleRepository aiArticleRepository;
 
     @Override
-    @PostMapping("/{linkuid}")
     public ApiResponse<AiArticleResponseDTO.AiArticleResultDTO> saveOrGetAiArticle(
-            @PathVariable("linkuid") Long linkuId,
+            @PathVariable Long userLinkuId,
             @CurrentUser CustomUserDetails userDetails
     ) {
         Long userId = userDetails.getUserId();
 
         AiArticleResponseDTO.AiArticleResultDTO result =
-                aiArticleService.saveOrGetAiArticle(linkuId, userId);
+                aiArticleService.saveOrGetAiArticle(userLinkuId, userId);
         return ApiResponse.onSuccess(AiArticleSuccessStatus.AI_ARTICLE_OK, result);
     }
 
     @Override
-    @GetMapping
+    @GetMapping("/aiarticle")
     public ApiResponse<LinkuResponseDTO.LinkuSliceResultDTO> getMyAiArticlesByCategory(
-            @RequestParam("categoryId") Long categoryId,
+            @RequestParam(name = "categoryId", required = false) Long categoryId,
             @RequestParam(name = "cursor", required = false) Long cursor,
             @RequestParam(name = "limit", defaultValue = "10") int limit,
             @CurrentUser CustomUserDetails userDetails

@@ -143,10 +143,10 @@ Entity ↔ DTO 변환은 반드시 `converter/` 패키지의 Converter 클래스
 
 ## Commit Convention
 
-**Conventional Commits 형식, 영문만 허용.**
+**Conventional Commits 형식, 한글 또는 영문을 사용한다.**
 
 ```
-type(scope): short description
+type: #issue-number title
 ```
 
 | 타입 | 사용 시점 |
@@ -161,11 +161,8 @@ type(scope): short description
 
 ```
 # ✅
-feat(auth): add Google OAuth2 login
-fix(folder): resolve NPE when folder has no links
-
-# ❌ 한글 금지
-feat: 폴더 생성 기능 추가
+feat: #123 Google OAuth2 로그인 추가
+fix: #456 링크가 없는 폴더 조회 시 NPE 해결
 ```
 
 ---

@@ -11,6 +11,7 @@ import com.umc.linkyou.infra.parser.TitleDomainParser;
 import com.umc.linkyou.infra.parser.WebContentExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,16 +28,24 @@ public class GeminiLinkuService implements AiLinkuAnalyzer {
     private final GeminiService geminiService;
     private final PromptComposer promptComposer;
 
-    @Override
     public Optional<LinkuResultDTO> analyzeByUrl(String url, List<Category> categories, List<Situation> situations, List<Emotion> emotions) {
+        return analyzeByUrl(url, null, categories, situations, emotions);
+    }
+
+    @Override
+    public Optional<LinkuResultDTO> analyzeByUrl(String url, Document doc, List<Category> categories, List<Situation> situations, List<Emotion> emotions) {
         // situations, emotions를 Gemini 프롬프트에 주입 → AI가 DB에 존재하는 ID로 situationId/emotionId 반환
-        TitleDomainParser.ParsedPageInfo pageInfo = titleDomainParser.parseUrl(url);
+        TitleDomainParser.ParsedPageInfo pageInfo = (doc != null)
+                ? titleDomainParser.parseUrl(url, doc)
+                : titleDomainParser.parseUrl(url);
         String domain = pageInfo.domain();
         String title = pageInfo.title();
         String pageContent = null;
 
         try {
-            pageContent = webContentExtractor.extractTextFromUrl(url);
+            pageContent = (doc != null)
+                    ? webContentExtractor.extractTextFromDocument(url, doc)
+                    : webContentExtractor.extractTextFromUrl(url);
         } catch (Exception e) {
             log.warn("[본문 추출 실패] {}", e.getMessage());
         }

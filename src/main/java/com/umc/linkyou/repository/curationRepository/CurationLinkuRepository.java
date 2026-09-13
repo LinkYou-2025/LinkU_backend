@@ -24,6 +24,7 @@ public interface CurationLinkuRepository extends JpaRepository<CurationLinku, Lo
             JOIN FETCH cl.usersLinku ul
             JOIN FETCH ul.linku l
             LEFT JOIN FETCH l.domain
+            LEFT JOIN FETCH l.category
             WHERE cl.curation.curationId = :curationId AND cl.type = :type
             """)
     List<CurationLinku> findWithDomainByCurationIdAndType(

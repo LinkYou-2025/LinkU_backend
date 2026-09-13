@@ -15,7 +15,7 @@ public class CurationMentMaterializer {
     private final CurationMentWorker worker;
     private final Semaphore mentLimiter;
 
-    @Async("defaultTaskExecutor")
+    @Async("mentTaskExecutor")
     public void generateMentAsync(Long curationId) {
         boolean acquired = false;
         try {

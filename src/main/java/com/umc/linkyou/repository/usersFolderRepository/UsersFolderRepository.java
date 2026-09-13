@@ -66,27 +66,16 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
 
     // 유저 id랑 부모 폴더id로 찾기 (활성 권한이 있는 경우만)
     @Query("""
-        select uf.folder
-        from UsersFolder uf
-        where uf.user.id = :userId
-            and uf.folder.parentFolder.folderId = :parentFolderId
-            and uf.permissionType <> com.umc.linkyou.domain.enums.PermissionType.NONE
-        """)
-    List<Folder> findAllByUserIdAndParentFolderId(
-            @Param("userId") Long userId,
-            @Param("parentFolderId") Long parentFolderId
-    );
-
-    // 폴더의 소유자 정보 조회
-    @Query("""
         select uf
         from UsersFolder uf
-        join fetch uf.user
-        where uf.folder.folderId = :folderId
-            and uf.permissionType = com.umc.linkyou.domain.enums.PermissionType.OWNER
+        join fetch uf.folder f
+        where uf.user.id = :userId
+            and f.parentFolder.folderId = :parentFolderId
+            and uf.permissionType <> com.umc.linkyou.domain.enums.PermissionType.NONE
         """)
-    Optional<UsersFolder> findOwnerByFolderId(
-            @Param("folderId") Long folderId
+    List<UsersFolder> findAllByUserIdAndParentFolderId(
+            @Param("userId") Long userId,
+            @Param("parentFolderId") Long parentFolderId
     );
 
     // 여러 폴더의 소유자 목록 일괄 조회
@@ -158,20 +147,10 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
             @Param("userId") Long userId
     );
 
-    // viewer and writer 찾기 except owner
-    @Query("""
-        select uf
-        from UsersFolder uf
-        join fetch uf.user
-        where uf.folder.folderId = :folderId
-            and uf.permissionType in (
-                com.umc.linkyou.domain.enums.PermissionType.VIEWER,
-                com.umc.linkyou.domain.enums.PermissionType.WRITER
-            )
-        """)
-    List<UsersFolder> findAllParticipantsByFolderId(
-            @Param("folderId") Long folderId
-    );
+    // 단일 폴더의 viewer/writer 멤버 조회 (owner 제외) — 다건 조회에 위임
+    default List<UsersFolder> findAllParticipantsByFolderId(Long folderId) {
+        return findAllParticipantsByFolderIdIn(List.of(folderId));
+    }
 
     // 유저가 해당 폴더에 활성화된 권한(뷰어/편집자)이 있는지 확인
     @Query("""
@@ -200,5 +179,40 @@ public interface UsersFolderRepository extends JpaRepository<UsersFolder, Long>,
     Optional<Folder> findFolderByUserIdAndCategory(
             @Param("userId") Long userId,
             @Param("category") Category category
+    );
+
+    // 내가 소유자이면서 실제로 참여 중인 멤버(뷰어/편집자)가 있는 폴더 목록 (초대 링크만 있는 경우는 제외)
+    @Query("""
+        select uf.folder
+        from UsersFolder uf
+        where uf.user.id = :userId
+            and uf.permissionType = com.umc.linkyou.domain.enums.PermissionType.OWNER
+            and exists (
+                select 1
+                from UsersFolder m
+                where m.folder = uf.folder
+                    and m.permissionType in (
+                        com.umc.linkyou.domain.enums.PermissionType.VIEWER,
+                        com.umc.linkyou.domain.enums.PermissionType.WRITER
+                    )
+            )
+        """)
+    List<Folder> findMySharedFolders(
+            @Param("userId") Long userId
+    );
+
+    // 폴더(들)의 viewer/writer 멤버 일괄 조회 (owner 제외)
+    @Query("""
+        select uf
+        from UsersFolder uf
+        join fetch uf.user
+        where uf.folder.folderId in :folderIds
+            and uf.permissionType in (
+                com.umc.linkyou.domain.enums.PermissionType.VIEWER,
+                com.umc.linkyou.domain.enums.PermissionType.WRITER
+            )
+        """)
+    List<UsersFolder> findAllParticipantsByFolderIdIn(
+            @Param("folderIds") List<Long> folderIds
     );
 }

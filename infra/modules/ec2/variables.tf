@@ -67,3 +67,9 @@ variable "root_volume_encrypted" {
   type        = bool
   default     = true
 }
+
+variable "user_data" {
+  description = "최초 부팅 시 실행할 user_data 스크립트 (null이면 미사용). 내용이 바뀌면 인스턴스가 재생성됨"
+  type        = string
+  default     = null
+}

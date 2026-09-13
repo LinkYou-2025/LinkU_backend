@@ -19,11 +19,17 @@ import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.gemini.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
+import com.umc.linkyou.validation.annotation.ApiAdmin;
+import com.umc.linkyou.validation.annotation.ApiManager;
 import com.umc.linkyou.validation.annotation.swagger.ApiAuthSuccessCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiDomainErrorCodes;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCodes;
+import com.umc.linkyou.validation.annotation.swagger.ApiNoContentCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
+import io.swagger.v3.core.converter.AnnotatedType;
+import io.swagger.v3.core.converter.ModelConverters;
+import io.swagger.v3.core.converter.ResolvedSchema;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -31,22 +37,43 @@ import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.customizers.OperationCustomizer;
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.HandlerMethod;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
+@Slf4j
 @Configuration
 public class SwaggerConfig {
+
+    private static final String BASE_PACKAGE = "com.umc.linkyou";
+
+    private enum ApiGroup { USER, MANAGER, ADMIN }
+
+    // 그룹별로 실제 @ApiErrorCode/@ApiDomainErrorCodes에 등장하는 에러 enum 집합 (지연 계산 후 캐시)
+    private Map<ApiGroup, Set<Class<? extends BaseErrorCode>>> errorEnumsByGroupCache;
 
     @Bean
     public OpenAPI linkyouAPI() {
@@ -58,10 +85,8 @@ public class SwaggerConfig {
         String jwtSchemeName = "JWT TOKEN";
         SecurityRequirement securityRequirement = new SecurityRequirement().addList(jwtSchemeName);
 
-        io.swagger.v3.core.converter.ResolvedSchema resolvedSchema =
-                io.swagger.v3.core.converter.ModelConverters.getInstance()
-                        .resolveAsResolvedSchema(new io.swagger.v3.core.converter
-                                .AnnotatedType(com.umc.linkyou.apiPayload.ApiResponse.class));
+        ResolvedSchema resolvedSchema = ModelConverters.getInstance()
+                .resolveAsResolvedSchema(new AnnotatedType(com.umc.linkyou.apiPayload.ApiResponse.class));
 
 
         Components components = new Components()
@@ -80,6 +105,40 @@ public class SwaggerConfig {
     }
 
     @Bean
+    public GroupedOpenApi userApi() {
+        return GroupedOpenApi.builder()
+                .group("user")
+                .pathsToMatch("/api/v1/**", "/api/v2/**")
+                .pathsToExclude("/api/v1/admin/**", "/api/v1/manage/**")
+                .addOperationCustomizer(customize())
+                .addOpenApiCustomizer(openApi -> openApi.getInfo().setDescription(
+                        "linkyou API 명세서 (User)\n\n" + buildErrorCodeReference(errorEnumsForGroup(ApiGroup.USER))))
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi managerApi() {
+        return GroupedOpenApi.builder()
+                .group("manager")
+                .pathsToMatch("/api/v1/manage/**")
+                .addOperationCustomizer(customize())
+                .addOpenApiCustomizer(openApi -> openApi.getInfo().setDescription(
+                        "linkyou API 명세서 (Manager)\n\n" + buildErrorCodeReference(errorEnumsForGroup(ApiGroup.MANAGER))))
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi adminApi() {
+        return GroupedOpenApi.builder()
+                .group("admin")
+                .pathsToMatch("/api/v1/admin/**")
+                .addOperationCustomizer(customize())
+                .addOpenApiCustomizer(openApi -> openApi.getInfo().setDescription(
+                        "linkyou API 명세서 (Admin)\n\n" + buildErrorCodeReference(errorEnumsForGroup(ApiGroup.ADMIN))))
+                .build();
+    }
+
+    @Bean
     public OperationCustomizer customize() {
         return (Operation operation, HandlerMethod handlerMethod) -> {
             // 인증이 명시된 엔드포인트에만 401 예시를 추가한다.
@@ -95,6 +154,11 @@ public class SwaggerConfig {
             ApiAuthSuccessCode authSuccessAnnotation = handlerMethod.getMethodAnnotation(ApiAuthSuccessCode.class);
             if (authSuccessAnnotation != null) {
                 generateAuthSuccessResponseExample(operation, authSuccessAnnotation.value());
+            }
+            ApiNoContentCode noContentAnnotation = handlerMethod.getMethodAnnotation(ApiNoContentCode.class);
+            if (noContentAnnotation != null) {
+                operation.getResponses().addApiResponse("204",
+                        new ApiResponse().description(noContentAnnotation.description()));
             }
 
             // 2. 에러 응답 처리 (Repeatable 컨테이너와 단일 어노테이션 모두 상속 관계 포함 스캔)
@@ -160,7 +224,7 @@ public class SwaggerConfig {
 
         // [중요] Schema가 없으면 Swagger UI가 예시를 렌더링하지 못함
         if (mediaType.getSchema() == null) {
-            mediaType.setSchema(new io.swagger.v3.oas.models.media.Schema<>().$ref("#/components/schemas/ApiResponse"));
+            mediaType.setSchema(new Schema<>().$ref("#/components/schemas/ApiResponse"));
         }
 
         Example example = new Example();
@@ -194,46 +258,35 @@ public class SwaggerConfig {
         addExample(responses, reason.getHttpStatus().value(), status.name(), reason.getMessage(), exampleResponse);
     }
 
+    private record ErrorCategory(
+            Function<ApiErrorCode, ? extends BaseErrorCode[]> extractor,
+            Class<? extends BaseErrorCode> type
+    ) {}
+
+    private static final List<ErrorCategory> ERROR_CATEGORIES = List.of(
+            new ErrorCategory(ApiErrorCode::errorStatus, ErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::userErrorStatus, UserErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::authErrorStatus, AuthErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::alarmErrorStatus, AlarmErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::aiArticleErrorStatus, AiArticleErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::curationErrorStatus, CurationErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::linkuErrorStatus, LinkuErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::folderErrorStatus, FolderErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::shareFolderErrorStatus, ShareFolderErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::invitationErrorStatus, InvitationErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::categoryErrorStatus, CategoryErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::commonErrorStatus, CommonErrorStatus.class)
+    );
+
     // 에러 예시 생성
     private void generateErrorCodeResponseExample(Operation operation, ApiErrorCode[] annotations) {
         ApiResponses responses = operation.getResponses();
 
         for (ApiErrorCode annotation : annotations) {
-            for (ErrorStatus status : annotation.errorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (UserErrorStatus status : annotation.userErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (AuthErrorStatus status : annotation.authErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (AlarmErrorStatus status : annotation.alarmErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (AiArticleErrorStatus status : annotation.aiArticleErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (CurationErrorStatus status : annotation.curationErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (LinkuErrorStatus status : annotation.linkuErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (FolderErrorStatus status : annotation.folderErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (ShareFolderErrorStatus status : annotation.shareFolderErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (InvitationErrorStatus status : annotation.invitationErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (CategoryErrorStatus status : annotation.categoryErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (CommonErrorStatus status : annotation.commonErrorStatus()) {
-                addErrorCodeExample(responses, status);
+            for (ErrorCategory category : ERROR_CATEGORIES) {
+                for (BaseErrorCode status : category.extractor().apply(annotation)) {
+                    addErrorCodeExample(responses, status);
+                }
             }
         }
     }
@@ -247,7 +300,11 @@ public class SwaggerConfig {
     }
 
     private String buildErrorCodeReference() {
-        List<Class<? extends BaseErrorCode>> errorEnums = List.of(
+        return buildErrorCodeReference(allErrorEnums());
+    }
+
+    private List<Class<? extends BaseErrorCode>> allErrorEnums() {
+        return List.of(
                 AuthErrorStatus.class,
                 UserErrorStatus.class,
                 ErrorStatus.class,
@@ -262,7 +319,9 @@ public class SwaggerConfig {
                 LinkuErrorStatus.class,
                 CommonErrorStatus.class
         );
+    }
 
+    private String buildErrorCodeReference(Collection<Class<? extends BaseErrorCode>> errorEnums) {
         StringBuilder sb = new StringBuilder("---\n## 에러 코드 레퍼런스\n\n");
 
         for (Class<? extends BaseErrorCode> errorEnum : errorEnums) {
@@ -281,6 +340,82 @@ public class SwaggerConfig {
         }
 
         return sb.toString();
+    }
+
+    // 그룹(user/manager/admin)에 속한 컨트롤러가 실제로 선언한 에러 enum 목록을 구한다.
+    private Set<Class<? extends BaseErrorCode>> errorEnumsForGroup(ApiGroup group) {
+        return errorEnumsByGroup().getOrDefault(group, Set.of());
+    }
+
+    private Map<ApiGroup, Set<Class<? extends BaseErrorCode>>> errorEnumsByGroup() {
+        if (errorEnumsByGroupCache == null) {
+            errorEnumsByGroupCache = scanErrorEnumsByGroup();
+        }
+        return errorEnumsByGroupCache;
+    }
+
+    private Map<ApiGroup, Set<Class<? extends BaseErrorCode>>> scanErrorEnumsByGroup() {
+        Map<ApiGroup, Set<Class<? extends BaseErrorCode>>> result = new EnumMap<>(ApiGroup.class);
+        for (ApiGroup group : ApiGroup.values()) {
+            // 인증이 필요한 엔드포인트에는 401 예시가 자동으로 붙으므로 AuthErrorStatus는 모든 그룹에 기본 포함
+            Set<Class<? extends BaseErrorCode>> bucket = new LinkedHashSet<>();
+            bucket.add(AuthErrorStatus.class);
+            result.put(group, bucket);
+        }
+
+        ClassPathScanningCandidateComponentProvider scanner =
+                new ClassPathScanningCandidateComponentProvider(false);
+        scanner.addIncludeFilter(new AnnotationTypeFilter(RestController.class));
+
+        for (org.springframework.beans.factory.config.BeanDefinition bd : scanner.findCandidateComponents(BASE_PACKAGE)) {
+            try {
+                Class<?> controllerClass = Class.forName(bd.getBeanClassName());
+                ApiGroup group = controllerClass.isAnnotationPresent(ApiAdmin.class) ? ApiGroup.ADMIN
+                        : controllerClass.isAnnotationPresent(ApiManager.class) ? ApiGroup.MANAGER
+                        : ApiGroup.USER;
+
+                Set<Class<? extends BaseErrorCode>> bucket = result.get(group);
+
+                collectDomainErrorCodes(controllerClass, bucket);
+                collectMethodErrorCodes(controllerClass, bucket);
+                for (Class<?> iface : controllerClass.getInterfaces()) {
+                    collectDomainErrorCodes(iface, bucket);
+                    collectMethodErrorCodes(iface, bucket);
+                }
+            } catch (ClassNotFoundException | LinkageError e) {
+                // NoClassDefFoundError 등 복구 가능한 클래스 로딩 실패만 스킵하고 원인을 남긴다.
+                // OutOfMemoryError 등 치명적 오류(Error 중 LinkageError가 아닌 것)는 여기서 잡히지 않고 그대로 전파된다.
+                log.warn("Swagger 에러코드 문서 생성 중 컨트롤러 클래스 로딩 실패: {} - {}",
+                        bd.getBeanClassName(), e.toString());
+            }
+        }
+
+        return result;
+    }
+
+    private void collectDomainErrorCodes(Class<?> type, Set<Class<? extends BaseErrorCode>> bucket) {
+        ApiDomainErrorCodes domainCodes = type.getAnnotation(ApiDomainErrorCodes.class);
+        if (domainCodes != null) {
+            bucket.addAll(Arrays.asList(domainCodes.value()));
+        }
+    }
+
+    private void collectMethodErrorCodes(Class<?> type, Set<Class<? extends BaseErrorCode>> bucket) {
+        for (Method method : type.getMethods()) {
+            List<ApiErrorCode> codes = new ArrayList<>();
+            ApiErrorCode single = method.getAnnotation(ApiErrorCode.class);
+            if (single != null) codes.add(single);
+            ApiErrorCodes multiple = method.getAnnotation(ApiErrorCodes.class);
+            if (multiple != null) codes.addAll(Arrays.asList(multiple.value()));
+
+            for (ApiErrorCode code : codes) {
+                for (ErrorCategory category : ERROR_CATEGORIES) {
+                    if (category.extractor().apply(code).length > 0) {
+                        bucket.add(category.type());
+                    }
+                }
+            }
+        }
     }
 
 }

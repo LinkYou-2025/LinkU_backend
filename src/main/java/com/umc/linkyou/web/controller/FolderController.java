@@ -59,7 +59,7 @@ public class FolderController implements FolderApi {
     }
 
     @Override
-    public ApiResponse<FolderLinkusResponseDTO> getFolderLinkus(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId, @RequestParam(defaultValue = "20") int limit, @RequestParam(required = false) String cursor, @RequestParam(defaultValue = "name") String sort) {
-        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_LINK_OK, folderService.getFolderLinkus(userDetails.getUserId(), folderId, limit, cursor, sort));
+    public ApiResponse<FolderLinkusResponseDTO> getFolderLinkus(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId, @RequestParam(defaultValue = "20") int limit, @RequestParam(required = false) String cursor, @RequestParam(defaultValue = "name") String sort, @RequestParam(defaultValue = "true") boolean includeLinks) {
+        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_LINK_OK, folderService.getFolderLinkus(userDetails.getUserId(), folderId, limit, cursor, sort, includeLinks));
     }
 }

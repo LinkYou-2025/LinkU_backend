@@ -18,6 +18,7 @@ import com.umc.linkyou.service.alarm.event.PersonalAlarmEvent;
 import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmResponseDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmSettingResponseDTO;
+import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
@@ -168,7 +169,18 @@ public class AlarmService {
         userAlarmRepository.save(UserAlarm.create(user, alarm));
 
         eventPublisher.publishEvent(
-                PersonalAlarmEvent.withPayload(userId, alarmType, requestDTO.targetId(), payload));
+                PersonalAlarmEvent.withPayload(userId, alarmType, requestDTO.targetId(), alarm.getId(), payload));
+    }
+
+    @Transactional
+    public FcmSendRequestDTO createTestAlarm(Long userId, AlarmRequestDTO.TestAlarmSendDTO requestDTO) {
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+
+        Alarm alarm = alarmRepository.save(Alarm.create(requestDTO.type(), requestDTO.targetId()));
+        userAlarmRepository.save(UserAlarm.create(user, alarm));
+
+        return FcmSendRequestDTO.of(requestDTO.type(), requestDTO.targetId(), alarm.getId());
     }
 
     // 다수 유저에게 동일 본문으로 일괄 발송
@@ -198,7 +210,8 @@ public class AlarmService {
         userAlarmRepository.saveAll(userAlarms);
 
         enabledUserIds.forEach(uid ->
-                eventPublisher.publishEvent(PersonalAlarmEvent.withPayload(uid, alarmType, targetId, payload)));
+                eventPublisher.publishEvent(
+                        PersonalAlarmEvent.withPayload(uid, alarmType, targetId, alarm.getId(), payload)));
     }
 
     // 관리자 브로드캐스트 알림 등록, content 직접 입력
