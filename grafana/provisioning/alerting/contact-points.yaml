@@ -10,4 +10,10 @@ contactPoints:
         settings:
           use_discord_username: true
           url: __DISCORD_ALERT_WEBHOOK_URL__
+          title: "{{ if or (eq .CommonLabels.alertname \"DatasourceNoData\") (eq .CommonLabels.alertname \"DatasourceError\") }}⚠️ 측정 불가{{ else if eq .Status \"firing\" }}🔴 Firing{{ else }}✅ Resolved{{ end }} — {{ if .CommonLabels.rulename }}{{ .CommonLabels.rulename }}{{ else }}{{ .CommonLabels.alertname }}{{ end }}{{ if .CommonLabels.env }} ({{ .CommonLabels.env }}){{ end }}"
+          message: |-
+            {{ range .Alerts }}{{ if or (eq .Labels.alertname "DatasourceNoData") (eq .Labels.alertname "DatasourceError") }}측정 데이터 없음. 서버를 꺼둔게 아니라면 확인이 필요합니다.{{ else }}{{ .Annotations.summary }}{{ end }}
+            {{ .GeneratorURL }}
+            {{ end }}
+            {{ if .CommonLabels.env }}🔇 Silence ({{ .CommonLabels.env }} 전체): {{ .ExternalURL }}/alerting/silence/new?alertmanager=grafana&matcher=env%3D{{ .CommonLabels.env }}&orgId=1{{ else }}🔇 Silence: Grafana Alerting에서 "{{ if .CommonLabels.rulename }}{{ .CommonLabels.rulename }}{{ else }}{{ .CommonLabels.alertname }}{{ end }}" 규칙을 직접 찾아 무음 처리해주세요.{{ end }}
         disableResolveMessage: false
