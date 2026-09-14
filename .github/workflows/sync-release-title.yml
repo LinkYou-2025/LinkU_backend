@@ -1,0 +1,44 @@
+name: sync-release-title
+on:
+  pull_request:
+    branches: [ "production" ]
+    types: [ opened, labeled, synchronize ]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  sync-title:
+    if: contains(github.event.pull_request.labels.*.name, '🚀 release')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine next version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          next_tag=$(bash .github/scripts/next-version.sh)
+          echo "tag=$next_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Sync PR title to computed version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TAG: ${{ steps.version.outputs.tag }}
+          CURRENT_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          new_title="Release $TAG"
+          if [ "$CURRENT_TITLE" = "$new_title" ]; then
+            echo "이미 최신 버전입니다: $new_title"
+            exit 0
+          fi
+          gh pr edit "$PR_NUMBER" --title "$new_title"
+          echo "PR 제목 동기화: $CURRENT_TITLE -> $new_title"
