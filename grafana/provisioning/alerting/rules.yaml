@@ -25,9 +25,18 @@ groups:
               refId: A
               instant: true
               expr: >-
-                (sum(rate(http_server_requests_seconds_count{job="linku-app",status=~"5.."}[5m])) by (env) or vector(0))
+                (
+                  (sum(rate(http_server_requests_seconds_count{job="linku-app",status=~"5.."}[5m])) by (env))
+                  or (sum(up{job="linku-app"}) by (env) * 0)
+                )
                 /
-                (sum(rate(http_server_requests_seconds_count{job="linku-app"}[5m])) by (env) or vector(0))
+                clamp_min(
+                  (
+                    (sum(rate(http_server_requests_seconds_count{job="linku-app"}[5m])) by (env))
+                    or (sum(up{job="linku-app"}) by (env) * 0)
+                  ),
+                  1e-9
+                )
                 * 100
           - refId: C
             datasourceUid: "-100"
