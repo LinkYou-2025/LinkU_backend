@@ -25,9 +25,9 @@ groups:
               refId: A
               instant: true
               expr: >-
-                sum(rate(http_server_requests_seconds_count{job="linku-app",status=~"5.."}[5m])) by (env)
+                (sum(rate(http_server_requests_seconds_count{job="linku-app",status=~"5.."}[5m])) by (env) or vector(0))
                 /
-                sum(rate(http_server_requests_seconds_count{job="linku-app"}[5m])) by (env)
+                (sum(rate(http_server_requests_seconds_count{job="linku-app"}[5m])) by (env) or vector(0))
                 * 100
           - refId: C
             datasourceUid: "-100"
