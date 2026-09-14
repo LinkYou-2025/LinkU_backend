@@ -2,7 +2,7 @@
 # 다음 릴리즈 버전(vX.Y.Z)을 계산해 stdout으로 출력
 set -euo pipefail
 
-latest_tag=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)
+latest_tag=$(git tag -l 'v*' | { grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true; } | sort -V | tail -n 1)
 if [ -z "$latest_tag" ]; then
   next_tag="v1.0.0"
 else
