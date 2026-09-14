@@ -14,7 +14,7 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "{{ $labels.env }} 서버의 5xx 에러율이 {{ printf \"%.1f\" $values.A }}%로 임계치(5%)를 초과했습니다."
+          summary: "{{ $labels.env }} 서버의 5xx 에러율이 {{ printf \"%.1f\" $values.A.Value }}%로 임계치(5%)를 초과했습니다."
         data:
           - refId: A
             relativeTimeRange:
@@ -76,7 +76,7 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "{{ $labels.env }} linku-app 힙 사용률이 {{ printf \"%.1f\" $values.A }}%로 임계치(90%)를 초과했습니다. (OOM 위험)"
+          summary: "{{ $labels.env }} linku-app 힙 사용률이 {{ printf \"%.1f\" $values.A.Value }}%로 임계치(90%)를 초과했습니다. (OOM 위험)"
         data:
           - refId: A
             relativeTimeRange:
@@ -109,7 +109,7 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "{{ $labels.env }} 서버 디스크(/) 사용률이 {{ printf \"%.1f\" $values.A }}%로 임계치(85%)를 초과했습니다."
+          summary: "{{ $labels.env }} 서버 디스크(/) 사용률이 {{ printf \"%.1f\" $values.A.Value }}%로 임계치(85%)를 초과했습니다."
         data:
           - refId: A
             relativeTimeRange:
