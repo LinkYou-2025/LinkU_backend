@@ -30,17 +30,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          latest_tag=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)
-          if [ -z "$latest_tag" ]; then
-            next_tag="v1.0.0"
-          else
-            version=${latest_tag#v}
-            major=$(echo "$version" | cut -d. -f1)
-            minor=$(echo "$version" | cut -d. -f2)
-            patch=$(echo "$version" | cut -d. -f3)
-            next_tag="v${major}.${minor}.$((patch + 1))"
-          fi
-          echo "다음 버전: $next_tag (이전: ${latest_tag:-없음})"
+          next_tag=$(.github/scripts/next-version.sh)
           echo "tag=$next_tag" >> "$GITHUB_OUTPUT"
 
       - name: Create Git tag and GitHub Release
@@ -48,6 +38,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
           TARGET: ${{ github.event.pull_request.merge_commit_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -euo pipefail
           if git rev-parse "$TAG" >/dev/null 2>&1; then
@@ -55,13 +47,8 @@ jobs:
             exit 1
           fi
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" "$TARGET" -m "Release $TAG"
-          git push origin "$TAG"
-
           gh release create "$TAG" \
             --title "Release $TAG" \
             --target "$TARGET" \
             --generate-notes \
-            --notes "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+            --notes "PR #${PR_NUMBER}: ${PR_TITLE}"
