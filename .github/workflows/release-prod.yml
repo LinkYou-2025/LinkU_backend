@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          next_tag=$(.github/scripts/next-version.sh)
+          next_tag=$(bash .github/scripts/next-version.sh)
           echo "tag=$next_tag" >> "$GITHUB_OUTPUT"
 
       - name: Create Git tag and GitHub Release
