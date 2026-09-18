@@ -31,6 +31,8 @@ public enum UserErrorStatus implements BaseErrorCode {
     _JOB_NOT_SET(HttpStatus.BAD_REQUEST, "USERS4007", "직업이 설정되지 않은 사용자입니다."),
     _DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "USERS4091", "중복된 닉네임입니다."),
     _DUPLICATE_JOIN_REQUEST(HttpStatus.CONFLICT, "USERS4092", "중복된 이메일입니다."),
+    _GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS (HttpStatus.CONFLICT, "USERS4093", "이미 구글 로그인으로 가입된 이메일입니다. 소셜 로그인을 이용하세요."),
+    _KAKAO_SOCIAL_ACCOUNT_ALREADY_EXISTS (HttpStatus.CONFLICT, "USERS4094", "이미 카카오 로그인으로 가입된 이메일입니다. 소셜 로그인을 이용하세요."),
     // 인증 코드 전송실패
     _SEND_MAIL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS5001", "인증 코드 전송 실패"),
     _REFRESH_TOKEN_SESSION_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, "USERS5002", "리프레시 토큰 세션 정보가 올바르지 않습니다."),

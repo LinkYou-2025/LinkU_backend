@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import com.umc.linkyou.domain.AuthAccount;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -49,7 +50,7 @@ public class PasswordResetService {
     private static final int EXPIRY_MINUTES = 10;
     private static final Duration SEND_COOLDOWN = Duration.ofSeconds(60);
     private static final Duration DAILY_LIMIT_TTL = Duration.ofDays(1);
-    private static final int MAX_DAILY_SEND_COUNT = 5;
+    static final int MAX_DAILY_SEND_COUNT = 5;
     private static final String SEND_COOLDOWN_KEY = "password:reset:cooldown:";
     private static final String DAILY_SEND_COUNT_KEY = "password:reset:count:";
 
@@ -57,7 +58,15 @@ public class PasswordResetService {
     @Transactional(readOnly = true)
     public void sendResetLink(String email) {
         validateDeliverableEmail(email);
-
+        // 소셜 로그인 계정이면 에러
+        AuthAccount authAccount = authAccountRepository.findByEmail(email)
+                .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
+        if(authAccount.getProvider() == Provider.KAKAO) {
+            throw new UserHandler(UserErrorStatus._KAKAO_SOCIAL_ACCOUNT_ALREADY_EXISTS);
+        }
+        if(authAccount.getProvider() == Provider.GOOGLE) {
+            throw new UserHandler(UserErrorStatus._GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS);
+        }
         rateLimiter.enforce(email, SEND_COOLDOWN_KEY, DAILY_SEND_COUNT_KEY,
                 SEND_COOLDOWN, DAILY_LIMIT_TTL, MAX_DAILY_SEND_COUNT);
         authAccountRepository.findUserByEmailAndProvider(email, Provider.GENERAL)
