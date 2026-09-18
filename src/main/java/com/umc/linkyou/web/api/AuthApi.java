@@ -163,14 +163,18 @@ public interface AuthApi {
                     - 일반(이메일) 가입 계정에만 재설정 링크가 전송됩니다.
                     - 재설정 토큰은 Redis에 저장되며 10분 동안 유효합니다.
                     - 전송 쿨다운(60초)과 일일 전송 횟수 제한(5회)이 적용되어 남용을 방지합니다.
-                    - 가입 여부 노출을 막기 위해, 존재하지 않는 이메일이어도 성공 응답을 반환합니다.
+                    - 가입되지 않은 이메일이면 사용자 없음 에러를 반환합니다.
+                    - 카카오/구글 소셜 로그인으로만 가입된 이메일이면 소셜 로그인 안내 에러를 반환합니다.
                     - 유효하지 않은 이메일 주소이거나 메일 전송에 실패하면 예외를 반환합니다.
                     """)
     @ApiAuthSuccessCode(AuthSuccessStatus.PASSWORD_RESET_LINK_SENT)
     @ApiErrorCode(
             userErrorStatus = {
                 UserErrorStatus._INVALID_EMAIL_ADDRESS,
-                UserErrorStatus._SEND_MAIL_FAILED
+                UserErrorStatus._SEND_MAIL_FAILED,
+                UserErrorStatus._USER_NOT_FOUND,
+                UserErrorStatus._KAKAO_SOCIAL_ACCOUNT_ALREADY_EXISTS,
+                UserErrorStatus._GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS
             })
     @ApiErrorCode(commonErrorStatus = {CommonErrorStatus._TOO_MANY_REQUESTS})
     @PostMapping("/password/reset/send")
