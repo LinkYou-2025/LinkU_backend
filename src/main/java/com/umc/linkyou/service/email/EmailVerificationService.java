@@ -37,12 +37,12 @@ public class EmailVerificationService {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int EXPIRY_MINUTES = 10;
     private static final int CODE_LENGTH = 6;
-    private static final Duration SEND_COOLDOWN = Duration.ofSeconds(60);
-    private static final Duration DAILY_LIMIT_TTL = Duration.ofDays(1);
+    static final Duration SEND_COOLDOWN = Duration.ofSeconds(60);
+    static final Duration DAILY_LIMIT_TTL = Duration.ofDays(1);
     private static final int MAX_DAILY_SEND_COUNT = 5;
     private static final int MAX_VERIFY_FAILURE_COUNT = 5;
-    private static final String SEND_COOLDOWN_KEY = "email:verification:cooldown:";
-    private static final String DAILY_SEND_COUNT_KEY = "email:verification:count:";
+    static final String SEND_COOLDOWN_KEY = "email:verification:cooldown:";
+    static final String DAILY_SEND_COUNT_KEY = "email:verification:count:";
     private static final String VERIFY_FAILURE_COUNT_KEY = "email:verification:failure:";
 
     // 회원가입 이메일 인증 코드 전송

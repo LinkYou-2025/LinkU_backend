@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
+import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.domain.redis.PasswordResetCache;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.redis.PasswordResetRedisRepository;
@@ -16,10 +17,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import com.umc.linkyou.domain.AuthAccount;
 
 import java.time.Duration;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * 비밀번호 재설정 기능을 담당하는 서비스
@@ -49,7 +53,7 @@ public class PasswordResetService {
     private static final int EXPIRY_MINUTES = 10;
     private static final Duration SEND_COOLDOWN = Duration.ofSeconds(60);
     private static final Duration DAILY_LIMIT_TTL = Duration.ofDays(1);
-    private static final int MAX_DAILY_SEND_COUNT = 5;
+    static final int MAX_DAILY_SEND_COUNT = 5;
     private static final String SEND_COOLDOWN_KEY = "password:reset:cooldown:";
     private static final String DAILY_SEND_COUNT_KEY = "password:reset:count:";
 
@@ -60,6 +64,31 @@ public class PasswordResetService {
 
         rateLimiter.enforce(email, SEND_COOLDOWN_KEY, DAILY_SEND_COUNT_KEY,
                 SEND_COOLDOWN, DAILY_LIMIT_TTL, MAX_DAILY_SEND_COUNT);
+
+        // 가입되지 않았거나 ACTIVE가 아닌(TEMP, INACTIVE) 계정이면 사용자 없음 에러
+        Set<Provider> providers = authAccountRepository.findByEmail(email).stream()
+                .filter(account -> account.getUser().getStatus() == UserStatus.ACTIVE)
+                .map(AuthAccount::getProvider)
+                .collect(Collectors.toSet());
+        if (providers.isEmpty()) {
+            throw new UserHandler(UserErrorStatus._USER_NOT_FOUND);
+        }
+
+        // 일반 계정 없이 소셜 계정으로만 가입된 경우, 가입된 소셜 종류에 맞는 에러
+        if (!providers.contains(Provider.GENERAL)) {
+            boolean kakao = providers.contains(Provider.KAKAO);
+            boolean google = providers.contains(Provider.GOOGLE);
+            if (kakao && google) {
+                throw new UserHandler(UserErrorStatus._KAKAO_GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS);
+            }
+            if (kakao) {
+                throw new UserHandler(UserErrorStatus._KAKAO_SOCIAL_ACCOUNT_ALREADY_EXISTS);
+            }
+            if (google) {
+                throw new UserHandler(UserErrorStatus._GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS);
+            }
+        }
+
         authAccountRepository.findUserByEmailAndProvider(email, Provider.GENERAL)
                 .ifPresent(user -> sendResetEmail(email, user));
     }
@@ -87,8 +116,9 @@ public class PasswordResetService {
         PasswordResetCache cache = passwordResetRedisRepository.findById(token)
                 .orElseThrow(() -> new UserHandler(UserErrorStatus._EXPIRED_VERIFICATION_CODE));
 
-        // 이메일로 사용자 조회, 일반 로그인 계정이 아니거나 가입되지 않은 이메일이면 에러
+        // 이메일로 사용자 조회, 일반 로그인 계정이 아니거나 가입되지 않은 이메일이거나 ACTIVE가 아니면 에러
         Users user = authAccountRepository.findUserByEmailAndProvider(cache.getEmail(), Provider.GENERAL)
+                .filter(found -> found.getStatus() == UserStatus.ACTIVE)
                 .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
         // 새 비밀번호로 업데이트해서 저장
