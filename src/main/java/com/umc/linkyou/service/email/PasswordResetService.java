@@ -20,8 +20,10 @@ import org.springframework.util.StringUtils;
 import com.umc.linkyou.domain.AuthAccount;
 
 import java.time.Duration;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * 비밀번호 재설정 기능을 담당하는 서비스
@@ -64,16 +66,29 @@ public class PasswordResetService {
                 SEND_COOLDOWN, DAILY_LIMIT_TTL, MAX_DAILY_SEND_COUNT);
 
         // 가입되지 않았거나 ACTIVE가 아닌(TEMP, INACTIVE) 계정이면 사용자 없음 에러
-        AuthAccount authAccount = authAccountRepository.findByEmail(email)
+        Set<Provider> providers = authAccountRepository.findByEmail(email).stream()
                 .filter(account -> account.getUser().getStatus() == UserStatus.ACTIVE)
-                .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
-        // 소셜 로그인 계정이면 에러
-        if(authAccount.getProvider() == Provider.KAKAO) {
-            throw new UserHandler(UserErrorStatus._KAKAO_SOCIAL_ACCOUNT_ALREADY_EXISTS);
+                .map(AuthAccount::getProvider)
+                .collect(Collectors.toSet());
+        if (providers.isEmpty()) {
+            throw new UserHandler(UserErrorStatus._USER_NOT_FOUND);
         }
-        if(authAccount.getProvider() == Provider.GOOGLE) {
-            throw new UserHandler(UserErrorStatus._GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS);
+
+        // 일반 계정 없이 소셜 계정으로만 가입된 경우, 가입된 소셜 종류에 맞는 에러
+        if (!providers.contains(Provider.GENERAL)) {
+            boolean kakao = providers.contains(Provider.KAKAO);
+            boolean google = providers.contains(Provider.GOOGLE);
+            if (kakao && google) {
+                throw new UserHandler(UserErrorStatus._KAKAO_GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS);
+            }
+            if (kakao) {
+                throw new UserHandler(UserErrorStatus._KAKAO_SOCIAL_ACCOUNT_ALREADY_EXISTS);
+            }
+            if (google) {
+                throw new UserHandler(UserErrorStatus._GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS);
+            }
         }
+
         authAccountRepository.findUserByEmailAndProvider(email, Provider.GENERAL)
                 .ifPresent(user -> sendResetEmail(email, user));
     }

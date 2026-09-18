@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.security.AuthProvider;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 
 import static com.umc.linkyou.service.email.EmailVerificationService.*;
@@ -73,6 +74,14 @@ class PasswordResetServiceTest {
                 .build();
     }
 
+    private AuthAccount accountOf(Provider provider, Users user) {
+        return AuthAccount.builder()
+                .email("user@example.com")
+                .provider(provider)
+                .user(user)
+                .build();
+    }
+
     @Nested
     @DisplayName("정상 케이스")
     class Success {
@@ -89,8 +98,42 @@ class PasswordResetServiceTest {
                     .user(user)
                     .build();
             given(authAccountRepository.findByEmail("user@example.com"))
-                    .willReturn(Optional.of(authAccount));
+                    .willReturn(List.of(authAccount));
 
+            given(authAccountRepository.findUserByEmailAndProvider("user@example.com", Provider.GENERAL))
+                    .willReturn(Optional.of(user));
+
+            passwordResetService.sendResetLink("user@example.com");
+
+            verify(passwordResetRedisRepository).save(any());
+            verify(emailService).sendPasswordResetEmail(eq("user@example.com"), eq("링큐유저"), any(), eq(10));
+        }
+
+        @Test
+        @DisplayName("일반 계정과 카카오 계정이 함께 있으면 비밀번호 재설정 링크를 전송한다")
+        void 일반_계정과_카카오_계정이_함께_있으면_재설정_링크를_전송한다() throws AddressException {
+            given(emailAddressValidator.isDeliverableAddress("user@example.com")).willReturn(true);
+
+            Users user = userWithStatus(UserStatus.ACTIVE);
+            given(authAccountRepository.findByEmail("user@example.com"))
+                    .willReturn(List.of(accountOf(Provider.KAKAO, user), accountOf(Provider.GENERAL, user)));
+            given(authAccountRepository.findUserByEmailAndProvider("user@example.com", Provider.GENERAL))
+                    .willReturn(Optional.of(user));
+
+            passwordResetService.sendResetLink("user@example.com");
+
+            verify(passwordResetRedisRepository).save(any());
+            verify(emailService).sendPasswordResetEmail(eq("user@example.com"), eq("링큐유저"), any(), eq(10));
+        }
+
+        @Test
+        @DisplayName("일반 계정과 구글 계정이 함께 있으면 비밀번호 재설정 링크를 전송한다")
+        void 일반_계정과_구글_계정이_함께_있으면_재설정_링크를_전송한다() throws AddressException {
+            given(emailAddressValidator.isDeliverableAddress("user@example.com")).willReturn(true);
+
+            Users user = userWithStatus(UserStatus.ACTIVE);
+            given(authAccountRepository.findByEmail("user@example.com"))
+                    .willReturn(List.of(accountOf(Provider.GENERAL, user), accountOf(Provider.GOOGLE, user)));
             given(authAccountRepository.findUserByEmailAndProvider("user@example.com", Provider.GENERAL))
                     .willReturn(Optional.of(user));
 
@@ -132,7 +175,7 @@ class PasswordResetServiceTest {
                     .build();
 
             given(authAccountRepository.findByEmail("user@example.com"))
-                    .willReturn(Optional.of(authAccount));
+                    .willReturn(List.of(authAccount));
 
             UserHandler exception = assertThrows(
                     UserHandler.class,
@@ -223,7 +266,7 @@ class PasswordResetServiceTest {
         void 가입되지_않은_이메일이면_사용자_없음_예외를_던진다() throws AddressException {
             given(emailAddressValidator.isDeliverableAddress("missing@example.com")).willReturn(true);
             given(authAccountRepository.findByEmail("missing@example.com"))
-                    .willReturn(Optional.empty());
+                    .willReturn(List.of());
 
             UserHandler exception = assertThrows(UserHandler.class,
                     () -> passwordResetService.sendResetLink("missing@example.com"));
@@ -232,6 +275,40 @@ class PasswordResetServiceTest {
             verify(authAccountRepository).findByEmail("missing@example.com");
             verify(authAccountRepository, never())
                     .findUserByEmailAndProvider("missing@example.com", Provider.GENERAL);
+            verifyNoInteractions(passwordResetRedisRepository, emailService, userRepository, passwordEncoder);
+        }
+
+        @Test
+        @DisplayName("구글 소셜 로그인으로만 가입한 계정이면 구글 에러를 던진다")
+        void 구글_소셜_로그인으로만_가입한_계정이면_구글_에러를_던진다() throws AddressException {
+            given(emailAddressValidator.isDeliverableAddress("user@example.com")).willReturn(true);
+            Users user = userWithStatus(UserStatus.ACTIVE);
+            given(authAccountRepository.findByEmail("user@example.com"))
+                    .willReturn(List.of(accountOf(Provider.GOOGLE, user)));
+
+            UserHandler exception = assertThrows(UserHandler.class,
+                    () -> passwordResetService.sendResetLink("user@example.com"));
+
+            assertEquals(UserErrorStatus._GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS, exception.getCode());
+            verify(authAccountRepository, never())
+                    .findUserByEmailAndProvider("user@example.com", Provider.GENERAL);
+            verifyNoInteractions(passwordResetRedisRepository, emailService, userRepository, passwordEncoder);
+        }
+
+        @Test
+        @DisplayName("카카오와 구글 소셜 로그인으로 모두 가입한 계정이면 통합 소셜 에러를 던진다")
+        void 카카오와_구글_소셜_로그인으로_모두_가입한_계정이면_통합_소셜_에러를_던진다() throws AddressException {
+            given(emailAddressValidator.isDeliverableAddress("user@example.com")).willReturn(true);
+            Users user = userWithStatus(UserStatus.ACTIVE);
+            given(authAccountRepository.findByEmail("user@example.com"))
+                    .willReturn(List.of(accountOf(Provider.KAKAO, user), accountOf(Provider.GOOGLE, user)));
+
+            UserHandler exception = assertThrows(UserHandler.class,
+                    () -> passwordResetService.sendResetLink("user@example.com"));
+
+            assertEquals(UserErrorStatus._KAKAO_GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS, exception.getCode());
+            verify(authAccountRepository, never())
+                    .findUserByEmailAndProvider("user@example.com", Provider.GENERAL);
             verifyNoInteractions(passwordResetRedisRepository, emailService, userRepository, passwordEncoder);
         }
 
@@ -245,7 +322,7 @@ class PasswordResetServiceTest {
                     .user(userWithStatus(UserStatus.TEMP))
                     .build();
             given(authAccountRepository.findByEmail("user@example.com"))
-                    .willReturn(Optional.of(authAccount));
+                    .willReturn(List.of(authAccount));
 
             UserHandler exception = assertThrows(UserHandler.class,
                     () -> passwordResetService.sendResetLink("user@example.com"));
@@ -266,7 +343,7 @@ class PasswordResetServiceTest {
                     .user(userWithStatus(UserStatus.INACTIVE))
                     .build();
             given(authAccountRepository.findByEmail("user@example.com"))
-                    .willReturn(Optional.of(authAccount));
+                    .willReturn(List.of(authAccount));
 
             UserHandler exception = assertThrows(UserHandler.class,
                     () -> passwordResetService.sendResetLink("user@example.com"));
