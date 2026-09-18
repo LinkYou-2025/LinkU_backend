@@ -4,6 +4,7 @@ import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
+import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.domain.redis.PasswordResetCache;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.redis.PasswordResetRedisRepository;
@@ -58,17 +59,21 @@ public class PasswordResetService {
     @Transactional(readOnly = true)
     public void sendResetLink(String email) {
         validateDeliverableEmail(email);
-        // 소셜 로그인 계정이면 에러
+
+        rateLimiter.enforce(email, SEND_COOLDOWN_KEY, DAILY_SEND_COUNT_KEY,
+                SEND_COOLDOWN, DAILY_LIMIT_TTL, MAX_DAILY_SEND_COUNT);
+
+        // 가입되지 않았거나 ACTIVE가 아닌(TEMP, INACTIVE) 계정이면 사용자 없음 에러
         AuthAccount authAccount = authAccountRepository.findByEmail(email)
+                .filter(account -> account.getUser().getStatus() == UserStatus.ACTIVE)
                 .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
+        // 소셜 로그인 계정이면 에러
         if(authAccount.getProvider() == Provider.KAKAO) {
             throw new UserHandler(UserErrorStatus._KAKAO_SOCIAL_ACCOUNT_ALREADY_EXISTS);
         }
         if(authAccount.getProvider() == Provider.GOOGLE) {
             throw new UserHandler(UserErrorStatus._GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS);
         }
-        rateLimiter.enforce(email, SEND_COOLDOWN_KEY, DAILY_SEND_COUNT_KEY,
-                SEND_COOLDOWN, DAILY_LIMIT_TTL, MAX_DAILY_SEND_COUNT);
         authAccountRepository.findUserByEmailAndProvider(email, Provider.GENERAL)
                 .ifPresent(user -> sendResetEmail(email, user));
     }
@@ -96,8 +101,9 @@ public class PasswordResetService {
         PasswordResetCache cache = passwordResetRedisRepository.findById(token)
                 .orElseThrow(() -> new UserHandler(UserErrorStatus._EXPIRED_VERIFICATION_CODE));
 
-        // 이메일로 사용자 조회, 일반 로그인 계정이 아니거나 가입되지 않은 이메일이면 에러
+        // 이메일로 사용자 조회, 일반 로그인 계정이 아니거나 가입되지 않은 이메일이거나 ACTIVE가 아니면 에러
         Users user = authAccountRepository.findUserByEmailAndProvider(cache.getEmail(), Provider.GENERAL)
+                .filter(found -> found.getStatus() == UserStatus.ACTIVE)
                 .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
         // 새 비밀번호로 업데이트해서 저장
