@@ -448,8 +448,12 @@ public class UserService {
         }
     }
 
-    // 초기 폴더 생성 메서드 (color_code 에러 방지 반영)
+    // 초기 폴더 생성 메서드 (이미 생성된 유저면 스킵 — idempotent)
     private void initUserFolders(Users user) {
+        if (usersFolderRepository.existsByUser_Id(user.getId())) {
+            return;
+        }
+
         List<Category> categories = categoryRepository.findAll();
         List<UsersCategoryColor> userColors = new ArrayList<>();
 
