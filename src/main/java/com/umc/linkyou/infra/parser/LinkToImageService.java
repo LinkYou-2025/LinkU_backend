@@ -1,8 +1,6 @@
 package com.umc.linkyou.infra.parser;
 
 import com.umc.linkyou.infra.net.SafeUrlFetcher;
-import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
-import com.umc.linkyou.domain.classification.Domain;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
@@ -11,14 +9,12 @@ import org.springframework.stereotype.Service;
 
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class LinkToImageService {
 
-    private final DomainRepository domainRepository;
     private final SafeUrlFetcher safeUrlFetcher;
     private final RobotsTxtChecker robotsTxtChecker;
 
@@ -71,18 +67,9 @@ public class LinkToImageService {
         }
     }
 
-    // DB 기반 네이버 계열 판별 (패턴 매칭)
-    private boolean isNaverFromDB(String url) {
-        String domainTail = extractDomainFromUrl(url);
-        if (domainTail == null) return false;
-
-        // ".naver.com"으로 끝나는 모든 domain_tail 조회
-        List<Domain> naverDomains = domainRepository.findByDomainTailIn(
-                List.of(domainTail)
-        );
-        // 또는 QueryDSL이라면 domainTail.endsWith("naver.com") 조건 가능
-        return naverDomains.stream()
-                .anyMatch(d -> d.getDomainTail().endsWith("naver.com"));
+    // iframe#mainFrame 구조는 PC 블로그에만 있음
+    private boolean isNaverBlog(String url) {
+        return "blog.naver.com".equals(extractDomainFromUrl(url));
     }
 
     // 네이버 블로그 iframe 내부 본문 접근 + 대표 이미지 추출
@@ -153,7 +140,7 @@ public class LinkToImageService {
 
     // 네이버 블로그는 iframe 안 다른 호스트를 따로 fetch해야 해서 doc 재사용 대상이 아님
     public String getRelatedImageFromUrl(String url, String title, Document doc) {
-        if (isNaverFromDB(url)) {
+        if (isNaverBlog(url)) {
             return extractFromNaverBlog(url);
         }
         return (doc != null) ? extractRepresentativeImageFromDoc(doc) : extractRepresentativeImage(url);

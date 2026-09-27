@@ -1,7 +1,6 @@
 package com.umc.linkyou.infra.parser;
 
 import com.umc.linkyou.infra.net.SafeUrlFetcher;
-import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +33,6 @@ class LinkToImageServiceTest {
     @InjectMocks
     private LinkToImageService linkToImageService;
 
-    @Mock private DomainRepository domainRepository;
     @Mock private SafeUrlFetcher safeUrlFetcher;
     @Mock private RobotsTxtChecker robotsTxtChecker;
 
@@ -122,6 +120,30 @@ class LinkToImageServiceTest {
             // then
             assertNull(result);
             verifyNoInteractions(safeUrlFetcher);
+        }
+    }
+
+    @Nested
+    @DisplayName("getRelatedImageFromUrl 경로 분기")
+    class Routing {
+
+        @Test
+        @DisplayName("블로그가 아닌 네이버 페이지는 일반 경로로 og:image를 추출한다")
+        void 블로그가_아닌_네이버_페이지는_일반_경로를_탄다() throws Exception {
+            // given
+            String newsUrl = "https://n.news.naver.com/article/001/0000000001";
+            Document doc = Jsoup.parse(
+                    "<html><head><meta property=\"og:image\" content=\"https://imgnews.pstatic.net/thumb.jpg\"></head><body></body></html>", newsUrl);
+            HttpURLConnection thumbConn = connectionWithLength(50_000);
+            given(safeUrlFetcher.openConnection(eq("https://imgnews.pstatic.net/thumb.jpg"), eq(UA), anyInt(), anyInt()))
+                    .willReturn(thumbConn);
+
+            // when
+            String result = linkToImageService.getRelatedImageFromUrl(newsUrl, null, doc);
+
+            // then
+            assertEquals("https://imgnews.pstatic.net/thumb.jpg", result);
+            verifyNoInteractions(robotsTxtChecker);
         }
     }
 
