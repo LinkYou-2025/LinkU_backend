@@ -36,18 +36,20 @@ public class LinkToImageService {
         }
     }
 
-    // baseUri 기준으로 절대 URL 변환, http(s)가 아니면 null
-    private String toAbsoluteHttpUrl(Element el, String attr) {
+    // 앱(targetSdk 28+)이 cleartext를 막으므로 http는 https로 올려서 쓰고, 그 외 스킴은 null
+    private String toAbsoluteHttpsUrl(Element el, String attr) {
         String abs = el.absUrl(attr);
         String lower = abs.toLowerCase();
-        return (lower.startsWith("http://") || lower.startsWith("https://")) ? abs : null;
+        if (lower.startsWith("https://")) return abs;
+        if (lower.startsWith("http://")) return "https://" + abs.substring("http://".length());
+        return null;
     }
 
     private String firstValidImage(Document doc, String selector, String attr, int limit) {
         int checked = 0;
         for (Element el : doc.select(selector)) {
             if (checked >= limit) break;
-            String abs = toAbsoluteHttpUrl(el, attr);
+            String abs = toAbsoluteHttpsUrl(el, attr);
             if (abs == null) continue;
             checked++;
             if (isLargeEnough(abs)) return abs;
@@ -83,7 +85,7 @@ public class LinkToImageService {
             Element frame = doc.selectFirst("iframe#mainFrame");
             if (frame == null) return null;
 
-            String realUrl = toAbsoluteHttpUrl(frame, "src");
+            String realUrl = toAbsoluteHttpsUrl(frame, "src");
             if (realUrl == null) return null;
             if (!robotsTxtChecker.isAllowed(realUrl, "Mozilla/5.0")) {
                 log.warn("[크롤링 제한] robots.txt에 의해 이미지 추출 금지된 URL: {}", realUrl);

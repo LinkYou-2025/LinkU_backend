@@ -109,6 +109,44 @@ class LinkToImageServiceTest {
         }
 
         @Test
+        @DisplayName("og:image가 http면 https로 바꿔 검사하고, https로 열리면 https URL을 반환한다")
+        void http_og_image는_https로_바꿔_추출한다() throws Exception {
+            // given
+            given(robotsTxtChecker.isAllowed(URL, UA)).willReturn(true);
+            Document doc = Jsoup.parse(
+                    "<html><head><meta property=\"og:image\" content=\"http://example.com/thumb.jpg\"></head><body></body></html>", URL);
+            given(safeUrlFetcher.fetchDocument(eq(URL), eq(UA), anyInt())).willReturn(doc);
+            HttpURLConnection thumbConn = connectionWithLength(50_000);
+            given(safeUrlFetcher.openConnection(eq("https://example.com/thumb.jpg"), eq(UA), anyInt(), anyInt()))
+                    .willReturn(thumbConn);
+
+            // when
+            String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractRepresentativeImage", URL);
+
+            // then
+            assertEquals("https://example.com/thumb.jpg", result);
+            verify(safeUrlFetcher, never()).openConnection(eq("http://example.com/thumb.jpg"), any(), anyInt(), anyInt());
+        }
+
+        @Test
+        @DisplayName("http 이미지가 https로 열리지 않으면 null을 반환한다")
+        void https로_열리지_않는_http_이미지는_null을_반환한다() throws Exception {
+            // given
+            given(robotsTxtChecker.isAllowed(URL, UA)).willReturn(true);
+            Document doc = Jsoup.parse(
+                    "<html><head><meta property=\"og:image\" content=\"http://example.com/thumb.jpg\"></head><body></body></html>", URL);
+            given(safeUrlFetcher.fetchDocument(eq(URL), eq(UA), anyInt())).willReturn(doc);
+            given(safeUrlFetcher.openConnection(eq("https://example.com/thumb.jpg"), eq(UA), anyInt(), anyInt()))
+                    .willThrow(new java.io.IOException("https 미지원"));
+
+            // when
+            String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractRepresentativeImage", URL);
+
+            // then
+            assertNull(result);
+        }
+
+        @Test
         @DisplayName("robots.txt가 불허하면 null을 반환하고 fetch는 시도하지 않는다")
         void robots_불허시_null을_반환한다() {
             // given
