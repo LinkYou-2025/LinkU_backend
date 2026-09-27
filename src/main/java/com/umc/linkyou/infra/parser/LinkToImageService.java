@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -24,25 +25,27 @@ public class LinkToImageService {
     // 대표 이미지 최소 용량 기준, 아이콘류 방지용임
     private static final long MIN_IMAGE_BYTES = 15 * 1024;
 
-    // Content-Length만 확인, 실패하면 false로 처리함
-    private boolean isLargeEnough(String imageUrl) {
+    // svg, ico, gif 제외
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
+
+    // Content-Type, Content-Length 확인, 실패하면 false로 처리함
+    private boolean isValidImage(String imageUrl) {
         try {
             HttpURLConnection conn = safeUrlFetcher.openConnection(imageUrl, "Mozilla/5.0", 1500, 1500);
-            long length = conn.getContentLengthLong();
+            String contentType = conn.getContentType();
+            String mimeType = contentType == null ? "" : contentType.split(";")[0].trim().toLowerCase();
+            boolean valid = ALLOWED_IMAGE_TYPES.contains(mimeType) && conn.getContentLengthLong() >= MIN_IMAGE_BYTES;
             conn.disconnect();
-            return length >= MIN_IMAGE_BYTES;
+            return valid;
         } catch (Exception e) {
             return false;
         }
     }
 
-    // 앱(targetSdk 28+)이 cleartext를 막으므로 http는 https로 올려서 쓰고, 그 외 스킴은 null
+    // https만 허용, 그 외(http 포함)는 null
     private String toAbsoluteHttpsUrl(Element el, String attr) {
         String abs = el.absUrl(attr);
-        String lower = abs.toLowerCase();
-        if (lower.startsWith("https://")) return abs;
-        if (lower.startsWith("http://")) return "https://" + abs.substring("http://".length());
-        return null;
+        return abs.toLowerCase().startsWith("https://") ? abs : null;
     }
 
     private String firstValidImage(Document doc, String selector, String attr, int limit) {
@@ -52,7 +55,7 @@ public class LinkToImageService {
             String abs = toAbsoluteHttpsUrl(el, attr);
             if (abs == null) continue;
             checked++;
-            if (isLargeEnough(abs)) return abs;
+            if (isValidImage(abs)) return abs;
         }
         return null;
     }
