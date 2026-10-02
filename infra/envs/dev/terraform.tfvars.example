@@ -6,3 +6,6 @@ key_name           = "linku-key"
 subnet_id          = "subnet-xxxxxxxxxxxxxxxxx"
 security_group_ids = ["sg-xxxxxxxxxxxxxxxxx"]
 root_volume_size   = 20
+
+# 서버 스위치
+switch_secret = "xxxxxxxxxxxxxxxxx"
