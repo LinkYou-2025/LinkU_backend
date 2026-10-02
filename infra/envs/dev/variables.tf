@@ -34,3 +34,10 @@ variable "root_volume_size" {
   type        = number
   default     = 20
 }
+
+# 서버 스위치(server-switch.tf) 관련 변수
+variable "switch_secret" {
+  description = "서버 스위치 링크 호출 시 확인하는 공유 시크릿"
+  type        = string
+  sensitive   = true
+}

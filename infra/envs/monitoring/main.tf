@@ -16,4 +16,5 @@ module "monitoring" {
   root_volume_size = var.root_volume_size
 
   user_data = file("${path.module}/user-data.sh")
+  iam_instance_profile = aws_iam_instance_profile.monitoring_instance.name
 }
