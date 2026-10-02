@@ -5,3 +5,5 @@ ami_id             = "ami-xxxxxxxxxxxxxxxxx"
 key_name           = "linku-key"
 subnet_id          = "subnet-xxxxxxxxxxxxxxxxx"
 vpc_id             = "vpc-xxxxxxxxxxxxxxxxx"
+# EventBridge가 상태 변화를 감지할 dev EC2 인스턴스 ID (infra/envs/dev의 instance_id output과 동일)
+dev_instance_id    = "i-xxxxxxxxxxxxxxxxx"

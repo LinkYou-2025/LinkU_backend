@@ -7,3 +7,6 @@
 crash.log
 override.tf
 override.tf.json
+
+# Lambda 빌드 산출물
+**/lambda/*.zip

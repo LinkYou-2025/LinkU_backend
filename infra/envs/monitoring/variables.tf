@@ -43,3 +43,8 @@ variable "prod_security_group_id" {
   description = "prod 앱 서버 보안그룹 ID"
   type        = string
 }
+
+variable "dev_instance_id" {
+  description = "EventBridge가 상태 변화를 감지할 dev EC2 인스턴스 ID"
+  type        = string
+}
