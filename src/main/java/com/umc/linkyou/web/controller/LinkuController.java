@@ -21,6 +21,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.YearMonth;
 import java.util.List;
 
 @ApiV1
@@ -37,10 +38,10 @@ public class LinkuController implements LinkuApi {
     public ApiResponse<LinkuResponseDTO.LinkuResultDTO> createLinku(@CurrentUser CustomUserDetails userDetails, @RequestParam String linku, @RequestParam(required = false) String memo, @RequestParam(required = false) Long emotionId, @RequestParam(required = false) Long situationId, @RequestParam(required = false) String title, @RequestParam(required = false) MultipartFile image) {
         LinkuRequestDTO.LinkuCreateDTO linkuCreateDTO = LinkuConverter.toLinkuCreateDTO(linku, memo, emotionId, situationId, title);
         LinkuResponseDTO.LinkuCreateResult serviceResult = linkuCreateService.createLinku(userDetails.getUserId(), linkuCreateDTO, image);
-        if (serviceResult.isValidUrl()) {
-            return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_CREATED, serviceResult.getData());
+        if (serviceResult.validUrl()) {
+            return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_CREATED, serviceResult.data());
         } else {
-            return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_SUSPICIOUS_URL, serviceResult.getData());
+            return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_SUSPICIOUS_URL, serviceResult.data());
         }
     }
 
@@ -50,13 +51,8 @@ public class LinkuController implements LinkuApi {
     }
 
     @Override
-    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(@CurrentUser CustomUserDetails userDetails, @PathVariable("linkuid") Long linkuid) {
-        return linkuService.detailGetLinku(userDetails.getUserId(), linkuid);
-    }
-
-    @Override
-    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(@PathVariable Long userId, @PathVariable Long linkuId) {
-        return linkuService.detailGetLinku(userId, linkuId);
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(@CurrentUser CustomUserDetails userDetails, @PathVariable Long userLinkuId) {
+        return linkuService.detailGetLinku(userDetails.getUserId(), userLinkuId);
     }
 
     @Override
@@ -65,12 +61,12 @@ public class LinkuController implements LinkuApi {
     }
 
     @Override
-    public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getLastMonthUnreadLinkus(@CurrentUser CustomUserDetails userDetails) {
-        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_LAST_MONTH_UNREAD_OK, linkuService.getLastMonthUnreadLinkus(userDetails.getUserId()));
+    public ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getLastMonthUnreadLinkus(@CurrentUser CustomUserDetails userDetails, @RequestParam(required = false) YearMonth month) {
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_LAST_MONTH_UNREAD_OK, linkuService.getLastMonthUnreadLinkus(userDetails.getUserId(), month));
     }
 
     @Override
-    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(@CurrentUser CustomUserDetails userDetails, @PathVariable Long linkuId,
+    public ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(@CurrentUser CustomUserDetails userDetails, @PathVariable Long userLinkuId,
             @RequestParam(required = false) String memo,
             @RequestParam(required = false) Long emotionId,
             @RequestParam(required = false) Long situationId,
@@ -87,12 +83,12 @@ public class LinkuController implements LinkuApi {
                 .title(title)
                 .image(image)
                 .build();
-        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_UPDATED, linkuService.updateLinku(userDetails.getUserId(), linkuId, updateDTO));
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_UPDATED, linkuService.updateLinku(userDetails.getUserId(), userLinkuId, updateDTO));
     }
 
     @Override
-    public ApiResponse<LinkuResponseDTO.LinkuFolderChangeResultDTO> updateLinkuFolder(@CurrentUser CustomUserDetails userDetails, @PathVariable Long linkuId, @Valid @RequestBody LinkuRequestDTO.LinkuFolderUpdateDTO updateDTO) {
-        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_FOLDER_UPDATED, linkuService.updateLinkuFolder(userDetails.getUserId(), linkuId, updateDTO));
+    public ApiResponse<LinkuResponseDTO.LinkuFolderChangeResultDTO> updateLinkuFolder(@CurrentUser CustomUserDetails userDetails, @PathVariable Long userLinkuId, @Valid @RequestBody LinkuRequestDTO.LinkuFolderUpdateDTO updateDTO) {
+        return ApiResponse.onSuccess(LinkuSuccessStatus.LINKU_FOLDER_UPDATED, linkuService.updateLinkuFolder(userDetails.getUserId(), userLinkuId, updateDTO));
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.umc.linkyou.domain.Keyword;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.mapping.LinkuKeyword;
 import com.umc.linkyou.repository.dto.KeywordCountRow;
+import com.umc.linkyou.repository.dto.LinkuKeywordRow;
 import com.umc.linkyou.repository.dto.UserKeywordWeightRow;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -47,4 +48,13 @@ public interface LinkuKeywordRepository extends JpaRepository<LinkuKeyword, Long
             ORDER BY COUNT(lk) DESC
             """)
     List<UserKeywordWeightRow> findKeywordFrequencyByUserId(@Param("userId") Long userId, Pageable pageable);
+
+    // 여러 링크의 키워드 이름을 한 번에 조회
+    @Query("""
+            SELECT new com.umc.linkyou.repository.dto.LinkuKeywordRow(lk.linku.linkuId, k.name)
+            FROM LinkuKeyword lk
+            JOIN lk.keyword k
+            WHERE lk.linku.linkuId IN :linkuIds
+            """)
+    List<LinkuKeywordRow> findKeywordNamesByLinkuIdIn(@Param("linkuIds") List<Long> linkuIds);
 }

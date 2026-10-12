@@ -27,6 +27,9 @@ import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCodes;
 import com.umc.linkyou.validation.annotation.swagger.ApiNoContentCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
+import io.swagger.v3.core.converter.AnnotatedType;
+import io.swagger.v3.core.converter.ModelConverters;
+import io.swagger.v3.core.converter.ResolvedSchema;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -34,6 +37,7 @@ import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
@@ -58,6 +62,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 @Slf4j
 @Configuration
@@ -80,10 +85,8 @@ public class SwaggerConfig {
         String jwtSchemeName = "JWT TOKEN";
         SecurityRequirement securityRequirement = new SecurityRequirement().addList(jwtSchemeName);
 
-        io.swagger.v3.core.converter.ResolvedSchema resolvedSchema =
-                io.swagger.v3.core.converter.ModelConverters.getInstance()
-                        .resolveAsResolvedSchema(new io.swagger.v3.core.converter
-                                .AnnotatedType(com.umc.linkyou.apiPayload.ApiResponse.class));
+        ResolvedSchema resolvedSchema = ModelConverters.getInstance()
+                .resolveAsResolvedSchema(new AnnotatedType(com.umc.linkyou.apiPayload.ApiResponse.class));
 
 
         Components components = new Components()
@@ -107,6 +110,7 @@ public class SwaggerConfig {
                 .group("user")
                 .pathsToMatch("/api/v1/**", "/api/v2/**")
                 .pathsToExclude("/api/v1/admin/**", "/api/v1/manage/**")
+                .addOperationCustomizer(customize())
                 .addOpenApiCustomizer(openApi -> openApi.getInfo().setDescription(
                         "linkyou API 명세서 (User)\n\n" + buildErrorCodeReference(errorEnumsForGroup(ApiGroup.USER))))
                 .build();
@@ -117,6 +121,7 @@ public class SwaggerConfig {
         return GroupedOpenApi.builder()
                 .group("manager")
                 .pathsToMatch("/api/v1/manage/**")
+                .addOperationCustomizer(customize())
                 .addOpenApiCustomizer(openApi -> openApi.getInfo().setDescription(
                         "linkyou API 명세서 (Manager)\n\n" + buildErrorCodeReference(errorEnumsForGroup(ApiGroup.MANAGER))))
                 .build();
@@ -127,6 +132,7 @@ public class SwaggerConfig {
         return GroupedOpenApi.builder()
                 .group("admin")
                 .pathsToMatch("/api/v1/admin/**")
+                .addOperationCustomizer(customize())
                 .addOpenApiCustomizer(openApi -> openApi.getInfo().setDescription(
                         "linkyou API 명세서 (Admin)\n\n" + buildErrorCodeReference(errorEnumsForGroup(ApiGroup.ADMIN))))
                 .build();
@@ -218,7 +224,7 @@ public class SwaggerConfig {
 
         // [중요] Schema가 없으면 Swagger UI가 예시를 렌더링하지 못함
         if (mediaType.getSchema() == null) {
-            mediaType.setSchema(new io.swagger.v3.oas.models.media.Schema<>().$ref("#/components/schemas/ApiResponse"));
+            mediaType.setSchema(new Schema<>().$ref("#/components/schemas/ApiResponse"));
         }
 
         Example example = new Example();
@@ -252,46 +258,35 @@ public class SwaggerConfig {
         addExample(responses, reason.getHttpStatus().value(), status.name(), reason.getMessage(), exampleResponse);
     }
 
+    private record ErrorCategory(
+            Function<ApiErrorCode, ? extends BaseErrorCode[]> extractor,
+            Class<? extends BaseErrorCode> type
+    ) {}
+
+    private static final List<ErrorCategory> ERROR_CATEGORIES = List.of(
+            new ErrorCategory(ApiErrorCode::errorStatus, ErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::userErrorStatus, UserErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::authErrorStatus, AuthErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::alarmErrorStatus, AlarmErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::aiArticleErrorStatus, AiArticleErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::curationErrorStatus, CurationErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::linkuErrorStatus, LinkuErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::folderErrorStatus, FolderErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::shareFolderErrorStatus, ShareFolderErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::invitationErrorStatus, InvitationErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::categoryErrorStatus, CategoryErrorStatus.class),
+            new ErrorCategory(ApiErrorCode::commonErrorStatus, CommonErrorStatus.class)
+    );
+
     // 에러 예시 생성
     private void generateErrorCodeResponseExample(Operation operation, ApiErrorCode[] annotations) {
         ApiResponses responses = operation.getResponses();
 
         for (ApiErrorCode annotation : annotations) {
-            for (ErrorStatus status : annotation.errorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (UserErrorStatus status : annotation.userErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (AuthErrorStatus status : annotation.authErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (AlarmErrorStatus status : annotation.alarmErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (AiArticleErrorStatus status : annotation.aiArticleErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (CurationErrorStatus status : annotation.curationErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (LinkuErrorStatus status : annotation.linkuErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (FolderErrorStatus status : annotation.folderErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (ShareFolderErrorStatus status : annotation.shareFolderErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (InvitationErrorStatus status : annotation.invitationErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (CategoryErrorStatus status : annotation.categoryErrorStatus()) {
-                addErrorCodeExample(responses, status);
-            }
-            for (CommonErrorStatus status : annotation.commonErrorStatus()) {
-                addErrorCodeExample(responses, status);
+            for (ErrorCategory category : ERROR_CATEGORIES) {
+                for (BaseErrorCode status : category.extractor().apply(annotation)) {
+                    addErrorCodeExample(responses, status);
+                }
             }
         }
     }
@@ -414,18 +409,11 @@ public class SwaggerConfig {
             if (multiple != null) codes.addAll(Arrays.asList(multiple.value()));
 
             for (ApiErrorCode code : codes) {
-                if (code.errorStatus().length > 0) bucket.add(ErrorStatus.class);
-                if (code.userErrorStatus().length > 0) bucket.add(UserErrorStatus.class);
-                if (code.authErrorStatus().length > 0) bucket.add(AuthErrorStatus.class);
-                if (code.alarmErrorStatus().length > 0) bucket.add(AlarmErrorStatus.class);
-                if (code.aiArticleErrorStatus().length > 0) bucket.add(AiArticleErrorStatus.class);
-                if (code.curationErrorStatus().length > 0) bucket.add(CurationErrorStatus.class);
-                if (code.linkuErrorStatus().length > 0) bucket.add(LinkuErrorStatus.class);
-                if (code.folderErrorStatus().length > 0) bucket.add(FolderErrorStatus.class);
-                if (code.shareFolderErrorStatus().length > 0) bucket.add(ShareFolderErrorStatus.class);
-                if (code.invitationErrorStatus().length > 0) bucket.add(InvitationErrorStatus.class);
-                if (code.categoryErrorStatus().length > 0) bucket.add(CategoryErrorStatus.class);
-                if (code.commonErrorStatus().length > 0) bucket.add(CommonErrorStatus.class);
+                for (ErrorCategory category : ERROR_CATEGORIES) {
+                    if (category.extractor().apply(code).length > 0) {
+                        bucket.add(category.type());
+                    }
+                }
             }
         }
     }

@@ -5,6 +5,7 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface AuthAccountRepository extends JpaRepository<AuthAccount, Long>, AuthAccountRepositoryCustom {
@@ -15,4 +16,6 @@ public interface AuthAccountRepository extends JpaRepository<AuthAccount, Long>,
     boolean existsByEmail(String email);
 
     void deleteAllByUser_Id(Long userId);
+
+    List<AuthAccount> findByEmail(String email);
 }

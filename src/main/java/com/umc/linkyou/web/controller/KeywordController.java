@@ -7,6 +7,7 @@ import com.umc.linkyou.service.keyword.KeywordService;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.api.KeywordApi;
 import com.umc.linkyou.web.dto.keyword.JobKeywordRankResponse;
+import com.umc.linkyou.web.dto.keyword.KeywordLinkuItemDTO;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -30,5 +31,12 @@ public class KeywordController implements KeywordApi {
             @RequestParam YearMonth month,
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit) {
         return ResponseEntity.ok(ApiResponse.onSuccess(keywordService.getJobTopKeywords(userDetails.getUserId(), month, limit)));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<List<KeywordLinkuItemDTO>>> getLinkusByKeyword(
+            @CurrentUser CustomUserDetails userDetails,
+            @PathVariable String keyword) {
+        return ResponseEntity.ok(ApiResponse.onSuccess(keywordService.getLinkusByKeyword(userDetails.getUserId(), keyword)));
     }
 }

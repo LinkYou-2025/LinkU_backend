@@ -143,14 +143,33 @@ public class WebContentExtractor {
                 log.warn("[크롤링 제한] robots.txt에 의해 접근 금지된 URL: {}", url);
                 throw new GeneralException(AiArticleErrorStatus._CONTENT_EXTRACTION_PROHIBITED);
             }
+            String safeUrl = UrlUtils.normalizeUrl(url);
+            Document doc = safeUrlFetcher.fetchDocument(safeUrl, "Mozilla/5.0", 15000);
+            return extractTextFromDocument(url, doc);
+        } catch (GeneralException e) {
+            throw e;
+        } catch (SsrfGuard.BlockedException e) {
+            log.warn("[크롤링 제한] SSRF 정책에 의해 차단된 URL: {}, 이유: {}", url, e.getMessage());
+            throw new GeneralException(AiArticleErrorStatus._CONTENT_EXTRACTION_PROHIBITED);
+        } catch (Exception e) {
+            log.error("[크롤링 실패] URL: {}, 이유: {}", url, e.getMessage());
+            throw new GeneralException(AiArticleErrorStatus._CONTENT_EXTRACTION_FAILED);
+        }
+    }
+
+    // 이미 fetch된 Document로 본문만 추출한다 (중복 fetch 방지)
+    public String extractTextFromDocument(String url, Document doc) {
+        try {
+            if (doc == null) {
+                log.warn("[본문 추출 실패] fetch된 Document 없음, URL: {}", url);
+                throw new GeneralException(AiArticleErrorStatus._CONTENT_EXTRACTION_FAILED);
+            }
 
             String safeUrl = UrlUtils.normalizeUrl(url);
             List<String> domainTailCandidates = UrlValidUtils.extractDomainTailCandidates(safeUrl);
             ContentExtractorStrategy strategy = domainTailCandidates.isEmpty()
                     ? new DefaultExtractor()
                     : crawlerStrategies.get(domainTailCandidates.get(0), key -> createStrategy(domainTailCandidates));
-
-            Document doc = safeUrlFetcher.fetchDocument(safeUrl, "Mozilla/5.0", 15000);
 
             String extracted = strategy.extract(doc, safeUrl);
 

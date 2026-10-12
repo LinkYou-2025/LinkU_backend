@@ -1,90 +1,66 @@
 package com.umc.linkyou.service.email;
 
-import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
-import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
-import com.umc.linkyou.config.properties.SesProperties;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.Year;
+
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
-import software.amazon.awssdk.core.exception.SdkException;
-import software.amazon.awssdk.services.sesv2.SesV2Client;
-import software.amazon.awssdk.services.sesv2.model.*;
 
-import java.time.Year;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
+import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 
-/**
- * 이메일 전송을 담당하는 서비스
- * AWS SES를 사용하여 이메일을 발송만을 처리하는 서비스
- * 이메일 템플릿은 Thymeleaf를 사용하여 렌더링
- */
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/** 이메일 전송을 담당하는 서비스 이메일 템플릿은 Thymeleaf를 사용하여 렌더링 */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
-    private final SesV2Client sesV2Client;
+    private static final String VERIFICATION_EMAIL = "VERIFICATION";
+    private static final String PASSWORD_RESET_EMAIL = "PASSWORD_RESET";
+
+    private final EmailSender emailSender;
     private final TemplateEngine templateEngine;
-    private final SesProperties sesProperties;
 
     // 이메일 인증 메일 전송
-    public void sendVerificationEmailTemplate(String toEmail,
-                                              String nickname,
-                                              String code,
-                                              int expiresInMinutes) {
-        try {
-            Context context = new Context();
-            context.setVariable("nickname", nickname);
-            context.setVariable("code", code);
-            context.setVariable("expiresInMinutes", expiresInMinutes);
-            context.setVariable("year", Year.now().getValue());
+    public void sendVerificationEmailTemplate(
+            String toEmail, String nickname, String code, int expiresInMinutes) {
+        Context context = new Context();
+        context.setVariable("nickname", nickname);
+        context.setVariable("code", code);
+        context.setVariable("expiresInMinutes", expiresInMinutes);
+        context.setVariable("year", Year.now().getValue());
 
-            String htmlContent = templateEngine.process("email/email-verification", context);
-            send(toEmail, "Link You 이메일 인증 번호", htmlContent);
-            log.info("인증 메일 전송 성공: {}", nickname);
-        } catch (SdkException e) {
-            log.error("인증 메일 전송 실패", e);
-            throw new UserHandler(UserErrorStatus._SEND_MAIL_FAILED);
-        }
+        String htmlContent = templateEngine.process("email/email-verification", context);
+        send(toEmail, "Link You 이메일 인증 번호", htmlContent, VERIFICATION_EMAIL);
     }
 
     // 비밀번호 재설정 메일 전송
-    public void sendPasswordResetEmail(String toEmail,
-                                       String nickname,
-                                       String resetUrl,
-                                       int expiresInMinutes) {
-        try {
-            Context context = new Context();
-            context.setVariable("nickname", nickname);
-            context.setVariable("resetUrl", resetUrl);
-            context.setVariable("expiresInMinutes", expiresInMinutes);
-            context.setVariable("year", Year.now().getValue());
+    public void sendPasswordResetEmail(
+            String toEmail, String nickname, String resetUrl, int expiresInMinutes) {
+        Context context = new Context();
+        context.setVariable("nickname", nickname);
+        context.setVariable("resetUrl", resetUrl);
+        context.setVariable("expiresInMinutes", expiresInMinutes);
+        context.setVariable("year", Year.now().getValue());
 
-            String htmlContent = templateEngine.process("email/password-reset", context);
-            send(toEmail, "Link You 비밀번호 재설정", htmlContent);
-            log.info("비밀번호 재설정 메일 전송 성공");
-        } catch (SdkException e) {
-            log.error("비밀번호 재설정 메일 전송 실패", e);
-            throw new UserHandler(UserErrorStatus._SEND_MAIL_FAILED);
-        }
+        String htmlContent = templateEngine.process("email/password-reset", context);
+        send(toEmail, "LinkU 비밀번호 재설정 링크", htmlContent, PASSWORD_RESET_EMAIL);
     }
 
-    // 이메일 전송 메서드
-    private void send(String toEmail, String subject, String htmlContent) {
-        SendEmailRequest request = SendEmailRequest.builder()
-                .fromEmailAddress(sesProperties.from())
-                .destination(Destination.builder().toAddresses(toEmail).build())
-                .content(EmailContent.builder()
-                        .simple(Message.builder()
-                                .subject(Content.builder().data(subject).charset("UTF-8").build())
-                                .body(Body.builder()
-                                        .html(Content.builder().data(htmlContent).charset("UTF-8").build())
-                                        .build())
-                                .build())
-                        .build())
-                .build();
-
-        sesV2Client.sendEmail(request);
+    private void send(String toEmail, String subject, String htmlContent, String emailType) {
+        try {
+            String emailId = emailSender.send(toEmail, subject, htmlContent);
+            log.info("이메일 전송 성공 type={} emailId={}", emailType, emailId);
+        } catch (EmailSendException e) {
+            log.error(
+                    "이메일 전송 실패 type={} status={} error={}",
+                    emailType,
+                    e.getStatusCode(),
+                    e.getErrorName());
+            throw new UserHandler(UserErrorStatus._SEND_MAIL_FAILED);
+        }
     }
 }

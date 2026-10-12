@@ -35,7 +35,7 @@ public class CurationBatchService {
     private final ExternalRecommendMaterializer externalRecommendMaterializer;
 
     public Optional<MonthlyCurationBatchItem> toBatchItem(Users user) {
-        String baseMonth = YearMonth.now(ZoneId.of("Asia/Seoul")).minusMonths(1).toString();
+        String baseMonth = YearMonth.now(ZoneId.of("Asia/Seoul")).toString();
         return Optional.of(new MonthlyCurationBatchItem(user, baseMonth));
     }
 

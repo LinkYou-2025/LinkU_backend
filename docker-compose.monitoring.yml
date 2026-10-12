@@ -1,0 +1,37 @@
+version: "3.8"
+
+# 모니터링 전용 서버(linku-monitoring)에서 실행.
+# (dev/prod 보안그룹에 이 서버의 SG로부터 8080/9100 인바운드 허용 규칙 필요)
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: linku-monitoring-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.monitoring.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: linku-monitoring-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus_data:
+  grafana_data:

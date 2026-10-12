@@ -36,8 +36,8 @@ import com.umc.linkyou.repository.classification.PurposeRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.support.config.TestExternalConfig;
-import com.umc.linkyou.web.dto.UserRequestDTO;
-import com.umc.linkyou.web.dto.UserResponseDTO;
+import com.umc.linkyou.web.dto.user.UserRequestDTO;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 
 @SpringBootTest
 @ActiveProfiles("test")

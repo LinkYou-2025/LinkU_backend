@@ -34,7 +34,7 @@ public class RecommendedLinkResponse {
     @Schema(description = "도메인 아이콘 이미지 URL", example = "https://cdn.example.com/domains/example.png")
     private String domainImageUrl;
 
-    @Schema(description = "카테고리 목록 (내부 추천만 포함, 외부 추천이면 null)", example = "[\"라이프스타일\"]")
+    @Schema(description = "카테고리 + 감정 태그 (내부 추천만 포함, 외부 추천이면 null)", example = "[\"라이프스타일\", \"평온\"]")
     private List<String> categories;
 
     @Schema(description = "추천 종류 (INTERNAL: 내가 저장한 링크 기반, EXTERNAL: AI 웹 검색 기반)", example = "INTERNAL")

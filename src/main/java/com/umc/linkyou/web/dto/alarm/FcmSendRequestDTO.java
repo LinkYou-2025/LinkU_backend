@@ -12,7 +12,7 @@ public class FcmSendRequestDTO {
 
     private final AlarmType type;
     private final Long targetId;
-    private final Long alarmId; // nullable, 저장된 Alarm 엔티티의 PK (테스트 발송 등 저장된 Alarm이 없으면 null)
+    private final Long alarmId; // nullable, 저장된 Alarm 엔티티의 PK
     private final Map<String, String> values; // nullable, %s가 있는 알림 시 사용
 
     private FcmSendRequestDTO(AlarmType type, Long targetId, Long alarmId, Map<String, String> values) {
@@ -22,7 +22,7 @@ public class FcmSendRequestDTO {
         this.values = values;
     }
 
-    // 일반 알림 - title/body 모두 AlarmType에서 자동 설정, alarmId 없음 (테스트 발송용)
+    // 저장되지 않는 알림 - title/body 모두 AlarmType에서 자동 설정, alarmId 없음
     public static FcmSendRequestDTO of(AlarmType type, Long targetId) {
         return new FcmSendRequestDTO(type, targetId, null, null);
     }

@@ -1,12 +1,16 @@
 package com.umc.linkyou.web.dto.folder.linku;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Getter
-@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class FolderLinkusResponseDTO {
     private List<FolderSummaryDTO> folders;
     private List<LinkuSummaryDTO> links;

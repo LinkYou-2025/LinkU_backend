@@ -53,15 +53,25 @@ public class JwtTokenProvider {
 
     // 액세스 토큰 생성 (subject 기반)
     public String createAccessToken(Long userId, String subject, String provider, Role role) {
-        return Jwts.builder()
+        return createAccessToken(userId, subject, provider, role, null);
+    }
+
+    public String createAccessToken(Long userId, String subject, String provider, Role role, String sessionId) {
+        JwtBuilder builder = Jwts.builder()
                 .setSubject(subject)
                 .claim("userId", userId)
                 .claim("provider", provider)
                 .claim("role", role.getAuthority())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.expiration().access()))
-                .signWith(accessKey, SignatureAlgorithm.HS256)
-                .compact();
+                .signWith(accessKey, SignatureAlgorithm.HS256);
+
+        // sessionId가 null이 아니고 공백이 아닌 경우에만 claim에 추가
+        if (sessionId != null && !sessionId.isBlank()) {
+            builder.claim("sid", sessionId);
+        }
+
+        return builder.compact();
     }
 
     private static final String RECOVERY_PURPOSE = "RECOVER";
@@ -196,6 +206,14 @@ public class JwtTokenProvider {
         Claims claims = validateAndParseAccess(normalizeStrict(token)).getBody();
         long expiry = claims.getExpiration().getTime() - System.currentTimeMillis();
         return Math.max(expiry, 0);
+    }
+
+    public long getAccessTokenExpiresAt(String token) {
+        return validateAndParseAccess(normalizeStrict(token)).getBody().getExpiration().getTime();
+    }
+
+    public String getSessionId(String token) {
+        return validateAndParseAccess(normalizeStrict(token)).getBody().get("sid", String.class);
     }
 
 

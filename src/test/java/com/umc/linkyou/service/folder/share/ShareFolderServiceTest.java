@@ -250,7 +250,8 @@ class ShareFolderServiceTest {
             @Test
             @DisplayName("기존 링크가 없으면 새 토큰을 생성해 저장한다")
             void 기존링크없음_새토큰생성() {
-                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
+                Folder subFolder = subFolder(parentFolder());
+                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(subFolder));
                 given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
                 given(folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(FOLDER_ID)).willReturn(Optional.empty());
                 given(userRepository.findById(OWNER_ID)).willReturn(Optional.of(owner()));
@@ -264,16 +265,17 @@ class ShareFolderServiceTest {
             @Test
             @DisplayName("유효한 기존 링크가 있으면 기존 토큰을 반환한다")
             void 유효한링크존재_기존토큰반환() {
+                Folder subFolder = subFolder(parentFolder());
                 FolderShareLink existing = FolderShareLink.builder()
                         .token("existing-token")
-                        .folder(folder())
+                        .folder(subFolder)
                         .creator(owner())
                         .permissionType(PermissionType.VIEWER)
                         .expiresAt(LocalDateTime.now().plusDays(1))
                         .isActive(true)
                         .build();
 
-                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
+                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(subFolder));
                 given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
                 given(folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(FOLDER_ID)).willReturn(Optional.of(existing));
 
@@ -286,16 +288,17 @@ class ShareFolderServiceTest {
             @Test
             @DisplayName("만료된 기존 링크가 있으면 토큰을 갱신한다")
             void 만료된링크존재_토큰갱신() {
+                Folder subFolder = subFolder(parentFolder());
                 FolderShareLink expired = FolderShareLink.builder()
                         .token("old-token")
-                        .folder(folder())
+                        .folder(subFolder)
                         .creator(owner())
                         .permissionType(PermissionType.VIEWER)
                         .expiresAt(LocalDateTime.now().minusDays(1))
                         .isActive(true)
                         .build();
 
-                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
+                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(subFolder));
                 given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
                 given(folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(FOLDER_ID)).willReturn(Optional.of(expired));
 
@@ -323,13 +326,25 @@ class ShareFolderServiceTest {
             @Test
             @DisplayName("소유자가 아니면 _FOLDER_PERMISSION_NOT_ALLOWED를 던진다")
             void 소유자아님_예외() {
-                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
+                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(subFolder(parentFolder())));
                 given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(false);
 
                 assertThatThrownBy(() -> shareFolderService.createInviteLink(OWNER_ID, FOLDER_ID))
                         .isInstanceOf(GeneralException.class)
                         .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
                                 .isEqualTo(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED));
+            }
+
+            @Test
+            @DisplayName("중분류(루트) 폴더면 _FOLDER_SHARE_ONLY_SUBFOLDER_ALLOWED를 던진다")
+            void 중분류폴더_예외() {
+                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
+
+                assertThatThrownBy(() -> shareFolderService.createInviteLink(OWNER_ID, FOLDER_ID))
+                        .isInstanceOf(GeneralException.class)
+                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
+                                .isEqualTo(ShareFolderErrorStatus._FOLDER_SHARE_ONLY_SUBFOLDER_ALLOWED));
             }
         }
     }

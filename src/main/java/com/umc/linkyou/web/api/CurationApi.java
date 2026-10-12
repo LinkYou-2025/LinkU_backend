@@ -1,19 +1,18 @@
 package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.jwt.CurrentUser;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
-import com.umc.linkyou.validation.annotation.swagger.ApiNoContentCode;
 import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
 import com.umc.linkyou.web.dto.curation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.YearMonth;
@@ -30,8 +29,9 @@ public interface CurationApi {
             - 해당 월의 큐레이션이 아직 생성되지 않은 경우, 빈 배열(`[]`)을 반환합니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
+    @ApiErrorCode(commonErrorStatus = {CommonErrorStatus._BAD_REQUEST})
     @GetMapping("/sections")
-    ResponseEntity<ApiResponse<List<CurationSectionResponse>>> getSectionInfo(
+    ApiResponse<List<CurationSectionResponse>> getSectionInfo(
             @Parameter(description = "섹션 정보 월입니다. 미입력 시 이번 달을 기준으로 합니다.", example = "2025-07") @RequestParam(required = false) YearMonth month
     );
 
@@ -45,7 +45,7 @@ public interface CurationApi {
     @ApiSuccessCode(SuccessStatus._OK)
     @ApiErrorCode(curationErrorStatus = {CurationErrorStatus._CURATION_INVALID_YEAR})
     @GetMapping("/history")
-    ResponseEntity<ApiResponse<List<CurationListResponse>>> getMyCurationList(
+    ApiResponse<List<CurationListResponse>> getMyCurationList(
             @CurrentUser CustomUserDetails userDetails,
             @RequestParam(required = false) Integer year
     );
@@ -53,12 +53,11 @@ public interface CurationApi {
     @Operation(summary = "가장 최근 큐레이션 조회", description = """
             로그인한 사용자의 가장 최근 큐레이션 정보를 조회합니다.
 
-            - 생성된 큐레이션이 하나도 없는 경우, 204 No Content를 반환합니다.
+            - 생성된 큐레이션이 하나도 없는 경우, 200 OK와 빈 result 객체를 반환합니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
-    @ApiNoContentCode
     @GetMapping("/latest")
-    ResponseEntity<ApiResponse<CurationLatestResponse>> getLatestCuration(
+    ApiResponse<Object> getLatestCuration(
             @CurrentUser CustomUserDetails userDetails
     );
 
@@ -69,7 +68,7 @@ public interface CurationApi {
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @ApiErrorCode(curationErrorStatus = {CurationErrorStatus._CURATION_NOT_FOUND, CurationErrorStatus._CURATION_FORBIDDEN})
     @GetMapping("/detail/{curationId}")
-    ResponseEntity<ApiResponse<CurationDetailResponse>> getCurationDetail(
+    ApiResponse<CurationDetailResponse> getCurationDetail(
             @CurrentUser CustomUserDetails userDetails,
             @PathVariable Long curationId
     );
@@ -84,7 +83,7 @@ public interface CurationApi {
     @ApiSuccessCode(SuccessStatus._OK)
     @ApiErrorCode(curationErrorStatus = {CurationErrorStatus._CURATION_NOT_FOUND, CurationErrorStatus._CURATION_FORBIDDEN})
     @GetMapping("/recommend-links")
-    ResponseEntity<ApiResponse<List<RecommendedLinkResponse>>> getRecommendedLinks(
+    ApiResponse<List<RecommendedLinkResponse>> getRecommendedLinks(
             @CurrentUser CustomUserDetails userDetails,
             @Parameter(description = "추천 링크를 조회할 큐레이션 ID", example = "1") @RequestParam Long curationId
     );
