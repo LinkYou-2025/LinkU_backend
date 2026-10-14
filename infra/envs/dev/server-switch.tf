@@ -113,6 +113,19 @@ resource "aws_apigatewayv2_stage" "server_switch" {
   api_id      = aws_apigatewayv2_api.server_switch.id
   name        = "$default"
   auto_deploy = true
+
+  # BackOffice는 탭당 /status 4초, /history 15초 주기로 폴링
+  default_route_settings {
+    throttling_burst_limit = 10
+    throttling_rate_limit  = 5
+  }
+
+  # 인증 없이 열려 있는 로그인 경로
+  route_settings {
+    route_key              = aws_apigatewayv2_route.server_switch_auth_github.route_key
+    throttling_burst_limit = 3
+    throttling_rate_limit  = 1
+  }
 }
 
 resource "aws_lambda_permission" "server_switch_apigw" {
