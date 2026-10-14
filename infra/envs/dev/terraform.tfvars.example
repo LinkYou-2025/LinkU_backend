@@ -5,7 +5,10 @@ ami_id             = "ami-xxxxxxxxxxxxxxxxx"
 key_name           = "linku-key"
 subnet_id          = "subnet-xxxxxxxxxxxxxxxxx"
 security_group_ids = ["sg-xxxxxxxxxxxxxxxxx"]
-root_volume_size   = 20
+root_volume_size   = 30
 
 # 서버 스위치
-switch_secret = "xxxxxxxxxxxxxxxxx"
+backoffice_origin    = "https://xxxx.vercel.app"
+github_client_id     = "Ov23xxxxxxxxxxxxxxxx"
+github_client_secret = "xxxxxxxxxxxxxxxxx"
+jwt_secret           = "xxxxxxxxxxxxxxxxx" # openssl rand -hex 32

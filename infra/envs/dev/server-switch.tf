@@ -17,8 +17,11 @@ resource "aws_lambda_function" "server_switch" {
 
   environment {
     variables = {
-      INSTANCE_ID   = module.app.instance_id
-      SWITCH_SECRET = var.switch_secret
+      INSTANCE_ID          = module.app.instance_id
+      GITHUB_ORG           = var.github_org
+      GITHUB_CLIENT_ID     = var.github_client_id
+      GITHUB_CLIENT_SECRET = var.github_client_secret
+      JWT_SECRET           = var.jwt_secret
     }
   }
 }
@@ -66,6 +69,13 @@ data "aws_caller_identity" "current" {}
 resource "aws_apigatewayv2_api" "server_switch" {
   name          = "linku-dev-server-switch-api"
   protocol_type = "HTTP"
+
+  cors_configuration {
+    allow_origins = [var.backoffice_origin]
+    allow_methods = ["GET", "POST"]
+    allow_headers = ["authorization", "content-type"]
+    max_age       = 3600
+  }
 }
 
 resource "aws_apigatewayv2_integration" "server_switch" {
@@ -73,6 +83,12 @@ resource "aws_apigatewayv2_integration" "server_switch" {
   integration_type       = "AWS_PROXY"
   integration_uri        = aws_lambda_function.server_switch.invoke_arn
   payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "server_switch_auth_github" {
+  api_id    = aws_apigatewayv2_api.server_switch.id
+  route_key = "POST /auth/github"
+  target    = "integrations/${aws_apigatewayv2_integration.server_switch.id}"
 }
 
 resource "aws_apigatewayv2_route" "server_switch_status" {
@@ -108,6 +124,6 @@ resource "aws_lambda_permission" "server_switch_apigw" {
 }
 
 output "server_switch_url" {
-  description = "base URL. 사용 시 /status(GET), /start(POST), /stop(POST)를 붙이고 쿼리파라미터로 ?secret=...를 추가"
+  description = "base URL. 사용 시 /status(GET), /start(POST), /stop(POST)를 붙이고 헤더에 Authorization: Bearer <세션 JWT>를 추가. 세션 JWT는 POST /auth/github {code}로 발급"
   value       = aws_apigatewayv2_api.server_switch.api_endpoint
 }

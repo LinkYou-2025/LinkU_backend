@@ -36,8 +36,30 @@ variable "root_volume_size" {
 }
 
 # 서버 스위치(server-switch.tf) 관련 변수
-variable "switch_secret" {
-  description = "서버 스위치 링크 호출 시 확인하는 공유 시크릿"
+variable "backoffice_origin" {
+  description = "서버 스위치 API를 호출하는 BackOffice origin (CORS 허용)"
+  type        = string
+}
+
+variable "github_org" {
+  description = "BackOffice 로그인을 허용할 GitHub 조직"
+  type        = string
+  default     = "LinkYou-2025"
+}
+
+variable "github_client_id" {
+  description = "BackOffice GitHub OAuth App의 Client ID"
+  type        = string
+}
+
+variable "github_client_secret" {
+  description = "BackOffice GitHub OAuth App의 Client Secret"
+  type        = string
+  sensitive   = true
+}
+
+variable "jwt_secret" {
+  description = "BackOffice 세션 JWT 서명용 시크릿"
   type        = string
   sensitive   = true
 }
