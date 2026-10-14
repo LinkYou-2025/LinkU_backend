@@ -17,7 +17,8 @@ existing_id=$(curl -sf -H "$AUTH_HEADER" "$GRAFANA_URL/api/alertmanager/grafana/
 
 if [ "$state" = "stopped" ]; then
   now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
-  ends="9999-12-31T23:59:59.000Z"
+  # 9999년은 Alertmanager가 보관 기간을 더하다 10000년을 넘겨 400으로 거부함
+  ends="2099-12-31T23:59:59.000Z"
   id_field=""
   if [ -n "$existing_id" ]; then
     id_field=",\"id\":\"$existing_id\""
