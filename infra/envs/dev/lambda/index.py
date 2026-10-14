@@ -7,6 +7,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 
 import boto3
 
@@ -76,6 +77,16 @@ def _read_body(event):
         return {}
 
 
+def _app_health():
+    """Spring Actuator 헬스 체크. 앱이 뜨는 중이거나 응답이 없으면 down"""
+    try:
+        # 기본 User-Agent(Python-urllib)는 dev 서버 앞단에서 403으로 차단됨
+        health = _http_json(os.environ["APP_HEALTH_URL"], headers={"User-Agent": "linku-server-switch"})
+        return "up" if health.get("status") == "UP" else "down"
+    except (urllib.error.URLError, TimeoutError, ValueError):
+        return "down"
+
+
 def _github_unavailable():
     return _response(502, {"message": "GitHub에 연결할 수 없어요. 잠시 후 다시 시도해 주세요."})
 
@@ -136,7 +147,14 @@ def lambda_handler(event, context):
 
     if route_key == "GET /status":
         instance = ec2.describe_instances(InstanceIds=[instance_id])["Reservations"][0]["Instances"][0]
-        return _response(200, {"state": instance["State"]["Name"]})
+        return _response(
+            200,
+            {
+                "ec2": instance["State"]["Name"],
+                "app": _app_health() if instance["State"]["Name"] == "running" else "down",
+                "checkedAt": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+            },
+        )
 
     if route_key == "POST /stop":
         ec2.stop_instances(InstanceIds=[instance_id])

@@ -22,6 +22,7 @@ resource "aws_lambda_function" "server_switch" {
       GITHUB_CLIENT_ID     = var.github_client_id
       GITHUB_CLIENT_SECRET = var.github_client_secret
       JWT_SECRET           = var.jwt_secret
+      APP_HEALTH_URL       = var.app_health_url
     }
   }
 }

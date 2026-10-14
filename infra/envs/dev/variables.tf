@@ -63,3 +63,9 @@ variable "jwt_secret" {
   type        = string
   sensitive   = true
 }
+
+variable "app_health_url" {
+  description = "서버 스위치 /status에서 dev 앱 상태를 확인할 헬스 체크 URL"
+  type        = string
+  default     = "https://dev.linkudeveloper.org/actuator/health"
+}
