@@ -32,8 +32,7 @@ class HomeRecommendScoreServiceTest {
     private final RecommendScoreProperties properties = new RecommendScoreProperties(
             new RecommendScoreProperties.Weight(0.35, 0.15, 0.15, 0.1, 0.1, 0.05, 0.1),
             new RecommendScoreProperties.Normalization(20, 14, 1000, 20),
-            new RecommendScoreProperties.Confidence(0.8, 0.8),
-            new RecommendScoreProperties.Novelty(14, 0.3));
+            new RecommendScoreProperties.Confidence(0.8, 0.8));
 
     private final HomeRecommendScoreService service = new HomeRecommendScoreService(properties);
 
@@ -136,25 +135,33 @@ class HomeRecommendScoreServiceTest {
         private final LocalDateTime now = LocalDateTime.of(2026, 7, 24, 12, 0);
 
         @Test
-        @DisplayName("viewCount와 lastViewedAt이 전부 없으면 0이다")
-        void viewCount와_lastViewedAt이_없으면_0점이다() {
-            assertThat(service.personalEngagement(0, null, now)).isEqualTo(0.0);
+        @DisplayName("viewCount가 0이고 방금 저장/조회한 것이면(staleness=0) 0이다")
+        void viewCount가_0이고_방금_생성됐으면_0점이다() {
+            assertThat(service.personalEngagement(0, null, now, now)).isEqualTo(0.0);
         }
 
         @Test
         @DisplayName("viewCount가 cap 이상이면 빈도 항목은 1.0으로 캡핑된다")
         void viewCount가_cap_이상이면_1점으로_캡핑된다() {
-            double atCap = service.personalEngagement(20, null, now);
-            double overCap = service.personalEngagement(100, null, now);
+            double atCap = service.personalEngagement(20, null, now, now);
+            double overCap = service.personalEngagement(100, null, now, now);
             assertThat(atCap).isEqualTo(overCap); // 둘 다 캡에 걸려 빈도 항목은 0.5(=1.0/2)로 동일
         }
 
         @Test
-        @DisplayName("최근에 볼수록 recency 점수가 더 높다(더 오래 전일수록 감쇠)")
-        void 최근에_볼수록_점수가_더_높다() {
-            double recent = service.personalEngagement(0, now.minusDays(1), now);
-            double old = service.personalEngagement(0, now.minusDays(30), now);
-            assertThat(recent).isGreaterThan(old);
+        @DisplayName("오래 안 볼수록(=staleness가 높을수록) 점수가 더 높다 — 최근에 본 것과 반대 방향")
+        void 오래_안_볼수록_점수가_더_높다() {
+            double recent = service.personalEngagement(0, now.minusDays(1), now.minusDays(60), now);
+            double old = service.personalEngagement(0, now.minusDays(30), now.minusDays(60), now);
+            assertThat(old).isGreaterThan(recent);
+        }
+
+        @Test
+        @DisplayName("한 번도 안 봤으면(lastViewedAt=null) createdAt 기준으로 staleness를 계산한다")
+        void lastViewedAt이_null이면_createdAt_기준으로_staleness를_계산한다() {
+            double justCreated = service.personalEngagement(0, null, now, now);
+            double oldCreated = service.personalEngagement(0, null, now.minusDays(30), now);
+            assertThat(oldCreated).isGreaterThan(justCreated);
         }
     }
 

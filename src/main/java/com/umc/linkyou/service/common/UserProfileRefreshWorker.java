@@ -37,12 +37,17 @@ public class UserProfileRefreshWorker {
     // 한 번 드레인할 때 처리할 최대 유저 수. 너무 크게 잡으면 한 번에 도는 시간이 길어지고,
     // 너무 작게 잡으면 큐가 쌓이는 속도를 못 따라가니 운영하면서 조정 대상.
     private static final int CHUNK_SIZE = 200;
+    // 같은 유저가 연속으로 이 횟수만큼 실패하면 큐에서 포기(삭제)한다. 재시도 제한이 없으면 계속
+    // 실패하는 유저 하나가 requestedAt 오름차순 정렬 특성상 매 드레인 주기마다 청크 앞쪽을 차지해
+    // 정상 유저 처리를 밀어낼 수 있다 — 링크 저장 등으로 다시 enqueue되면 실패 카운트는 0으로
+    // 리셋되므로 유저 쪽에서 재시도할 방법이 막히는 건 아니다.
+    private static final int MAX_FAILURE_COUNT = 3;
     // 프로필 계산에 반영할 최근 저장 링크 수 캡 — 유저가 링크를 아주 많이 저장해도 이 워커의
     // 1회 작업량이 무한정 커지지 않게 막는다.
     private static final int PROFILE_LINK_LIMIT = 200;
     private static final int TOP_TERM_COUNT = 20;
-    // KeywordMatch 서브쿼리 비용을 줄이려고 20 -> 10으로 축소 (HomeRecommendScoreService#keywordMatchExpression
-    // 참고 — 이 개수만큼 CASE WHEN 분기가 생기므로 작을수록 쿼리도 가벼워진다).
+    // KeywordMatch 서브쿼리 비용을 줄이려고 20 -> 10으로 축소 (UsersLinkuRepositoryImpl#nativeScoreExpression
+    // 의 keyword 상관 서브쿼리 참고 — user_profile_keywords 행 수가 늘수록 그 서브쿼리가 스캔할 후보도 늘어난다).
     private static final int TOP_KEYWORD_COUNT = 10;
     // profile_text(trgm fallback 원문) 길이 캡.
     private static final int PROFILE_TEXT_MAX_LENGTH = 4000;
@@ -55,7 +60,13 @@ public class UserProfileRefreshWorker {
     private final UsersLinkuRepository usersLinkuRepository;
     private final LinkuKeywordRepository linkuKeywordRepository;
 
-    @Scheduled(cron = "0 */5 * * * *", zone = "Asia/Seoul")
+    // 10~23시(하루 168회)에만 돈다. 자정~오전 9시대는 다른 배치 스케줄(BatchScheduler의 새벽 3~4시
+    // 배치들, UserWithdrawService#deleteCompletelyInactiveUsers 새벽 3시, 매월 1일 0:59/8:00 큐레이션
+    // 배치)이 몰려있어 @Scheduled 스레드 풀(기본값 1개)을 두고 매일 부딪히는 시간대다 — 이 시간대엔
+    // 어차피 드레인할 게 적을 거라 보고 아예 비활성화해서 충돌을 피한다. 그만큼 이 시간대에 저장된
+    // 링크는 프로필 반영이 최대 오전 10시까지 늦어질 수 있다(TextMatch/KeywordMatch는 가중치가 작아
+    // 감내 가능한 트레이드오프로 판단).
+    @Scheduled(cron = "0 */5 10-23 * * *", zone = "Asia/Seoul")
     public void drainQueue() {
         List<UserProfileRefreshQueue> chunk =
                 refreshQueueRepository.findAllByOrderByRequestedAtAsc(PageRequest.of(0, CHUNK_SIZE));
@@ -64,7 +75,7 @@ public class UserProfileRefreshWorker {
         }
 
         log.info("[UserProfileRefresh] {}명 처리 시작", chunk.size());
-        int success = 0, failed = 0;
+        int success = 0, failed = 0, abandoned = 0;
         for (UserProfileRefreshQueue item : chunk) {
             Long userId = item.getUserId();
             try {
@@ -73,12 +84,22 @@ public class UserProfileRefreshWorker {
                 refreshQueueRepository.deleteByUserIdAndRequestedAt(userId, item.getRequestedAt());
                 success++;
             } catch (Exception e) {
-                // 실패한 유저는 큐에서 지우지 않고 다음 드레인 때 재시도한다.
-                log.warn("[UserProfileRefresh] userId={} 처리 실패", userId, e);
-                failed++;
+                int nextFailureCount = item.getFailureCount() + 1;
+                if (nextFailureCount >= MAX_FAILURE_COUNT) {
+                    // 재시도 한도 초과 — 큐에서 포기한다. requestedAt이 일치할 때만 지워서, 처리
+                    // 도중 재enqueue된(=failure_count가 이미 0으로 리셋된) 최신 요청은 건드리지 않는다.
+                    log.error("[UserProfileRefresh] userId={} {}회 연속 실패, 큐에서 포기", userId, nextFailureCount, e);
+                    refreshQueueRepository.deleteByUserIdAndRequestedAt(userId, item.getRequestedAt());
+                    abandoned++;
+                } else {
+                    log.warn("[UserProfileRefresh] userId={} 처리 실패 ({}/{}회)",
+                            userId, nextFailureCount, MAX_FAILURE_COUNT, e);
+                    refreshQueueRepository.incrementFailureCount(userId, item.getRequestedAt());
+                    failed++;
+                }
             }
         }
-        log.info("[UserProfileRefresh] 완료: 성공={}, 실패={}", success, failed);
+        log.info("[UserProfileRefresh] 완료: 성공={}, 실패={}, 포기={}", success, failed, abandoned);
     }
 
     // 개별 write(upsertProfile/deleteAllByUserId/upsertWeight)는 각각 리포지토리 메서드에
