@@ -6,6 +6,7 @@ on:
       - "docker-compose.monitoring.yml"
       - "prometheus.monitoring.yml"
       - "grafana/**"
+      - "silence-sync.sh"
       - ".github/workflows/monitoring-cd.yml"
   workflow_dispatch:
 permissions:
@@ -23,7 +24,7 @@ jobs:
           host: ${{ secrets.MONITORING_HOST }}
           username: ubuntu
           key: ${{ secrets.PRIVATE_KEY }}
-          source: "docker-compose.monitoring.yml,prometheus.monitoring.yml,grafana"
+          source: "docker-compose.monitoring.yml,prometheus.monitoring.yml,grafana,silence-sync.sh"
           target: "/home/ubuntu/linku-monitoring/"
 
       - name: Deploy monitoring stack
@@ -44,6 +45,13 @@ jobs:
             docker compose -f docker-compose.monitoring.yml up -d
             docker compose -f docker-compose.monitoring.yml restart grafana
             docker image prune -f
+
+            # silence-sync.sh: dev 서버 stop/start에 맞춰 Grafana env=dev 알림 자동 silence
+            cat > /home/ubuntu/linku-monitoring/silence-sync.env <<EOF
+            GRAFANA_SA_TOKEN=${{ secrets.GRAFANA_SA_TOKEN }}
+            EOF
+            chmod 600 /home/ubuntu/linku-monitoring/silence-sync.env
+            chmod +x /home/ubuntu/linku-monitoring/silence-sync.sh
 
       - name: Wait for Prometheus & Grafana to be ready
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5

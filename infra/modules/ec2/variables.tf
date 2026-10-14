@@ -73,3 +73,9 @@ variable "user_data" {
   type        = string
   default     = null
 }
+
+variable "iam_instance_profile" {
+  description = "인스턴스에 붙일 IAM 인스턴스 프로필 이름 (null이면 미사용)"
+  type        = string
+  default     = null
+}
