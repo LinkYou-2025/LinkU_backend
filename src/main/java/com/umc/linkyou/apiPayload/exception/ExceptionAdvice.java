@@ -7,6 +7,8 @@ import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import lombok.extern.slf4j.Slf4j;
@@ -139,11 +141,26 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         return handleExceptionInternalConstraint(e, AuthErrorStatus.PERMISSION_DENIED, HttpHeaders.EMPTY, request);
     }
 
+    // JWT 만료, 검증 실패를 인증 오류로 반환
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<Object> handleJwtException(JwtException e, HttpServletRequest request) {
+        AuthErrorStatus status = e instanceof ExpiredJwtException
+                ? AuthErrorStatus.EXPIRED_TOKEN
+                : AuthErrorStatus.INVALID_TOKEN;
+        var reason = status.getReasonHttpStatus();
+
+        log.warn("[JWT Error] URI: {}, Method: {}, Code: {}, Exception: {}",
+                request.getRequestURI(), request.getMethod(), reason.getCode(),
+                e.getClass().getSimpleName());
+
+        ApiResponse<Object> body = ApiResponse.onFailure(
+                reason.getCode(), reason.getMessage(), null);
+        return ResponseEntity.status(reason.getHttpStatus()).body(body);
+    }
+
     @ExceptionHandler
     public ResponseEntity<Object> exception(Exception e, WebRequest request) {
-        log.error("[Unhandled Exception] {}", e.getMessage(), e);
-
-        return handleExceptionInternalFalse(e, request, e.getMessage());
+        return handleExceptionInternalFalse(e, request);
     }
 
 
@@ -191,18 +208,19 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         );
     }
 
-    private ResponseEntity<Object> handleExceptionInternalFalse(Exception e, WebRequest request, String errorPoint) {
+    // 내부 예외 상세는 서버 로그에만 기록하고 응답에는 포함하지 않는다.
+    private ResponseEntity<Object> handleExceptionInternalFalse(Exception e, WebRequest request) {
         var reason = CommonErrorStatus._INTERNAL_SERVER_ERROR.getReasonHttpStatus();
-        ApiResponse<Object> body = ApiResponse.onFailure(reason.getCode(), reason.getMessage(), errorPoint);
+        ApiResponse<Object> body = ApiResponse.onFailure(reason.getCode(), reason.getMessage(), null);
 
         if (request instanceof ServletWebRequest servletRequest) {
-            log.error("[API Error] URI: {}, Method: {}, Code: {}, Message: {}, ErrorPoint: {}",
+            log.error("[API Error] URI: {}, Method: {}, Code: {}",
                     servletRequest.getRequest().getRequestURI(),
                     servletRequest.getRequest().getMethod(),
                     reason.getCode(),
-                    reason.getMessage(),
-                    errorPoint,
                     e);
+        } else {
+            log.error("[API Error] Code: {}", reason.getCode(), e);
         }
 
         return super.handleExceptionInternal(e, body, HttpHeaders.EMPTY, reason.getHttpStatus(), request);
