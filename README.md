@@ -75,7 +75,7 @@
 4. [ERD](#-erd)
 5. [서버 아키텍처](#-서버-아키텍처)
 6. [프로젝트 구조](#-프로젝트-구조)
-7. [브랜치 전략](#-브랜치-전략)
+7. [협업규칙](#-협업-규칙)
 
 ---
 
@@ -95,10 +95,10 @@ LinkU는 링크를 단순히 저장하는 데서 그치지 않고, AI 요약·�
 
 <div align="center">
 
-| Backend | Backend | Backend |
-|:---:|:---:|:---:|
-| <img src="https://github.com/oculo0204.png" width="150" alt="서원" /> | <img src="https://github.com/JiwonLee42.png" width="150" alt="지원" /> | <img src="https://github.com/hyorim-jo.png" width="150" alt="효림" /> |
-| [서원](https://github.com/oculo0204)<br />링크 기능 · 회원 · 마이페이지 | [지원](https://github.com/JiwonLee42)<br />알림 · 서버 배포 · 회원<br />검색 · 배치 작업 | [효림](https://github.com/hyorim-jo)<br />큐레이션 · 모니터링<br />폴더 · 공유 폴더 |
+|                                Backend                                | Backend | Backend |
+|:---------------------------------------------------------------------:|:---:|:---:|
+|  <img src="https://github.com/oculo0204.png" width="150" alt="서원" />  | <img src="https://github.com/JiwonLee42.png" width="150" alt="지원" /> | <img src="https://github.com/hyorim-jo.png" width="150" alt="효림" /> |
+| [서원](https://github.com/oculo0204)<br />링크 저장 · 크롤링/AI · 소셜로그인 · 회원정보 | [지원](https://github.com/JiwonLee42)<br />알림 · 서버 배포 · 회원<br />검색 · 배치 작업 | [효림](https://github.com/hyorim-jo)<br />큐레이션 · 모니터링<br />폴더 · 공유 폴더 |
 
 </div>
 
@@ -142,15 +142,45 @@ src
 
 ---
 
-## 🌿 브랜치 전략
+## 🤝 협업 규칙
 
-- 기본 통합 브랜치: `develop`
+### 이슈 컨벤션
+- 작업 목적에 맞는 이슈 템플릿을 사용하고, assignee, 작업기한 등을 명시합니다.
+- 이슈는 담당자 확인을 하고 특별한 사유가 없다면 본인이 담당하는 작업의 이슈를 직접 등록합니다.
+- 작업 시점과 목적에 따라 지정된 GitHub Project와 MileStone에 이슈를 등록합니다.
+
+### 브랜치 컨벤션
+- 모든 작업은 이슈를 등록한 뒤 `develop`에서 분기합니다. 완료된 변경은 Pull Request에서 리뷰를 거쳐 `develop`에 병합합니다.
+- 작업 완료 후 PR 리뷰를 거쳐 `develop`에 병합합니다.
+- `develop`에 병합된 후 3개월 이상 지난 작업 브랜치는 팀원들과 협의하에 담당자가 삭제합니다.
+
+- 운영 통합 브랜치: `release`
+- 개발 통합 브랜치: `develop`
 - 기능 개발: `feat/#이슈번호-간단한설명`
 - 버그 수정: `fix/#이슈번호-간단한설명`
 - 리팩터링: `refactor/#이슈번호-간단한설명`
-- 설정·문서: `chore/#이슈번호-간단한설명`, `docs/#이슈번호-간단한설명`
+- 문서·기타: `chore/#이슈번호-간단한설명`, `docs/#이슈번호-간단한설명`
 
-모든 작업은 이슈를 등록한 뒤 `develop`에서 분기합니다. 완료된 변경은 Pull Request에서 리뷰를 거쳐 `develop`에 병합합니다.
+### 커밋 컨벤션
+- 커밋 타입은 영어로, 작업 내용은 한글로 작성합니다.
+- 다음 형식을 사용합니다: `type: #이슈번호 작업 내용`
+- 예시: `feat: #123 링크 검색 기능 추가`
+
+| 타입 | 사용 목적 |
+| --- | --- |
+| `feat` | 기능 추가 |
+| `fix` | 버그 수정 |
+| `refactor` | 기능 변경 없는 코드 개선 |
+| `test` | 테스트 추가·수정 |
+| `docs` | 문서 작성·수정 |
+| `chore` | 빌드·설정·의존성 변경 |
+| `style` | 포맷·공백 수정 |
+
+
+### pr 컨벤션
+- PR 제목은 커밋과 동일한 형식으로 작성합니다.
+- 리뷰어를 지정하고, 리뷰에서 요청된 사항을 반영한 뒤 병합합니다.
+- 3일이내에 리뷰어의 리뷰가 달리지 않거나, 서버가 멈추는 등 치명적 오류의 경우 담당자가 병합할 수 있습니다
 
 ---
 
