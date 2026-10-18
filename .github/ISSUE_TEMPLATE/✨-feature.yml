@@ -1,0 +1,38 @@
+name: ✨ Feature
+description: 새로운 기능 추가 또는 기존 기능 개선 요청
+title: '[Feat] '
+labels:
+- ✨ Feature
+projects:
+- LinkYou-2025/1
+type: Feature
+body:
+- type: textarea
+  id: description
+  attributes:
+    label: ✨ 기능 설명
+    description: 어떤 기능을 추가하거나 개선할지 작성해주세요.
+  validations:
+    required: true
+- type: textarea
+  id: tasks
+  attributes:
+    label: ✅ 작업 항목
+    description: 구현할 내용을 체크박스로 작성해주세요.
+  validations:
+    required: true
+- type: textarea
+  id: changes
+  attributes:
+    label: 🗃️ API 및 DB 변경 사항
+    description: API, 테이블, 환경 변수 등의 변경이 있다면 작성해주세요.
+- type: textarea
+  id: notes
+  attributes:
+    label: 💬 비고
+    description: 참고 자료나 논의할 내용을 작성해주세요.
+- type: textarea
+  id: related-issues
+  attributes:
+    label: 🔗 관련 이슈
+    description: 관련된 이슈 번호를 작성해주세요.

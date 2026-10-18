@@ -1,0 +1,52 @@
+name: 🐛 Bug
+description: 버그 제보 및 수정 요청
+title: '[Bug] '
+labels:
+- 🐛 Bug
+projects:
+- LinkYou-2025/1
+type: Bug
+body:
+- type: textarea
+  id: description
+  attributes:
+    label: 🐛 버그 설명
+    description: 발생한 문제를 작성해주세요.
+  validations:
+    required: true
+- type: textarea
+  id: steps
+  attributes:
+    label: 🔄 재현 방법
+    description: 요청 API와 입력값 등 재현 절차를 순서대로 작성해주세요.
+  validations:
+    required: true
+- type: textarea
+  id: expected
+  attributes:
+    label: ✅ 기대 동작
+    description: 정상적으로 동작했을 때의 결과를 작성해주세요.
+  validations:
+    required: true
+- type: textarea
+  id: actual
+  attributes:
+    label: 🚨 실제 동작
+    description: 실제 결과와 오류 응답을 작성해주세요.
+  validations:
+    required: true
+- type: textarea
+  id: environment
+  attributes:
+    label: 🖥️ 발생 환경
+    description: 발생한 서버 환경, 앱 버전 등을 작성해주세요.
+- type: textarea
+  id: evidence
+  attributes:
+    label: 📎 로그 및 참고 자료
+    description: 관련 로그나 스크린샷을 첨부해주세요. 토큰 등 민감정보는 제외해주세요.
+- type: textarea
+  id: related-issues
+  attributes:
+    label: 🔗 관련 이슈
+    description: 관련된 이슈 번호를 작성해주세요.
