@@ -1,0 +1,48 @@
+name: "🔧 Fix"
+description: "확인된 버그의 수정 작업"
+title: "[Fix] "
+labels: ["🐛 Bug"]
+projects: ["LinkYou-2025/1"]
+type: "Bug"
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: 🐛 수정 대상
+      description: 수정할 문제와 현재 동작을 작성해주세요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: cause
+    attributes:
+      label: 🔍 수정 이유
+      description: 파악한 원인이나 추가로 조사할 내용을 작성해주세요.
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: ✅ 작업 항목
+      description: 구체적인 수정 작업을 체크박스로 작성해주세요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: 🧪 검증 방법
+      description: 수정 후 기대 동작과 재발 방지를 위한 테스트 방법을 작성해주세요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 💬 비고
+      description: 영향 범위나 참고 자료를 작성해주세요.
+
+  - type: textarea
+    id: related-issues
+    attributes:
+      label: 🔗 관련 이슈
+      description: 관련된 이슈 번호를 작성해주세요.
