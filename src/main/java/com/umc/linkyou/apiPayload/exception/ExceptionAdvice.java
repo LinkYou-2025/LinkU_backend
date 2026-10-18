@@ -39,13 +39,17 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+// 서비스에서 예외가 발생했을 시, ExceptionAdvice를 거쳐 예외 종류에 따라 response가 반환됨
 @Slf4j
 @RestControllerAdvice(annotations = {RestController.class})
 public class ExceptionAdvice extends ResponseEntityExceptionHandler {
 
-
+    // ConstraintViolationException으로 처리할 예외 처리 메소드
+    // 입력값이 정해둔 검증 조건을 어겼을때 ex) 한번에 조회하는 개수가 최소 1개
+    // @Validated가 붙은 것에서 주로 발생(엔티티 검증 등)
     @ExceptionHandler
     public ResponseEntity<Object> validation(ConstraintViolationException e, WebRequest request) {
+        //ConstraintViolation중 하나만 반환
         String errorMessage = e.getConstraintViolations().stream()
                 .map(ConstraintViolation::getMessage)
                 .findFirst()
@@ -54,6 +58,8 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         log.warn("[Validation Error] {}", errorMessage, e);
         return handleExceptionInternalConstraint(e, ErrorStatus.valueOf(errorMessage), HttpHeaders.EMPTY,request);
     }
+    // 요청 DTO 검증 실패로 발생한 MethodArgumentNotValidException
+    // 주로 @Valid @RequestBody로 받은 값이 @NotBlank, @Email 등의 조건을 위반할 때 발생
     @Override
     public ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException e,
                                                                @NonNull HttpHeaders headers,
@@ -66,6 +72,8 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         return handleExceptionInternalArgs(e, HttpHeaders.EMPTY, request, errors);
     }
 
+    // 요청 파라미터를 필요한 Java 타입으로 변환하지 못했을 때 MethodArgumentTypeMismatchException
+    // 정수 파라미터에 "abc"를 전달하거나 YearMonth에 "2026-13"을 전달한 경우
     private static final Map<Class<?>, String> TYPE_MISMATCH_MESSAGES = Map.of(
             YearMonth.class, "month는 YYYY-MM 형식이어야 합니다. (예: 2026-08)"
     );
@@ -143,10 +151,10 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     @ExceptionHandler(value = GeneralException.class)
     public ResponseEntity onThrowException(GeneralException generalException, HttpServletRequest request) {
         ErrorReasonDTO errorReasonHttpStatus = generalException.getErrorReasonHttpStatus();
-        log.error("[GeneralException] Code: {}, Message: {}, URI: {}", 
-                errorReasonHttpStatus.getCode(), 
+        log.error("[GeneralException] Code: {}, Message: {}, URI: {}",
+                errorReasonHttpStatus.getCode(),
                 errorReasonHttpStatus.getMessage(),
-                request.getRequestURI(), 
+                request.getRequestURI(),
                 generalException);
         return handleExceptionInternal(generalException,errorReasonHttpStatus, request);
     }
