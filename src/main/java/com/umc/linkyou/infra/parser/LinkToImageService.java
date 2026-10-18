@@ -11,6 +11,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.Set;
 
+// 링크 페이지에서 대표 이미지(og:image 등 → 본문 img 순)를 찾아 헤더로 유효성을 확인한 뒤 반환한다.
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -22,13 +23,12 @@ public class LinkToImageService {
     private static final int IMAGE_FETCH_TIMEOUT_MS = 5000;
     private static final int MAX_IMG_CANDIDATES = 3;
 
-    // 대표 이미지 최소 용량 기준, 아이콘류 방지용임
+    // 아이콘류를 거르기 위한 대표 이미지 최소 용량
     private static final long MIN_IMAGE_BYTES = 15 * 1024;
 
-    // svg, ico, gif 제외
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
 
-    // Content-Type, Content-Length 확인, 실패하면 false로 처리함
+    // Content-Type/Content-Length 헤더로 대표 이미지로 쓸 수 있는지 확인한다.
     private boolean isValidImage(String imageUrl) {
         try {
             HttpURLConnection conn = safeUrlFetcher.openConnection(imageUrl, "Mozilla/5.0", 1500, 1500);
@@ -42,7 +42,7 @@ public class LinkToImageService {
         }
     }
 
-    // https만 허용, 그 외(http 포함)는 null
+    // 절대 https URL만 반환, 그 외는 null
     private String toAbsoluteHttpsUrl(Element el, String attr) {
         String abs = el.absUrl(attr);
         return abs.toLowerCase().startsWith("https://") ? abs : null;
@@ -60,7 +60,6 @@ public class LinkToImageService {
         return null;
     }
 
-    // URL에서 도메인 추출
     private String extractDomainFromUrl(String url) {
         try {
             URI uri = new URI(url);
@@ -72,29 +71,45 @@ public class LinkToImageService {
         }
     }
 
-    // iframe#mainFrame 구조는 PC 블로그에만 있음
+    // PC 네이버 블로그(iframe#mainFrame 구조) 여부
     private boolean isNaverBlog(String url) {
         return "blog.naver.com".equals(extractDomainFromUrl(url));
     }
 
-    // 네이버 블로그 iframe 내부 본문 접근 + 대표 이미지 추출
     private String extractFromNaverBlog(String blogUrl) {
+        return extractFromNaverBlog(blogUrl, null, null);
+    }
+
+    // 네이버 블로그 iframe 내부 페이지에서 대표 이미지를 추출한다. blogDoc이 있으면 바깥 페이지 fetch를 생략한다.
+    private String extractFromNaverBlog(
+            String blogUrl, Document blogDoc, NaverBlogIframeFetcher.Result iframePage) {
         try {
-            if (!robotsTxtChecker.isAllowed(blogUrl, "Mozilla/5.0")) {
-                log.warn("[크롤링 제한] robots.txt에 의해 이미지 추출 금지된 URL: {}", blogUrl);
-                return null;
+            Document doc = blogDoc;
+            if (doc == null) {
+                if (!robotsTxtChecker.isAllowed(blogUrl, "Mozilla/5.0")) {
+                    log.warn("[크롤링 제한] robots.txt에 의해 이미지 추출 금지된 URL: {}", blogUrl);
+                    return null;
+                }
+                doc = safeUrlFetcher.fetchDocument(blogUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
             }
-            Document doc = safeUrlFetcher.fetchDocument(blogUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
             Element frame = doc.selectFirst("iframe#mainFrame");
             if (frame == null) return null;
 
-            String realUrl = toAbsoluteHttpsUrl(frame, "src");
-            if (realUrl == null) return null;
-            if (!robotsTxtChecker.isAllowed(realUrl, "Mozilla/5.0")) {
-                log.warn("[크롤링 제한] robots.txt에 의해 이미지 추출 금지된 URL: {}", realUrl);
-                return null;
+            Document realDoc;
+            if (iframePage != null && iframePage.status() != NaverBlogIframeFetcher.Status.NOT_PRESENT) {
+                // 공유 요청이 실패했거나 차단되면 재요청 없이 대표 이미지 없음으로 처리한다.
+                if (iframePage.status() != NaverBlogIframeFetcher.Status.FETCHED) return null;
+                realDoc = iframePage.document();
+            } else {
+                String realUrl = toAbsoluteHttpsUrl(frame, "src");
+                if (realUrl == null) return null;
+                if (!robotsTxtChecker.isAllowed(realUrl, "Mozilla/5.0")) {
+                    log.warn("[크롤링 제한] robots.txt에 의해 이미지 추출 금지된 URL: {}", realUrl);
+                    return null;
+                }
+                realDoc = safeUrlFetcher.fetchDocument(realUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
             }
-            Document realDoc = safeUrlFetcher.fetchDocument(realUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
+            if (realDoc == null) return null;
 
             String ogImage = firstValidImage(realDoc, "meta[property=og:image]", "content", 1);
             if (ogImage != null) return ogImage;
@@ -143,10 +158,15 @@ public class LinkToImageService {
         return getRelatedImageFromUrl(url, title, null);
     }
 
-    // 네이버 블로그는 iframe 안 다른 호스트를 따로 fetch해야 해서 doc 재사용 대상이 아님
+    // doc이 있으면 재사용하고, 없으면 직접 fetch해서 대표 이미지를 찾는다.
     public String getRelatedImageFromUrl(String url, String title, Document doc) {
+        return getRelatedImageFromUrl(url, title, doc, null);
+    }
+
+    public String getRelatedImageFromUrl(
+            String url, String title, Document doc, NaverBlogIframeFetcher.Result iframePage) {
         if (isNaverBlog(url)) {
-            return extractFromNaverBlog(url);
+            return extractFromNaverBlog(url, doc, iframePage);
         }
         return (doc != null) ? extractRepresentativeImageFromDoc(doc) : extractRepresentativeImage(url);
     }

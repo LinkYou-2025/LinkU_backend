@@ -4,11 +4,13 @@ import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
 import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
 import com.umc.linkyou.infra.net.SafeUrlFetcher;
-import com.umc.linkyou.infra.parser.LinkToImageService;
+import com.umc.linkyou.infra.parser.NaverBlogIframeFetcher;
 import com.umc.linkyou.infra.parser.RobotsTxtChecker;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
+import com.umc.linkyou.service.common.ImageFetchService;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
@@ -51,10 +53,14 @@ import org.jsoup.nodes.Document;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+// 링크 저장: URL 정규화 → (신규면) 크롤링·AI 분류·대표 이미지 추출 → 짧은 트랜잭션으로 DB 저장.
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class LinkuCreateService {
 
     private final LinkuRepository linkuRepository;
@@ -65,7 +71,7 @@ public class LinkuCreateService {
     private final UsersLinkuRepository usersLinkuRepository;
     private final UserRepository userRepository;
     private final AwsS3Service awsS3Service;
-    private final LinkToImageService linkToImageService;
+    private final ImageFetchService imageFetchService;
     private final SituationRepository situationRepository;
     private final UsersFolderRepository usersFolderRepository;
     private final GeminiLinkuService geminiLinkuService;
@@ -73,6 +79,7 @@ public class LinkuCreateService {
     private final LinkuUpsertService linkuUpsertService;
     private final SafeUrlFetcher safeUrlFetcher;
     private final RobotsTxtChecker robotsTxtChecker;
+    private final NaverBlogIframeFetcher naverBlogIframeFetcher;
     private final UserProfileRefreshQueueRepository userProfileRefreshQueueRepository;
     private final TransactionTemplate transactionTemplate;
 
@@ -81,24 +88,25 @@ public class LinkuCreateService {
     private static final Long DEFAULT_DOMAIN_ID = 1L;
     private static final Long DEFAULT_SITUATION_ID = 1L;
     private static final int MAX_FALLBACK_TITLE_LENGTH = 50;
+    private static final int PAGE_FETCH_TIMEOUT_MS = 15000;
+    private static final long IMAGE_WAIT_AFTER_AI_SECONDS = 5;
 
-    // 외부 I/O(크롤링/AI분석/업로드/URL확인)는 트랜잭션 밖에서 처리하고, DB 처리만 짧은 트랜잭션(persistLinku)으로 감싼다.
+    // 외부 I/O는 트랜잭션 밖에서, DB 쓰기만 persistLinku 트랜잭션에서 처리한다.
     public LinkuResponseDTO.LinkuCreateResult createLinku(Long userId, LinkuRequestDTO.LinkuCreateDTO dto, MultipartFile image) {
         String normalizedLink = validateAndNormalizeUrl(dto.getLinku());
         String domainTail = UrlValidUtils.extractDomainTail(normalizedLink);
         List<String> domainTailCandidates = UrlValidUtils.extractDomainTailCandidates(normalizedLink);
 
-        // 신규 링크일 때만 크롤링/AI 분석 수행
         Optional<Linku> existingLinkuOpt = linkuRepository.findByLinku(normalizedLink);
         boolean isNewLinku = existingLinkuOpt.isEmpty();
 
         NewLinkuAiData aiData = isNewLinku ? prepareNewLinkuAiData(normalizedLink, domainTail) : null;
 
-        // S3 업로드 전 카테고리/감정/상황/폴더 유효성 검증
         validateBeforeUpload(userId, dto, existingLinkuOpt, aiData);
 
         String userImageUrl = uploadUserImage(image);
-        boolean validUrl = safeUrlFetcher.isReachable(normalizedLink);
+        // 페이지 fetch에 이미 성공했으면 도달 가능한 URL이므로 추가 요청을 생략한다.
+        boolean validUrl = (aiData != null && aiData.pageFetched()) || safeUrlFetcher.isReachable(normalizedLink);
 
         LinkuResponseDTO.LinkuResultDTO resultDto = transactionTemplate.execute(
                 (TransactionCallback<LinkuResponseDTO.LinkuResultDTO>) status ->
@@ -110,18 +118,15 @@ public class LinkuCreateService {
                 .build();
     }
 
-    // S3 업로드 전에 카테고리/감정/상황/폴더 유효성을 검증한다 (persistLinku와 동일 로직).
+    // S3 업로드 전에 감정/상황/폴더 유효성을 미리 검증한다.
     private void validateBeforeUpload(
             Long userId, LinkuRequestDTO.LinkuCreateDTO dto, Optional<Linku> existingLinkuOpt, NewLinkuAiData aiData) {
         boolean userProvidedEmotion = dto.getEmotionId() != null && dto.getEmotionId() > 0;
         boolean userProvidedSituation = dto.getSituationId() != null && dto.getSituationId() > 0;
 
-        // 사용자가 emotionId/situationId를 직접 지정했다면 존재하는 값인지 미리 확인한다.
         resolveEmotion(userProvidedEmotion ? dto.getEmotionId() : null, null);
         resolveSituation(userProvidedSituation ? dto.getSituationId() : null, null);
 
-        // 기존 링크면 이미 저장된 카테고리를, 신규 링크면 AI가 분류한(혹은 기본) 카테고리를 기준으로
-        // 이 유저의 해당 카테고리 폴더가 있는지 확인한다. persistLinku()의 분기와 동일한 로직이다.
         Category category = existingLinkuOpt
                 .map(Linku::getCategory)
                 .orElseGet(() -> resolveCategory(aiData != null ? aiData.aiCategoryId() : null));
@@ -130,44 +135,72 @@ public class LinkuCreateService {
                 .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
     }
 
-    // 크롤링(제목/본문/이미지) + AI 분석까지, DB에 쓰지 않는 순수 외부 I/O 단계.
+    // 페이지를 한 번만 fetch해 AI 분류와 대표 이미지 추출(병렬)에 공유한다. fetch 실패 시 재요청 없이 폴백 제목만 쓴다.
     private NewLinkuAiData prepareNewLinkuAiData(String normalizedLink, String domainTail) {
-        // 같은 URL을 여기서 한 번만 fetch해 아래 호출들에 공유한다 (중복 fetch 방지)
-        Document doc = fetchIfAllowed(normalizedLink, 15000);
+        Document doc = fetchIfAllowed(normalizedLink, PAGE_FETCH_TIMEOUT_MS);
+        if (doc == null) {
+            return new NewLinkuAiData(null, null, null, null,
+                    resolveTitle(null, domainTail, normalizedLink), null, false);
+        }
+
+        NaverBlogIframeFetcher.Result iframePage = naverBlogIframeFetcher.fetchIfPresent(normalizedLink, doc);
+
+        // Jsoup Document는 스레드 안전하지 않아 비동기 이미지 추출에는 복제본을 넘긴다.
+        CompletableFuture<String> imageFuture = imageFetchService.fetchAsync(
+                normalizedLink, doc.clone(), iframePage.copyForAsyncUse());
 
         Optional<LinkuResultDTO> aiResult = geminiLinkuService.analyzeByUrl(
-                normalizedLink, doc, categoryRepository.findAll(), situationRepository.findAll(), emotionRepository.findAll());
+                normalizedLink, doc, categoryRepository.findAll(), situationRepository.findAll(),
+                emotionRepository.findAll(), iframePage);
 
         Long aiCategoryId = aiResult.map(LinkuResultDTO::categoryId).orElse(null);
         String keywords = aiResult.map(LinkuResultDTO::keywords).orElse(null);
         Long aiEmotionId = aiResult.map(LinkuResultDTO::emotionId).orElse(null);
         Long aiSituationId = aiResult.map(LinkuResultDTO::situationId).orElse(null);
         String rawAiTitle = aiResult.map(LinkuResultDTO::title).orElse(null);
-        String crawledImgUrl = linkToImageService.getRelatedImageFromUrl(normalizedLink, rawAiTitle, doc);
-        // 크롤링/AI 둘 다 실패해도 title이 null로 안 나가도록 보장 (linkus.title은 NOT NULL)
+        String crawledImgUrl = awaitImage(imageFuture);
         String aiTitle = resolveTitle(rawAiTitle, domainTail, normalizedLink);
 
-        return new NewLinkuAiData(aiCategoryId, keywords, aiEmotionId, aiSituationId, aiTitle, crawledImgUrl);
+        return new NewLinkuAiData(aiCategoryId, keywords, aiEmotionId, aiSituationId, aiTitle, crawledImgUrl, true);
     }
 
-    // 실패/차단 시 null 반환 → 소비자들이 각자 직접 fetch하는 기존 경로로 폴백
-    private Document fetchIfAllowed(String url, int timeoutMs) {
+    // AI 응답 이후 최대 IMAGE_WAIT_AFTER_AI_SECONDS까지만 이미지 추출을 기다리고, 넘기면 이미지 없이 진행한다.
+    private String awaitImage(CompletableFuture<String> imageFuture) {
         try {
-            if (!robotsTxtChecker.isAllowed(url, "Mozilla/5.0")) {
-                return null;
-            }
-            return safeUrlFetcher.fetchDocument(url, "Mozilla/5.0", timeoutMs);
+            return imageFuture.completeOnTimeout(null, IMAGE_WAIT_AFTER_AI_SECONDS, TimeUnit.SECONDS).join();
         } catch (Exception e) {
             return null;
         }
     }
 
-    // prepareNewLinkuAiData()의 결과를 트랜잭션 단계로 넘기기 위한 값 객체.
+    // robots.txt 허용 시 페이지를 fetch한다. 차단·실패 시 null.
+    private Document fetchIfAllowed(String url, int timeoutMs) {
+        try {
+            if (!robotsTxtChecker.isAllowed(url, "Mozilla/5.0")) {
+                return null;
+            }
+            long startedAt = System.nanoTime();
+            try {
+                Document document = safeUrlFetcher.fetchDocument(url, "Mozilla/5.0", timeoutMs);
+                log.info("[링크 생성 시간] 단계=html-fetch elapsedMs={} success=true",
+                        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
+                return document;
+            } catch (Exception e) {
+                log.info("[링크 생성 시간] 단계=html-fetch elapsedMs={} success=false",
+                        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
+                throw e;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // 크롤링·AI 결과를 트랜잭션 단계로 넘기는 값 객체. pageFetched는 페이지 fetch 성공 여부.
     private record NewLinkuAiData(
             Long aiCategoryId, String keywords, Long aiEmotionId, Long aiSituationId,
-            String aiTitle, String crawledImgUrl) {}
+            String aiTitle, String crawledImgUrl, boolean pageFetched) {}
 
-    // DB 읽기/쓰기만 수행하는 트랜잭션 본체. 외부 HTTP 호출을 하지 않는다.
+    // 외부 호출 없이 DB 읽기/쓰기만 수행하는 트랜잭션 본체.
     private LinkuResponseDTO.LinkuResultDTO persistLinku(
             Long userId, LinkuRequestDTO.LinkuCreateDTO dto, String normalizedLink, String domainTail,
             List<String> domainTailCandidates, NewLinkuAiData aiData, String userImageUrl) {
@@ -193,10 +226,9 @@ public class LinkuCreateService {
                     .collect(Collectors.joining(", "));
 
         } else {
-            // aiData가 없으면(=null) 폴백 제목만으로 진행
             if (aiData == null) {
                 aiData = new NewLinkuAiData(null, null, null, null,
-                        resolveTitle(null, domainTail, normalizedLink), null);
+                        resolveTitle(null, domainTail, normalizedLink), null, false);
             }
             category = resolveCategory(aiData.aiCategoryId());
             keywords = aiData.keywords();
@@ -248,8 +280,7 @@ public class LinkuCreateService {
 
 
 
-    // domainTailCandidates: [정확한 호스트, (있다면) registry-suffix apex 도메인] 순서.
-    // someuser.tistory.com처럼 정확히 일치하는 domains 행이 없으면 apex(tistory.com) 행으로 폴백한다.
+    // 정확한 호스트 → apex 도메인 → 기본 도메인 순으로 Domain을 찾는다.
     public Domain resolveDomain(List<String> domainTailCandidates) {
         return domainTailCandidates.stream()
                 .map(domainRepository::findByDomainTail)
@@ -288,7 +319,7 @@ public class LinkuCreateService {
                 .orElseThrow(() -> new GeneralException(ErrorStatus._SITUATION_NOT_FOUND));
     }
 
-    // 크롤링/AI 둘 다 실패해도 절대 null을 리턴하지 않음 (linkus.title NOT NULL 대응)
+    // AI 제목 → 도메인+경로 → "제목 없음" 순으로 null이 아닌 제목을 정한다.
     public String resolveTitle(String aiTitle, String domainTail, String url) {
         if (aiTitle != null && !aiTitle.isBlank()) {
             return aiTitle;
@@ -297,7 +328,7 @@ public class LinkuCreateService {
         return (fallback != null && !fallback.isBlank()) ? fallback : "제목 없음";
     }
 
-    // 도메인 + URL 디코딩된 경로 조합, 길이 제한
+    // 도메인 + 디코딩된 경로를 최대 길이로 잘라 폴백 제목을 만든다.
     private String buildFallbackTitle(String domainTail, String url) {
         if (domainTail == null || domainTail.isBlank()) {
             return null;
@@ -324,7 +355,7 @@ public class LinkuCreateService {
                                        String memo, String imageUrl, String title,
                                        boolean emotionAi, boolean situationAi) {
         UsersLinku usersLinku = LinkuConverter.toUsersLinku(user, linku, emotion, situation, memo, imageUrl, title, emotionAi, situationAi);
-        // 이 유저가 과거 같은 링크로 AI 요약을 본 적 있으면 aiExist=true로 표시
+        // 같은 링크로 AI 요약을 본 적 있으면 aiExist=true
         boolean userAlreadyHasAiArticle = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(user.getId(), linku.getLinkuId())
                 .stream()
                 .anyMatch(ul -> Boolean.TRUE.equals(ul.getAiExist()));
@@ -333,7 +364,7 @@ public class LinkuCreateService {
         }
         UsersLinku saved = usersLinkuRepository.save(usersLinku);
 
-        // 홈 추천용 유저 프로필 재계산 큐에 등록 (service/common/README.md 참고)
+        // 홈 추천용 유저 프로필 재계산 큐에 등록
         userProfileRefreshQueueRepository.enqueue(user.getId());
 
         return saved;

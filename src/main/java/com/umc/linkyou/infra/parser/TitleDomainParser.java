@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.URI;
 
+// 링크의 도메인과 제목(og:title → <title>)을 추출해 AI 분류의 참고값으로 제공한다.
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -18,7 +19,7 @@ public class TitleDomainParser {
     private final RobotsTxtChecker robotsTxtChecker;
     private final SafeUrlFetcher safeUrlFetcher;
 
-    // title을 추출하여 ai가 링크를 생성할 때 참조값으로 사용됨.
+    // robots.txt 확인 후 직접 fetch해서 파싱한다.
     public ParsedPageInfo parseUrl(String url) {
         Document doc = null;
         try {
@@ -35,7 +36,7 @@ public class TitleDomainParser {
         return parseUrl(url, doc);
     }
 
-    // 이미 fetch된 Document로 파싱만 한다 (중복 fetch 방지)
+    // 이미 fetch된 Document로 파싱만 한다.
     public ParsedPageInfo parseUrl(String url, Document doc) {
         String domain = null;
         try {

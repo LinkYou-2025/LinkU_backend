@@ -17,9 +17,11 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
+// 도메인별 크롤링 전략(DEFAULT/IFRAME/BODY)으로 링크 페이지의 본문 텍스트를 추출한다.
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -29,21 +31,18 @@ public class WebContentExtractor {
     private final RobotsTxtChecker robotsTxtChecker;
     private final SafeUrlFetcher safeUrlFetcher;
 
-    // 도메인 tail(예: tistory.com) -> 크롤링 전략 캐시. 전략은 도메인 조합이 유한하고 거의 안 바뀌지만,
-    // 그래도 상한을 안 둔 순수 ConcurrentHashMap 대신 Caffeine으로 통일해 메모리 상한(maximumSize)을 보장한다.
-    // TTL은 필요 없다 - 도메인의 CrawlStrategy가 바뀌는 경우는 드물고, 바뀌어도 서버 재시작 전까지는
-    // 기존 전략을 계속 쓰는 것이 지금까지의 동작이었다.
+    // 도메인 tail -> 크롤링 전략 캐시
     private final Cache<String, ContentExtractorStrategy> crawlerStrategies =
             Caffeine.newBuilder().maximumSize(2_000).build();
 
     interface ContentExtractorStrategy {
-        String extract(Document doc, String url) throws Exception;
+        String extract(Document doc, String url, NaverBlogIframeFetcher.Result iframePage) throws Exception;
     }
 
-    // 크롤링 전략 구현체
+    // article → main → content/body → p → div → body 순으로 본문을 찾는 기본 전략
     static class DefaultExtractor implements ContentExtractorStrategy {
         @Override
-        public String extract(Document doc, String url) {
+        public String extract(Document doc, String url, NaverBlogIframeFetcher.Result iframePage) {
             Elements article = doc.select("article");
             if (!article.isEmpty() && !article.text().isBlank()) return article.text();
 
@@ -63,7 +62,7 @@ public class WebContentExtractor {
         }
     }
 
-    // iframe 안의 실제 본문(blog.naver.com)으로 2차 요청을 보내야 하므로 SafeUrlFetcher/RobotsTxtChecker를 직접 들고 있는다.
+    // 네이버 블로그 iframe 내부 페이지를 추가로 fetch해 본문을 추출하는 전략
     static class NaverBlogExtractor implements ContentExtractorStrategy {
         private final SafeUrlFetcher safeUrlFetcher;
         private final RobotsTxtChecker robotsTxtChecker;
@@ -74,19 +73,29 @@ public class WebContentExtractor {
         }
 
         @Override
-        public String extract(Document doc, String url) throws Exception {
+        public String extract(Document doc, String url, NaverBlogIframeFetcher.Result iframePage) throws Exception {
             Elements naverIframe = doc.select("iframe#mainFrame");
             if (!naverIframe.isEmpty()) {
                 String src = naverIframe.attr("src");
-                String iframeUrl = src.startsWith("http") ? src : "https://blog.naver.com" + src;
-                // 원본 url에 대한 robots.txt 허용 여부는 extractTextFromUrl()에서 이미 확인했지만,
-                // 2차 요청은 다른 호스트(blog.naver.com)로 나갈 수 있으므로 별도로 다시 확인한다.
-                if (!robotsTxtChecker.isAllowed(iframeUrl, "Mozilla/5.0")) {
-                    log.warn("[크롤링 제한] robots.txt에 의해 본문 추출 금지된 iframe URL: {}", iframeUrl);
-                    return doc.body().text();
+                Document iframeDoc;
+                if (iframePage != null && iframePage.status() != NaverBlogIframeFetcher.Status.NOT_PRESENT) {
+                    if (iframePage.status() == NaverBlogIframeFetcher.Status.DISALLOWED) {
+                        return doc.body().text();
+                    }
+                    if (iframePage.status() != NaverBlogIframeFetcher.Status.FETCHED
+                            || iframePage.document() == null) {
+                        throw new IOException("네이버 iframe 페이지를 가져오지 못했습니다.");
+                    }
+                    iframeDoc = iframePage.document();
+                } else {
+                    String iframeUrl = src.startsWith("http") ? src : "https://blog.naver.com" + src;
+                    // 공용 iframe 결과가 없으면 기존 경로대로 robots 확인 후 fetch한다.
+                    if (!robotsTxtChecker.isAllowed(iframeUrl, "Mozilla/5.0")) {
+                        log.warn("[크롤링 제한] robots.txt에 의해 본문 추출 금지된 iframe URL: {}", iframeUrl);
+                        return doc.body().text();
+                    }
+                    iframeDoc = safeUrlFetcher.fetchDocument(iframeUrl, "Mozilla/5.0", 15000);
                 }
-                // 2차 요청도 SafeUrlFetcher를 거쳐야 iframe src가 내부망 주소로 조작된 경우를 막을 수 있다.
-                Document iframeDoc = safeUrlFetcher.fetchDocument(iframeUrl, "Mozilla/5.0", 15000);
 
                 String logNo = null;
                 String[] paramPairs = src.split("&");
@@ -113,14 +122,13 @@ public class WebContentExtractor {
 
     static class BodyExtractor implements ContentExtractorStrategy {
         @Override
-        public String extract(Document doc, String url) {
+        public String extract(Document doc, String url, NaverBlogIframeFetcher.Result iframePage) {
             return doc.body().text();
         }
     }
 
 
-    // domainTailCandidates: [정확한 호스트, (있다면) registry-suffix apex 도메인] 순서.
-    // someuser.tistory.com처럼 정확히 일치하는 행이 없는 서브도메인은 apex(tistory.com) 행으로 폴백한다.
+    // 정확한 호스트 → apex 도메인 순으로 domains 행을 찾아 전략을 만든다.
     private ContentExtractorStrategy createStrategy(List<String> domainTailCandidates) {
         Domain domain = domainTailCandidates.stream()
                 .map(domainRepository::findByDomainTail)
@@ -137,6 +145,7 @@ public class WebContentExtractor {
         };
     }
 
+    // robots.txt 확인 후 직접 fetch해서 본문을 추출한다.
     public String extractTextFromUrl(String url) {
         try {
             if (!robotsTxtChecker.isAllowed(url, "Mozilla/5.0")) {
@@ -157,8 +166,14 @@ public class WebContentExtractor {
         }
     }
 
-    // 이미 fetch된 Document로 본문만 추출한다 (중복 fetch 방지)
+    // 이미 fetch된 Document로 본문만 추출한다.
     public String extractTextFromDocument(String url, Document doc) {
+        return extractTextFromDocument(url, doc, null);
+    }
+
+    // iframe 문서가 이미 fetch됐다면 본문 추출에서 다시 요청하지 않고 재사용한다.
+    public String extractTextFromDocument(
+            String url, Document doc, NaverBlogIframeFetcher.Result iframePage) {
         try {
             if (doc == null) {
                 log.warn("[본문 추출 실패] fetch된 Document 없음, URL: {}", url);
@@ -171,7 +186,7 @@ public class WebContentExtractor {
                     ? new DefaultExtractor()
                     : crawlerStrategies.get(domainTailCandidates.get(0), key -> createStrategy(domainTailCandidates));
 
-            String extracted = strategy.extract(doc, safeUrl);
+            String extracted = strategy.extract(doc, safeUrl, iframePage);
 
             if (extracted.isBlank()) {
                 log.warn("[본문 추출 실패] URL: {}", url);

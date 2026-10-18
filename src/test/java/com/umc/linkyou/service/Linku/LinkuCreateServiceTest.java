@@ -11,6 +11,7 @@ import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
 import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
 import com.umc.linkyou.infra.net.SafeUrlFetcher;
 import com.umc.linkyou.infra.parser.LinkToImageService;
+import com.umc.linkyou.infra.parser.NaverBlogIframeFetcher;
 import com.umc.linkyou.infra.parser.RobotsTxtChecker;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
@@ -23,10 +24,13 @@ import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepos
 import com.umc.linkyou.repository.recommend.UserProfileRefreshQueueRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
+import com.umc.linkyou.service.common.ImageFetchService;
 import com.umc.linkyou.service.folder.FolderService;
 import com.umc.linkyou.service.keyword.KeywordService;
 import com.umc.linkyou.support.fixture.LinkuFixture;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -42,11 +46,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static com.umc.linkyou.support.fixture.LinkuFixture.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.lenient;
@@ -68,7 +75,9 @@ class LinkuCreateServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private AwsS3Service awsS3Service;
     @Mock private LinkToImageService linkToImageService;
+    @Mock private ImageFetchService imageFetchService;
     @Mock private RobotsTxtChecker robotsTxtChecker;
+    @Mock private NaverBlogIframeFetcher naverBlogIframeFetcher;
     @Mock private SituationRepository situationRepository;
     @Mock private AiArticleRepository aiArticleRepository;
     @Mock private GeminiLinkuService geminiLinkuService;
@@ -363,7 +372,8 @@ class LinkuCreateServiceTest {
                 EMOTION_ID,
                 SITUATION_ID
         );
-        lenient().when(geminiLinkuService.analyzeByUrl(any(), any(), any(), any(), any())).thenReturn(Optional.of(mockAiResult));
+        lenient().when(geminiLinkuService.analyzeByUrl(any(), any(), any(), any(), any(), any()))
+                .thenReturn(Optional.of(mockAiResult));
 
         lenient().when(categoryRepository.findById(any()))
                 .thenAnswer(inv -> Optional.of(LinkuFixture.category()));
@@ -373,7 +383,18 @@ class LinkuCreateServiceTest {
         lenient().when(domainRepository.findById(anyLong()))
                 .thenAnswer(inv -> Optional.of(LinkuFixture.domain()));
 
-        lenient().when(linkToImageService.getRelatedImageFromUrl(eq(TEST_URL), any(), any())).thenReturn(crawledImageUrl);
+        // 페이지 fetch 성공 → AI 분류와 이미지 추출(비동기)이 이 Document를 공유한다.
+        lenient().when(robotsTxtChecker.isAllowed(any(), any())).thenReturn(true);
+        lenient().when(naverBlogIframeFetcher.fetchIfPresent(anyString(), any(Document.class)))
+                .thenReturn(NaverBlogIframeFetcher.Result.notPresent());
+        try {
+            lenient().when(safeUrlFetcher.fetchDocument(eq(TEST_URL), any(), anyInt()))
+                    .thenReturn(Jsoup.parse("<html><head><title>t</title></head><body>b</body></html>", TEST_URL));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        lenient().when(imageFetchService.fetchAsync(eq(TEST_URL), any(Document.class), any()))
+                .thenReturn(CompletableFuture.completedFuture(crawledImageUrl));
 
         // linkuUpsertService.upsert() 결과 모킹 추가
         Linku mockLinku = LinkuFixture.linku(crawledImageUrl);

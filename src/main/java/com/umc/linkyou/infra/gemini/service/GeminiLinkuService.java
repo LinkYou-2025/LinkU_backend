@@ -7,6 +7,7 @@ import com.umc.linkyou.infra.ai.AiLinkuAnalyzer;
 import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
 import com.umc.linkyou.infra.gemini.prompt.common.PromptComposer;
 import com.umc.linkyou.infra.gemini.prompt.linku.CategoryClassifyPrompt;
+import com.umc.linkyou.infra.parser.NaverBlogIframeFetcher;
 import com.umc.linkyou.infra.parser.TitleDomainParser;
 import com.umc.linkyou.infra.parser.WebContentExtractor;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +17,18 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class GeminiLinkuService implements AiLinkuAnalyzer {
+
+    private static final int MAX_PAGE_CONTENT_CHARS = 500;
+    private static final int START_CONTENT_CHARS = 250;
+    private static final int MIDDLE_CONTENT_CHARS = 125;
+    private static final int END_CONTENT_CHARS = 125;
 
     private final TitleDomainParser titleDomainParser;
     private final WebContentExtractor webContentExtractor;
@@ -34,6 +41,16 @@ public class GeminiLinkuService implements AiLinkuAnalyzer {
 
     @Override
     public Optional<LinkuResultDTO> analyzeByUrl(String url, Document doc, List<Category> categories, List<Situation> situations, List<Emotion> emotions) {
+        return analyzeByUrl(url, doc, categories, situations, emotions, null);
+    }
+
+    public Optional<LinkuResultDTO> analyzeByUrl(
+            String url,
+            Document doc,
+            List<Category> categories,
+            List<Situation> situations,
+            List<Emotion> emotions,
+            NaverBlogIframeFetcher.Result iframePage) {
         // situations, emotions를 Gemini 프롬프트에 주입 → AI가 DB에 존재하는 ID로 situationId/emotionId 반환
         TitleDomainParser.ParsedPageInfo pageInfo = (doc != null)
                 ? titleDomainParser.parseUrl(url, doc)
@@ -42,12 +59,17 @@ public class GeminiLinkuService implements AiLinkuAnalyzer {
         String title = pageInfo.title();
         String pageContent = null;
 
+        long contentExtractionStartedAt = System.nanoTime();
         try {
             pageContent = (doc != null)
-                    ? webContentExtractor.extractTextFromDocument(url, doc)
+                    ? webContentExtractor.extractTextFromDocument(url, doc, iframePage)
                     : webContentExtractor.extractTextFromUrl(url);
         } catch (Exception e) {
             log.warn("[본문 추출 실패] {}", e.getMessage());
+        } finally {
+            log.info("[링크 생성 시간] 단계=content-extraction elapsedMs={} success={}",
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - contentExtractionStartedAt),
+                    pageContent != null && !pageContent.isBlank());
         }
 
         if ((title == null || title.isBlank()) && (pageContent == null || pageContent.isBlank())) {
@@ -55,8 +77,7 @@ public class GeminiLinkuService implements AiLinkuAnalyzer {
             return Optional.empty();
         }
 
-        if (pageContent != null && pageContent.length() > 2000)
-            pageContent = pageContent.substring(0, 2000);
+        pageContent = selectRepresentativeContent(pageContent);
 
         String categoryList = categories.stream()
                 .map(c -> "- id: " + c.getCategoryId() + ", name: \"" + c.getCategoryName() + "\"")
@@ -78,5 +99,21 @@ public class GeminiLinkuService implements AiLinkuAnalyzer {
                         prompt.render(),
                         LinkuResultDTO.class)
         );
+    }
+
+    // 긴 본문은 앞·중간·끝 구간을 골라 최대 500자로 줄인다.
+    private String selectRepresentativeContent(String content) {
+        if (content == null || content.length() <= MAX_PAGE_CONTENT_CHARS) {
+            return content;
+        }
+
+        int middleStart = Math.max(
+                START_CONTENT_CHARS, (content.length() - MIDDLE_CONTENT_CHARS) / 2);
+        int endStart = content.length() - END_CONTENT_CHARS;
+
+        return "[앞부분]\n" + content.substring(0, START_CONTENT_CHARS).strip()
+                + "\n[중간 부분]\n"
+                + content.substring(middleStart, middleStart + MIDDLE_CONTENT_CHARS).strip()
+                + "\n[끝부분]\n" + content.substring(endStart).strip();
     }
 }
