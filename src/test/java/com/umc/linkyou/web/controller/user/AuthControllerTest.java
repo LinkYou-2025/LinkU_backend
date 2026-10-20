@@ -22,6 +22,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
+import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.common.WebConfig;
 import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Gender;
@@ -35,7 +37,9 @@ import com.umc.linkyou.service.email.PasswordResetService;
 import com.umc.linkyou.service.users.TermsAgreementService;
 import com.umc.linkyou.service.users.UserService;
 import com.umc.linkyou.service.users.UserWithdrawService;
+import com.umc.linkyou.support.fixture.SocialSignupFixture;
 import com.umc.linkyou.support.security.TestSecurityConfig;
+import com.umc.linkyou.support.security.WithCustomUser;
 import com.umc.linkyou.web.dto.user.UserRequestDTO;
 import com.umc.linkyou.web.dto.user.UserResponseDTO;
 
@@ -62,6 +66,66 @@ class AuthControllerTest {
     @MockitoBean private UserWithdrawService userWithdrawService;
 
     @MockitoBean private TokenIssueService tokenIssueService;
+
+    @Nested
+    @DisplayName("닉네임 중복 확인")
+    class CheckNickname {
+        @Nested
+        @DisplayName("성공")
+        class Success {
+            @Test
+            @WithCustomUser(userId = 1L)
+            @DisplayName("로그인 상태에서 조회 시 본인 식별자를 전달한다")
+            void 로그인_상태에서_조회_시_본인_식별자를_전달한다() throws Exception {
+                mockMvc.perform(
+                                org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                        .get("/api/v1/auth/check-nickname")
+                                        .param("nickname", SocialSignupFixture.NICKNAME))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.code").value("AUTH2005"))
+                        .andExpect(jsonPath("$.result").isMap());
+                org.mockito.Mockito.verify(userService)
+                        .checkNicknameAvailable(SocialSignupFixture.NICKNAME, 1L);
+            }
+
+            @Test
+            @DisplayName("비로그인 상태에서 조회 시 전체 사용자를 기준으로 검사한다")
+            void 비로그인_상태에서_조회_시_전체_사용자를_기준으로_검사한다() throws Exception {
+                mockMvc.perform(
+                                org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                        .get("/api/v1/auth/check-nickname")
+                                        .param("nickname", SocialSignupFixture.NICKNAME))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.code").value("AUTH2005"))
+                        .andExpect(jsonPath("$.result").isMap());
+                org.mockito.Mockito.verify(userService)
+                        .checkNicknameAvailable(SocialSignupFixture.NICKNAME, null);
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+            @Test
+            @WithCustomUser(userId = 1L)
+            @DisplayName("다른 사용자의 닉네임 조회 시 중복 응답을 반환한다")
+            void 다른_사용자의_닉네임_조회_시_중복_응답을_반환한다() throws Exception {
+                org.mockito.Mockito.doThrow(new UserHandler(UserErrorStatus._DUPLICATE_NICKNAME))
+                        .when(userService)
+                        .checkNicknameAvailable(SocialSignupFixture.NICKNAME, 1L);
+                mockMvc.perform(
+                                org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                                        .get("/api/v1/auth/check-nickname")
+                                        .param("nickname", SocialSignupFixture.NICKNAME))
+                        .andExpect(status().isConflict())
+                        .andExpect(jsonPath("$.isSuccess").value(false))
+                        .andExpect(jsonPath("$.code").value("USERS4091"))
+                        .andExpect(jsonPath("$.result").exists());
+            }
+        }
+    }
 
     @Nested
     @DisplayName("회원가입 엔드포인트")

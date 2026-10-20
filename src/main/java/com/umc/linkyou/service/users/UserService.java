@@ -99,7 +99,10 @@ public class UserService {
     @Transactional
     public UserResponseDTO.JoinResultDTO joinUser(UserRequestDTO.JoinDTO request) {
         // 404 (job은 db에 있는 직업중하나로 골라야 함)
-        Job job =jobRepository.findById(request.jobId()).orElseThrow(() -> new UserHandler(UserErrorStatus._JOB_NOT_SET));
+        Job job =
+                jobRepository
+                        .findById(request.jobId())
+                        .orElseThrow(() -> new UserHandler(UserErrorStatus._JOB_NOT_SET));
 
         // 1. 닉네임 중복 체크
         validateNickNameNotDuplicate(request.nickName());
@@ -110,20 +113,24 @@ public class UserService {
             throw new UserHandler(UserErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
 
-
         // 3. 소셜로그인으로 가입된 유저 있으면 병합, 없으면 신규 생성
         String encodedPassword = passwordEncoder.encode(request.password());
-        Users user =authAccountRepository.findUserByEmailExcludingProvider(request.email(), Provider.GENERAL)
-                .map(existing -> {  // 일반회원가입으로 새로 받은 값으로 기존 소셜 계정의 회원정보 업데이트
-                    existing.completeSocialProfile(request.nickName(), request.gender(), job);
-                    existing.encodePassword(encodedPassword);
-                    return existing;
-                })
-                .orElseGet(() -> {
-                    Users newUser = UserConverter.toUser(request, job);
-                    newUser.encodePassword(encodedPassword);
-                    return userRepository.save(newUser);
-                });
+        Users user =
+                authAccountRepository
+                        .findUserByEmailExcludingProvider(request.email(), Provider.GENERAL)
+                        .map(
+                                existing -> { // 일반회원가입으로 새로 받은 값으로 기존 소셜 계정의 회원정보 업데이트
+                                    existing.completeSocialProfile(
+                                            request.nickName(), request.gender(), job);
+                                    existing.encodePassword(encodedPassword);
+                                    return existing;
+                                })
+                        .orElseGet(
+                                () -> {
+                                    Users newUser = UserConverter.toUser(request, job);
+                                    newUser.encodePassword(encodedPassword);
+                                    return userRepository.save(newUser);
+                                });
 
         // 목적/관심사 최신값으로 교체
         usersPurposeRepository.deleteAllByUser(user);
@@ -238,7 +245,7 @@ public class UserService {
             throw new UserHandler(UserErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
         // 2. 닉네임 중복 체크
-        validateNickNameNotDuplicate(request.getNickName());
+        validateNickNameNotDuplicate(request.getNickName(), userId);
 
         // 3. 필수 정보 업데이트
         if (request.getGender() == null) {
@@ -324,8 +331,8 @@ public class UserService {
         return new UserResponseDTO.TokenPair(tokenPair.accessToken(), tokenPair.refreshToken());
     }
 
-    public void checkNicknameAvailable(String nickname) {
-        validateNickNameNotDuplicate(nickname);
+    public void checkNicknameAvailable(String nickname, Long currentUserId) {
+        validateNickNameNotDuplicate(nickname, currentUserId);
     }
 
     public UserResponseDTO.NicknameDTO getNickname(Long userId) {
@@ -443,9 +450,19 @@ public class UserService {
     }
 
     private void validateNickNameNotDuplicate(String nickname) {
-        if (userRepository.findByNickName(nickname).isPresent()) {
-            throw new UserHandler(UserErrorStatus._DUPLICATE_NICKNAME);
-        }
+        validateNickNameNotDuplicate(nickname, null);
+    }
+
+    private void validateNickNameNotDuplicate(String nickname, Long currentUserId) {
+        userRepository
+                .findByNickName(nickname)
+                .filter(
+                        existing ->
+                                currentUserId == null || !currentUserId.equals(existing.getId()))
+                .ifPresent(
+                        existing -> {
+                            throw new UserHandler(UserErrorStatus._DUPLICATE_NICKNAME);
+                        });
     }
 
     // 초기 폴더 생성 메서드 (이미 생성된 유저면 스킵 — idempotent)
@@ -471,7 +488,8 @@ public class UserService {
                             .build());
 
             // UsersFolder 매핑
-            usersFolderRepository.save(FolderConverter.toUsersFolder(user, subFolder, PermissionType.OWNER));
+            usersFolderRepository.save(
+                    FolderConverter.toUsersFolder(user, subFolder, PermissionType.OWNER));
         }
         usersCategoryColorRepository.saveAll(userColors);
     }

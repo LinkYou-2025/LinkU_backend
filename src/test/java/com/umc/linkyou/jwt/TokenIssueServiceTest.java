@@ -1,6 +1,7 @@
 package com.umc.linkyou.jwt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -21,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.umc.linkyou.config.properties.JwtProperties;
 import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Role;
+import com.umc.linkyou.domain.enums.UserStatus;
 
 @ExtendWith(MockitoExtension.class)
 class TokenIssueServiceTest {
@@ -31,6 +33,33 @@ class TokenIssueServiceTest {
     @Mock private RefreshTokenManager refreshTokenManager;
     @Mock private JwtProperties jwtProperties;
     @Mock private JwtProperties.Expiration expiration;
+
+    @Nested
+    @DisplayName("issueForStatus")
+    class IssueForStatus {
+
+        @Test
+        @DisplayName("TEMP 사용자는 access token만 발급하고 refresh session은 저장하지 않는다")
+        void TEMP_사용자는_access_token만_발급한다() {
+            when(jwtTokenProvider.createAccessToken(7L, "temp@example.com", "KAKAO", Role.USER))
+                    .thenReturn("onboarding-access");
+
+            TokenIssueService.IssuedTokenPair result = tokenIssueService.issueForStatus(
+                    7L,
+                    "temp@example.com",
+                    "KAKAO",
+                    Role.USER,
+                    UserStatus.TEMP,
+                    "device-1",
+                    DeviceType.PHONE);
+
+            assertEquals("onboarding-access", result.accessToken());
+            assertNull(result.refreshToken());
+            verify(jwtTokenProvider)
+                    .createAccessToken(7L, "temp@example.com", "KAKAO", Role.USER);
+            org.mockito.Mockito.verifyNoInteractions(refreshTokenManager);
+        }
+    }
 
     @Nested
     @DisplayName("issueTokenPair")
