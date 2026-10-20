@@ -11,18 +11,25 @@ import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
+import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.properties.JwtProperties;
 import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
@@ -49,6 +56,7 @@ import com.umc.linkyou.repository.classification.UsersPurposeRepository;
 import com.umc.linkyou.repository.userRepository.UserQueryRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
+import com.umc.linkyou.support.fixture.SocialSignupFixture;
 import com.umc.linkyou.web.dto.user.UserRequestDTO;
 import com.umc.linkyou.web.dto.user.UserResponseDTO;
 
@@ -150,11 +158,14 @@ class UserServiceImplTest {
         @DisplayName("성공")
         class Success {
 
-            @Test
+            @ParameterizedTest
+            @CsvSource({"KAKAO", "GOOGLE", "NAVER"})
             @DisplayName("성공 - TEMP 상태 유저가 프로필 완성 시 ACTIVE 상태로 변경되고 정식 토큰이 발급된다")
-            void TEMP_상태_유저가_프로필_완성_시_ACTIVE_상태로_변경되고_정식_토큰이_발급된다() {
+            void TEMP_상태_유저가_프로필_완성_시_ACTIVE_상태로_변경되고_정식_토큰이_발급된다(
+                    String provider) {
                 // given
-                Users tempUser = Users.builder().id(1L).status(UserStatus.TEMP).build();
+                Users tempUser = SocialSignupFixture.tempUser(1L);
+                assertEquals(SocialSignupFixture.TEMP_NICKNAME, tempUser.getNickName());
 
                 UserRequestDTO.SocialCompleteDTO request =
                         new UserRequestDTO.SocialCompleteDTO(
@@ -169,7 +180,8 @@ class UserServiceImplTest {
 
                 when(userRepository.findById(eq(tempUser.getId())))
                         .thenReturn(Optional.of(tempUser));
-                when(userRepository.findByNickName(eq("완성닉네임"))).thenReturn(Optional.empty());
+                when(userRepository.findByNickName(eq("완성닉네임")))
+                        .thenReturn(Optional.empty());
                 when(jobRepository.findById(anyLong()))
                         .thenReturn(Optional.of(Job.builder().id(1L).build()));
                 when(userRepository.save(any(Users.class)))
@@ -177,12 +189,13 @@ class UserServiceImplTest {
                 when(categoryRepository.findAll()).thenReturn(new ArrayList<>());
                 when(usersCategoryColorRepository.saveAll(anyList()))
                         .thenAnswer(invocation -> invocation.getArgument(0));
-                when(authAccountRepository.findEmailByUserIdAndProvider(eq(1L), eq(Provider.KAKAO)))
+                when(authAccountRepository.findEmailByUserIdAndProvider(
+                                eq(1L), eq(Provider.valueOf(provider))))
                         .thenReturn(Optional.of("kakao@example.com"));
                 when(tokenIssueService.issueForStatus(
                                 eq(1L),
                                 eq("kakao@example.com"),
-                                eq("KAKAO"),
+                                eq(provider),
                                 any(),
                                 eq(UserStatus.ACTIVE),
                                 eq("test-device"),
@@ -193,7 +206,7 @@ class UserServiceImplTest {
 
                 // when
                 UserResponseDTO.JoinResultDTO result =
-                        userService.socialCompleteProfile(tempUser.getId(), "KAKAO", request);
+                        userService.socialCompleteProfile(tempUser.getId(), provider, request);
 
                 // then
                 assertEquals(UserStatus.ACTIVE, tempUser.getStatus());
@@ -201,6 +214,83 @@ class UserServiceImplTest {
                 assertEquals("accessToken", result.getTokenResponse().getAccessToken());
                 assertEquals("refreshToken", result.getTokenResponse().getRefreshToken());
                 verify(termsAgreementService).upsertTerms(any(Users.class), any());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("닉네임 중복 검증")
+    class NicknameValidation {
+        @Nested
+        @DisplayName("성공")
+        class Success {
+            @Test
+            @DisplayName("본인 닉네임 조회 시 사용을 허용한다")
+            void 본인_닉네임_조회_시_사용을_허용한다() {
+                Users user = SocialSignupFixture.tempUser(1L);
+                when(userRepository.findByNickName(user.getNickName()))
+                        .thenReturn(Optional.of(user));
+                org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                        () -> userService.checkNicknameAvailable(user.getNickName(), user.getId()));
+            }
+
+            @Test
+            @DisplayName("비로그인 상태에서 미사용 닉네임 조회 시 사용을 허용한다")
+            void 비로그인_상태에서_미사용_닉네임_조회_시_사용을_허용한다() {
+                String nickname = SocialSignupFixture.NICKNAME;
+                when(userRepository.findByNickName(nickname)).thenReturn(Optional.empty());
+                org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                        () -> userService.checkNicknameAvailable(nickname, null));
+            }
+        }
+
+        @Nested
+        @DisplayName("실패")
+        class Failure {
+            @ParameterizedTest
+            @NullSource
+            @ValueSource(longs = 2L)
+            @DisplayName("다른 사용자 또는 비로그인 상태에서 사용 중인 닉네임 조회 시 중복 오류를 반환한다")
+            void 다른_사용자_또는_비로그인_상태에서_사용중인_닉네임_조회_시_중복_오류를_반환한다(Long userId) {
+                Users owner = SocialSignupFixture.tempUser(1L);
+                when(userRepository.findByNickName(owner.getNickName()))
+                        .thenReturn(Optional.of(owner));
+                UserHandler ex =
+                        assertThrows(
+                                UserHandler.class,
+                                () ->
+                                        userService.checkNicknameAvailable(
+                                                owner.getNickName(), userId));
+                assertEquals(UserErrorStatus._DUPLICATE_NICKNAME, ex.getCode());
+            }
+
+            @ParameterizedTest
+            @ValueSource(strings = {"KAKAO", "GOOGLE", "NAVER"})
+            @DisplayName("다른 사용자 닉네임으로 소셜 가입 완료 시 중복 오류를 반환한다")
+            void 다른_사용자_닉네임으로_소셜_가입_완료_시_중복_오류를_반환한다(String provider) {
+                Users user = SocialSignupFixture.tempUser(1L);
+                Users owner = SocialSignupFixture.tempUser(2L);
+                when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+                when(userRepository.findByNickName(owner.getNickName()))
+                        .thenReturn(Optional.of(owner));
+                UserRequestDTO.SocialCompleteDTO request =
+                        new UserRequestDTO.SocialCompleteDTO(
+                                owner.getNickName(),
+                                Gender.MALE,
+                                1L,
+                                List.of(),
+                                List.of(),
+                                Collections.emptyMap(),
+                                "test-device",
+                                DeviceType.PHONE);
+                UserHandler ex =
+                        assertThrows(
+                                UserHandler.class,
+                                () -> userService.socialCompleteProfile(1L, provider, request));
+                assertEquals(UserErrorStatus._DUPLICATE_NICKNAME, ex.getCode());
+                assertEquals(UserStatus.TEMP, user.getStatus());
+                verify(userRepository, never()).save(any());
+                verifyNoInteractions(tokenIssueService);
             }
         }
     }
@@ -362,16 +452,11 @@ class UserServiceImplTest {
                 when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
                 // when & then
-                com.umc.linkyou.apiPayload.exception.handler.UserHandler ex =
-                        assertThrows(
-                                com.umc.linkyou.apiPayload.exception.handler.UserHandler.class,
-                                () -> userService.loginUser(request));
-                assertEquals(
-                        com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus._LOGIN_FAILED,
-                        ex.getCode());
+                UserHandler ex =
+                        assertThrows(UserHandler.class, () -> userService.loginUser(request));
+                assertEquals(UserErrorStatus._LOGIN_FAILED, ex.getCode());
                 verify(userStatusValidator, never()).isWithinWithdrawGracePeriod(any());
-                verify(tokenIssueService, never())
-                        .issueRecoveryToken(any(), any(), any(), any());
+                verify(tokenIssueService, never()).issueRecoveryToken(any(), any(), any(), any());
             }
 
             @Test
@@ -409,8 +494,7 @@ class UserServiceImplTest {
                 when(userStatusValidator.isWithinWithdrawGracePeriod(user)).thenReturn(false);
                 doThrow(
                                 new com.umc.linkyou.apiPayload.exception.GeneralException(
-                                        com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus
-                                                ._USER_INACTIVE))
+                                        UserErrorStatus._USER_INACTIVE))
                         .when(userStatusValidator)
                         .validateLoginAllowed(user);
 
@@ -419,9 +503,7 @@ class UserServiceImplTest {
                         assertThrows(
                                 com.umc.linkyou.apiPayload.exception.GeneralException.class,
                                 () -> userService.loginUser(request));
-                assertEquals(
-                        com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus._USER_INACTIVE,
-                        ex.getCode());
+                assertEquals(UserErrorStatus._USER_INACTIVE, ex.getCode());
             }
         }
     }
@@ -440,8 +522,7 @@ class UserServiceImplTest {
                 // given
                 Job oldJob = Job.builder().id(1L).build();
                 Job newJob = Job.builder().id(2L).build();
-                Users user =
-                        Users.builder().id(1L).nickName("기존닉네임").job(oldJob).build();
+                Users user = Users.builder().id(1L).nickName("기존닉네임").job(oldJob).build();
 
                 UserRequestDTO.UpdateProfileDTO request =
                         new UserRequestDTO.UpdateProfileDTO(null, 2L, null, null);
@@ -467,8 +548,7 @@ class UserServiceImplTest {
             void nickname만_보내면_닉네임만_변경되고_직업은_유지된다() {
                 // given
                 Job oldJob = Job.builder().id(1L).build();
-                Users user =
-                        Users.builder().id(1L).nickName("기존닉네임").job(oldJob).build();
+                Users user = Users.builder().id(1L).nickName("기존닉네임").job(oldJob).build();
 
                 UserRequestDTO.UpdateProfileDTO request =
                         new UserRequestDTO.UpdateProfileDTO("새닉네임", null, null, null);
@@ -505,14 +585,11 @@ class UserServiceImplTest {
                 when(jobRepository.findById(eq(0L))).thenReturn(Optional.empty());
 
                 // when & then
-                com.umc.linkyou.apiPayload.exception.handler.UserHandler ex =
+                UserHandler ex =
                         assertThrows(
-                                com.umc.linkyou.apiPayload.exception.handler.UserHandler.class,
+                                UserHandler.class,
                                 () -> userService.updateUserProfile(1L, request));
-                assertEquals(
-                        com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus
-                                ._INVALID_JOB_ID,
-                        ex.getCode());
+                assertEquals(UserErrorStatus._INVALID_JOB_ID, ex.getCode());
                 verify(userRepository, never()).save(any());
             }
 
@@ -530,14 +607,11 @@ class UserServiceImplTest {
                         .thenReturn(Optional.of(Users.builder().id(2L).build()));
 
                 // when & then
-                com.umc.linkyou.apiPayload.exception.handler.UserHandler ex =
+                UserHandler ex =
                         assertThrows(
-                                com.umc.linkyou.apiPayload.exception.handler.UserHandler.class,
+                                UserHandler.class,
                                 () -> userService.updateUserProfile(1L, request));
-                assertEquals(
-                        com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus
-                                ._DUPLICATE_NICKNAME,
-                        ex.getCode());
+                assertEquals(UserErrorStatus._DUPLICATE_NICKNAME, ex.getCode());
                 verify(userRepository, never()).save(any());
             }
         }

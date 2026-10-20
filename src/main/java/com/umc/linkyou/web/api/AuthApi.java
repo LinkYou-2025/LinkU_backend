@@ -132,11 +132,15 @@ public interface AuthApi {
                     `nickname`의 중복 여부를 확인합니다.
                     - 이미 사용 중인 닉네임이면 중복 닉네임 에러를 반환합니다.
                     - 사용 가능한 닉네임이면 성공 응답과 안내 문구를 반환합니다.
+                    - 소셜 가입 중에는 발급받은 Bearer 토큰을 전달하면 본인의 닉네임은 중복에서 제외합니다.
+                    - 토큰 없이 호출하면 전체 사용자를 기준으로 중복을 확인합니다.
                     """)
     @ApiAuthSuccessCode(AuthSuccessStatus.NICKNAME_AVAILABLE)
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._DUPLICATE_NICKNAME})
     @GetMapping("/check-nickname")
-    ApiResponse<Object> checkNickname(@RequestParam String nickname);
+    ApiResponse<Object> checkNickname(
+            @RequestParam String nickname,
+            @CurrentUser(required = false) CustomUserDetails userDetails);
 
     @Operation(
             summary = "닉네임 조회",

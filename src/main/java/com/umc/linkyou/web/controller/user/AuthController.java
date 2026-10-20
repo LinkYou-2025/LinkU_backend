@@ -67,8 +67,11 @@ public class AuthController implements AuthApi {
     }
 
     @Override
-    public ApiResponse<Object> checkNickname(@RequestParam String nickname) {
-        userService.checkNicknameAvailable(nickname);
+    public ApiResponse<Object> checkNickname(
+            @RequestParam String nickname,
+            @CurrentUser(required = false) CustomUserDetails userDetails) {
+        userService.checkNicknameAvailable(
+                nickname, userDetails == null ? null : userDetails.getUserId());
         return ApiResponse.onSuccess(AuthSuccessStatus.NICKNAME_AVAILABLE);
     }
 

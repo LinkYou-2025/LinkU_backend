@@ -67,6 +67,42 @@ class UserLoginServiceTest {
         }
 
         @Test
+        @DisplayName("TEMP 소셜 계정은 가입용 액세스 토큰만 받고 리프레시 토큰은 받지 않는다")
+        void TEMP_소셜_계정은_가입용_액세스_토큰만_받는다() {
+            Users user = Users.builder()
+                    .id(4L)
+                    .role(Role.USER)
+                    .status(UserStatus.TEMP)
+                    .build();
+            when(userStatusValidator.isWithinWithdrawGracePeriod(user)).thenReturn(false);
+            when(tokenIssueService.issueForStatus(
+                            4L,
+                            "temp@example.com",
+                            Provider.GOOGLE.name(),
+                            Role.USER,
+                            UserStatus.TEMP,
+                            "device-temp",
+                            DeviceType.PHONE))
+                    .thenReturn(new TokenIssueService.IssuedTokenPair("onboarding-access", null));
+
+            MobileLoginResponse result = userLoginService.handleSocialLogin(
+                    user, "temp@example.com", Provider.GOOGLE, "device-temp", DeviceType.PHONE);
+
+            assertEquals("onboarding-access", result.getAccessToken());
+            assertNull(result.getRefreshToken());
+            assertEquals(UserStatus.TEMP, result.getStatus());
+            verify(userStatusValidator).validateLoginAllowed(user);
+            verify(tokenIssueService).issueForStatus(
+                    4L,
+                    "temp@example.com",
+                    Provider.GOOGLE.name(),
+                    Role.USER,
+                    UserStatus.TEMP,
+                    "device-temp",
+                    DeviceType.PHONE);
+        }
+
+        @Test
         @DisplayName("성공 - 탈퇴 유예 기간 이내인 유저는 복구 전용 토큰만 받는다")
         void 유예_기간_이내인_유저는_복구_전용_토큰만_받는다() {
             // given
