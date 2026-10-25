@@ -7,6 +7,8 @@ import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import lombok.extern.slf4j.Slf4j;
@@ -39,13 +41,17 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+// 서비스에서 예외가 발생했을 시, ExceptionAdvice를 거쳐 예외 종류에 따라 response가 반환됨
 @Slf4j
 @RestControllerAdvice(annotations = {RestController.class})
 public class ExceptionAdvice extends ResponseEntityExceptionHandler {
 
-
+    // ConstraintViolationException으로 처리할 예외 처리 메소드
+    // 입력값이 정해둔 검증 조건을 어겼을때 ex) 한번에 조회하는 개수가 최소 1개
+    // @Validated가 붙은 것에서 주로 발생(엔티티 검증 등)
     @ExceptionHandler
     public ResponseEntity<Object> validation(ConstraintViolationException e, WebRequest request) {
+        //ConstraintViolation중 하나만 반환
         String errorMessage = e.getConstraintViolations().stream()
                 .map(ConstraintViolation::getMessage)
                 .findFirst()
@@ -54,6 +60,8 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         log.warn("[Validation Error] {}", errorMessage, e);
         return handleExceptionInternalConstraint(e, ErrorStatus.valueOf(errorMessage), HttpHeaders.EMPTY,request);
     }
+    // 요청 DTO 검증 실패로 발생한 MethodArgumentNotValidException
+    // 주로 @Valid @RequestBody로 받은 값이 @NotBlank, @Email 등의 조건을 위반할 때 발생
     @Override
     public ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException e,
                                                                @NonNull HttpHeaders headers,
@@ -66,6 +74,8 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         return handleExceptionInternalArgs(e, HttpHeaders.EMPTY, request, errors);
     }
 
+    // 요청 파라미터를 필요한 Java 타입으로 변환하지 못했을 때 MethodArgumentTypeMismatchException
+    // 정수 파라미터에 "abc"를 전달하거나 YearMonth에 "2026-13"을 전달한 경우
     private static final Map<Class<?>, String> TYPE_MISMATCH_MESSAGES = Map.of(
             YearMonth.class, "month는 YYYY-MM 형식이어야 합니다. (예: 2026-08)"
     );
@@ -131,11 +141,26 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         return handleExceptionInternalConstraint(e, AuthErrorStatus.PERMISSION_DENIED, HttpHeaders.EMPTY, request);
     }
 
+    // JWT 만료, 검증 실패를 인증 오류로 반환
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<Object> handleJwtException(JwtException e, HttpServletRequest request) {
+        AuthErrorStatus status = e instanceof ExpiredJwtException
+                ? AuthErrorStatus.EXPIRED_TOKEN
+                : AuthErrorStatus.INVALID_TOKEN;
+        var reason = status.getReasonHttpStatus();
+
+        log.warn("[JWT Error] URI: {}, Method: {}, Code: {}, Exception: {}",
+                request.getRequestURI(), request.getMethod(), reason.getCode(),
+                e.getClass().getSimpleName());
+
+        ApiResponse<Object> body = ApiResponse.onFailure(
+                reason.getCode(), reason.getMessage(), null);
+        return ResponseEntity.status(reason.getHttpStatus()).body(body);
+    }
+
     @ExceptionHandler
     public ResponseEntity<Object> exception(Exception e, WebRequest request) {
-        log.error("[Unhandled Exception] {}", e.getMessage(), e);
-
-        return handleExceptionInternalFalse(e, request, e.getMessage());
+        return handleExceptionInternalFalse(e, request);
     }
 
 
@@ -143,10 +168,10 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     @ExceptionHandler(value = GeneralException.class)
     public ResponseEntity onThrowException(GeneralException generalException, HttpServletRequest request) {
         ErrorReasonDTO errorReasonHttpStatus = generalException.getErrorReasonHttpStatus();
-        log.error("[GeneralException] Code: {}, Message: {}, URI: {}", 
-                errorReasonHttpStatus.getCode(), 
+        log.error("[GeneralException] Code: {}, Message: {}, URI: {}",
+                errorReasonHttpStatus.getCode(),
                 errorReasonHttpStatus.getMessage(),
-                request.getRequestURI(), 
+                request.getRequestURI(),
                 generalException);
         return handleExceptionInternal(generalException,errorReasonHttpStatus, request);
     }
@@ -183,18 +208,19 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
         );
     }
 
-    private ResponseEntity<Object> handleExceptionInternalFalse(Exception e, WebRequest request, String errorPoint) {
+    // 내부 예외 상세는 서버 로그에만 기록하고 응답에는 포함하지 않는다.
+    private ResponseEntity<Object> handleExceptionInternalFalse(Exception e, WebRequest request) {
         var reason = CommonErrorStatus._INTERNAL_SERVER_ERROR.getReasonHttpStatus();
-        ApiResponse<Object> body = ApiResponse.onFailure(reason.getCode(), reason.getMessage(), errorPoint);
+        ApiResponse<Object> body = ApiResponse.onFailure(reason.getCode(), reason.getMessage(), null);
 
         if (request instanceof ServletWebRequest servletRequest) {
-            log.error("[API Error] URI: {}, Method: {}, Code: {}, Message: {}, ErrorPoint: {}",
+            log.error("[API Error] URI: {}, Method: {}, Code: {}",
                     servletRequest.getRequest().getRequestURI(),
                     servletRequest.getRequest().getMethod(),
                     reason.getCode(),
-                    reason.getMessage(),
-                    errorPoint,
                     e);
+        } else {
+            log.error("[API Error] Code: {}", reason.getCode(), e);
         }
 
         return super.handleExceptionInternal(e, body, HttpHeaders.EMPTY, reason.getHttpStatus(), request);
