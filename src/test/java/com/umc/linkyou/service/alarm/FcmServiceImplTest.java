@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -55,6 +56,22 @@ class FcmServiceImplTest {
                 userId,
                 FcmSendRequestDTO.withValues(
                         AlarmType.CURATION_UPDATED, 100L, 1000L, Map.of("nickname", nickname)));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    @DisplayName("단일 토큰 전송 시 alarmId를 data에 포함한다")
+    void 단일토큰_전송_alarmId포함() throws Exception {
+        fcmServiceImpl.sendToToken(
+                "test-token",
+                FcmSendRequestDTO.of(AlarmType.ANNOUNCEMENT_UPDATE, 100L, 1000L));
+
+        ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
+        verify(firebaseMessaging).send(captor.capture());
+        Map<String, String> data = (Map<String, String>) ReflectionTestUtils.getField(captor.getValue(), "data");
+        assertThat(data)
+                .containsEntry("alarmId", "1000")
+                .containsEntry("targetId", "100");
     }
 
     @Nested

@@ -35,7 +35,7 @@ public class AiArticleConverter {
                 : linku.getImgUrl();
         return AiArticleResponseDTO.AiArticleResultDTO.builder()
                 .id(entity.getId())
-                .linkuId(linku.getLinkuId())
+                .userLinkuId(usersLinku.getUserLinkuId())
                 .emotionId(emotion != null ? emotion.getEmotionId() : null)
                 .emotionName(emotion != null ? emotion.getName() : null)
                 .categoryName(linku.getCategory() != null ? linku.getCategory().getCategoryName() : null)

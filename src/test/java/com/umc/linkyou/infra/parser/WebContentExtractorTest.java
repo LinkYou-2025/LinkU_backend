@@ -106,8 +106,9 @@ class WebContentExtractorTest {
             @DisplayName("SSRF 정책에 의해 차단되면 크롤링 금지 예외를 던진다")
             void SSRF_차단시_예외를_던진다() throws Exception {
                 // given
+                // domainRepository.findByDomainTail 은 extractTextFromDocument()에서만 호출되는데,
+                // fetchDocument 단계에서 바로 예외가 나므로 여기까지 도달하지 않는다 (스텁하면 UnnecessaryStubbingException).
                 given(robotsTxtChecker.isAllowed(URL, UA)).willReturn(true);
-                given(domainRepository.findByDomainTail("example.com")).willReturn(Optional.empty());
                 given(safeUrlFetcher.fetchDocument(eq(URL), eq(UA), anyInt()))
                         .willThrow(new SsrfGuard.BlockedException("사설 IP 차단"));
 

@@ -42,9 +42,9 @@ public interface AiArticleApi {
             AiArticleErrorStatus._CONTENT_EXTRACTION_FAILED,
             AiArticleErrorStatus._CONTENT_EXTRACTION_PROHIBITED
     })
-    @PostMapping("/{linkuid}")
+    @PostMapping("/aiarticle/{userLinkuId}")
     ApiResponse<AiArticleResponseDTO.AiArticleResultDTO> saveOrGetAiArticle(
-            @Parameter(description = "AI 요약을 저장/조회할 대상 링크 ID (Linku 엔티티의 linkuId). 요청 유저가 저장한 링크여야 합니다.", example = "101") @PathVariable("linkuid") Long linkuId,
+            @Parameter(description = "AI 요약을 저장/조회할 대상 사용자 링크 ID", example = "101") @PathVariable Long userLinkuId,
             @CurrentUser CustomUserDetails userDetails
     );
 
@@ -60,7 +60,7 @@ public interface AiArticleApi {
                     - `hasNext=false`이면 `nextCursor`는 null이며 더 이상 가져올 데이터가 없다는 뜻입니다.
 
                     **응답 항목 (linkuList의 각 원소)**
-                    - `linkuId`, `linku`(원본 URL), `emotionId`, `domain`(도메인명), `domainImageUrl`, `title`, `linkuImageUrl`, `categoryId`, `categoryName`을 반환합니다.
+                    - `userLinkuId`, `linku`(원본 URL), `emotionId`, `domain`(도메인명), `domainImageUrl`, `title`, `linkuImageUrl`, `categoryId`, `categoryName`을 반환합니다.
                     - `categoryId`/`categoryName`은 "전체" 탭처럼 여러 카테고리가 섞여 조회될 때 각 항목이 어느 카테고리인지 구분하기 위해 항상 포함됩니다.
 
                     **전체 카테고리 조회**

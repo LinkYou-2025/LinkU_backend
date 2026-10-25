@@ -1,14 +1,10 @@
 package com.umc.linkyou.repository.userRepository;
 
-import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.*;
-import com.umc.linkyou.domain.classification.QJob;
 import com.umc.linkyou.domain.enums.UserStatus;
-import com.umc.linkyou.domain.folder.QFolder;
 import com.umc.linkyou.domain.mapping.QUsersLinku;
 import com.umc.linkyou.domain.mapping.folder.QUsersFolder;
-import com.umc.linkyou.web.dto.UserResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 

@@ -7,6 +7,7 @@ import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
+import com.umc.linkyou.web.dto.folder.linku.FolderSummaryDTO;
 
 import java.util.Map;
 
@@ -36,6 +37,15 @@ public class FolderConverter {
                 .folderName(folder.getFolderName())
                 .isBookmarked(bookmarkMap.getOrDefault(folder.getFolderId(), false))
                 .categoryId(category != null ? category.getCategoryId() : null)
+                .build();
+    }
+
+    public static FolderSummaryDTO toFolderSummaryDTO(Folder folder, boolean isBookmarked, boolean isSharing) {
+        return FolderSummaryDTO.builder()
+                .folderId(folder.getFolderId())
+                .folderName(folder.getFolderName())
+                .isBookmarked(isBookmarked)
+                .isSharing(isSharing ? "share" : "private")
                 .build();
     }
 

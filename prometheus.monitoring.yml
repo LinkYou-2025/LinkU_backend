@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  # dev/prod 모두 job_name은 동일하게 두고 env 라벨로만 구분
+  - job_name: "linku-app"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["172.31.44.33:8080"]
+        labels:
+          env: dev
+      - targets: ["172.31.10.14:8080"]
+        labels:
+          env: prod
+
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["172.31.44.33:9100"]
+        labels:
+          env: dev
+      - targets: ["172.31.10.14:9100"]
+        labels:
+          env: prod

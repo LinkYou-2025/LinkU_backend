@@ -87,6 +87,19 @@ PR 본문 구성:
 3. **Test** — 어떻게 테스트했는지
 4. **Review Points** — 리뷰어가 집중해야 할 부분 (선택)
 
+### 릴리즈 PR 예외
+
+`🚀 release` 라벨이 붙는 `develop → production` PR은 특정 이슈에 종속되지 않으므로 위 형식 대신 버전만 표기:
+
+```
+Release vX.Y.Z
+```
+
+예: `Release v1.4.0`
+
+- `#이슈번호` 없음 — 릴리즈 PR은 여러 이슈를 묶은 배포 단위라 특정 이슈에 귀속되지 않음
+- `vX.Y.Z`는 사람이 직접 쓰지 않고 `sync-release-title` 워크플로우가 다음 버전을 계산해 자동으로 채움 (`release-prod.yml`이 실제로 생성할 태그/Release 제목과 동일)
+
 ---
 
 ## Merge 규칙

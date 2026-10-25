@@ -2,17 +2,15 @@ package com.umc.linkyou.service.users;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.converter.TermsConverter;
 import com.umc.linkyou.domain.TermsAgreement;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.TermsType;
 import com.umc.linkyou.repository.TermsAgreementRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.web.dto.UserRequestDTO;
-import com.umc.linkyou.web.dto.UserResponseDTO;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
+import com.umc.linkyou.web.dto.user.UserRequestDTO;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
+import com.umc.linkyou.web.dto.user.MarketingAgreeResponseDTO;
 import com.umc.linkyou.jwt.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -83,17 +80,20 @@ public class TermsAgreementService {
     }
 
     @Transactional
-    public void toggleMarketing(CustomUserDetails userDetails) {
-        termsAgreementRepository.findByUserIdAndTermsType(userDetails.getUserId(), TermsType.MARKETING)
-                .ifPresentOrElse(
-                        // 기존 기록이 있으면 동의 상태 반전
-                        agreement -> TermsConverter.updateAgreement(agreement, !agreement.getIsAgreed()),
-                        // 없으면 최초 토글이므로 동의(true) 상태로 신규 생성
-                        () -> {
-                            Users user = userRepository.findById(userDetails.getUserId())
-                                    .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
-                            termsAgreementRepository.save(
-                                    TermsConverter.toSingleTermAgreement(user, TermsType.MARKETING, true));
-                        });
+    public MarketingAgreeResponseDTO toggleMarketing(CustomUserDetails userDetails) {
+        TermsAgreement agreement = termsAgreementRepository
+                .findByUserIdAndTermsType(userDetails.getUserId(), TermsType.MARKETING)
+                .map(existingAgreement -> {
+                    TermsConverter.updateAgreement(existingAgreement, !existingAgreement.getIsAgreed());
+                    return existingAgreement;
+                })
+                .orElseGet(() -> {
+                    Users user = userRepository.findById(userDetails.getUserId())
+                            .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+                    return termsAgreementRepository.save(
+                            TermsConverter.toSingleTermAgreement(user, TermsType.MARKETING, true));
+                });
+
+        return new MarketingAgreeResponseDTO(agreement.getIsAgreed());
     }
 }

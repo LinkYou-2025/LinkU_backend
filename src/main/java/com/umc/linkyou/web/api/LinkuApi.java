@@ -1,6 +1,7 @@
 package com.umc.linkyou.web.api;
 
 import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
@@ -25,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.YearMonth;
 import java.util.List;
 
 @Tag(name = "linku-controller", description = "링크(Linku) 관련 API")
@@ -46,6 +48,8 @@ public interface LinkuApi {
                       - job_id 6 → situation 41~48
                     - **title** (선택): 미입력 시 AI 분석값이 사용됩니다.
                     - **image** (선택): 대표 이미지. 미첨부 시 URL에서 자동 추출합니다.
+                    
+                    Content-Type 주의: 이 API는 파일 업로드(image)를 지원하기 위해 multipart/form-data로만 요청을 받습니다. Swagger UI에는 (MultipartFile을 제외한) 나머지 파라미터들이 편의상 query 타입으로 표시되지만, 이는 문서화 라이브러리(springdoc)의 표기 방식일 뿐이며 실제로는 반드시 multipart/form-data 요청의 폼 필드로 함께 전송해야 합니다. 순수 쿼리스트링이나 application/json으로 보내면 415(Unsupported Media Type)가 발생합니다.
                     """
     )
     @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_INVALID_URL, LinkuErrorStatus._LINKU_VIDEO_NOT_ALLOWED, LinkuErrorStatus._KEYWORD_NOT_FOUND, LinkuErrorStatus._SITUATION_NOT_MATCH_JOB,LinkuErrorStatus._LINKU_CONFLICT})
@@ -69,18 +73,10 @@ public interface LinkuApi {
 
     @Operation(summary = "링크 상세 조회 (인증된 사용자)", description = "인증된 사용자의 링크 상세 정보를 조회합니다.")
     @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
-    @GetMapping("/{linkuid}")
+    @GetMapping("/{userLinkuId}")
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
             @CurrentUser CustomUserDetails userDetails,
-            @PathVariable("linkuid") Long linkuid
-    );
-
-    @Operation(summary = "링크 상세 조회 (사용자 ID 지정)", description = "특정 사용자 ID와 링크 ID로 링크 상세 정보를 조회합니다.")
-    @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._LINKU_NOT_FOUND, LinkuErrorStatus._USER_LINKU_NOT_FOUND})
-    @GetMapping("/{userId}/{linkuId}")
-    ApiResponse<LinkuResponseDTO.LinkuResultDTO> detailLinku(
-            @PathVariable Long userId,
-            @PathVariable Long linkuId
+            @PathVariable Long userLinkuId
     );
 
     @Operation(summary = "최근 열람한 링크 조회", description = "사용자가 최근에 열람한 링크 목록을 조회합니다. limit 파라미터로 조회 개수를 지정할 수 있습니다.")
@@ -90,11 +86,12 @@ public interface LinkuApi {
             @RequestParam(defaultValue = "10") int limit
     );
 
-    @Operation(summary = "저번 달 미열람 링크 조회", description = "저번 달에 저장만 하고 한 번도 열어보지 않은 링크 목록을 조회합니다.")
-    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
+    @Operation(summary = "저번 달 미열람 링크 조회", description = "month(YYYY-MM) 기준 저번 달에 저장만 하고 한 번도 열어보지 않은 링크 목록을 조회합니다. month를 생략하면 이번 달이 month가 됩니다.")
+    @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND}, commonErrorStatus = {CommonErrorStatus._BAD_REQUEST})
     @GetMapping("/unread")
     ApiResponse<List<LinkuResponseDTO.LinkuSimpleDTO>> getLastMonthUnreadLinkus(
-            @CurrentUser CustomUserDetails userDetails
+            @CurrentUser CustomUserDetails userDetails,
+            @RequestParam(required = false) YearMonth month
     );
 
     @Operation(
@@ -106,6 +103,8 @@ public interface LinkuApi {
                     - **categoryId** (선택): 카테고리를 변경하면 링크(Linku)의 공유 카테고리 자체는 바뀌지 않고, 내 폴더 중 해당 카테고리의 중분류(루트) 폴더로 이 링크가 이동합니다. 소분류로는 이동하지 않습니다.
                     - URL 자체는 이 API로 변경할 수 없습니다.
                     - 소분류 폴더로의 이동은 이 API로 처리하지 않고 별도의 링크 폴더 이동 API(`PATCH /linku/{linkuId}/folder`)를 사용해야 합니다.
+                    
+                    Content-Type 주의: 이 API는 파일 업로드(image)를 지원하기 위해 multipart/form-data로만 요청을 받습니다. Swagger UI에는 (MultipartFile을 제외한) 나머지 파라미터들이 편의상 query 타입으로 표시되지만, 이는 문서화 라이브러리(springdoc)의 표기 방식일 뿐이며 실제로는 반드시 multipart/form-data 요청의 폼 필드로 함께 전송해야 합니다. 순수 쿼리스트링이나 application/json으로 보내면 415(Unsupported Media Type)가 발생합니다.
                     """
     )
     @ApiErrorCode(
@@ -114,10 +113,10 @@ public interface LinkuApi {
             categoryErrorStatus = {CategoryErrorStatus._CATEGORY_NOT_FOUND},
             folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND}
     )
-    @PatchMapping(value = "/{linkuId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PatchMapping(value = "/{userLinkuId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuResultDTO> updateLinku(
             @CurrentUser CustomUserDetails userDetails,
-            @PathVariable Long linkuId,
+            @PathVariable Long userLinkuId,
             @RequestParam(required = false) String memo,
             @RequestParam(required = false) Long emotionId,
             @RequestParam(required = false) Long situationId,
@@ -129,10 +128,10 @@ public interface LinkuApi {
 
     @Operation(summary = "링크 폴더 이동", description = "링크가 속한 폴더를 변경합니다. 링크(Linku)는 동일 URL을 저장한 모든 유저가 공유하는 데이터이므로, 이 API는 해당 유저 소유의 폴더 매핑만 변경하며 링크 자체의 카테고리는 변경하지 않습니다. 이동 대상 폴더는 중분류(최상위 폴더)만 지정할 수 있습니다.")
     @ApiErrorCode(linkuErrorStatus = {LinkuErrorStatus._USER_LINKU_NOT_FOUND}, folderErrorStatus = {FolderErrorStatus._FOLDER_NOT_FOUND, FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN})
-    @PatchMapping(value = "/{linkuId}/folder", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{userLinkuId}/folder", consumes = MediaType.APPLICATION_JSON_VALUE)
     ApiResponse<LinkuResponseDTO.LinkuFolderChangeResultDTO> updateLinkuFolder(
             @CurrentUser CustomUserDetails userDetails,
-            @PathVariable Long linkuId,
+            @PathVariable Long userLinkuId,
             @Valid @RequestBody LinkuRequestDTO.LinkuFolderUpdateDTO updateDTO
     );
 

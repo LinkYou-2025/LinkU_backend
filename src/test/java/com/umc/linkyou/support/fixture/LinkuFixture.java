@@ -90,7 +90,7 @@ public final class LinkuFixture {
 
     public static LinkuSearchResponseDTO.LinkuSearchItemDTO searchItem(Long userLinkuId, String title) {
         return new LinkuSearchResponseDTO.LinkuSearchItemDTO(
-                userLinkuId, userLinkuId, title, null, List.of(), "https://img.example.com/icon.png", "example");
+                userLinkuId, title, null, List.of(), "https://img.example.com/icon.png", "example");
     }
 
     public static LinkuQuickSearchResponseDTO quickSearchItem(String title, Long userLinkuId) {

@@ -47,6 +47,5 @@ out/
 # Claude Code worktrees
 .claude/worktrees/
 
-/infra/envs/prod/terraform.tfvars
-/infra/envs/dev/terraform.tfvars
+**/terraform.tfvars
 .DS_Store

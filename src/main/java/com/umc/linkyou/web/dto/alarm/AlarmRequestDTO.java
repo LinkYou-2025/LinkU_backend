@@ -24,7 +24,9 @@ public final class AlarmRequestDTO {
             @NotBlank(message = "fcmToken은 필수입니다.")
             String fcmToken,
             @NotNull(message = "type은 필수입니다.")
-            AlarmType type
+            AlarmType type,
+            @NotNull(message = "targetId는 필수입니다.")
+            Long targetId
     ) {
     }
 

@@ -7,6 +7,8 @@ import com.umc.linkyou.domain.enums.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 /**
  * 액세스 토큰과 리프레시 토큰을 발급하는 서비스
  */
@@ -37,7 +39,8 @@ public class TokenIssueService {
             String deviceId,
             DeviceType deviceType
     ) {
-        String accessToken = issueAccessToken(userId, email, provider, role);
+        String sessionId = UUID.randomUUID().toString();
+        String accessToken = jwtTokenProvider.createAccessToken(userId, email, provider, role, sessionId);
         String refreshToken = jwtTokenProvider.createRefreshToken(email, provider);
         String tokenId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
         long expiresAt = System.currentTimeMillis() + jwtProperties.expiration().refresh();
@@ -48,8 +51,9 @@ public class TokenIssueService {
                 deviceId,
                 tokenId,
                 deviceType,
-                expiresAt
-        );
+                expiresAt,
+                sessionId,
+                jwtTokenProvider.getAccessTokenExpiresAt(accessToken));
 
         return new IssuedTokenPair(accessToken, refreshToken);
     }

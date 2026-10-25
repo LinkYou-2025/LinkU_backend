@@ -20,8 +20,8 @@ import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.web.api.AuthApi;
 import com.umc.linkyou.web.dto.EmailRequestDTO;
 import com.umc.linkyou.web.dto.PasswordResetRequestDTO;
-import com.umc.linkyou.web.dto.UserRequestDTO;
-import com.umc.linkyou.web.dto.UserResponseDTO;
+import com.umc.linkyou.web.dto.user.UserRequestDTO;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 
 import lombok.RequiredArgsConstructor;
 

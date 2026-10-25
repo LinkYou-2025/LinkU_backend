@@ -1,13 +1,21 @@
 spring:
   config:
     import: optional:file:/app/config/application-secret.properties
+
   jpa:
     show-sql: false
 
   flyway:
     locations:
-      - classpath:db/migration
-      - classpath:db/seed
+      - classpath:db/prod/migration
+      - classpath:db/prod/seed
+    placeholders:
+      cloudfrontDomain: ${AWS_CLOUDFRONT_DOMAIN}
+
+cloud:
+  aws:
+    region:
+      static-region: ap-northeast-2
 
 fcm:
   credentials:

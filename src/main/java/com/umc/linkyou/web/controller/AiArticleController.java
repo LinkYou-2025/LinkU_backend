@@ -14,27 +14,25 @@ import org.springframework.web.bind.annotation.*;
 
 @ApiV1
 @RestController
-@RequestMapping("/aiarticle")
 @RequiredArgsConstructor
 public class AiArticleController implements AiArticleApi {
 
     final private AiArticleService aiArticleService;
 
     @Override
-    @PostMapping("/{linkuid}")
     public ApiResponse<AiArticleResponseDTO.AiArticleResultDTO> saveOrGetAiArticle(
-            @PathVariable("linkuid") Long linkuId,
+            @PathVariable Long userLinkuId,
             @CurrentUser CustomUserDetails userDetails
     ) {
         Long userId = userDetails.getUserId();
 
         AiArticleResponseDTO.AiArticleResultDTO result =
-                aiArticleService.saveOrGetAiArticle(linkuId, userId);
+                aiArticleService.saveOrGetAiArticle(userLinkuId, userId);
         return ApiResponse.onSuccess(AiArticleSuccessStatus.AI_ARTICLE_OK, result);
     }
 
     @Override
-    @GetMapping
+    @GetMapping("/aiarticle")
     public ApiResponse<LinkuResponseDTO.LinkuSliceResultDTO> getMyAiArticlesByCategory(
             @RequestParam(name = "categoryId", required = false) Long categoryId,
             @RequestParam(name = "cursor", required = false) Long cursor,

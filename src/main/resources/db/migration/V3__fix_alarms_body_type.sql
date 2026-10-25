@@ -1,1 +1,0 @@
-ALTER TABLE alarms ALTER COLUMN body TYPE TEXT USING body::text;

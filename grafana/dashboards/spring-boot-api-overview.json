@@ -104,7 +104,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "process_uptime_seconds{job=\"linku-app\"}",
+          "expr": "process_uptime_seconds{job=\"linku-app\",env=\"$env\"}",
           "refId": "A"
         }
       ],
@@ -172,7 +172,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"linku-app\",status=~\"5..\"}[$__range])) / sum(rate(http_server_requests_seconds_count{job=\"linku-app\"}[$__range])) * 100",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"linku-app\",env=\"$env\",status=~\"5..\"}[$__range])) / sum(rate(http_server_requests_seconds_count{job=\"linku-app\",env=\"$env\"}[$__range])) * 100",
           "refId": "A"
         }
       ],
@@ -210,10 +210,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 8,
-        "y": 1
+        "h": 5,
+        "w": 5,
+        "x": 19,
+        "y": 11
       },
       "id": 103,
       "options": {
@@ -238,7 +238,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "sum(rate(http_server_requests_seconds_sum{job=\"linku-app\"}[$__range])) / sum(rate(http_server_requests_seconds_count{job=\"linku-app\"}[$__range]))",
+          "expr": "sum(rate(http_server_requests_seconds_sum{job=\"linku-app\",env=\"$env\"}[$__range])) / sum(rate(http_server_requests_seconds_count{job=\"linku-app\",env=\"$env\"}[$__range]))",
           "refId": "A"
         }
       ],
@@ -306,7 +306,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "sum(jvm_memory_used_bytes{job=\"linku-app\",area=\"heap\"}) / sum(jvm_memory_max_bytes{job=\"linku-app\",area=\"heap\"}) * 100",
+          "expr": "sum(jvm_memory_used_bytes{job=\"linku-app\",env=\"$env\",area=\"heap\"}) / sum(jvm_memory_max_bytes{job=\"linku-app\",env=\"$env\",area=\"heap\"}) * 100",
           "refId": "A"
         }
       ],
@@ -374,7 +374,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "hikaricp_connections_active{job=\"linku-app\"} / hikaricp_connections_max{job=\"linku-app\"} * 100",
+          "expr": "hikaricp_connections_active{job=\"linku-app\",env=\"$env\"} / hikaricp_connections_max{job=\"linku-app\",env=\"$env\"} * 100",
           "refId": "A"
         }
       ],
@@ -442,7 +442,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "(1 - node_filesystem_avail_bytes{job=\"node-exporter\",mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{job=\"node-exporter\",mountpoint=\"/\",fstype!=\"tmpfs\"}) * 100",
+          "expr": "(1 - node_filesystem_avail_bytes{job=\"node-exporter\",env=\"$env\",mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{job=\"node-exporter\",env=\"$env\",mountpoint=\"/\",fstype!=\"tmpfs\"}) * 100",
           "refId": "A"
         }
       ],
@@ -544,7 +544,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "Value"
+            "displayName": "p95 (s)"
           }
         ]
       },
@@ -555,13 +555,49 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "topk(10, sum(rate(http_server_requests_seconds_sum{job=\"linku-app\"}[$__range])) by (uri, method) / sum(rate(http_server_requests_seconds_count{job=\"linku-app\"}[$__range])) by (uri, method))",
+          "expr": "topk(10, histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__range])) by (le, uri, method)))",
           "format": "table",
           "instant": true,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__range])) by (le, uri, method)) and on(uri, method) topk(10, histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__range])) by (le, uri, method)))",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "(sum(rate(http_server_requests_seconds_sum{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__range])) by (uri, method) / sum(rate(http_server_requests_seconds_count{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__range])) by (uri, method)) and on(uri, method) topk(10, histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__range])) by (le, uri, method)))",
+          "format": "table",
+          "instant": true,
+          "refId": "C"
         }
       ],
-      "title": "느린 엔드포인트 Top 10 (평균 응답시간)",
+      "title": "느린 엔드포인트 Top 10 (p95 기준)",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Value #A": "p95 (s)",
+              "Value #B": "p99 (s)",
+              "Value #C": "평균 (s)"
+            }
+          }
+        }
+      ],
       "type": "table"
     },
     {
@@ -624,7 +660,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"linku-app\"}[$__range]))",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"linku-app\",env=\"$env\"}[$__range]))",
           "refId": "A"
         }
       ],
@@ -689,7 +725,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "sum(http_server_requests_active_seconds_active_count{job=\"linku-app\"})",
+          "expr": "sum(http_server_requests_active_seconds_active_count{job=\"linku-app\",env=\"$env\"})",
           "refId": "A"
         }
       ],
@@ -755,11 +791,93 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "sum(increase(http_server_requests_seconds_count{job=\"linku-app\",status=~\"5..\"}[$__range]))",
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"linku-app\",env=\"$env\",status=~\"5..\"}[$__range]))",
           "refId": "A"
         }
       ],
       "title": "5xx 에러",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bdytqyy1v4glce"
+      },
+      "description": "실제 API(/api/**)만 집계한 응답시간 백분위수. swagger-ui/actuator/정적 리소스 등은 제외 — 평균과 달리 이상치에 강해서 실제 체감 지연을 더 잘 보여줌.\n\n⚠️ p95/p99가 평균보다 훨씬 크면: 일부 요청만 유독 느린 상태(꼬리 지연) — '엔드포인트별 응답시간' 테이블에서 원인 확인",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.3
+              },
+              {
+                "color": "red",
+                "value": 0.5
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "id": 218,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": ["mean"],
+          "fields": "",
+          "values": true
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__range])) by (le))",
+          "instant": true,
+          "legendFormat": "p95",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__range])) by (le))",
+          "instant": true,
+          "legendFormat": "p99",
+          "refId": "B"
+        }
+      ],
+      "title": "응답시간 p95/p99",
       "type": "stat"
     },
     {
@@ -842,7 +960,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "sum(increase(http_server_requests_seconds_count{job=\"linku-app\",status=~\"5..\"}[$__range])) by (uri, method, status) > 0",
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"linku-app\",env=\"$env\",status=~\"5..\"}[$__range])) by (uri, method, status) > 0",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -937,7 +1055,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"linku-app\",status=~\"5..\"}[$__range])) by (uri) > 0",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"linku-app\",env=\"$env\",status=~\"5..\"}[$__range])) by (uri) > 0",
           "legendFormat": "{{uri}}",
           "refId": "A"
         }
@@ -1035,7 +1153,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "topk(5, sum(rate(http_server_requests_seconds_sum{job=\"linku-app\"}[$__range])) by (uri) / sum(rate(http_server_requests_seconds_count{job=\"linku-app\"}[$__range])) by (uri))",
+          "expr": "topk(5, sum(rate(http_server_requests_seconds_sum{job=\"linku-app\",env=\"$env\"}[$__range])) by (uri) / sum(rate(http_server_requests_seconds_count{job=\"linku-app\",env=\"$env\"}[$__range])) by (uri))",
           "legendFormat": "{{uri}}",
           "refId": "A"
         }
@@ -1129,7 +1247,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"linku-app\"}[$__range])) by (status)",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"linku-app\",env=\"$env\"}[$__range])) by (status)",
           "legendFormat": "{{status}}",
           "refId": "A"
         }
@@ -1223,7 +1341,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"linku-app\"}[$__range])) by (method)",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"linku-app\",env=\"$env\"}[$__range])) by (method)",
           "legendFormat": "{{method}}",
           "refId": "A"
         }
@@ -1364,7 +1482,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "sum(jvm_memory_used_bytes{job=\"linku-app\",area=\"heap\"})",
+          "expr": "sum(jvm_memory_used_bytes{job=\"linku-app\",env=\"$env\",area=\"heap\"})",
           "legendFormat": "Used",
           "refId": "A"
         },
@@ -1373,7 +1491,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "sum(jvm_memory_committed_bytes{job=\"linku-app\",area=\"heap\"})",
+          "expr": "sum(jvm_memory_committed_bytes{job=\"linku-app\",env=\"$env\",area=\"heap\"})",
           "legendFormat": "Committed",
           "refId": "B"
         },
@@ -1382,7 +1500,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "sum(jvm_memory_max_bytes{job=\"linku-app\",area=\"heap\"})",
+          "expr": "sum(jvm_memory_max_bytes{job=\"linku-app\",env=\"$env\",area=\"heap\"})",
           "legendFormat": "Max",
           "refId": "C"
         }
@@ -1479,7 +1597,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "rate(jvm_gc_pause_seconds_sum{job=\"linku-app\"}[$__range])",
+          "expr": "rate(jvm_gc_pause_seconds_sum{job=\"linku-app\",env=\"$env\"}[$__range])",
           "legendFormat": "{{action}} {{cause}}",
           "refId": "A"
         }
@@ -1578,7 +1696,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "process_cpu_usage{job=\"linku-app\"}",
+          "expr": "process_cpu_usage{job=\"linku-app\",env=\"$env\"}",
           "legendFormat": "Process (JVM)",
           "refId": "A"
         },
@@ -1587,7 +1705,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "system_cpu_usage{job=\"linku-app\"}",
+          "expr": "system_cpu_usage{job=\"linku-app\",env=\"$env\"}",
           "legendFormat": "System (전체)",
           "refId": "B"
         }
@@ -1679,7 +1797,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "jvm_threads_live_threads{job=\"linku-app\"}",
+          "expr": "jvm_threads_live_threads{job=\"linku-app\",env=\"$env\"}",
           "legendFormat": "Live",
           "refId": "A"
         },
@@ -1688,7 +1806,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "jvm_threads_daemon_threads{job=\"linku-app\"}",
+          "expr": "jvm_threads_daemon_threads{job=\"linku-app\",env=\"$env\"}",
           "legendFormat": "Daemon",
           "refId": "B"
         },
@@ -1697,7 +1815,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "jvm_threads_peak_threads{job=\"linku-app\"}",
+          "expr": "jvm_threads_peak_threads{job=\"linku-app\",env=\"$env\"}",
           "legendFormat": "Peak",
           "refId": "C"
         }
@@ -1805,7 +1923,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "jvm_threads_states_threads{job=\"linku-app\",state=\"blocked\"}",
+          "expr": "jvm_threads_states_threads{job=\"linku-app\",env=\"$env\",state=\"blocked\"}",
           "legendFormat": "BLOCKED",
           "refId": "A"
         },
@@ -1814,7 +1932,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "jvm_threads_states_threads{job=\"linku-app\",state=\"runnable\"}",
+          "expr": "jvm_threads_states_threads{job=\"linku-app\",env=\"$env\",state=\"runnable\"}",
           "legendFormat": "RUNNABLE",
           "refId": "B"
         },
@@ -1823,7 +1941,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "jvm_threads_states_threads{job=\"linku-app\",state=\"waiting\"}",
+          "expr": "jvm_threads_states_threads{job=\"linku-app\",env=\"$env\",state=\"waiting\"}",
           "legendFormat": "WAITING",
           "refId": "C"
         },
@@ -1832,7 +1950,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "jvm_threads_states_threads{job=\"linku-app\",state=\"timed-waiting\"}",
+          "expr": "jvm_threads_states_threads{job=\"linku-app\",env=\"$env\",state=\"timed-waiting\"}",
           "legendFormat": "TIMED_WAITING",
           "refId": "D"
         }
@@ -1956,7 +2074,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "rate(logback_events_total{job=\"linku-app\",level=\"error\"}[$__range]) * 60",
+          "expr": "rate(logback_events_total{job=\"linku-app\",env=\"$env\",level=\"error\"}[$__range]) * 60",
           "legendFormat": "ERROR",
           "refId": "A"
         },
@@ -1965,7 +2083,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "rate(logback_events_total{job=\"linku-app\",level=\"warn\"}[$__range]) * 60",
+          "expr": "rate(logback_events_total{job=\"linku-app\",env=\"$env\",level=\"warn\"}[$__range]) * 60",
           "legendFormat": "WARN",
           "refId": "B"
         },
@@ -1974,7 +2092,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "rate(logback_events_total{job=\"linku-app\",level=\"info\"}[$__range]) * 60",
+          "expr": "rate(logback_events_total{job=\"linku-app\",env=\"$env\",level=\"info\"}[$__range]) * 60",
           "legendFormat": "INFO",
           "refId": "C"
         }
@@ -2129,7 +2247,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "hikaricp_connections_active{job=\"linku-app\"}",
+          "expr": "hikaricp_connections_active{job=\"linku-app\",env=\"$env\"}",
           "legendFormat": "Active (사용 중)",
           "refId": "A"
         },
@@ -2138,7 +2256,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "hikaricp_connections_idle{job=\"linku-app\"}",
+          "expr": "hikaricp_connections_idle{job=\"linku-app\",env=\"$env\"}",
           "legendFormat": "Idle (유휴)",
           "refId": "B"
         },
@@ -2147,7 +2265,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "hikaricp_connections_pending{job=\"linku-app\"}",
+          "expr": "hikaricp_connections_pending{job=\"linku-app\",env=\"$env\"}",
           "legendFormat": "Pending (대기)",
           "refId": "C"
         },
@@ -2156,7 +2274,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "hikaricp_connections_max{job=\"linku-app\"}",
+          "expr": "hikaricp_connections_max{job=\"linku-app\",env=\"$env\"}",
           "legendFormat": "Max (최대)",
           "refId": "D"
         }
@@ -2253,7 +2371,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "hikaricp_connections_acquire_seconds_max{job=\"linku-app\"}",
+          "expr": "hikaricp_connections_acquire_seconds_max{job=\"linku-app\",env=\"$env\"}",
           "legendFormat": "Max Acquire Time",
           "refId": "A"
         }
@@ -2350,7 +2468,7 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "hikaricp_connections_usage_seconds_max{job=\"linku-app\"}",
+          "expr": "hikaricp_connections_usage_seconds_max{job=\"linku-app\",env=\"$env\"}",
           "legendFormat": "Max Usage",
           "refId": "A"
         }
@@ -2411,19 +2529,541 @@
             "type": "prometheus",
             "uid": "bdytqyy1v4glce"
           },
-          "expr": "hikaricp_connections_timeout_total{job=\"linku-app\"}",
+          "expr": "hikaricp_connections_timeout_total{job=\"linku-app\",env=\"$env\"}",
           "refId": "A"
         }
       ],
       "title": "커넥션 타임아웃 누적",
       "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bdytqyy1v4glce"
+      },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 58
+      },
+      "id": 500,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "성능 테스트",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bdytqyy1v4glce"
+      },
+      "description": "실제 API(/api/**)만 집계한 전체 엔드포인트의 p95/p99/평균 응답시간 + RPS. swagger-ui/actuator/정적 리소스 등은 제외. 느린 것과 트래픽이 많은 것이 같은 엔드포인트인지 한눈에 확인 (기본 p95 내림차순 정렬, 헤더 클릭으로 재정렬 가능).",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "mode": "basic",
+              "type": "color-background"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.3
+              },
+              {
+                "color": "red",
+                "value": 0.5
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RPS (req/s)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "reqps"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "transparent",
+                      "value": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 59
+      },
+      "id": 501,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "p95 (s)"
+          }
+        ]
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__range])) by (le, uri, method))",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__range])) by (le, uri, method))",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "sum(rate(http_server_requests_seconds_sum{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__range])) by (uri, method) / sum(rate(http_server_requests_seconds_count{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__range])) by (uri, method)",
+          "format": "table",
+          "instant": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__range])) by (uri, method)",
+          "format": "table",
+          "instant": true,
+          "refId": "D"
+        }
+      ],
+      "title": "엔드포인트별 응답시간(p95/p99/평균) + RPS",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Value #A": "p95 (s)",
+              "Value #B": "p99 (s)",
+              "Value #C": "평균 (s)",
+              "Value #D": "RPS (req/s)"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bdytqyy1v4glce"
+      },
+      "description": "실제 API(/api/**)만 집계한 응답시간 백분위수(p50/p95/p99) 추이. swagger-ui/actuator/정적 리소스 등은 제외. 부하가 올라갈 때 p95/p99가 p50 대비 얼마나 벌어지는지 보면 꼬리 지연 악화 여부를 알 수 있음.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.3
+              },
+              {
+                "color": "red",
+                "value": 0.5
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 59
+      },
+      "id": 502,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__rate_interval])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__rate_interval])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__rate_interval])) by (le))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ],
+      "title": "응답시간 백분위수 추이 (p50/p95/p99)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bdytqyy1v4glce"
+      },
+      "description": "실제 API(/api/**)만 집계한 응답시간 분포 히트맵. swagger-ui/actuator/정적 리소스 등은 제외. 부하테스트 중 지연시간 분포가 시간에 따라 어떻게 퍼지는지(또는 이중분포로 갈라지는지) 확인.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 67
+      },
+      "id": 503,
+      "options": {
+        "calculate": false,
+        "cellGap": 1,
+        "color": {
+          "exponent": 0.5,
+          "fill": "dark-orange",
+          "mode": "scheme",
+          "reverse": false,
+          "scale": "exponential",
+          "scheme": "Oranges",
+          "steps": 64
+        },
+        "exemplars": {
+          "color": "rgba(255,0,255,0.7)"
+        },
+        "filterValues": {
+          "le": 1e-9
+        },
+        "legend": {
+          "show": true
+        },
+        "rowsFrame": {
+          "layout": "auto"
+        },
+        "tooltip": {
+          "mode": "single",
+          "showColorScale": false,
+          "yHistogram": false
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "reverse": false,
+          "unit": "s"
+        }
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "sum(rate(http_server_requests_seconds_bucket{job=\"linku-app\",env=\"$env\",uri=~\"/api/.*\"}[$__rate_interval])) by (le)",
+          "format": "heatmap",
+          "legendFormat": "{{le}}",
+          "refId": "A"
+        }
+      ],
+      "title": "응답시간 히트맵",
+      "type": "heatmap"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "bdytqyy1v4glce"
+      },
+      "description": "Tomcat 워커 스레드풀 사용 현황. busy가 max에 붙으면 워커 스레드 고갈로 요청이 대기하기 시작함 — 부하테스트에서 흔한 병목 지점.\n\n⚠️ 값이 계속 0이면 server.tomcat.mbeanregistry.enabled=true 설정 필요.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Max"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [10, 10],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 67
+      },
+      "id": 504,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "tomcat_threads_busy_threads{job=\"linku-app\",env=\"$env\"}",
+          "legendFormat": "Busy",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "bdytqyy1v4glce"
+          },
+          "expr": "tomcat_threads_config_max_threads{job=\"linku-app\",env=\"$env\"}",
+          "legendFormat": "Max",
+          "refId": "B"
+        }
+      ],
+      "title": "Tomcat 워커 스레드풀",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",
   "schemaVersion": 39,
   "tags": ["spring-boot", "linku"],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "text": "dev",
+          "value": "dev"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "bdytqyy1v4glce"
+        },
+        "definition": "label_values(env)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Environment",
+        "multi": false,
+        "name": "env",
+        "options": [],
+        "query": {
+          "query": "label_values(env)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
   },
   "time": {
     "from": "now-1h",

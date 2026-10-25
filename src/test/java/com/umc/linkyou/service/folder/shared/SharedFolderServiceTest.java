@@ -53,11 +53,13 @@ class SharedFolderServiceTest {
             @Test
             @DisplayName("공유 받은 폴더가 있으면 소유자별로 그룹핑하여 반환한다")
             void 공유받은폴더존재_소유자별그룹핑반환() {
-                Folder sharedFolder = folder();
+                Folder sharedFolder = subFolder(parentFolder());
                 UsersFolder ownerMapping = UsersFolder.builder().user(owner()).folder(sharedFolder).permissionType(PermissionType.OWNER).build();
+                UsersFolder viewerMapping = UsersFolder.builder().user(participant(VIEWER_ID, PermissionType.VIEWER).getUser())
+                        .folder(sharedFolder).permissionType(PermissionType.VIEWER).isBookmarked(true).build();
 
                 given(usersFolderRepository.findAllSharedFolders(VIEWER_ID)).willReturn(List.of(sharedFolder));
-                given(usersFolderRepository.findAllByUserIdAndFolderIdIn(VIEWER_ID, List.of(FOLDER_ID))).willReturn(List.of());
+                given(usersFolderRepository.findAllByUserIdAndFolderIdIn(VIEWER_ID, List.of(FOLDER_ID))).willReturn(List.of(viewerMapping));
                 given(usersFolderRepository.findOwnersByFolderIdIn(List.of(FOLDER_ID))).willReturn(List.of(ownerMapping));
 
                 List<SharedFolderGroupResponseDTO> result = sharedFolderService.getSharedFolders(VIEWER_ID);
@@ -67,6 +69,8 @@ class SharedFolderServiceTest {
                 assertThat(result.get(0).getNickname()).isEqualTo("주인");
                 assertThat(result.get(0).getFolders()).hasSize(1);
                 assertThat(result.get(0).getFolders().get(0).getFolderId()).isEqualTo(FOLDER_ID);
+                assertThat(result.get(0).getFolders().get(0).getIsBookmarked()).isTrue();
+                assertThat(result.get(0).getFolders().get(0).getCategoryId()).isEqualTo(CATEGORY_ID);
             }
         }
 
