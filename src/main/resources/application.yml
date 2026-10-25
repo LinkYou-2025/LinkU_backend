@@ -142,29 +142,21 @@ app:
 recommend:
   home:
     score:
+      # 홈 추천은 5개 요소의 가중합으로 계산한다(합계 1.0).
       weight:
-        emotion: 0.35
-        situation: 0.15
-        engagement: 0.15
-        popularity: 0.1
-        text: 0.1
-        keyword: 0.05
-        category: 0.1
+        emotion: 0.25
+        situation: 0.20
+        engagement: 0.25
+        popularity: 0.20
+        category: 0.10
       normalization:
         view-count-cap: 20
         recency-half-life-days: 14
         popularity-view-count-cap: 1000
-        keyword-weight-cap: 20
       confidence:
         # 유저가 직접 고른 감정/situation은 1.0 그대로, AI가 추론한 값은 아래 계수만큼 감쇠한다.
         ai-emotion-discount: 0.8
         ai-situation-discount: 0.8
-      novelty:
-        # "최근에 안 본" 후보 조건: COALESCE(lastViewedAt, createdAt) < now - recency-threshold-days.
-        recency-threshold-days: 14
-        # 한 페이지(size)당 novelty 버킷에서 뽑을 목표 비율. 실제로는 목표치일 뿐이라, 후보가 모자라면
-        # normal 버킷이 나머지를 채운다(service/common/README.md 참고).
-        quota-ratio: 0.3
 
 kakao:
   admin-key: ${KAKAO_ADMIN_KEY}

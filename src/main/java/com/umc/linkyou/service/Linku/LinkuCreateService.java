@@ -38,7 +38,6 @@ import com.umc.linkyou.repository.classification.domainRepository.DomainReposito
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
-import com.umc.linkyou.repository.recommend.UserProfileRefreshQueueRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.utils.UrlValidUtils;
 import lombok.RequiredArgsConstructor;
@@ -73,7 +72,6 @@ public class LinkuCreateService {
     private final LinkuUpsertService linkuUpsertService;
     private final SafeUrlFetcher safeUrlFetcher;
     private final RobotsTxtChecker robotsTxtChecker;
-    private final UserProfileRefreshQueueRepository userProfileRefreshQueueRepository;
     private final TransactionTemplate transactionTemplate;
 
     private static final Long DEFAULT_CATEGORY_ID = 16L;
@@ -333,8 +331,6 @@ public class LinkuCreateService {
         }
         UsersLinku saved = usersLinkuRepository.save(usersLinku);
 
-        // 홈 추천용 유저 프로필 재계산 큐에 등록 (service/common/README.md 참고)
-        userProfileRefreshQueueRepository.enqueue(user.getId());
 
         return saved;
     }
