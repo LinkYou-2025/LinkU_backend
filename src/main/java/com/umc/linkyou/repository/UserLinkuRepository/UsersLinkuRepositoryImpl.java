@@ -263,20 +263,4 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
         return String.format(Locale.ROOT, "%.12f", value);
     }
 
-    @Override
-    public List<UsersLinku> findRecentContentForProfile(Long userId, int limit) {
-        QUsersLinku usersLinku = QUsersLinku.usersLinku;
-        QLinku linku = QLinku.linku;
-        QAiArticle aiArticle = QAiArticle.aiArticle;
-
-        return queryFactory
-                .selectFrom(usersLinku)
-                .join(usersLinku.linku, linku).fetchJoin()
-                // summary 없는 링크도 있으니 LEFT JOIN
-                .leftJoin(linku.aiArticle, aiArticle).fetchJoin()
-                .where(usersLinku.user.id.eq(userId))
-                .orderBy(usersLinku.createdAt.desc())
-                .limit(limit)
-                .fetch();
-    }
 }

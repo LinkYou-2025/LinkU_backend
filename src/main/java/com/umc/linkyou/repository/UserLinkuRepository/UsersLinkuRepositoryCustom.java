@@ -23,6 +23,4 @@ public interface UsersLinkuRepositoryCustom {
             LocalDateTime now,
             Integer afterScoreBucket, Long afterUserLinkuId, int limit);
 
-    // UserProfileRefreshWorker용: TextMatch 프로필(title+summary) 재계산 재료로 최근 저장 링크를 캡을 두고 가져온다.
-    List<UsersLinku> findRecentContentForProfile(Long userId, int limit);
 }

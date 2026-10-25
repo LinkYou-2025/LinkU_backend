@@ -11,7 +11,6 @@ import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.mapping.LinkuKeyword;
-import com.umc.linkyou.domain.recommend.UserProfileKeyword;
 import com.umc.linkyou.repository.dto.RankedUsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.categoryRepository.FcolorRepository;
@@ -21,7 +20,6 @@ import com.umc.linkyou.repository.classification.domainRepository.DomainReposito
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.keywordRepository.KeywordRepository;
 import com.umc.linkyou.repository.mapping.LinkuKeywordRepository;
-import com.umc.linkyou.repository.recommend.UserProfileKeywordRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.config.TestExternalConfig;
 import org.junit.jupiter.api.DisplayName;
@@ -65,7 +63,6 @@ class UsersLinkuRepositoryImplTest {
     @Autowired private LinkuRepository linkuRepository;
     @Autowired private KeywordRepository keywordRepository;
     @Autowired private LinkuKeywordRepository linkuKeywordRepository;
-    @Autowired private UserProfileKeywordRepository userProfileKeywordRepository;
     @Autowired private JdbcTemplate jdbcTemplate;
 
     // BaseEntity.createdAt은 @CreatedDate(updatable=false)라 JPA로는 저장 후 값을 바꿀 수 없어서,
@@ -131,14 +128,6 @@ class UsersLinkuRepositoryImplTest {
                     java.util.stream.IntStream.rangeClosed(1, 10)
                             .mapToObj(keywordId -> Keyword.builder().name("cursor-keyword-" + keywordId).build())
                             .toList());
-            for (int keywordIndex = 0; keywordIndex < keywords.size(); keywordIndex++) {
-                userProfileKeywordRepository.save(UserProfileKeyword.builder()
-                        .userId(user.getId())
-                        .keywordId(keywords.get(keywordIndex).getId())
-                        .weight(keywordIndex + 1)
-                        .build());
-            }
-
             LocalDateTime now = LocalDateTime.now();
             Linku lowKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
             Linku highKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
@@ -177,6 +166,17 @@ class UsersLinkuRepositoryImplTest {
             assertThat(secondPage).hasSize(1);
             assertThat(secondPage.get(0).userLinkuId()).isEqualTo(highKeywordCandidate.getUserLinkuId());
             assertThat(cursor.scoreBucket()).isEqualTo(secondPage.get(0).scoreBucket());
+
+            RankedUsersLinku secondCursor = secondPage.get(0);
+            List<RankedUsersLinku> thirdPage = usersLinkuRepository.findNormalRecommendCandidates(
+                    user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
+                    now, secondCursor.scoreBucket(), secondCursor.userLinkuId(), 1);
+            assertThat(thirdPage).extracting(RankedUsersLinku::userLinkuId)
+                    .containsExactly(lowKeywordCandidate.getUserLinkuId());
+            RankedUsersLinku lastCursor = thirdPage.get(0);
+            assertThat(usersLinkuRepository.findNormalRecommendCandidates(
+                    user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
+                    now, lastCursor.scoreBucket(), lastCursor.userLinkuId(), 1)).isEmpty();
         }
     }
 
