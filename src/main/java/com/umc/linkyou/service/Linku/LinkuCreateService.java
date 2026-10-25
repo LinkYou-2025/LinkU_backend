@@ -88,7 +88,7 @@ public class LinkuCreateService {
     private static final Long DEFAULT_DOMAIN_ID = 1L;
     private static final Long DEFAULT_SITUATION_ID = 1L;
     private static final int MAX_FALLBACK_TITLE_LENGTH = 50;
-    private static final int PAGE_FETCH_TIMEOUT_MS = 15000;
+    private static final int PAGE_FETCH_TIMEOUT_MS = 3000;
     private static final long IMAGE_WAIT_AFTER_AI_SECONDS = 5;
 
     // 외부 I/O는 트랜잭션 밖에서, DB 쓰기만 persistLinku 트랜잭션에서 처리한다.

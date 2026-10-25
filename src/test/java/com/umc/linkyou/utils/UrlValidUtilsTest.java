@@ -1,5 +1,8 @@
 package com.umc.linkyou.utils;
 
+import com.umc.linkyou.infra.parser.TitleDomainParser;
+import com.umc.linkyou.support.fixture.HtmlResponseFixture;
+import org.jsoup.Jsoup;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -11,6 +14,40 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("UrlValidUtils 테스트")
 class UrlValidUtilsTest {
+
+    @Nested
+    @DisplayName("밑줄 호스트 추출")
+    class UnderscoreHost {
+        @Nested
+        @DisplayName("성공 시 도메인 정보를 유지한다")
+        class Success {
+            @Test
+            @DisplayName("밑줄 호스트 입력 시 전체 도메인을 반환한다")
+            void 밑줄_호스트_입력_시_전체_도메인을_반환한다() {
+                assertEquals(HtmlResponseFixture.UNDERSCORE_HOST,
+                        UrlValidUtils.extractDomainTail(HtmlResponseFixture.UNDERSCORE_URL));
+            }
+
+            @Test
+            @DisplayName("밑줄 호스트 입력 시 플랫폼 도메인 후보도 반환한다")
+            void 밑줄_호스트_입력_시_플랫폼_도메인_후보도_반환한다() {
+                assertEquals(List.of(HtmlResponseFixture.UNDERSCORE_HOST, HtmlResponseFixture.PLATFORM_HOST),
+                        UrlValidUtils.extractDomainTailCandidates(HtmlResponseFixture.UNDERSCORE_URL));
+            }
+
+            @Test
+            @DisplayName("페이지 파싱 시 밑줄 호스트와 제목을 함께 반환한다")
+            void 페이지_파싱_시_밑줄_호스트와_제목을_함께_반환한다() {
+                TitleDomainParser parser = new TitleDomainParser(null, null);
+
+                TitleDomainParser.ParsedPageInfo page = parser.parseUrl(HtmlResponseFixture.UNDERSCORE_URL,
+                        Jsoup.parse(HtmlResponseFixture.HTML));
+
+                assertEquals(HtmlResponseFixture.UNDERSCORE_HOST, page.domain());
+                assertEquals("테스트 제목", page.title());
+            }
+        }
+    }
 
     @Nested
     @DisplayName("extractDomainTailCandidates")

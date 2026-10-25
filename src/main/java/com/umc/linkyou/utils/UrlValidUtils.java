@@ -6,8 +6,6 @@ import com.umc.linkyou.apiPayload.exception.GeneralException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -48,12 +46,11 @@ public class UrlValidUtils {
         );
 
         try {
-            URI uri = new URI(url);
-            String host = uri.getHost();
+            String host = new URL(url).getHost();
             if (host == null) return false;
 
             return videoDomains.stream().anyMatch(host::contains);
-        } catch (URISyntaxException e) {
+        } catch (MalformedURLException e) {
             return false;
         }
     }
@@ -77,8 +74,7 @@ public class UrlValidUtils {
      */
     public static String extractDomainTail(String url) {
         try {
-            URI uri = new URI(url);
-            String domain = uri.getHost();
+            String domain = new URL(url).getHost();
             if (domain != null && domain.startsWith("www.")) {
                 domain = domain.substring(4);
             }
@@ -109,8 +105,7 @@ public class UrlValidUtils {
     public static List<String> extractDomainTailCandidates(String url) {
         LinkedHashSet<String> candidates = new LinkedHashSet<>();
         try {
-            URI uri = new URI(url);
-            String host = uri.getHost();
+            String host = new URL(url).getHost();
             if (host == null || host.isBlank()) {
                 return List.of();
             }

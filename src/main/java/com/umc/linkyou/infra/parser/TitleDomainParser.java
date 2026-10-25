@@ -8,7 +8,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
+import java.net.URL;
 
 // 링크의 도메인과 제목(og:title → <title>)을 추출해 AI 분류의 참고값으로 제공한다.
 @Slf4j
@@ -40,7 +40,7 @@ public class TitleDomainParser {
     public ParsedPageInfo parseUrl(String url, Document doc) {
         String domain = null;
         try {
-            domain = new URI(url).getHost();
+            domain = new URL(url).getHost();
         } catch (Exception e) {
             log.warn("[도메인 추출 실패] {}", e.getMessage());
         }
