@@ -9,14 +9,12 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.SituationJob;
-import com.umc.linkyou.domain.recommend.UserContentProfile;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.dto.RankedUsersLinku;
-import com.umc.linkyou.repository.recommend.UserContentProfileRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.utils.RecommendCursorUtil;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
@@ -28,11 +26,10 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * 홈화면 링크 추천 (curation.recommend.*와는 별개). 스코어링/정렬/페이징 전부 DB(QueryDSL)에서 처리.
+ * 홈화면 링크 추천 (curation.recommend.*와는 별개). 스코어링/정렬/페이징 전부 DB(Native SQL)에서 처리.
  * 스코어 계산은 HomeRecommendScoreService, 쿼리 적용은 UsersLinkuRepositoryImpl 참고.
  */
 @Service
@@ -47,7 +44,6 @@ public class LinkuRecommendService {
     private final LinkuViewService linkuViewService;
     private final LinkuFolderRepository linkuFolderRepository;
     private final SituationCategoryService situationCategoryService;
-    private final UserContentProfileRepository userContentProfileRepository;
 
     @Transactional(readOnly = true)
     public ApiResponse<LinkuResponseDTO.LinkuRecommendCursorPageDTO> recommendLinku(
@@ -66,17 +62,12 @@ public class LinkuRecommendService {
 
         List<Long> mappedCategories = situationCategoryService.getCategoryIdsBySituation(situationId);
 
-        // TextMatch/KeywordMatch용 프로필. 없으면 두 신호는 0 처리
-        Optional<UserContentProfile> contentProfile = userContentProfileRepository.findById(userId);
-        String profileTsqueryText = contentProfile.map(UserContentProfile::getProfileTsqueryText).orElse(null);
-        String profileText = contentProfile.map(UserContentProfile::getProfileText).orElse(null);
-
-        // 7축 가중합 단일 랭킹 — PersonalEngagement의 staleness 항이 오래 안 본/안 만든 후보를 자연히
+        // 5축 가중합 단일 랭킹 — PersonalEngagement의 staleness 항이 오래 안 본/안 만든 후보를 자연히
         // 끌어올려주므로 별도 novelty 버킷 없이 seek 커서 하나로 페이징한다.
         RecommendCursorUtil.RecommendCursor decodedCursor = RecommendCursorUtil.decode(cursor);
         CandidatePage page = fetchRecommendCandidates(
                 userId, selectedEmotion.getEmotionId(), situationId, mappedCategories,
-                profileTsqueryText, profileText, decodedCursor, size);
+                decodedCursor, size);
 
         List<LinkuResponseDTO.LinkuSimpleDTO> result = mapCandidatesToDto(page.candidates());
 
@@ -93,10 +84,9 @@ public class LinkuRecommendService {
                 .build());
     }
 
-    // 7축 가중합 랭킹을 seek 커서로 한 페이지 조회하고 다음 커서/hasNext를 계산한다.
+    // 5축 가중합 랭킹을 seek 커서로 한 페이지 조회하고 다음 커서/hasNext를 계산한다.
     private CandidatePage fetchRecommendCandidates(
             Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
-            String profileTsqueryText, String profileText,
             RecommendCursorUtil.RecommendCursor cursor, int size) {
 
         LocalDateTime now = LocalDateTime.now();
@@ -104,7 +94,7 @@ public class LinkuRecommendService {
         // size+1개를 가져와 hasNext 판별
         List<RankedUsersLinku> fetched = usersLinkuRepository.findNormalRecommendCandidates(
                 userId, selectedEmotionId, selectedSituationId, mappedCategoryIds,
-                now, profileTsqueryText, profileText,
+                now,
                 cursor.scoreBucket(), cursor.lastId(), size + 1);
         boolean hasNext = fetched.size() > size;
         List<RankedUsersLinku> candidates = hasNext ? fetched.subList(0, size) : fetched;

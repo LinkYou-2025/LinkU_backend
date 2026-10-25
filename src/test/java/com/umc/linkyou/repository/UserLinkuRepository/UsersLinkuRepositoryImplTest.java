@@ -42,10 +42,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * UsersLinkuRepositoryImpl 홈화면 추천 조회(findNormalRecommendCandidates) 통합 테스트.
  *
- * TextMatch용 profileTsqueryText/profileText는 null로 넘긴다 — 둘 다 null이면 nativeTextExpression이
- * similarity()/ts_rank_cd를 호출하지 않아 pg_trgm 확장 설치 여부와 무관하게 KeywordMatch 및 커서 동작을
- * 검증할 수 있다.
- *
  * 감정(EmotionMatch) 자체는 EmotionSimilarityUtil이 감정 ID 1~6을 하드코딩 매핑하고 있어서, 테스트
  * DB에서 매번 새로 생성되는(IDENTITY 시퀀스가 테스트 클래스 간에도 누적되는) Emotion의 실제 ID가 1~6
  * 범위를 벗어나면 EmotionMatch가 항상 0이 되어 이 값 자체로는 정렬을 검증할 수 없다. 그래서 이 테스트는
@@ -110,7 +106,7 @@ class UsersLinkuRepositoryImplTest {
             // 남아 있으면서, 오래된 쪽이 staleness가 높아 위로 온다.
             List<RankedUsersLinku> result = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
-                    now, null, null, null, null, 10);
+                    now, null, null, 10);
 
             assertThat(result).extracting(RankedUsersLinku::userLinkuId)
                     .containsExactly(neverViewedOld.getUserLinkuId(), neverViewedRecent.getUserLinkuId());
@@ -122,8 +118,8 @@ class UsersLinkuRepositoryImplTest {
     class ScoreCursor {
 
         @Test
-        @DisplayName("키워드 10개와 커서가 있을 시 다음 후보를 반환한다")
-        void 키워드_10개와_커서가_있을_시_다음_후보를_반환한다() {
+        @DisplayName("키워드_차이가_있을_시_동점_ID순으로_페이징한다")
+        void 키워드_차이가_있을_시_동점_ID순으로_페이징한다() {
             Users user = userRepository.save(createUser("home-reco-cursor"));
             Domain domain = domainRepository.save(createDomain("cursor-test"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -147,11 +143,7 @@ class UsersLinkuRepositoryImplTest {
             Linku lowKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
             Linku highKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
             Linku noKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
-            // low는 가중치가 가장 낮은 키워드 1개만 매칭시켜(합=1, KeywordMatch=1/20=0.05) high(전부
-            // 매칭, 합=55→cap 20, KeywordMatch=1.0)와의 점수 차를 크게 벌린다. score_bucket 해상도가
-            // 0.005(1/200)라 KeywordMatch 하나의 가중치(0.05) 안에서도 차이가 너무 작으면(예: 합 19 vs
-            // 20 → 차이 0.0025 → 0.5버킷) baseline 점수의 소수점 위치에 따라 같은 버킷에 묶여버릴 수
-            // 있다 — 실제로 #8/#9번 키워드(합 19)로는 이 문제가 났었다.
+            // 키워드 매칭 수가 달라도 동일 점수이며 ID 내림차순으로 정렬되어야 한다.
             linkuKeywordRepository.saveAll(List.of(
                     LinkuKeyword.builder().linku(lowKeywordLinku).keyword(keywords.get(0)).build()));
             linkuKeywordRepository.saveAll(keywords.stream()
@@ -166,25 +158,25 @@ class UsersLinkuRepositoryImplTest {
                     .situation(situation)
                     .lastViewedAt(now.minusDays(1))
                     .build());
-            usersLinkuRepository.save(baseUsersLinku(user, noKeywordLinku, emotion)
+            UsersLinku noKeywordCandidate = usersLinkuRepository.save(baseUsersLinku(user, noKeywordLinku, emotion)
                     .situation(situation)
                     .lastViewedAt(now.minusDays(1))
                     .build());
 
             List<RankedUsersLinku> firstPage = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
-                    now, null, null, null, null, 1);
+                    now, null, null, 1);
             assertThat(firstPage).hasSize(1);
-            assertThat(firstPage.get(0).userLinkuId()).isEqualTo(highKeywordCandidate.getUserLinkuId());
+            assertThat(firstPage.get(0).userLinkuId()).isEqualTo(noKeywordCandidate.getUserLinkuId());
             RankedUsersLinku cursor = firstPage.get(0);
 
             List<RankedUsersLinku> secondPage = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
-                    now, null, null, cursor.scoreBucket(), cursor.userLinkuId(), 1);
+                    now, cursor.scoreBucket(), cursor.userLinkuId(), 1);
 
             assertThat(secondPage).hasSize(1);
-            assertThat(secondPage.get(0).userLinkuId()).isEqualTo(lowKeywordCandidate.getUserLinkuId());
-            assertThat(cursor.scoreBucket()).isGreaterThan(secondPage.get(0).scoreBucket());
+            assertThat(secondPage.get(0).userLinkuId()).isEqualTo(highKeywordCandidate.getUserLinkuId());
+            assertThat(cursor.scoreBucket()).isEqualTo(secondPage.get(0).scoreBucket());
         }
     }
 
@@ -193,8 +185,8 @@ class UsersLinkuRepositoryImplTest {
     class SituationMatchOrdering {
 
         @Test
-        @DisplayName("직접 일치 > category 매핑만 일치 > 매칭 없음 순으로 정렬되고, situation=null인 후보도 결과에서 빠지지 않는다")
-        void 직접_일치_category_매핑_매칭없음_순으로_정렬된다() {
+        @DisplayName("상황과_카테고리_매칭_차이가_있을_시_상황_일치를_우선한다")
+        void 상황과_카테고리_매칭_차이가_있을_시_상황_일치를_우선한다() {
             Users user = userRepository.save(createUser("home-reco-situation"));
             Domain domain = domainRepository.save(createDomain("situation-test"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -226,7 +218,7 @@ class UsersLinkuRepositoryImplTest {
             // PersonalEngagement 차이는 무시할 만하고, SituationMatch/CategoryMatch 차이로만 정렬된다.
             List<RankedUsersLinku> result = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), targetSituation.getId(), List.of(matchedCategory.getCategoryId()),
-                    LocalDateTime.now(), null, null, null, null, 10);
+                    LocalDateTime.now(), null, null, 10);
 
             assertThat(result).hasSize(3); // situation=null인 categoryOnly도 빠지지 않는다
             assertThat(result).extracting(RankedUsersLinku::userLinkuId)
@@ -266,7 +258,7 @@ class UsersLinkuRepositoryImplTest {
 
             List<RankedUsersLinku> result = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
-                    now, null, null, null, null, 10);
+                    now, null, null, 10);
 
             assertThat(result).extracting(RankedUsersLinku::userLinkuId)
                     .containsExactly(high.getUserLinkuId(), low.getUserLinkuId());

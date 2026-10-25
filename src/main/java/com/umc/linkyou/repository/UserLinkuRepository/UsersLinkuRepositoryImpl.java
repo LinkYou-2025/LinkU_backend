@@ -108,41 +108,29 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
     @Override
     public List<RankedUsersLinku> findNormalRecommendCandidates(
             Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
-            LocalDateTime now, String profileTsqueryText, String profileText,
+            LocalDateTime now,
             Integer afterScoreBucket, Long afterUserLinkuId, int limit) {
         return findNormalRecommendCandidatesNative(
                 userId, selectedEmotionId, selectedSituationId, mappedCategoryIds, now,
-                profileTsqueryText, profileText, afterScoreBucket,
+                afterScoreBucket,
                 afterUserLinkuId, limit);
     }
 
     //  점수식을 CTE에서 한 번만 계산해 HQL 파서의 대형 표현식 중복을 피하는 Native 쿼리 방식 조회
     private List<RankedUsersLinku> findNormalRecommendCandidatesNative(
             Long userId, Long selectedEmotionId, Long selectedSituationId, List<Long> mappedCategoryIds,
-            LocalDateTime now, String profileTsqueryText, String profileText,
+            LocalDateTime now,
             Integer afterScoreBucket, Long afterUserLinkuId, int limit) {
         String categoryCondition = mappedCategoryIds == null || mappedCategoryIds.isEmpty()
                 ? "FALSE"
                 : "b.category_id IN (" + mappedCategoryIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(",")) + ")";
         String scoreExpression = nativeScoreExpression(
-                selectedEmotionId, selectedSituationId, categoryCondition, profileTsqueryText, profileText);
+                selectedEmotionId, categoryCondition);
         boolean hasCursor = afterScoreBucket != null && afterUserLinkuId != null;
         String cursorCondition = hasCursor
                 ? "(score_bucket, user_linku_id) < (:afterScoreBucket, :afterUserLinkuId)"
                 : "TRUE";
 
-        // base: join + fts_rank(ts_rank_cd/to_tsvector)를 행당 딱 한 번만 계산해서 컬럼으로 노출한다.
-        // 예전엔 nativeTextExpression()이 이 계산식 텍스트를 CASE 절 안에서 그대로 4번 반복 삽입해서
-        // (WHEN/THEN 각 2회 참조 x 분자/분모 각 2회 참조) 후보 행마다 to_tsvector/ts_rank_cd가 4번씩
-        // 실행됐다 — 이게 추천 조회가 느렸던 주 원인. base에서 한 번 계산해 fts_rank 컬럼으로 두면,
-        // scored에서는 그 값을 몇 번 참조하든 컬럼 읽기일 뿐 함수가 재실행되지 않는다.
-        //
-        // fts_rank 컬럼식 자체는 nativeFtsRankColumn()으로 뽑아뒀다 — profileTsqueryText/profileText가
-        // 둘 다 null(신규 유저 등 프로필 미생성)이면 아래에서 :profileTsqueryText 파라미터를 아예
-        // 바인딩하지 않는데, 이 컬럼식을 무조건 CASE ... :profileTsqueryText ... 로 박아두면 파라미터
-        // 미바인딩 예외가 난다. nativeTextExpression()과 동일한 null 체크로 맞춰서, 그 경우엔 SQL에도
-        // 플레이스홀더 자체를 넣지 않는다(NULL 리터럴만 사용).
-        String ftsRankColumn = nativeFtsRankColumn(profileTsqueryText, profileText);
         String sql = """
                 WITH base AS (
                     SELECT
@@ -165,13 +153,10 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                         ul.image_url AS user_image_url,
                         ul.is_ai_exist,
                         d.name AS domain,
-                        d.image_url AS domain_image_url,
-                        aa.summary,
-                        %s AS fts_rank
+                        d.image_url AS domain_image_url
                     FROM users_linkus ul
                     JOIN linkus l ON l.linku_id = ul.linku_id
                     JOIN domains d ON d.domain_id = l.domain_id
-                    LEFT JOIN ai_articles aa ON aa.linku_id = l.linku_id
                     WHERE ul.user_id = :userId
                 ),
                 scored AS MATERIALIZED (
@@ -198,7 +183,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 WHERE %s
                 ORDER BY score_bucket DESC, user_linku_id DESC
                 LIMIT :limit
-                """.formatted(ftsRankColumn, scoreExpression, cursorCondition);
+                """.formatted(scoreExpression, cursorCondition);
 
         Query query = entityManager.createNativeQuery(sql)
                 .setParameter("userId", userId)
@@ -208,10 +193,6 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
         if (hasCursor) {
             query.setParameter("afterScoreBucket", afterScoreBucket);
             query.setParameter("afterUserLinkuId", afterUserLinkuId);
-        }
-        if (profileTsqueryText != null || profileText != null) {
-            query.setParameter("profileTsqueryText", profileTsqueryText);
-            query.setParameter("profileText", profileText);
         }
 
         List<RankedUsersLinku> result = new ArrayList<>();
@@ -236,8 +217,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
     }
 
     private String nativeScoreExpression(
-            Long selectedEmotionId, Long selectedSituationId, String categoryCondition,
-            String profileTsqueryText, String profileText) {
+            Long selectedEmotionId, String categoryCondition) {
         RecommendScoreProperties.Weight weight = scoreProperties.weight();
         RecommendScoreProperties.Normalization normalization = scoreProperties.normalization();
         RecommendScoreProperties.Confidence confidence = scoreProperties.confidence();
@@ -254,19 +234,12 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 + normalization.recencyHalfLifeDays() + "))) / 2.0";
         String popularity = "LEAST(LN(1 + CAST(b.total_view_count AS double precision)) / LN(1 + "
                 + normalization.popularityViewCountCap() + "), 1.0)";
-        String text = nativeTextExpression(profileTsqueryText, profileText);
-        String keyword = "LEAST(CAST(COALESCE((SELECT SUM(upk.weight) FROM linku_keywords lk "
-                + "JOIN user_profile_keywords upk ON upk.keyword_id = lk.keyword_id "
-                + "WHERE lk.linku_id = b.linku_id AND upk.user_id = :userId), 0) AS double precision), "
-                + normalization.keywordWeightCap() + ") / " + normalization.keywordWeightCap();
         String category = "CASE WHEN " + categoryCondition + " THEN 1.0 ELSE 0.0 END";
 
         return "(" + emotion + " * " + decimal(weight.emotion())
                 + " + " + situation + " * " + decimal(weight.situation())
                 + " + " + engagement + " * " + decimal(weight.engagement())
                 + " + " + popularity + " * " + decimal(weight.popularity())
-                + " + " + text + " * " + decimal(weight.text())
-                + " + " + keyword + " * " + decimal(weight.keyword())
                 + " + " + category + " * " + decimal(weight.category()) + ")";
     }
 
@@ -284,39 +257,6 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
         if (!hasMatch) return "0.0";
         return expression.append(" ELSE 0 END / 60.0) * CASE WHEN b.is_emotion_ai THEN ")
                 .append(decimal(aiDiscount)).append(" ELSE 1.0 END").toString();
-    }
-
-    // base CTE의 fts_rank 컬럼식. profileTsqueryText/profileText가 둘 다 없으면(신규 유저 등 프로필
-    // 미생성 상태) findNormalRecommendCandidatesNative()가 :profileTsqueryText 파라미터를 바인딩하지
-    // 않으므로, 그 경우엔 SQL에도 이 플레이스홀더를 아예 넣지 않고 NULL 리터럴만 반환한다 — 안 그러면
-    // 파라미터 미바인딩 예외가 난다. nativeTextExpression()의 null 체크와 반드시 같은 조건이어야 한다.
-    private String nativeFtsRankColumn(String profileTsqueryText, String profileText) {
-        if (profileTsqueryText == null && profileText == null) {
-            return "NULL";
-        }
-        // GIN 인덱스(title_tsv/summary_tsv generated column)는 도입했다가 뺐다 — @@ 검색 조건 없이
-        // ts_rank_cd로 랭킹만 계산하는 지금 쿼리 형태에서는 GIN 인덱스가 실행계획에 전혀 안 잡혀서
-        // (@@가 있어야 GIN이 쓰인다) 실익 없이 컬럼/인덱스만 늘리는 꼴이었다. to_tsvector를 즉석
-        // 계산하되, base CTE에서 한 번만 계산해두는 것만으로 충분하다(행마다 4번 계산되던 예전 버그만
-        // 고치면 됨 — 아래 nativeTextExpression() 주석 참고).
-        return """
-                CASE WHEN :profileTsqueryText IS NULL OR :profileTsqueryText = '' THEN NULL
-                     ELSE CAST(ts_rank_cd(
-                         to_tsvector('simple', l.title || ' ' || COALESCE(aa.summary, '')),
-                         to_tsquery('simple', :profileTsqueryText)) AS double precision)
-                END""";
-    }
-
-    // fts_rank(ts_rank_cd/to_tsvector)는 base CTE에서 이미 한 번 계산해 컬럼(b.fts_rank)으로 넘어온다.
-    // 여기서 b.fts_rank를 CASE 안에서 여러 번 참조해도 컬럼 값을 읽는 것뿐이라 함수가 재실행되지 않는다
-    // (예전 버전은 to_tsvector/ts_rank_cd 호출 텍스트 자체를 이 메서드 안에서 4번 반복 삽입해서
-    // 후보 행마다 4번씩 실행됐다 — 추천 조회가 느렸던 주 원인).
-    private String nativeTextExpression(String profileTsqueryText, String profileText) {
-        if (profileTsqueryText == null && profileText == null) return "0.0";
-        String trgm = "COALESCE(similarity(b.linku_title || ' ' || COALESCE(b.summary, ''), :profileText), 0)";
-        return "CASE WHEN :profileTsqueryText IS NULL OR :profileTsqueryText = '' THEN 0.0 "
-                + "WHEN b.fts_rank IS NOT NULL AND b.fts_rank > 0 THEN (b.fts_rank / (b.fts_rank + 1.0)) "
-                + "ELSE " + trgm + " * 0.7 END";
     }
 
     private String decimal(double value) {

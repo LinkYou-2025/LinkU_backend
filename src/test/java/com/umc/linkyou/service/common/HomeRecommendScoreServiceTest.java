@@ -13,8 +13,7 @@ import static org.assertj.core.api.Assertions.within;
 
 /**
  * HomeRecommendScoreService의 Java 메모리 스코어링(*Match, score/FeatureVector)에 대한 단위 테스트.
- * QueryDSL 표현식(*Expression 메서드들)은 실제 Postgres(ts_rank_cd/similarity 등)가 있어야 값을 검증할 수
- * 있어서 UsersLinkuRepositoryImplTest(통합 테스트) 쪽에서 다룬다.
+ * 실제 Native SQL 랭킹과 커서 동작은 UsersLinkuRepositoryImplTest 통합 테스트에서 다룬다.
  */
 @DisplayName("HomeRecommendScoreService 단위 테스트")
 class HomeRecommendScoreServiceTest {
@@ -30,8 +29,8 @@ class HomeRecommendScoreServiceTest {
     private static final long CATEGORY_UNMATCHED = 200L;
 
     private final RecommendScoreProperties properties = new RecommendScoreProperties(
-            new RecommendScoreProperties.Weight(0.35, 0.15, 0.15, 0.1, 0.1, 0.05, 0.1),
-            new RecommendScoreProperties.Normalization(20, 14, 1000, 20),
+            new RecommendScoreProperties.Weight(0.25, 0.20, 0.25, 0.20, 0.10),
+            new RecommendScoreProperties.Normalization(20, 14, 1000),
             new RecommendScoreProperties.Confidence(0.8, 0.8));
 
     private final HomeRecommendScoreService service = new HomeRecommendScoreService(properties);
@@ -191,21 +190,21 @@ class HomeRecommendScoreServiceTest {
     class ScoreTest {
 
         @Test
-        @DisplayName("각 feature * 가중치의 합과 정확히 같다")
-        void 각_feature_가중치의_합과_같다() {
+        @DisplayName("5개_요소_입력_시_가중합을_반환한다")
+        void 다섯_요소_입력_시_가중합을_반환한다() {
             HomeRecommendScoreService.FeatureVector features =
-                    new HomeRecommendScoreService.FeatureVector(1.0, 1.0, 0.5, 0.2, 0.3, 0.1, 1.0);
+                    new HomeRecommendScoreService.FeatureVector(1.0, 1.0, 0.5, 0.2, 1.0);
 
-            double expected = 1.0 * 0.35 + 1.0 * 0.15 + 0.5 * 0.15 + 0.2 * 0.1 + 0.3 * 0.1 + 0.1 * 0.05 + 1.0 * 0.1;
+            double expected = 1.0 * 0.25 + 1.0 * 0.20 + 0.5 * 0.25 + 0.2 * 0.20 + 1.0 * 0.10;
 
             assertThat(service.score(features)).isCloseTo(expected, within(1e-9));
         }
 
         @Test
-        @DisplayName("모든 feature가 0이면 최종 점수도 0이다")
-        void 모든_feature가_0이면_최종_점수도_0이다() {
+        @DisplayName("모든_요소가_0일_시_0점을_반환한다")
+        void 모든_요소가_0일_시_0점을_반환한다() {
             HomeRecommendScoreService.FeatureVector features =
-                    new HomeRecommendScoreService.FeatureVector(0, 0, 0, 0, 0, 0, 0);
+                    new HomeRecommendScoreService.FeatureVector(0, 0, 0, 0, 0);
             assertThat(service.score(features)).isEqualTo(0.0);
         }
     }

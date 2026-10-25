@@ -1,46 +1,79 @@
 # 홈화면 링크 추천 스코어링
 
-추천 점수: scoreBucket
+홈 추천은 사용자가 저장한 링크를 대상으로 다음 5개 요소의 가중합을 계산한다.
+외부 AI 호출 없이 Native SQL로 점수를 계산하며, 가중치는 `application.yml`의
+`recommend.home.score`에서 관리한다.
 
-EmotionMatch: 현재 추천하려는 링크의 감정이랑, input으로 넣은 감정 유사도
-Situtation: 현재 추천하려는 링크의 상황이랑, input으로 넣은 상황 유사도
-PersonalEngagement: 사용자가 어떤 링크를 본 viewcount랑, 오래 안 보거나 안 만든 정도(staleness)를 가지고 계산한 점수
-Popularity: 어떤 링크를 여러 사용자가 몇번 봤는지 계산한 점수
-TextMatch: title, summary가 사용자가 좋아하는 거 계산해서 모아놓은정보( 유저프로필)과 유사한지
-KeywordMatch:  유저 프로필과 keyword 유사도 점수
-CategoryMatch: SituationCategory점수
+## Feature 벡터와 가중치
 
-추가 아이디어)
-- 요청시간대와 날짜를 users_linku created_at 비교
+| Feature | 가중치 | 원본 데이터 | 계산 방식 |
+|---|---:|---|---|
+| EmotionMatch | 0.25 | `UsersLinku.emotion`, `isEmotionAi` | 요청 감정과의 유사도(`EmotionSimilarityUtil`, 0~60)를 60으로 나눔. AI 추론 감정이면 0.8배 |
+| SituationMatch | 0.20 | `UsersLinku.situation`, `isSituationAi` | 요청 상황과 정확히 일치하면 1, 아니면 0. AI 추론 상황이면 0.8배 |
+| PersonalEngagement | 0.25 | `UsersLinku.viewCount`, `lastViewedAt`, `createdAt` | 개인 조회 수 정규화와 오래 안 본 정도(staleness)의 평균 |
+| Popularity | 0.20 | `Linku.totalViewCount` | 전체 조회 수의 로그 정규화, 최대 1 |
+| CategoryMatch | 0.10 | `Linku.category`, 상황별 카테고리 매핑 | 요청 상황에 연결된 카테고리이면 1, 아니면 0. AI 신뢰도 감쇠 없음 |
 
+가중치 합계는 1.0이다.
+감정·상황이 일치하지 않는 링크도 후보에서 제외하지 않고 다른 요소로 점수를 받는다.
 
-## Feature 벡터
+## 요청 처리 흐름
 
-| # | Feature | 원본 컬럼 | 계산 위치 | 상태 |
-|---|---|---|---|---|
-| 1 | EmotionMatch | `UsersLinku.emotion` | 실시간 SQL (CASE WHEN, `EmotionSimilarityUtil` 재사용) | ✅ 구현 완료 |
-| 2 | SituationMatch | `UsersLinku.situation` | 실시간 SQL (저장 당시 situation == 요청 situationId면 1.0, 아니면 0) | ✅ 구현 완료 |
-| 3 | PersonalEngagement | `UsersLinku.viewCount`, `lastViewedAt`(없으면 `createdAt`) | 실시간 SQL (viewCount 캡 정규화 + staleness(오래될수록 커지는 값)의 평균) | ✅ 구현 완료 |
-| 4 | Popularity | `Linku.totalViewCount` | 실시간 SQL (로그 정규화 + 캡) | ✅ 구현 완료 |
-| 5 | TextMatch | `Linku.title`, `AiArticle.summary` | 사전계산된 유저 프로필과 Postgres FTS 매칭 (trgm fallback) | ✅ 구현 완료 |
-| 6 | KeywordMatch | `LinkuKeyword`/`Keyword` | 사전계산된 유저 키워드 프로필과 스칼라 서브쿼리 매칭 | ✅ 구현 완료 |
-| 7 | CategoryMatch | `Linku.category` | 실시간 SQL (situation→category 매핑(`SituationCategoryService`)에 걸리면 1.0, 아니면 0) | ✅ 구현 완료 |
+1. 사용자·감정·상황 존재 여부, 직업 설정 및 직업별 상황 매핑을 검증한다.
+2. 저장 링크 수가 0이면 신규 사용자 오류, 3개 미만이면 추천 불가 오류를 반환한다.
+3. 요청 상황에 연결된 카테고리 ID를 조회한다.
+4. 사용자 저장 링크 전체에 5개 요소 점수를 계산하고 커서 조건·정렬·LIMIT을 적용한다.
+5. 반환 후보의 폴더 매핑을 일괄 조회하고 최신 매핑의 폴더 이름으로 DTO를 생성한다.
+6. 결과가 있으면 감정·상황 선택 통계를 별도 트랜잭션에서 동기로 저장한다.
+7. `ApiResponse`로 `items`, `nextCursor`, `hasNext`를 반환한다.
 
-### sql 계산
-base CTE: 추천 후보 링크를 가져오고 텍스트 점수도 미리 계산
-scored CTE: base CTE에서 가져온 값을 이용해 7중 가중합 계산 , score_bucket 계산
-cursor 계산: score_bucket 순으로 정렬, LIMIT 적용
+## SQL 계산과 페이징
 
-### Textmatch
-title_tsv/summary_tsv generated column + GIN 인덱스는 한 번 추가했다가 뺐다 — `@@` 검색 조건 없이
-`ts_rank_cd`로 랭킹만 계산하는 지금 쿼리 구조에서는 GIN이 실행계획에 전혀 안 잡혀서(＠＠가 있어야 GIN이
-쓰임) 실익 없이 컬럼/인덱스만 늘리는 꼴이었다. 대신 `to_tsvector('simple', title || ' ' || summary)`를
-요청마다 즉석 계산하되, base CTE에서 후보 행당 딱 한 번만 계산해 `fts_rank` 컬럼으로 두고 scored
-단계에서는 그 값을 읽기만 한다 — 예전엔 이 계산식이 CASE 절 안에서 4번 반복 삽입돼 행마다 4번씩
-실행됐는데, 그 중복만 없앤 것으로 충분했다.
+- `base` CTE: `users_linkus`, `linkus`, `domains`에서 해당 사용자의 후보와 응답 필드를 조회한다.
+- `scored AS MATERIALIZED` CTE: 5개 요소의 가중합을 계산하고 `score_bucket`으로 변환한다.
+- `score_bucket DESC, user_linku_id DESC` 순으로 정렬한다.
+- 다음 페이지는 `(score_bucket, user_linku_id) < (커서 점수, 커서 ID)` 조건으로 조회한다.
+- `size + 1`개를 조회해 `hasNext`를 판단한다. 기본 size는 5, 최대 20이다.
 
-## personalEngagement
-최근에 보거나, 최근에 수정한 것의 추천을 줄임
-PersonalEngagement
-= 1/2 × [ min(viewCount, cap) / cap
-+ 1 - exp( - days(now - COALESCE(lastViewedAt, createdAt)) / 14 ) ]
+커서 페이징을 사용하더라도 매 요청마다 전체 저장 링크의 점수를 다시 계산한다.
+오래 안 본 정도는 요청 시각을 기준으로 계산하므로 페이지 간 점수가 고정된 스냅샷은 아니다.
+
+실제 DB 점수식은 `UsersLinkuRepositoryImpl#nativeScoreExpression`,
+요청 흐름은 `LinkuRecommendService`, 메모리 내 점수 계산은 `HomeRecommendScoreService`에 있다.
+
+## PersonalEngagement
+
+```text
+viewCountNorm = min(viewCount, 20) / 20
+lastTouch = COALESCE(lastViewedAt, createdAt)
+staleness = 1 - exp(-max(days(now - lastTouch), 0) / 14)
+PersonalEngagement = (viewCountNorm + staleness) / 2
+```
+
+개인 조회 수가 높거나 오래 안 본 링크의 점수가 높아진다.
+한 번도 보지 않았다면 저장 시각을 기준으로 계산한다. 수정 시각은 사용하지 않는다.
+
+## Popularity
+
+```text
+Popularity = min(ln(1 + totalViewCount) / ln(1 + 1000), 1)
+```
+
+## TextMatch·KeywordMatch 제외
+
+기존 TextMatch는 제목·AI 요약을 사용자 콘텐츠 프로필과 비교하고,
+KeywordMatch는 링크 키워드와 사용자 키워드 프로필의 가중치 합을 계산했다.
+사용자 프로필을 사전 계산해도 후보별 텍스트 비교와 키워드 집계는 매 요청마다 필요했다.
+
+현재 홈 추천에서는 두 요소를 제외한다. 요청 경로에서 개인화 프로필 조회,
+`to_tsvector`·`ts_rank_cd`·`similarity` 계산, 키워드 상관 서브쿼리,
+`ai_articles` 조인을 제거했다.
+
+기존 프로필 테이블과 `UserProfileRefreshWorker`, 링크 저장 시 갱신 큐 등록은 아직 남아 있지만
+홈 추천에서는 사용하지 않는다. 향후 외부 콘텐츠 등으로 후보를 확장할 때는
+후보를 좁힌 뒤 유사도를 계산하거나 사전 계산한 점수를 활용하는 방식을 검토한다.
+
+## 추가 아이디어
+
+- 요청 시간대와 날짜를 저장 시각과 비교하는 신호 검토
+- 저장 링크 수별 실행 시간 및 실행계획 측정, 추천 클릭률 확인

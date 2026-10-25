@@ -10,7 +10,6 @@ import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
 import com.umc.linkyou.repository.classification.SituationRepository;
 import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
-import com.umc.linkyou.repository.recommend.UserContentProfileRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -44,7 +43,6 @@ class LinkuRecommendServiceTest {
     @Mock private LinkuViewService linkuViewService;
     @Mock private LinkuFolderRepository linkuFolderRepository;
     @Mock private SituationCategoryService situationCategoryService;
-    @Mock private UserContentProfileRepository userContentProfileRepository;
 
     @Nested
     @DisplayName("recommendLinku")
