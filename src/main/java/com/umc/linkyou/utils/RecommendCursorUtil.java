@@ -8,8 +8,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 /**
- * 홈화면 링크 추천 커서 페이징 인코더/디코더. novelty/normal 두 버킷의 seek 탐색 키를
- * base64(JSON)로 묶어 FE에는 불투명 문자열로만 내려준다 (docs/home-recommend-cursor-api-spec.md 참고).
+ * 홈화면 링크 추천 커서 페이징 인코더/디코더. (scoreBucket, userLinkuId) seek 탐색 키를
+ * base64(JSON, {@code {"scoreBucket":<int|null>,"lastId":<long|null>}})로 묶어 FE에는 불투명 문자열로만
+ * 내려준다 — FE는 이 문자열을 파싱하지 않고 다음 요청의 cursor 파라미터에 그대로 되돌려주기만 한다.
  */
 @Slf4j
 public class RecommendCursorUtil {
@@ -18,12 +19,9 @@ public class RecommendCursorUtil {
 
     private RecommendCursorUtil() {}
 
-    /** *Bucket/*LastId가 null이면 해당 버킷 첫 페이지(seek 쿼리가 "처음부터"로 해석) */
-    public record RecommendCursor(
-            Integer noveltyBucket, Long noveltyLastId,
-            Integer normalBucket, Long normalLastId,
-            boolean noveltyExhausted) {
-        public static final RecommendCursor FIRST_PAGE = new RecommendCursor(null, null, null, null, false);
+    /** scoreBucket/lastId가 null이면 첫 페이지(seek 쿼리가 "처음부터"로 해석) */
+    public record RecommendCursor(Integer scoreBucket, Long lastId) {
+        public static final RecommendCursor FIRST_PAGE = new RecommendCursor(null, null);
     }
 
     /** 디코딩 실패 시 에러 대신 첫 페이지로 폴백(로그 남김) — cursor는 외부(FE) 입력이라 조용히 삼키지 않는다 */
@@ -33,38 +31,41 @@ public class RecommendCursorUtil {
         }
         try {
             JsonNode node = OBJECT_MAPPER.readTree(Base64.getDecoder().decode(cursor));
-            return new RecommendCursor(
-                    readNullableInt(node, "noveltyBucket"),
-                    readNullableLong(node, "noveltyLastId"),
-                    readNullableInt(node, "normalBucket"),
-                    readNullableLong(node, "normalLastId"),
-                    node.path("noveltyExhausted").asBoolean(false)
-            );
+            Integer scoreBucket = readNullableInt(node, "scoreBucket");
+            Long lastId = readNullableLong(node, "lastId");
+            // JSON 파싱 자체는 성공했지만 scoreBucket/lastId 중 하나라도 없는 경우 — 예전 커서 포맷
+            // (noveltyBucket/normalBucket 등, 필드 구조가 바뀌기 전), 알 수 없는 형식, 또는 숫자가 아닌
+            // 값(readNullableInt/Long이 null로 취급)이다. encode()가 만드는 정상 커서는 둘 다 항상 함께
+            // 채워지므로(hasNext=true일 때만 인코딩하고 그때는 항상 마지막 행의 scoreBucket/lastId가
+            // 채워짐) 하나만 있는 상태가 나올 수 없다 — 디코딩 실패와 동일하게 취급해 조용히 삼키지
+            // 않고 첫 페이지로 폴백한다.
+            if (scoreBucket == null || lastId == null) {
+                log.warn("[추천 커서 디코딩 실패] 알 수 없는 커서 형식(예: 구버전 포맷)이라 첫 페이지로 폴백합니다. cursor={}", cursor);
+                return RecommendCursor.FIRST_PAGE;
+            }
+            return new RecommendCursor(scoreBucket, lastId);
         } catch (Exception e) {
             log.warn("[추천 커서 디코딩 실패] 첫 페이지로 폴백합니다. cursor={}", cursor, e);
             return RecommendCursor.FIRST_PAGE;
         }
     }
 
+    // canConvertToInt()는 없는/null 필드는 물론 숫자로 변환 불가능한 값(예: {"scoreBucket":"abc"})도
+    // false를 반환한다 — asInt()를 바로 쓰면 그런 값이 조용히 0으로 해석돼 이상 탐지를 피해간다.
     private static Integer readNullableInt(JsonNode node, String field) {
         JsonNode value = node.path(field);
-        return value.isMissingNode() || value.isNull() ? null : value.asInt();
+        return value.canConvertToInt() ? value.asInt() : null;
     }
 
     private static Long readNullableLong(JsonNode node, String field) {
         JsonNode value = node.path(field);
-        return value.isMissingNode() || value.isNull() ? null : value.asLong();
+        return value.canConvertToLong() ? value.asLong() : null;
     }
 
-    /** 필드가 고정된 int/long/boolean뿐이라 실패할 일이 없어 try-catch 없이 직접 조립 */
+    /** 필드가 고정된 int/long뿐이라 실패할 일이 없어 try-catch 없이 직접 조립 */
     public static String encode(RecommendCursor cursor) {
-        String json = "{\"noveltyBucket\":%s,\"noveltyLastId\":%s,\"normalBucket\":%s,\"normalLastId\":%s,\"noveltyExhausted\":%b}"
-                .formatted(
-                        jsonNumber(cursor.noveltyBucket()),
-                        jsonNumber(cursor.noveltyLastId()),
-                        jsonNumber(cursor.normalBucket()),
-                        jsonNumber(cursor.normalLastId()),
-                        cursor.noveltyExhausted());
+        String json = "{\"scoreBucket\":%s,\"lastId\":%s}"
+                .formatted(jsonNumber(cursor.scoreBucket()), jsonNumber(cursor.lastId()));
         return Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
     }
 

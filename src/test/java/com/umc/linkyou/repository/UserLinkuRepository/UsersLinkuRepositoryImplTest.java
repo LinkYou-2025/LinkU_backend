@@ -11,7 +11,6 @@ import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.domain.mapping.LinkuKeyword;
-import com.umc.linkyou.domain.recommend.UserProfileKeyword;
 import com.umc.linkyou.repository.dto.RankedUsersLinku;
 import com.umc.linkyou.repository.EmotionRepository;
 import com.umc.linkyou.repository.categoryRepository.FcolorRepository;
@@ -21,7 +20,6 @@ import com.umc.linkyou.repository.classification.domainRepository.DomainReposito
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.keywordRepository.KeywordRepository;
 import com.umc.linkyou.repository.mapping.LinkuKeywordRepository;
-import com.umc.linkyou.repository.recommend.UserProfileKeywordRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.config.TestExternalConfig;
 import org.junit.jupiter.api.DisplayName;
@@ -40,11 +38,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * UsersLinkuRepositoryImpl#findHomeRecommendCandidates 통합 테스트.
- *
- * TextMatch용 profileTsqueryText/profileText는 null로 넘긴다 — 둘 다 null이면
- * HomeRecommendScoreService#textMatchExpression이 similarity()/ts_rank_cd를 호출하지 않아
- * pg_trgm 확장 설치 여부와 무관하게 KeywordMatch 및 커서 동작을 검증할 수 있다.
+ * UsersLinkuRepositoryImpl 홈화면 추천 조회(findNormalRecommendCandidates) 통합 테스트.
  *
  * 감정(EmotionMatch) 자체는 EmotionSimilarityUtil이 감정 ID 1~6을 하드코딩 매핑하고 있어서, 테스트
  * DB에서 매번 새로 생성되는(IDENTITY 시퀀스가 테스트 클래스 간에도 누적되는) Emotion의 실제 ID가 1~6
@@ -56,7 +50,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Transactional
 @ActiveProfiles("test")
 @Import(TestExternalConfig.class)
-@DisplayName("UsersLinkuRepositoryImpl#findHomeRecommendCandidates 테스트")
+@DisplayName("UsersLinkuRepositoryImpl 홈화면 추천 조회 테스트")
 class UsersLinkuRepositoryImplTest {
 
     @Autowired private UsersLinkuRepository usersLinkuRepository;
@@ -69,7 +63,6 @@ class UsersLinkuRepositoryImplTest {
     @Autowired private LinkuRepository linkuRepository;
     @Autowired private KeywordRepository keywordRepository;
     @Autowired private LinkuKeywordRepository linkuKeywordRepository;
-    @Autowired private UserProfileKeywordRepository userProfileKeywordRepository;
     @Autowired private JdbcTemplate jdbcTemplate;
 
     // BaseEntity.createdAt은 @CreatedDate(updatable=false)라 JPA로는 저장 후 값을 바꿀 수 없어서,
@@ -80,83 +73,40 @@ class UsersLinkuRepositoryImplTest {
     }
 
     @Nested
-    @DisplayName("novelty(최근에 안 본 것) 버킷")
-    class NoveltyBucket {
+    @DisplayName("PersonalEngagement staleness")
+    class PersonalEngagementStaleness {
 
         @Test
-        @DisplayName("findNoveltyRecommendCandidates는 COALESCE(lastViewedAt, createdAt)가 임계값보다 오래된 후보만 반환한다")
-        void findNoveltyRecommendCandidates는_임계값보다_오래된_후보만_반환한다() {
-            Users user = userRepository.save(createUser("home-reco-novelty"));
-            Domain domain = domainRepository.save(createDomain("novelty-test"));
+        @DisplayName("오래 안 본/안 만든 후보일수록 PersonalEngagement staleness가 높아 점수가 더 높다")
+        void 오래_안_본_안_만든_후보일수록_점수가_더_높다() {
+            Users user = userRepository.save(createUser("home-reco-staleness"));
+            Domain domain = domainRepository.save(createDomain("staleness-test"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
             Category category = categoryRepository.save(createCategory("카테고리", fcolor));
             Emotion emotion = emotionRepository.save(createEmotion());
             Situation situation = situationRepository.save(createSituation("상황"));
 
             LocalDateTime now = LocalDateTime.now();
-            int recencyThresholdDays = 14;
 
-            // 한 번도 안 봄(lastViewedAt=null) + 저장한 지 30일 지남 → novelty 대상
+            // 한 번도 안 봄(lastViewedAt=null) + 저장한 지 30일 지남 → staleness 높음
             Linku linkuNeverViewedOld = createAndSaveLinku(domain, category, emotion, situation);
             UsersLinku neverViewedOld = usersLinkuRepository.save(
                     baseUsersLinku(user, linkuNeverViewedOld, emotion).situation(situation).build());
             overrideCreatedAt(neverViewedOld.getUserLinkuId(), now.minusDays(30));
 
-            // 한 번도 안 봄 + 방금 저장(기본 createdAt=now) → 아직 볼 기회가 없었을 뿐이라 novelty 아님
+            // 한 번도 안 봄 + 방금 저장(기본 createdAt=now) → staleness 낮음
             Linku linkuNeverViewedRecent = createAndSaveLinku(domain, category, emotion, situation);
-            usersLinkuRepository.save(
+            UsersLinku neverViewedRecent = usersLinkuRepository.save(
                     baseUsersLinku(user, linkuNeverViewedRecent, emotion).situation(situation).build());
 
-            // 마지막으로 본 지 30일 지남 → novelty 대상
-            Linku linkuViewedOld = createAndSaveLinku(domain, category, emotion, situation);
-            UsersLinku viewedOld = usersLinkuRepository.save(
-                    baseUsersLinku(user, linkuViewedOld, emotion).situation(situation)
-                            .lastViewedAt(now.minusDays(30)).build());
-
-            // 마지막으로 본 지 1일밖에 안 지남 → novelty 아님
-            Linku linkuViewedRecent = createAndSaveLinku(domain, category, emotion, situation);
-            usersLinkuRepository.save(
-                    baseUsersLinku(user, linkuViewedRecent, emotion).situation(situation)
-                            .lastViewedAt(now.minusDays(1)).build());
-
-            List<RankedUsersLinku> result = usersLinkuRepository.findNoveltyRecommendCandidates(
-                    user.getId(), emotion.getEmotionId(), situation.getId(), now, recencyThresholdDays, null, null, 10);
-
-            assertThat(result).extracting(RankedUsersLinku::userLinkuId)
-                    .containsExactlyInAnyOrder(neverViewedOld.getUserLinkuId(), viewedOld.getUserLinkuId());
-        }
-
-        @Test
-        @DisplayName("findNormalRecommendCandidates는 novelty 대상을 제외한다 (서로소 유지)")
-        void findNormalRecommendCandidates는_novelty_대상을_제외한다() {
-            Users user = userRepository.save(createUser("home-reco-normal"));
-            Domain domain = domainRepository.save(createDomain("normal-test"));
-            Fcolor fcolor = fcolorRepository.save(createFcolor());
-            Category category = categoryRepository.save(createCategory("카테고리", fcolor));
-            Emotion emotion = emotionRepository.save(createEmotion());
-            Situation situation = situationRepository.save(createSituation("상황"));
-
-            LocalDateTime now = LocalDateTime.now();
-            int recencyThresholdDays = 14;
-
-            // novelty 대상(마지막으로 본 지 30일 지남) — normal 버킷에는 안 나와야 함
-            Linku linkuNovelty = createAndSaveLinku(domain, category, emotion, situation);
-            usersLinkuRepository.save(
-                    baseUsersLinku(user, linkuNovelty, emotion).situation(situation)
-                            .lastViewedAt(now.minusDays(30)).build());
-
-            // novelty 아님(최근에 봄) — normal 버킷에 나와야 함
-            Linku linkuNormal = createAndSaveLinku(domain, category, emotion, situation);
-            UsersLinku normal = usersLinkuRepository.save(
-                    baseUsersLinku(user, linkuNormal, emotion).situation(situation)
-                            .lastViewedAt(now.minusDays(1)).build());
-
+            // 예전 novelty 하드 필터와 달리 지금은 둘 다(과거엔 하나는 제외, 하나는 포함) 같은 랭킹 안에
+            // 남아 있으면서, 오래된 쪽이 staleness가 높아 위로 온다.
             List<RankedUsersLinku> result = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
-                    now, null, null, recencyThresholdDays, null, null, 10);
+                    now, null, null, 10);
 
             assertThat(result).extracting(RankedUsersLinku::userLinkuId)
-                    .containsExactly(normal.getUserLinkuId());
+                    .containsExactly(neverViewedOld.getUserLinkuId(), neverViewedRecent.getUserLinkuId());
         }
     }
 
@@ -165,8 +115,8 @@ class UsersLinkuRepositoryImplTest {
     class ScoreCursor {
 
         @Test
-        @DisplayName("키워드 10개와 커서가 있을 시 다음 후보를 반환한다")
-        void 키워드_10개와_커서가_있을_시_다음_후보를_반환한다() {
+        @DisplayName("키워드_차이가_있을_시_동점_ID순으로_페이징한다")
+        void 키워드_차이가_있을_시_동점_ID순으로_페이징한다() {
             Users user = userRepository.save(createUser("home-reco-cursor"));
             Domain domain = domainRepository.save(createDomain("cursor-test"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -178,21 +128,13 @@ class UsersLinkuRepositoryImplTest {
                     java.util.stream.IntStream.rangeClosed(1, 10)
                             .mapToObj(keywordId -> Keyword.builder().name("cursor-keyword-" + keywordId).build())
                             .toList());
-            for (int keywordIndex = 0; keywordIndex < keywords.size(); keywordIndex++) {
-                userProfileKeywordRepository.save(UserProfileKeyword.builder()
-                        .userId(user.getId())
-                        .keywordId(keywords.get(keywordIndex).getId())
-                        .weight(keywordIndex + 1)
-                        .build());
-            }
-
             LocalDateTime now = LocalDateTime.now();
             Linku lowKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
             Linku highKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
             Linku noKeywordLinku = createAndSaveLinku(domain, category, emotion, situation);
+            // 키워드 매칭 수가 달라도 동일 점수이며 ID 내림차순으로 정렬되어야 한다.
             linkuKeywordRepository.saveAll(List.of(
-                    LinkuKeyword.builder().linku(lowKeywordLinku).keyword(keywords.get(8)).build(),
-                    LinkuKeyword.builder().linku(lowKeywordLinku).keyword(keywords.get(9)).build()));
+                    LinkuKeyword.builder().linku(lowKeywordLinku).keyword(keywords.get(0)).build()));
             linkuKeywordRepository.saveAll(keywords.stream()
                     .map(keyword -> LinkuKeyword.builder().linku(highKeywordLinku).keyword(keyword).build())
                     .toList());
@@ -205,25 +147,36 @@ class UsersLinkuRepositoryImplTest {
                     .situation(situation)
                     .lastViewedAt(now.minusDays(1))
                     .build());
-            usersLinkuRepository.save(baseUsersLinku(user, noKeywordLinku, emotion)
+            UsersLinku noKeywordCandidate = usersLinkuRepository.save(baseUsersLinku(user, noKeywordLinku, emotion)
                     .situation(situation)
                     .lastViewedAt(now.minusDays(1))
                     .build());
 
             List<RankedUsersLinku> firstPage = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
-                    now, null, null, 14, null, null, 1);
+                    now, null, null, 1);
             assertThat(firstPage).hasSize(1);
-            assertThat(firstPage.get(0).userLinkuId()).isEqualTo(highKeywordCandidate.getUserLinkuId());
+            assertThat(firstPage.get(0).userLinkuId()).isEqualTo(noKeywordCandidate.getUserLinkuId());
             RankedUsersLinku cursor = firstPage.get(0);
 
             List<RankedUsersLinku> secondPage = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
-                    now, null, null, 14, cursor.scoreBucket(), cursor.userLinkuId(), 1);
+                    now, cursor.scoreBucket(), cursor.userLinkuId(), 1);
 
             assertThat(secondPage).hasSize(1);
-            assertThat(secondPage.get(0).userLinkuId()).isEqualTo(lowKeywordCandidate.getUserLinkuId());
-            assertThat(cursor.scoreBucket()).isGreaterThan(secondPage.get(0).scoreBucket());
+            assertThat(secondPage.get(0).userLinkuId()).isEqualTo(highKeywordCandidate.getUserLinkuId());
+            assertThat(cursor.scoreBucket()).isEqualTo(secondPage.get(0).scoreBucket());
+
+            RankedUsersLinku secondCursor = secondPage.get(0);
+            List<RankedUsersLinku> thirdPage = usersLinkuRepository.findNormalRecommendCandidates(
+                    user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
+                    now, secondCursor.scoreBucket(), secondCursor.userLinkuId(), 1);
+            assertThat(thirdPage).extracting(RankedUsersLinku::userLinkuId)
+                    .containsExactly(lowKeywordCandidate.getUserLinkuId());
+            RankedUsersLinku lastCursor = thirdPage.get(0);
+            assertThat(usersLinkuRepository.findNormalRecommendCandidates(
+                    user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
+                    now, lastCursor.scoreBucket(), lastCursor.userLinkuId(), 1)).isEmpty();
         }
     }
 
@@ -232,8 +185,8 @@ class UsersLinkuRepositoryImplTest {
     class SituationMatchOrdering {
 
         @Test
-        @DisplayName("직접 일치 > category 매핑만 일치 > 매칭 없음 순으로 정렬되고, situation=null인 후보도 결과에서 빠지지 않는다")
-        void 직접_일치_category_매핑_매칭없음_순으로_정렬된다() {
+        @DisplayName("상황과_카테고리_매칭_차이가_있을_시_상황_일치를_우선한다")
+        void 상황과_카테고리_매칭_차이가_있을_시_상황_일치를_우선한다() {
             Users user = userRepository.save(createUser("home-reco-situation"));
             Domain domain = domainRepository.save(createDomain("situation-test"));
             Fcolor fcolor = fcolorRepository.save(createFcolor());
@@ -261,12 +214,14 @@ class UsersLinkuRepositoryImplTest {
             UsersLinku none = usersLinkuRepository.save(
                     baseUsersLinku(user, linkuNone, emotion).situation(otherSituation).build());
 
-            List<UsersLinku> result = usersLinkuRepository.findHomeRecommendCandidates(
+            // 셋 다 방금 저장(lastViewedAt=null, createdAt=now)이라 staleness가 거의 동일해서
+            // PersonalEngagement 차이는 무시할 만하고, SituationMatch/CategoryMatch 차이로만 정렬된다.
+            List<RankedUsersLinku> result = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), targetSituation.getId(), List.of(matchedCategory.getCategoryId()),
-                    LocalDateTime.now(), null, null, 0, 10);
+                    LocalDateTime.now(), null, null, 10);
 
             assertThat(result).hasSize(3); // situation=null인 categoryOnly도 빠지지 않는다
-            assertThat(result).extracting(UsersLinku::getUserLinkuId)
+            assertThat(result).extracting(RankedUsersLinku::userLinkuId)
                     .containsExactly(direct.getUserLinkuId(), categoryOnly.getUserLinkuId(), none.getUserLinkuId());
         }
     }
@@ -287,23 +242,25 @@ class UsersLinkuRepositoryImplTest {
 
             LocalDateTime now = LocalDateTime.now();
 
-            // 인기/재방문 신호가 전부 낮은 링크
+            // 인기/재방문 빈도(viewCount)·totalViewCount가 낮은 링크. staleness는 오히려 high보다 높지만
+            // (10일 경과 vs 1시간 전) viewCount=0·popularity=0 격차가 훨씬 커서 그 이점을 못 뒤집는다 —
+            // PersonalEngagement/popularity 종합적으로는 high가 이긴다.
             Linku linkuLow = createAndSaveLinku(domain, category, emotion, situation, 0L);
             UsersLinku low = usersLinkuRepository.save(
                     baseUsersLinku(user, linkuLow, emotion).situation(situation)
-                            .viewCount(0).lastViewedAt(now.minusDays(60)).build());
+                            .viewCount(0).lastViewedAt(now.minusDays(10)).build());
 
-            // 인기/재방문 신호가 전부 높은 링크
+            // 인기/재방문 빈도·totalViewCount가 전부 높은 링크
             Linku linkuHigh = createAndSaveLinku(domain, category, emotion, situation, 5000L);
             UsersLinku high = usersLinkuRepository.save(
                     baseUsersLinku(user, linkuHigh, emotion).situation(situation)
                             .viewCount(50).lastViewedAt(now.minusHours(1)).build());
 
-            List<UsersLinku> result = usersLinkuRepository.findHomeRecommendCandidates(
+            List<RankedUsersLinku> result = usersLinkuRepository.findNormalRecommendCandidates(
                     user.getId(), emotion.getEmotionId(), situation.getId(), List.of(category.getCategoryId()),
-                    now, null, null, 0, 10);
+                    now, null, null, 10);
 
-            assertThat(result).extracting(UsersLinku::getUserLinkuId)
+            assertThat(result).extracting(RankedUsersLinku::userLinkuId)
                     .containsExactly(high.getUserLinkuId(), low.getUserLinkuId());
         }
     }

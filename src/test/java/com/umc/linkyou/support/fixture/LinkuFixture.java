@@ -1,5 +1,7 @@
 package com.umc.linkyou.support.fixture;
 
+import java.util.List;
+
 import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.LinkuSearchHistory;
@@ -10,10 +12,9 @@ import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.folder.Folder;
+import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.web.dto.linku.LinkuQuickSearchResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuSearchResponseDTO;
-
-import java.util.List;
 
 public final class LinkuFixture {
 
@@ -37,40 +38,23 @@ public final class LinkuFixture {
     }
 
     public static Category category() {
-        return Category.builder()
-                .categoryId(CATEGORY_ID)
-                .categoryName("기술")
-                .build();
+        return Category.builder().categoryId(CATEGORY_ID).categoryName("기술").build();
     }
 
     public static Domain domain() {
-        return Domain.builder()
-                .domainId(1L)
-                .name("example")
-                .domainTail("example.com")
-                .build();
+        return Domain.builder().domainId(1L).name("example").domainTail("example.com").build();
     }
 
     public static Emotion emotion() {
-        return Emotion.builder()
-                .emotionId(EMOTION_ID)
-                .name("기대")
-                .build();
+        return Emotion.builder().emotionId(EMOTION_ID).name("기대").build();
     }
 
     public static Situation situation() {
-        return Situation.builder()
-                .id(SITUATION_ID)
-                .name("공부")
-                .build();
+        return Situation.builder().id(SITUATION_ID).name("공부").build();
     }
 
     public static Folder folder() {
-        return Folder.builder()
-                .folderId(10L)
-                .folderName("기술")
-                .category(category())
-                .build();
+        return Folder.builder().folderId(10L).folderName("기술").category(category()).build();
     }
 
     public static Linku linku(String imgUrl) {
@@ -88,28 +72,46 @@ public final class LinkuFixture {
         return linku(null);
     }
 
-    public static LinkuSearchResponseDTO.LinkuSearchItemDTO searchItem(Long userLinkuId, String title) {
+    public static UsersLinku detailLinku(boolean aiExist, boolean hasArticle) {
+        Linku link =
+                Linku.builder()
+                        .linkuId(100L)
+                        .linkuUrl(TEST_URL)
+                        .title("테스트 제목")
+                        .category(category())
+                        .domain(domain())
+                        .aiArticle(
+                                hasArticle
+                                        ? AiArticle.builder().id(1L).summary("테스트 요약").build()
+                                        : null)
+                        .build();
+        return UsersLinku.builder()
+                .userLinkuId(10L)
+                .user(user())
+                .linku(link)
+                .emotion(emotion())
+                .situation(situation())
+                .aiExist(aiExist)
+                .title("개인 제목")
+                .build();
+    }
+
+    public static LinkuSearchResponseDTO.LinkuSearchItemDTO searchItem(
+            Long userLinkuId, String title) {
         return new LinkuSearchResponseDTO.LinkuSearchItemDTO(
                 userLinkuId, title, null, List.of(), "https://img.example.com/icon.png", "example");
     }
 
     public static LinkuQuickSearchResponseDTO quickSearchItem(String title, Long userLinkuId) {
-        return new LinkuQuickSearchResponseDTO(title, "https://img.example.com/icon.png", userLinkuId);
+        return new LinkuQuickSearchResponseDTO(
+                title, "https://img.example.com/icon.png", userLinkuId);
     }
 
     public static LinkuSearchHistory searchHistory(Long id, Long userId, String keyword) {
-        return LinkuSearchHistory.builder()
-                .id(id)
-                .userId(userId)
-                .keyword(keyword)
-                .build();
+        return LinkuSearchHistory.builder().id(id).userId(userId).keyword(keyword).build();
     }
 
     public static AiArticle aiArticle(Linku linku, String summary) {
-        return AiArticle.builder()
-                .id(1L)
-                .linku(linku)
-                .summary(summary)
-                .build();
+        return AiArticle.builder().id(1L).linku(linku).summary(summary).build();
     }
 }

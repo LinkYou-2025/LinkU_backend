@@ -1,7 +1,9 @@
 package com.umc.linkyou.repository.UserLinkuRepository;
 
-import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.repository.dto.TagCountRow;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -9,11 +11,27 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.repository.dto.TagCountRow;
 
 @Repository
-public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, UsersLinkuRepositoryCustom {
+public interface UsersLinkuRepository
+        extends JpaRepository<UsersLinku, Long>, UsersLinkuRepositoryCustom {
+    // 상세 응답에 필요한 단일 연관을 한 번에 조회하고 소유권도 SQL에서 검증한다.
+    @Query(
+            """
+            SELECT ul FROM UsersLinku ul
+            JOIN FETCH ul.linku l
+            LEFT JOIN FETCH l.category
+            LEFT JOIN FETCH l.domain
+            LEFT JOIN FETCH l.aiArticle
+            LEFT JOIN FETCH ul.emotion
+            LEFT JOIN FETCH ul.situation
+            WHERE ul.userLinkuId = :userLinkuId AND ul.user.id = :userId
+            """)
+    Optional<UsersLinku> findDetailByUserIdAndUserLinkuId(
+            @Param("userId") Long userId, @Param("userLinkuId") Long userLinkuId);
+
     // 동일 유저가 같은 링크를 중복 저장했을 수 있어 단일 결과(Optional)로는 2건 이상일 때 예외가 난다.
     // 존재 여부 확인은 "1개 이상 있으면 존재"로 처리해야 하므로 목록으로 조회한다.
     List<UsersLinku> findByUserIdAndLinku_LinkuUrlOrderByCreatedAtDesc(Long userId, String url);
@@ -24,7 +42,8 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
 
     long countByUser_Id(Long userId);
 
-    @Query("""
+    @Query(
+            """
             SELECT ul FROM UsersLinku ul
             JOIN FETCH ul.emotion
             JOIN FETCH ul.linku l
@@ -38,11 +57,13 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
             @Param("end") LocalDateTime end);
 
     @Modifying
-    @Query("UPDATE UsersLinku ul SET ul.viewCount = ul.viewCount + 1, ul.lastViewedAt = :viewedAt WHERE ul.userLinkuId = :id")
+    @Query(
+            "UPDATE UsersLinku ul SET ul.viewCount = ul.viewCount + 1, ul.lastViewedAt = :viewedAt WHERE ul.userLinkuId = :id")
     void incrementViewCount(Long id, LocalDateTime viewedAt);
 
     // 홈 화면 "최근 열람" 목록용: 열람 기록이 있으면 lastViewedAt, 없으면(생성만 하고 아직 안 본 링크) createdAt을 사용
-    @Query("""
+    @Query(
+            """
             SELECT ul FROM UsersLinku ul
             JOIN FETCH ul.linku l
             LEFT JOIN FETCH l.domain
@@ -54,15 +75,18 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
     List<UsersLinku> findByUser_IdAndLastViewedAtIsNull(Long userId);
 
     // 후보 URL 중 사용자가 이미 저장한 것을 찾는다 (외부 추천에 userLinkuId를 채워주기 위함)
-    @Query("""
+    @Query(
+            """
             SELECT ul FROM UsersLinku ul
             JOIN FETCH ul.linku l
             WHERE ul.user.id = :userId AND l.linkuUrl IN :urls
             """)
-    List<UsersLinku> findByUserIdAndLinkuUrlIn(@Param("userId") Long userId, @Param("urls") List<String> urls);
+    List<UsersLinku> findByUserIdAndLinkuUrlIn(
+            @Param("userId") Long userId, @Param("urls") List<String> urls);
 
     // 해당 기간 유저가 저장한 링크의 감정별 저장 횟수
-    @Query("""
+    @Query(
+            """
             SELECT new com.umc.linkyou.repository.dto.TagCountRow(ul.emotion.emotionId, COUNT(ul))
             FROM UsersLinku ul
             WHERE ul.user.id = :userId
@@ -76,7 +100,8 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
             @Param("end") LocalDateTime end);
 
     // 해당 기간 유저가 저장한 링크의 상황별 저장 횟수
-    @Query("""
+    @Query(
+            """
             SELECT new com.umc.linkyou.repository.dto.TagCountRow(ul.situation.id, COUNT(ul))
             FROM UsersLinku ul
             WHERE ul.user.id = :userId
@@ -89,7 +114,8 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 
-    @Query("""
+    @Query(
+            """
             SELECT ul FROM UsersLinku ul
             LEFT JOIN FETCH ul.emotion
             JOIN FETCH ul.linku l
@@ -102,5 +128,4 @@ public interface UsersLinkuRepository  extends JpaRepository<UsersLinku, Long>, 
             @Param("userId") Long userId,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
-
 }
