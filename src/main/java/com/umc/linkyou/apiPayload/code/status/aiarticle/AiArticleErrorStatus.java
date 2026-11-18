@@ -1,10 +1,12 @@
 package com.umc.linkyou.apiPayload.code.status.aiarticle;
 
+import org.springframework.http.HttpStatus;
+
 import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
 @Getter
 @AllArgsConstructor
@@ -12,6 +14,8 @@ public enum AiArticleErrorStatus implements BaseErrorCode {
 
     // 400 Bad Request
     _AI_PARSE_ERROR(HttpStatus.BAD_REQUEST, "OPENAI5001", "AI 응답 파싱에 실패했습니다."),
+    _NOT_SUMMARIZABLE_PAGE(
+            HttpStatus.BAD_REQUEST, "AIARTICLE4001", "로그인이 필요하거나 내용을 볼 수 없는 페이지라 요약할 수 없습니다."),
 
     // 404 Not Found
     _AI_ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND, "AIARTICLE4041", "해당하는 AI Article을 찾을 수 없습니다."),
@@ -26,7 +30,8 @@ public enum AiArticleErrorStatus implements BaseErrorCode {
 
     // 500 Internal Server Error
     _AI_INVALID_RESPONSE(HttpStatus.INTERNAL_SERVER_ERROR, "OPENAI5002", "AI 응답이 예상한 형식이 아닙니다."),
-    _CONTENT_EXTRACTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "CRAWLER5001", "웹페이지 본문 추출에 실패했습니다.");
+    _CONTENT_EXTRACTION_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR, "CRAWLER5001", "웹페이지 본문 추출에 실패했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
@@ -34,11 +39,7 @@ public enum AiArticleErrorStatus implements BaseErrorCode {
 
     @Override
     public ErrorReasonDTO getReason() {
-        return ErrorReasonDTO.builder()
-                .message(message)
-                .code(code)
-                .isSuccess(false)
-                .build();
+        return ErrorReasonDTO.builder().message(message).code(code).isSuccess(false).build();
     }
 
     @Override
