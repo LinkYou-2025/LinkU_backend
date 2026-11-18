@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -152,7 +151,7 @@ class AuthControllerTest {
             UserResponseDTO.JoinResultDTO mockResult =
                     UserResponseDTO.JoinResultDTO.builder()
                             .userId(1L)
-                            .createdAt(LocalDateTime.now())
+                            .createdAt(2026)
                             .tokenResponse(
                                     new UserResponseDTO.TokenPair("mockAccess", "mockRefresh"))
                             .build();
@@ -165,7 +164,8 @@ class AuthControllerTest {
                                     .content(objectMapper.writeValueAsString(request))
                                     .with(csrf()))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.isSuccess").value(true));
+                    .andExpect(jsonPath("$.isSuccess").value(true))
+                    .andExpect(jsonPath("$.result.createdAt").value(2026));
         }
     }
 }
