@@ -107,7 +107,7 @@ class UserControllerTest {
 
                 UserResponseDTO.JoinResultDTO mockResult = UserResponseDTO.JoinResultDTO.builder()
                         .userId(2L)
-                        .createdAt(LocalDateTime.now())
+                        .createdAt(2026)
                         .tokenResponse(new UserResponseDTO.TokenPair("mockAccess", "mockRefresh"))
                         .build();
 
@@ -118,7 +118,8 @@ class UserControllerTest {
                                 .content(objectMapper.writeValueAsString(request))
                                 .with(csrf()))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true));
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.result.createdAt").value(2026));
             }
         }
 
