@@ -1,56 +1,64 @@
 package com.umc.linkyou.service.domain;
 
+import java.util.List;
+
+import jakarta.transaction.Transactional;
+
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.converter.DomainConverter;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
+import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.DomainDTO;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class DomainServiceImpl implements DomainService{
+public class DomainServiceImpl implements DomainService {
     private final DomainRepository domainRepository;
     private final AwsS3Service awsS3Service;
 
     @Override
     @Transactional
-    public DomainDTO.DomainReponseDTO createDomain(Long userId, DomainDTO.DomainRequestDTO dto, MultipartFile image) {
+    public DomainDTO.DomainReponseDTO createDomain(
+            Long userId, DomainDTO.DomainRequestDTO dto, MultipartFile image) {
         String imageUrl = null;
         if (image != null && !image.isEmpty()) {
             imageUrl = awsS3Service.uploadFile(image, "domain");
         }
 
-        Domain domain = Domain.builder()
-                .name(dto.getName())
-                .domainTail(dto.getDomainTail())
-                .imageUrl(imageUrl)
-                .build();
+        Domain domain =
+                Domain.builder()
+                        .name(dto.getName())
+                        .domainTail(UrlValidUtils.normalizeDomainTail(dto.getDomainTail()))
+                        .imageUrl(imageUrl)
+                        .build();
         domain = domainRepository.save(domain);
-        return DomainConverter.toDomainResponseDTO(domain.getName(), domain.getDomainTail(), domain.getImageUrl());
-    }// 도메인 생성
+        return DomainConverter.toDomainResponseDTO(
+                domain.getName(), domain.getDomainTail(), domain.getImageUrl());
+    }
 
     @Override
     @Transactional
-    public DomainDTO.DomainReponseDTO updateDomain(Long userId, DomainDTO.DomainRequestDTO dto, MultipartFile image) {
-        Domain domain = domainRepository.findById(dto.getId())
-                .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND));
-        // null 아닌 필드만 업데이트
+    public DomainDTO.DomainReponseDTO updateDomain(
+            Long userId, DomainDTO.DomainRequestDTO dto, MultipartFile image) {
+        Domain domain =
+                domainRepository
+                        .findById(dto.getId())
+                        .orElseThrow(() -> new GeneralException(ErrorStatus._DOMAIN_NOT_FOUND));
         if (dto.getName() != null) {
             domain.updateName(dto.getName());
         }
         if (dto.getDomainTail() != null) {
-            domain.updateDomainTail(dto.getDomainTail());
+            domain.updateDomainTail(UrlValidUtils.normalizeDomainTail(dto.getDomainTail()));
         }
         if (image != null && !image.isEmpty()) {
-            // 기존 이미지가 있으면 S3에서 먼저 삭제한 뒤 새 이미지를 업로드하고 URL을 교체한다.
             String imageUrl = awsS3Service.replaceFile(domain.getImageUrl(), image, "domain");
             domain.updateImageUrl(imageUrl);
         }
@@ -63,29 +71,31 @@ public class DomainServiceImpl implements DomainService{
                 .imageUrl(domain.getImageUrl())
                 .build();
     }
-//도메인 수정
 
     @Override
     @Transactional
     public DomainDTO.DomainCursorPageResponse getDomainsCursor(Long lastDomainId, int size) {
-        List<Domain> domains = domainRepository.findDomainsCursorPaging(lastDomainId, size);
+        List<Domain> fetched = domainRepository.findDomainsCursorPaging(lastDomainId, size + 1);
+        boolean hasNext = fetched.size() > size;
+        List<Domain> domains = hasNext ? fetched.subList(0, size) : fetched;
 
-        // nextCursor 셋팅: 마지막 원소의 ID
         Long nextCursor = domains.isEmpty() ? null : domains.get(domains.size() - 1).getDomainId();
 
-        List<DomainDTO.DomainReponseDTO> items = domains.stream()
-                .map(d -> DomainDTO.DomainReponseDTO.builder()
-                        .name(d.getName())
-                        .domainTail(d.getDomainTail())
-                        .imageUrl(d.getImageUrl())
-                        .build())
-                .toList();
+        List<DomainDTO.DomainReponseDTO> items =
+                domains.stream()
+                        .map(
+                                d ->
+                                        DomainDTO.DomainReponseDTO.builder()
+                                                .name(d.getName())
+                                                .domainTail(d.getDomainTail())
+                                                .imageUrl(d.getImageUrl())
+                                                .build())
+                        .toList();
 
         return DomainDTO.DomainCursorPageResponse.builder()
                 .items(items)
                 .nextCursor(nextCursor)
-                .hasNext(domains.size() == size) // 더 가져올 데이터가 있는 경우
+                .hasNext(hasNext)
                 .build();
     }
-
 }
