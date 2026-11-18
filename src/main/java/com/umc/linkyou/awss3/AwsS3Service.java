@@ -1,20 +1,5 @@
 package com.umc.linkyou.awss3;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.config.properties.AwsProperties;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import net.coobird.thumbnailator.Thumbnails;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.exception.SdkException;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -23,13 +8,32 @@ import java.io.InputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+
+import javax.imageio.ImageIO;
+
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.config.properties.AwsProperties;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import net.coobird.thumbnailator.Thumbnails;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AwsS3Service {
 
     private final AwsProperties awsProperties;
-    private final S3Client s3Client;  // SDK v2
+    private final S3Client s3Client;
 
     public String uploadFile(MultipartFile multipartFile) {
         if (multipartFile == null || multipartFile.isEmpty()) {
@@ -44,12 +48,13 @@ public class AwsS3Service {
             try (InputStream resizedStream = new ByteArrayInputStream(originalBytes)) {
                 byte[] resizedBytes = processImage(resizedStream);
 
-                PutObjectRequest request = PutObjectRequest.builder()
-                        .bucket(awsProperties.s3().bucket())
-                        .key(fileName)
-                        .contentType("image/jpeg")
-                        .contentLength((long) resizedBytes.length)
-                        .build();
+                PutObjectRequest request =
+                        PutObjectRequest.builder()
+                                .bucket(awsProperties.s3().bucket())
+                                .key(fileName)
+                                .contentType("image/jpeg")
+                                .contentLength((long) resizedBytes.length)
+                                .build();
 
                 try {
                     s3Client.putObject(request, RequestBody.fromBytes(resizedBytes));
@@ -79,12 +84,13 @@ public class AwsS3Service {
             try (InputStream resizedStream = new ByteArrayInputStream(originalBytes)) {
                 byte[] resizedBytes = processImage(resizedStream);
 
-                PutObjectRequest request = PutObjectRequest.builder()
-                        .bucket(awsProperties.s3().bucket())
-                        .key(fileName)
-                        .contentType("image/jpeg")
-                        .contentLength((long) resizedBytes.length)
-                        .build();
+                PutObjectRequest request =
+                        PutObjectRequest.builder()
+                                .bucket(awsProperties.s3().bucket())
+                                .key(fileName)
+                                .contentType("image/jpeg")
+                                .contentLength((long) resizedBytes.length)
+                                .build();
 
                 try {
                     s3Client.putObject(request, RequestBody.fromBytes(resizedBytes));
@@ -101,12 +107,30 @@ public class AwsS3Service {
         return getFileUrl(fileName);
     }
 
-    /**
-     * 기존 이미지를 새 이미지로 교체한다.
-     * 새 이미지를 먼저 업로드해 성공을 확인한 뒤 기존 이미지를 삭제한다. (업로드 실패 시 기존 이미지를 보존하기 위함)
-     * 기존 이미지 삭제가 실패해도 새 이미지는 이미 정상 반영된 상태이므로 예외를 전파하지 않고 로그만 남긴다.
-     * "이미지 수정" 성격의 도메인(예: Domain, UsersLinku)에서 공통으로 사용한다.
-     */
+    // uploadFile은 JPEG로 변환해 PNG 아이콘의 투명 배경이 사라지므로 바이트를 그대로 올린다.
+    public String uploadBytes(byte[] bytes, String contentType, String folder, String extension) {
+        if (bytes == null || bytes.length == 0) {
+            throw new GeneralException(ErrorStatus._S3_FILE_EMPTY);
+        }
+        String fileName = folder + "/" + UUID.randomUUID() + extension;
+        PutObjectRequest request =
+                PutObjectRequest.builder()
+                        .bucket(awsProperties.s3().bucket())
+                        .key(fileName)
+                        .contentType(contentType)
+                        .contentLength((long) bytes.length)
+                        .build();
+        try {
+            s3Client.putObject(request, RequestBody.fromBytes(bytes));
+        } catch (SdkException e) {
+            log.error("S3 바이트 업로드 실패: {}", fileName, e);
+            throw new GeneralException(ErrorStatus._S3_UPLOAD_FAILED);
+        }
+        return getFileUrl(fileName);
+    }
+
+    // 업로드가 실패해도 기존 이미지가 남도록 새 이미지를 먼저 올리고 기존 이미지를 지운다.
+    // 새 이미지는 이미 반영됐으므로 기존 이미지 삭제 실패는 로그만 남긴다.
     public String replaceFile(String oldFileUrl, MultipartFile newFile, String folder) {
         String newFileUrl = uploadFile(newFile, folder);
         if (oldFileUrl != null) {
@@ -121,10 +145,11 @@ public class AwsS3Service {
 
     public void deleteFile(String fileName) {
         try {
-            DeleteObjectRequest request = DeleteObjectRequest.builder()
-                    .bucket(awsProperties.s3().bucket())
-                    .key(fileName)
-                    .build();
+            DeleteObjectRequest request =
+                    DeleteObjectRequest.builder()
+                            .bucket(awsProperties.s3().bucket())
+                            .key(fileName)
+                            .build();
             s3Client.deleteObject(request);
         } catch (SdkException e) {
             throw new GeneralException(ErrorStatus._S3_DELETE_FAILED);
@@ -134,10 +159,11 @@ public class AwsS3Service {
     public void deleteFileByUrl(String fileUrl) {
         String fileName = extractFileNameFromUrl(fileUrl);
         try {
-            DeleteObjectRequest request = DeleteObjectRequest.builder()
-                    .bucket(awsProperties.s3().bucket())
-                    .key(fileName)
-                    .build();
+            DeleteObjectRequest request =
+                    DeleteObjectRequest.builder()
+                            .bucket(awsProperties.s3().bucket())
+                            .key(fileName)
+                            .build();
             s3Client.deleteObject(request);
         } catch (SdkException e) {
             throw new GeneralException(ErrorStatus._S3_DELETE_FAILED);
@@ -154,9 +180,10 @@ public class AwsS3Service {
     public String extractFileNameFromUrl(String url) {
         try {
             String decodedUrl = URLDecoder.decode(url, StandardCharsets.UTF_8);
-            String domainSuffix = awsProperties.cloudfront().domain().endsWith("/")
-                    ? awsProperties.cloudfront().domain()
-                    : awsProperties.cloudfront().domain() + "/";
+            String domainSuffix =
+                    awsProperties.cloudfront().domain().endsWith("/")
+                            ? awsProperties.cloudfront().domain()
+                            : awsProperties.cloudfront().domain() + "/";
             if (decodedUrl.startsWith(domainSuffix)) {
                 return decodedUrl.substring(domainSuffix.length());
             }
