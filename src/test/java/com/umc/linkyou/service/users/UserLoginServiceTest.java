@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -28,10 +29,18 @@ import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.jwt.TokenIssueService;
-import com.umc.linkyou.oauth2.mobile.dto.MobileLoginResponse;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 
 @ExtendWith(MockitoExtension.class)
 class UserLoginServiceTest {
+
+    private static final int CREATED_YEAR = 2025;
+
+    private static Users withCreatedAt(Users user) {
+        ReflectionTestUtils.setField(user, "createdAt", LocalDateTime.of(CREATED_YEAR, 3, 1, 0, 0));
+        return user;
+    }
+
 
     @InjectMocks private UserLoginService userLoginService;
 
@@ -47,7 +56,7 @@ class UserLoginServiceTest {
         void ACTIVE_유저는_토큰_쌍을_받는다() {
             // given
             Users user =
-                    Users.builder().id(1L).role(Role.USER).status(UserStatus.ACTIVE).build();
+                    withCreatedAt(Users.builder().id(1L).role(Role.USER).status(UserStatus.ACTIVE).build());
             when(userStatusValidator.isWithinWithdrawGracePeriod(user)).thenReturn(false);
             when(tokenIssueService.issueForStatus(
                             eq(1L), eq("kakao@example.com"), eq("KAKAO"), eq(Role.USER),
@@ -55,7 +64,7 @@ class UserLoginServiceTest {
                     .thenReturn(new TokenIssueService.IssuedTokenPair("access", "refresh"));
 
             // when
-            MobileLoginResponse result =
+            UserResponseDTO.LoginResultDTO result =
                     userLoginService.handleSocialLogin(
                             user, "kakao@example.com", Provider.KAKAO, "device-1", DeviceType.PHONE);
 
@@ -63,17 +72,18 @@ class UserLoginServiceTest {
             assertEquals("access", result.getAccessToken());
             assertEquals("refresh", result.getRefreshToken());
             assertEquals(UserStatus.ACTIVE, result.getStatus());
+            assertEquals(CREATED_YEAR, result.getCreatedAt());
             verify(userStatusValidator).validateLoginAllowed(user);
         }
 
         @Test
         @DisplayName("TEMP 소셜 계정은 가입용 액세스 토큰만 받고 리프레시 토큰은 받지 않는다")
         void TEMP_소셜_계정은_가입용_액세스_토큰만_받는다() {
-            Users user = Users.builder()
+            Users user = withCreatedAt(Users.builder()
                     .id(4L)
                     .role(Role.USER)
                     .status(UserStatus.TEMP)
-                    .build();
+                    .build());
             when(userStatusValidator.isWithinWithdrawGracePeriod(user)).thenReturn(false);
             when(tokenIssueService.issueForStatus(
                             4L,
@@ -85,12 +95,13 @@ class UserLoginServiceTest {
                             DeviceType.PHONE))
                     .thenReturn(new TokenIssueService.IssuedTokenPair("onboarding-access", null));
 
-            MobileLoginResponse result = userLoginService.handleSocialLogin(
+            UserResponseDTO.LoginResultDTO result = userLoginService.handleSocialLogin(
                     user, "temp@example.com", Provider.GOOGLE, "device-temp", DeviceType.PHONE);
 
             assertEquals("onboarding-access", result.getAccessToken());
             assertNull(result.getRefreshToken());
             assertEquals(UserStatus.TEMP, result.getStatus());
+            assertEquals(CREATED_YEAR, result.getCreatedAt());
             verify(userStatusValidator).validateLoginAllowed(user);
             verify(tokenIssueService).issueForStatus(
                     4L,
@@ -107,7 +118,7 @@ class UserLoginServiceTest {
         void 유예_기간_이내인_유저는_복구_전용_토큰만_받는다() {
             // given
             Users user =
-                    Users.builder().id(2L).role(Role.USER).status(UserStatus.INACTIVE).build();
+                    withCreatedAt(Users.builder().id(2L).role(Role.USER).status(UserStatus.INACTIVE).build());
             user.withdraw("테스트 탈퇴", LocalDateTime.now().minusDays(3));
 
             when(userStatusValidator.isWithinWithdrawGracePeriod(user)).thenReturn(true);
@@ -115,7 +126,7 @@ class UserLoginServiceTest {
                     .thenReturn("recoveryToken");
 
             // when
-            MobileLoginResponse result =
+            UserResponseDTO.LoginResultDTO result =
                     userLoginService.handleSocialLogin(
                             user, "kakao@example.com", Provider.KAKAO, "device-1", DeviceType.PHONE);
 
@@ -123,6 +134,7 @@ class UserLoginServiceTest {
             assertEquals("recoveryToken", result.getAccessToken());
             assertNull(result.getRefreshToken());
             assertEquals(UserStatus.INACTIVE, result.getStatus());
+            assertEquals(CREATED_YEAR, result.getCreatedAt());
             assertEquals(user.getInactiveDate(), result.getInactiveDate());
             verify(userStatusValidator, never()).validateLoginAllowed(any());
             verify(tokenIssueService, never())
@@ -134,7 +146,7 @@ class UserLoginServiceTest {
         void 유예_기간이_지난_유저는_로그인이_차단된다() {
             // given
             Users user =
-                    Users.builder().id(3L).role(Role.USER).status(UserStatus.INACTIVE).build();
+                    withCreatedAt(Users.builder().id(3L).role(Role.USER).status(UserStatus.INACTIVE).build());
             user.withdraw("테스트 탈퇴", LocalDateTime.now().minusDays(20));
 
             when(userStatusValidator.isWithinWithdrawGracePeriod(user)).thenReturn(false);
