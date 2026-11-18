@@ -17,7 +17,7 @@ import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.oauth2.mobile.client.GoogleTokenVerifier;
 import com.umc.linkyou.oauth2.mobile.client.KakaoTokenClient;
 import com.umc.linkyou.oauth2.mobile.client.NaverTokenClient;
-import com.umc.linkyou.oauth2.mobile.dto.MobileLoginResponse;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 import com.umc.linkyou.oauth2.mobile.service.GoogleMobileAuthService;
 import com.umc.linkyou.oauth2.mobile.service.KakaoMobileAuthService;
 import com.umc.linkyou.oauth2.mobile.service.NaverMobileAuthService;
@@ -100,7 +100,7 @@ class MobileSocialAuthServiceTest {
                         .thenReturn(java.util.Optional.empty());
             }
             String resolvedEmail = hasLinkedEmail ? storedEmail : info.email();
-            MobileLoginResponse expected = MobileLoginResponse.builder()
+            UserResponseDTO.LoginResultDTO expected = UserResponseDTO.LoginResultDTO.builder()
                     .userId(42L)
                     .accessToken("access-token")
                     .refreshToken("refresh-token")
@@ -110,7 +110,7 @@ class MobileSocialAuthServiceTest {
                             user, resolvedEmail, provider, DEVICE_ID, DeviceType.PHONE))
                     .thenReturn(expected);
 
-            MobileLoginResponse result = loginFor(provider);
+            UserResponseDTO.LoginResultDTO result = loginFor(provider);
 
             assertEquals(expected.getUserId(), result.getUserId());
             assertEquals(expected.getAccessToken(), result.getAccessToken());
@@ -175,7 +175,7 @@ class MobileSocialAuthServiceTest {
         }
     }
 
-    private MobileLoginResponse loginFor(Provider provider) {
+    private UserResponseDTO.LoginResultDTO loginFor(Provider provider) {
         return switch (provider) {
             case KAKAO -> kakaoService.login(TOKEN, DEVICE_ID, DeviceType.PHONE);
             case GOOGLE -> googleService.login(TOKEN, DEVICE_ID, DeviceType.PHONE);

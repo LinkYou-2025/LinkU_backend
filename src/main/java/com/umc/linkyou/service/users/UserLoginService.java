@@ -1,11 +1,12 @@
 package com.umc.linkyou.service.users;
 
+import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.jwt.TokenIssueService;
-import com.umc.linkyou.oauth2.mobile.dto.MobileLoginResponse;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +26,7 @@ public class UserLoginService {
      * @param deviceType
      * @return
      */
-    public MobileLoginResponse handleSocialLogin(
+    public UserResponseDTO.LoginResultDTO handleSocialLogin(
             Users user,
             String resolvedEmail,
             Provider provider,
@@ -37,13 +38,7 @@ public class UserLoginService {
             String recoveryToken =
                     tokenIssueService.issueRecoveryToken(
                             user.getId(), resolvedEmail, provider.name(), user.getRole());
-            return MobileLoginResponse.builder()
-                    .userId(user.getId())
-                    .accessToken(recoveryToken)
-                    .refreshToken(null)
-                    .status(user.getStatus())
-                    .inactiveDate(user.getInactiveDate())
-                    .build();
+            return UserConverter.toLoginResultDTO(user, recoveryToken, null);
         }
         userStatusValidator.validateLoginAllowed(user);
 
@@ -58,11 +53,7 @@ public class UserLoginService {
                         deviceType
                 );
 
-        return MobileLoginResponse.builder()
-                .userId(user.getId())
-                .accessToken(tokenPair.accessToken())
-                .refreshToken(tokenPair.refreshToken())
-                .status(user.getStatus())
-                .build();
+        return UserConverter.toLoginResultDTO(
+                user, tokenPair.accessToken(), tokenPair.refreshToken());
     }
 }
