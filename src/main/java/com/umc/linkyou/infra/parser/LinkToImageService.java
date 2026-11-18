@@ -1,15 +1,17 @@
 package com.umc.linkyou.infra.parser;
 
-import com.umc.linkyou.infra.net.SafeUrlFetcher;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.net.HttpURLConnection;
+import java.util.Optional;
+import java.util.Set;
+
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.util.Set;
+import com.umc.linkyou.infra.net.SafeUrlFetcher;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -26,15 +28,20 @@ public class LinkToImageService {
     private static final long MIN_IMAGE_BYTES = 15 * 1024;
 
     // svg, ico, gif 제외
-    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
+    private static final Set<String> ALLOWED_IMAGE_TYPES =
+            Set.of("image/jpeg", "image/png", "image/webp");
 
     // Content-Type, Content-Length 확인, 실패하면 false로 처리함
     private boolean isValidImage(String imageUrl) {
         try {
-            HttpURLConnection conn = safeUrlFetcher.openConnection(imageUrl, "Mozilla/5.0", 1500, 1500);
+            HttpURLConnection conn =
+                    safeUrlFetcher.openConnection(imageUrl, "Mozilla/5.0", 1500, 1500);
             String contentType = conn.getContentType();
-            String mimeType = contentType == null ? "" : contentType.split(";")[0].trim().toLowerCase();
-            boolean valid = ALLOWED_IMAGE_TYPES.contains(mimeType) && conn.getContentLengthLong() >= MIN_IMAGE_BYTES;
+            String mimeType =
+                    contentType == null ? "" : contentType.split(";")[0].trim().toLowerCase();
+            boolean valid =
+                    ALLOWED_IMAGE_TYPES.contains(mimeType)
+                            && conn.getContentLengthLong() >= MIN_IMAGE_BYTES;
             conn.disconnect();
             return valid;
         } catch (Exception e) {
@@ -60,23 +67,6 @@ public class LinkToImageService {
         return null;
     }
 
-    // URL에서 도메인 추출
-    private String extractDomainFromUrl(String url) {
-        try {
-            URI uri = new URI(url);
-            String host = uri.getHost();
-            if (host == null) return null;
-            return host.startsWith("www.") ? host.substring(4) : host;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    // iframe#mainFrame 구조는 PC 블로그에만 있음
-    private boolean isNaverBlog(String url) {
-        return "blog.naver.com".equals(extractDomainFromUrl(url));
-    }
-
     // 네이버 블로그 iframe 내부 본문 접근 + 대표 이미지 추출
     private String extractFromNaverBlog(String blogUrl) {
         try {
@@ -84,25 +74,34 @@ public class LinkToImageService {
                 log.warn("[크롤링 제한] robots.txt에 의해 이미지 추출 금지된 URL: {}", blogUrl);
                 return null;
             }
-            Document doc = safeUrlFetcher.fetchDocument(blogUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
-            Element frame = doc.selectFirst("iframe#mainFrame");
-            if (frame == null) return null;
+            Document doc =
+                    safeUrlFetcher.fetchDocument(blogUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
+            Optional<String> frameUrl = NaverBlog.postFrameUrl(doc);
+            if (frameUrl.isEmpty()) {
+                // 모바일 블로그 등 iframe 없이 본문이 바로 있는 페이지
+                return extractNaverPostImage(doc);
+            }
 
-            String realUrl = toAbsoluteHttpsUrl(frame, "src");
-            if (realUrl == null) return null;
+            String realUrl = frameUrl.get();
+            if (!realUrl.toLowerCase().startsWith("https://")) return null;
             if (!robotsTxtChecker.isAllowed(realUrl, "Mozilla/5.0")) {
                 log.warn("[크롤링 제한] robots.txt에 의해 이미지 추출 금지된 URL: {}", realUrl);
                 return null;
             }
-            Document realDoc = safeUrlFetcher.fetchDocument(realUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
-
-            String ogImage = firstValidImage(realDoc, "meta[property=og:image]", "content", 1);
-            if (ogImage != null) return ogImage;
-
-            return firstValidImage(realDoc, "img[src]", "src", MAX_IMG_CANDIDATES);
+            Document realDoc =
+                    safeUrlFetcher.fetchDocument(realUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
+            return extractNaverPostImage(realDoc);
         } catch (Exception e) {
             return null;
         }
+    }
+
+    // iframe 안 문서(PostView)에서 대표 이미지 추출
+    private String extractNaverPostImage(Document postDoc) {
+        String ogImage = firstValidImage(postDoc, "meta[property=og:image]", "content", 1);
+        if (ogImage != null) return ogImage;
+
+        return firstValidImage(postDoc, "img[src]", "src", MAX_IMG_CANDIDATES);
     }
 
     private String extractRepresentativeImage(String url) {
@@ -122,10 +121,10 @@ public class LinkToImageService {
         if (doc == null) return null;
 
         String[] selectors = {
-                "meta[property=og:image]",
-                "meta[name=twitter:image]",
-                "meta[itemprop=image]",
-                "link[rel=image_src]"
+            "meta[property=og:image]",
+            "meta[name=twitter:image]",
+            "meta[itemprop=image]",
+            "link[rel=image_src]"
         };
 
         for (String selector : selectors) {
@@ -143,11 +142,17 @@ public class LinkToImageService {
         return getRelatedImageFromUrl(url, title, null);
     }
 
-    // 네이버 블로그는 iframe 안 다른 호스트를 따로 fetch해야 해서 doc 재사용 대상이 아님
+    // 네이버 블로그는 본문(과 대표 이미지)이 PC 주소에선 iframe 안에 있다.
+    // 넘겨받은 doc이 이미 본문이 있는 문서(iframe 안 문서/모바일 페이지)면 그대로 쓰고, 아니면 바깥 페이지부터 다시 받는다.
     public String getRelatedImageFromUrl(String url, String title, Document doc) {
-        if (isNaverBlog(url)) {
+        if (NaverBlog.isBlogUrl(url)) {
+            if (doc != null && NaverBlog.postFrameUrl(doc).isEmpty()) {
+                return extractNaverPostImage(doc);
+            }
             return extractFromNaverBlog(url);
         }
-        return (doc != null) ? extractRepresentativeImageFromDoc(doc) : extractRepresentativeImage(url);
+        return (doc != null)
+                ? extractRepresentativeImageFromDoc(doc)
+                : extractRepresentativeImage(url);
     }
 }
