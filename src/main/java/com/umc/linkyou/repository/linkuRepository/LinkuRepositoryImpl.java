@@ -1,5 +1,10 @@
 package com.umc.linkyou.repository.linkuRepository;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Repository;
+
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.*;
@@ -16,11 +21,8 @@ import com.umc.linkyou.domain.mapping.QUsersLinku;
 import com.umc.linkyou.web.dto.keyword.KeywordLinkuItemDTO;
 import com.umc.linkyou.web.dto.linku.LinkuQuickSearchResponseDTO;
 import com.umc.linkyou.web.dto.linku.LinkuSearchResponseDTO;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
@@ -30,7 +32,8 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
 
     // 링크 검색 (커서 페이징) - 제목/태그 매칭, 최신 저장 순
     @Override
-    public List<LinkuSearchResponseDTO.LinkuSearchItemDTO> searchUserLinks(Long userId, String keyword, Long cursor, int size) {
+    public List<LinkuSearchResponseDTO.LinkuSearchItemDTO> searchUserLinks(
+            Long userId, String keyword, Long cursor, int size) {
         QUsersLinku ul = QUsersLinku.usersLinku;
         QLinku l = QLinku.linku;
         QDomain d = QDomain.domain;
@@ -44,55 +47,63 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
         BooleanExpression titleMatches = displayTitle.containsIgnoreCase(keyword);
 
         // 링크에 붙은 태그 중 검색어와 일치하는 것이 있는지 (exists라 태그 여러 개여도 행이 늘지 않음)
-        BooleanExpression tagMatches = JPAExpressions
-                .selectOne()
-                .from(lk)
-                .where(lk.linku.eq(l), lk.keyword.name.containsIgnoreCase(keyword))
-                .exists();
+        BooleanExpression tagMatches =
+                JPAExpressions.selectOne()
+                        .from(lk)
+                        .where(lk.linku.eq(l), lk.keyword.name.containsIgnoreCase(keyword))
+                        .exists();
 
         // hasNext 판단용으로 size+1개 조회
-        List<Tuple> rows = queryFactory
-                .select(ul.userLinkuId, l.linkuId, displayTitle, displayImage, d.imageUrl, d.name)
-                .from(ul)
-                .join(ul.linku, l)
-                .leftJoin(l.domain, d)
-                .where(
-                        ul.user.id.eq(userId),
-                        titleMatches.or(tagMatches),
-                        // cursor 0 = 첫 페이지 (필터 없음), 그 외에는 해당 커서 이전 항목부터
-                        cursor != null && cursor > 0 ? ul.userLinkuId.lt(cursor) : null
-                )
-                .orderBy(ul.userLinkuId.desc())
-                .limit(size + 1L)
-                .fetch();
+        List<Tuple> rows =
+                queryFactory
+                        .select(
+                                ul.userLinkuId,
+                                l.linkuId,
+                                displayTitle,
+                                displayImage,
+                                d.imageUrl,
+                                d.name)
+                        .from(ul)
+                        .join(ul.linku, l)
+                        .leftJoin(l.domain, d)
+                        .where(
+                                ul.user.id.eq(userId),
+                                titleMatches.or(tagMatches),
+                                // cursor 0 = 첫 페이지 (필터 없음), 그 외에는 해당 커서 이전 항목부터
+                                cursor != null && cursor > 0 ? ul.userLinkuId.lt(cursor) : null)
+                        .orderBy(ul.userLinkuId.desc())
+                        .limit(size + 1L)
+                        .fetch();
 
-        List<Long> linkuIds = rows.stream()
-                .map(r -> r.get(l.linkuId))
-                .distinct()
-                .toList();
+        List<Long> linkuIds = rows.stream().map(r -> r.get(l.linkuId)).distinct().toList();
 
         // 태그는 IN 조회 한 번으로 모아서 조립 (N+1 방지)
-        Map<Long, List<String>> tagsByLinkuId = linkuIds.isEmpty() ? Map.of() : queryFactory
-                .select(lk.linku.linkuId, k.name)
-                .from(lk)
-                .join(lk.keyword, k)
-                .where(lk.linku.linkuId.in(linkuIds))
-                .fetch()
-                .stream()
-                .collect(Collectors.groupingBy(
-                        t -> t.get(lk.linku.linkuId),
-                        Collectors.mapping(t -> t.get(k.name), Collectors.toList())
-                ));
+        Map<Long, List<String>> tagsByLinkuId =
+                linkuIds.isEmpty()
+                        ? Map.of()
+                        : queryFactory
+                                .select(lk.linku.linkuId, k.name)
+                                .from(lk)
+                                .join(lk.keyword, k)
+                                .where(lk.linku.linkuId.in(linkuIds))
+                                .fetch()
+                                .stream()
+                                .collect(
+                                        Collectors.groupingBy(
+                                                t -> t.get(lk.linku.linkuId),
+                                                Collectors.mapping(
+                                                        t -> t.get(k.name), Collectors.toList())));
 
         return rows.stream()
-                .map(r -> new LinkuSearchResponseDTO.LinkuSearchItemDTO(
-                        r.get(ul.userLinkuId),
-                        r.get(displayTitle),
-                        r.get(displayImage),
-                        tagsByLinkuId.getOrDefault(r.get(l.linkuId), List.of()),
-                        r.get(d.imageUrl),
-                        r.get(d.name)
-                ))
+                .map(
+                        r ->
+                                new LinkuSearchResponseDTO.LinkuSearchItemDTO(
+                                        r.get(ul.userLinkuId),
+                                        r.get(displayTitle),
+                                        r.get(displayImage),
+                                        tagsByLinkuId.getOrDefault(r.get(l.linkuId), List.of()),
+                                        r.get(d.imageUrl),
+                                        r.get(d.name)))
                 .toList();
     }
 
@@ -108,37 +119,45 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
         StringExpression displayTitle = ul.title.coalesce(l.title);
         StringExpression displayImage = ul.imageUrl.coalesce(l.imgUrl);
 
-        BooleanExpression keywordMatches = JPAExpressions
-                .selectOne()
-                .from(lk)
-                .where(lk.linku.eq(l), lk.keyword.name.eq(keyword))
-                .exists();
+        BooleanExpression keywordMatches =
+                JPAExpressions.selectOne()
+                        .from(lk)
+                        .where(lk.linku.eq(l), lk.keyword.name.eq(keyword))
+                        .exists();
 
-        List<Tuple> rows = queryFactory
-                .select(ul.userLinkuId, l.linkuUrl, displayTitle, displayImage, d.name, d.imageUrl, c.categoryName, e.name, ul.aiExist)
-                .from(ul)
-                .join(ul.linku, l)
-                .leftJoin(l.domain, d)
-                .join(l.category, c)
-                .join(ul.emotion, e)
-                .where(
-                        ul.user.id.eq(userId),
-                        keywordMatches
-                )
-                .orderBy(ul.userLinkuId.desc())
-                .fetch();
+        List<Tuple> rows =
+                queryFactory
+                        .select(
+                                ul.userLinkuId,
+                                l.linkuUrl,
+                                displayTitle,
+                                displayImage,
+                                d.name,
+                                d.imageUrl,
+                                c.categoryName,
+                                e.name,
+                                ul.aiExist)
+                        .from(ul)
+                        .join(ul.linku, l)
+                        .leftJoin(l.domain, d)
+                        .join(l.category, c)
+                        .join(ul.emotion, e)
+                        .where(ul.user.id.eq(userId), keywordMatches)
+                        .orderBy(ul.userLinkuId.desc())
+                        .fetch();
 
         return rows.stream()
-                .map(r -> new KeywordLinkuItemDTO(
-                        r.get(ul.userLinkuId),
-                        r.get(displayTitle),
-                        r.get(l.linkuUrl),
-                        r.get(displayImage),
-                        r.get(d.name),
-                        r.get(d.imageUrl),
-                        List.of(r.get(c.categoryName), r.get(e.name)),
-                        Boolean.TRUE.equals(r.get(ul.aiExist))
-                ))
+                .map(
+                        r ->
+                                new KeywordLinkuItemDTO(
+                                        r.get(ul.userLinkuId),
+                                        r.get(displayTitle),
+                                        r.get(l.linkuUrl),
+                                        r.get(displayImage),
+                                        r.get(d.name),
+                                        r.get(d.imageUrl),
+                                        List.of(r.get(c.categoryName), r.get(e.name)),
+                                        Boolean.TRUE.equals(r.get(ul.aiExist))))
                 .toList();
     }
 
@@ -153,26 +172,23 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
         StringExpression displayTitle = ul.title.coalesce(l.title);
 
         BooleanExpression titleMatches = displayTitle.containsIgnoreCase(keyword);
-        BooleanExpression tagMatches = JPAExpressions
-                .selectOne()
-                .from(lk)
-                .where(lk.linku.eq(l), lk.keyword.name.containsIgnoreCase(keyword))
-                .exists();
+        BooleanExpression tagMatches =
+                JPAExpressions.selectOne()
+                        .from(lk)
+                        .where(lk.linku.eq(l), lk.keyword.name.containsIgnoreCase(keyword))
+                        .exists();
 
         return queryFactory
-                .select(Projections.constructor(
-                        LinkuQuickSearchResponseDTO.class,
-                        displayTitle,
-                        d.imageUrl,
-                        ul.userLinkuId
-                ))
+                .select(
+                        Projections.constructor(
+                                LinkuQuickSearchResponseDTO.class,
+                                displayTitle,
+                                d.imageUrl,
+                                ul.userLinkuId))
                 .from(ul)
                 .join(ul.linku, l)
                 .leftJoin(l.domain, d)
-                .where(
-                        ul.user.id.eq(userId),
-                        titleMatches.or(tagMatches)
-                )
+                .where(ul.user.id.eq(userId), titleMatches.or(tagMatches))
                 .orderBy(ul.userLinkuId.desc())
                 .limit(3)
                 .fetch();
@@ -183,13 +199,14 @@ public class LinkuRepositoryImpl implements LinkuRepositoryCustom {
         QLinku l = QLinku.linku;
 
         // AiArticle만 fetch join (이후 바로 null 체크 및 세팅하기 때문)
-        Linku result = queryFactory
-                .selectFrom(l)
-                .leftJoin(l.aiArticle).fetchJoin()
-                .where(l.linkuUrl.eq(normalizedLink))
-                .fetchFirst();
+        Linku result =
+                queryFactory
+                        .selectFrom(l)
+                        .leftJoin(l.aiArticle)
+                        .fetchJoin()
+                        .where(l.linkuUrl.eq(normalizedLink))
+                        .fetchFirst();
 
         return Optional.ofNullable(result);
     }
-
 }

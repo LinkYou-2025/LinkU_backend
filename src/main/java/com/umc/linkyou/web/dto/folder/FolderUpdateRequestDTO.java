@@ -8,4 +8,3 @@ import lombok.Setter;
 public class FolderUpdateRequestDTO {
     private String folderName;
 }
-

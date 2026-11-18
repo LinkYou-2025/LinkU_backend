@@ -1,13 +1,16 @@
 package com.umc.linkyou.service.common;
 
-import com.umc.linkyou.domain.classification.Emotion;
-import com.umc.linkyou.repository.EmotionRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-
-import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
+
+import jakarta.annotation.PostConstruct;
+
+import org.springframework.stereotype.Component;
+
+import com.umc.linkyou.domain.classification.Emotion;
+import com.umc.linkyou.repository.EmotionRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor

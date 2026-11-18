@@ -8,4 +8,3 @@ import lombok.Setter;
 public class FolderCreateRequestDTO {
     private String folderName;
 }
-

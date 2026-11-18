@@ -1,8 +1,5 @@
 package com.umc.linkyou.batch.curation;
 
-import com.umc.linkyou.domain.Users;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.SkipListener;
 import org.springframework.batch.core.Step;
@@ -13,9 +10,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import com.umc.linkyou.domain.Users;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 /**
- * 매월 1일마다 유저별 큐레이션을 생성하는 배치 작업 설정
- * 생성된 큐레이션에 대한 알림 발송은 발송 시각이 달라(오전 8시) {@link SendCurationAlarmJobConfig}의 별도 Job으로 분리되어 있음
+ * 매월 1일마다 유저별 큐레이션을 생성하는 배치 작업 설정 생성된 큐레이션에 대한 알림 발송은 발송 시각이 달라(오전 8시) {@link
+ * SendCurationAlarmJobConfig}의 별도 Job으로 분리되어 있음
  */
 @Slf4j
 @Configuration
@@ -58,13 +60,18 @@ public class GenerateMonthlyCurationJobConfig {
         return new SkipListener<>() {
             @Override
             public void onSkipInProcess(Users item, Throwable t) {
-                log.warn("[CurationBatch] 유저 처리 스킵 userId={}, cause={}", item.getId(), t.getMessage());
+                log.warn(
+                        "[CurationBatch] 유저 처리 스킵 userId={}, cause={}",
+                        item.getId(),
+                        t.getMessage());
             }
 
             @Override
             public void onSkipInWrite(MonthlyCurationBatchItem item, Throwable t) {
-                log.warn("[CurationBatch] 큐레이션 생성 스킵 userId={}, cause={}",
-                        item.user().getId(), t.getMessage());
+                log.warn(
+                        "[CurationBatch] 큐레이션 생성 스킵 userId={}, cause={}",
+                        item.user().getId(),
+                        t.getMessage());
             }
         };
     }

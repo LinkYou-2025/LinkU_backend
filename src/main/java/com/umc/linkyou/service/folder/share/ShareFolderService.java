@@ -1,13 +1,11 @@
 package com.umc.linkyou.service.folder.share;
 
-import com.umc.linkyou.web.dto.folder.FolderUpdateRequestDTO;
+import java.util.List;
+
 import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.MySharedFolderResponseDTO;
-import com.umc.linkyou.web.dto.folder.share.ShareFolderRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
-
-import java.util.List;
 
 public interface ShareFolderService {
     // 초대 링크 생성
@@ -20,7 +18,8 @@ public interface ShareFolderService {
     List<ViewerResponseDTO> getViewers(Long userId, Long folderId);
 
     // 특정 뷰어 권한 수정
-    ShareFolderResponseDTO updateViewerPermission(Long userId, Long folderId, Long userFolderId, FolderPermissionRequestDTO request);
+    ShareFolderResponseDTO updateViewerPermission(
+            Long userId, Long folderId, Long userFolderId, FolderPermissionRequestDTO request);
 
     // 폴더 비공개 전환
     ShareFolderResponseDTO unshare(Long ownerId, Long folderId);

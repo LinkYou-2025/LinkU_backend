@@ -1,5 +1,19 @@
 package com.umc.linkyou.service.category;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.BDDMockito.given;
+
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.classification.Category;
@@ -11,35 +25,18 @@ import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.web.dto.category.CategoryListResponseDTO;
 import com.umc.linkyou.web.dto.category.UpdateCategoryColorRequestDTO;
 import com.umc.linkyou.web.dto.category.UserCategoryColorResponseDTO;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CategoryService 단위 테스트")
 class CategoryServiceTest {
 
-    @InjectMocks
-    private CategoryServiceImpl categoryService;
+    @InjectMocks private CategoryServiceImpl categoryService;
 
-    @Mock
-    private CategoryRepository categoryRepository;
+    @Mock private CategoryRepository categoryRepository;
 
-    @Mock
-    private FcolorRepository fcolorRepository;
+    @Mock private FcolorRepository fcolorRepository;
 
-    @Mock
-    private UsersCategoryColorRepository usersCategoryColorRepository;
+    @Mock private UsersCategoryColorRepository usersCategoryColorRepository;
 
     private static final Long USER_ID = 1L;
     private static final Long CATEGORY_ID = 10L;
@@ -66,11 +63,13 @@ class CategoryServiceTest {
             @Test
             @DisplayName("색상이 지정된 카테고리는 색상 정보를 포함해 반환한다")
             void 색상이_지정된_카테고리는_색상_정보를_포함해_반환한다() {
-                Category category = Category.builder().categoryId(CATEGORY_ID).categoryName("어학").build();
-                UsersCategoryColor ucc = UsersCategoryColor.builder()
-                        .category(category)
-                        .fcolor(fcolor(FCOLOR_ID))
-                        .build();
+                Category category =
+                        Category.builder().categoryId(CATEGORY_ID).categoryName("어학").build();
+                UsersCategoryColor ucc =
+                        UsersCategoryColor.builder()
+                                .category(category)
+                                .fcolor(fcolor(FCOLOR_ID))
+                                .build();
                 given(usersCategoryColorRepository.findByUserId(USER_ID)).willReturn(List.of(ucc));
 
                 List<CategoryListResponseDTO> result = categoryService.getCategories(USER_ID);
@@ -85,11 +84,10 @@ class CategoryServiceTest {
             @Test
             @DisplayName("색상이 지정되지 않은 카테고리는 색상 필드가 null로 반환된다")
             void 색상이_지정되지_않은_카테고리는_색상_필드가_null로_반환된다() {
-                Category category = Category.builder().categoryId(CATEGORY_ID).categoryName("업무").build();
-                UsersCategoryColor ucc = UsersCategoryColor.builder()
-                        .category(category)
-                        .fcolor(null)
-                        .build();
+                Category category =
+                        Category.builder().categoryId(CATEGORY_ID).categoryName("업무").build();
+                UsersCategoryColor ucc =
+                        UsersCategoryColor.builder().category(category).fcolor(null).build();
                 given(usersCategoryColorRepository.findByUserId(USER_ID)).willReturn(List.of(ucc));
 
                 List<CategoryListResponseDTO> result = categoryService.getCategories(USER_ID);
@@ -121,14 +119,14 @@ class CategoryServiceTest {
             @Test
             @DisplayName("정상 요청 시 색상이 변경되고 변경된 정보를 반환한다")
             void 정상_요청_시_색상이_변경되고_변경된_정보를_반환한다() {
-                Category category = Category.builder().categoryId(CATEGORY_ID).categoryName("어학").build();
-                UsersCategoryColor ucc = UsersCategoryColor.builder()
-                        .category(category)
-                        .fcolor(fcolor(1L))
-                        .build();
+                Category category =
+                        Category.builder().categoryId(CATEGORY_ID).categoryName("어학").build();
+                UsersCategoryColor ucc =
+                        UsersCategoryColor.builder().category(category).fcolor(fcolor(1L)).build();
                 Fcolor newFcolor = fcolor(FCOLOR_ID);
 
-                given(usersCategoryColorRepository.searchCategoryColor(USER_ID, CATEGORY_ID)).willReturn(ucc);
+                given(usersCategoryColorRepository.searchCategoryColor(USER_ID, CATEGORY_ID))
+                        .willReturn(ucc);
                 given(fcolorRepository.searchColorCode(FCOLOR_ID)).willReturn(newFcolor);
 
                 UpdateCategoryColorRequestDTO request = new UpdateCategoryColorRequestDTO();
@@ -149,36 +147,48 @@ class CategoryServiceTest {
             @Test
             @DisplayName("해당 유저의 카테고리 색상 정보가 없으면 _CATEGORY_NOT_FOUND를 던진다")
             void 카테고리_색상_정보가_없으면_예외를_던진다() {
-                given(usersCategoryColorRepository.searchCategoryColor(USER_ID, CATEGORY_ID)).willReturn(null);
+                given(usersCategoryColorRepository.searchCategoryColor(USER_ID, CATEGORY_ID))
+                        .willReturn(null);
 
                 UpdateCategoryColorRequestDTO request = new UpdateCategoryColorRequestDTO();
                 request.setFcolorId(FCOLOR_ID);
 
-                assertThatThrownBy(() -> categoryService.updateUserCategoryColor(USER_ID, CATEGORY_ID, request))
+                assertThatThrownBy(
+                                () ->
+                                        categoryService.updateUserCategoryColor(
+                                                USER_ID, CATEGORY_ID, request))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(CategoryErrorStatus._CATEGORY_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        CategoryErrorStatus._CATEGORY_NOT_FOUND));
             }
 
             @Test
             @DisplayName("존재하지 않는 fcolorId면 _FCOLOR_NOT_FOUND를 던진다")
             void fcolorId가_존재하지_않으면_예외를_던진다() {
-                Category category = Category.builder().categoryId(CATEGORY_ID).categoryName("어학").build();
-                UsersCategoryColor ucc = UsersCategoryColor.builder()
-                        .category(category)
-                        .fcolor(fcolor(1L))
-                        .build();
+                Category category =
+                        Category.builder().categoryId(CATEGORY_ID).categoryName("어학").build();
+                UsersCategoryColor ucc =
+                        UsersCategoryColor.builder().category(category).fcolor(fcolor(1L)).build();
 
-                given(usersCategoryColorRepository.searchCategoryColor(USER_ID, CATEGORY_ID)).willReturn(ucc);
+                given(usersCategoryColorRepository.searchCategoryColor(USER_ID, CATEGORY_ID))
+                        .willReturn(ucc);
                 given(fcolorRepository.searchColorCode(FCOLOR_ID)).willReturn(null);
 
                 UpdateCategoryColorRequestDTO request = new UpdateCategoryColorRequestDTO();
                 request.setFcolorId(FCOLOR_ID);
 
-                assertThatThrownBy(() -> categoryService.updateUserCategoryColor(USER_ID, CATEGORY_ID, request))
+                assertThatThrownBy(
+                                () ->
+                                        categoryService.updateUserCategoryColor(
+                                                USER_ID, CATEGORY_ID, request))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(CategoryErrorStatus._FCOLOR_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(CategoryErrorStatus._FCOLOR_NOT_FOUND));
             }
         }
     }

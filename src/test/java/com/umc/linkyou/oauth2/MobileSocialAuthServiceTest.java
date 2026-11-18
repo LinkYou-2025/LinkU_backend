@@ -6,6 +6,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.AuthAccount;
@@ -24,15 +34,6 @@ import com.umc.linkyou.oauth2.mobile.service.NaverMobileAuthService;
 import com.umc.linkyou.oauth2.utils.UserSocialLoginHelper;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.service.users.UserLoginService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.EnumSource;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class MobileSocialAuthServiceTest {
@@ -53,12 +54,24 @@ class MobileSocialAuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        kakaoService = new KakaoMobileAuthService(
-                kakaoTokenClient, userSocialLoginHelper, userLoginService, authAccountRepository);
-        googleService = new GoogleMobileAuthService(
-                googleTokenVerifier, userSocialLoginHelper, userLoginService, authAccountRepository);
-        naverService = new NaverMobileAuthService(
-                naverTokenClient, userSocialLoginHelper, userLoginService, authAccountRepository);
+        kakaoService =
+                new KakaoMobileAuthService(
+                        kakaoTokenClient,
+                        userSocialLoginHelper,
+                        userLoginService,
+                        authAccountRepository);
+        googleService =
+                new GoogleMobileAuthService(
+                        googleTokenVerifier,
+                        userSocialLoginHelper,
+                        userLoginService,
+                        authAccountRepository);
+        naverService =
+                new NaverMobileAuthService(
+                        naverTokenClient,
+                        userSocialLoginHelper,
+                        userLoginService,
+                        authAccountRepository);
     }
 
     @Nested
@@ -75,37 +88,39 @@ class MobileSocialAuthServiceTest {
             "NAVER,false"
         })
         @DisplayName("제공자 이메일과 연결된 계정 이메일을 올바르게 전달한다")
-        void 제공자_이메일과_연결된_계정_이메일을_올바르게_전달한다(
-                Provider provider, boolean hasLinkedEmail) {
+        void 제공자_이메일과_연결된_계정_이메일을_올바르게_전달한다(Provider provider, boolean hasLinkedEmail) {
             SocialInfo info = stubProviderInfo(provider);
-            Users user = Users.builder()
-                    .id(42L)
-                    .role(Role.USER)
-                    .status(UserStatus.ACTIVE)
-                    .build();
+            Users user = Users.builder().id(42L).role(Role.USER).status(UserStatus.ACTIVE).build();
             when(userSocialLoginHelper.findOrCreateUser(
-                            info.email(), info.name(), info.externalId(), info.profileImage(), provider))
+                            info.email(),
+                            info.name(),
+                            info.externalId(),
+                            info.profileImage(),
+                            provider))
                     .thenReturn(user);
             String storedEmail = hasLinkedEmail ? "stored@example.com" : null;
             if (hasLinkedEmail) {
                 when(authAccountRepository.findByUserIdAndProvider(42L, provider))
-                        .thenReturn(java.util.Optional.of(AuthAccount.builder()
-                                .user(user)
-                                .email(storedEmail)
-                                .provider(provider)
-                                .externalId(info.externalId())
-                                .build()));
+                        .thenReturn(
+                                java.util.Optional.of(
+                                        AuthAccount.builder()
+                                                .user(user)
+                                                .email(storedEmail)
+                                                .provider(provider)
+                                                .externalId(info.externalId())
+                                                .build()));
             } else {
                 when(authAccountRepository.findByUserIdAndProvider(42L, provider))
                         .thenReturn(java.util.Optional.empty());
             }
             String resolvedEmail = hasLinkedEmail ? storedEmail : info.email();
-            MobileLoginResponse expected = MobileLoginResponse.builder()
-                    .userId(42L)
-                    .accessToken("access-token")
-                    .refreshToken("refresh-token")
-                    .status(UserStatus.ACTIVE)
-                    .build();
+            MobileLoginResponse expected =
+                    MobileLoginResponse.builder()
+                            .userId(42L)
+                            .accessToken("access-token")
+                            .refreshToken("refresh-token")
+                            .status(UserStatus.ACTIVE)
+                            .build();
             when(userLoginService.handleSocialLogin(
                             user, resolvedEmail, provider, DEVICE_ID, DeviceType.PHONE))
                     .thenReturn(expected);
@@ -116,11 +131,16 @@ class MobileSocialAuthServiceTest {
             assertEquals(expected.getAccessToken(), result.getAccessToken());
             assertEquals(expected.getRefreshToken(), result.getRefreshToken());
             assertEquals(expected.getStatus(), result.getStatus());
-            verify(userSocialLoginHelper).findOrCreateUser(
-                    info.email(), info.name(), info.externalId(), info.profileImage(), provider);
+            verify(userSocialLoginHelper)
+                    .findOrCreateUser(
+                            info.email(),
+                            info.name(),
+                            info.externalId(),
+                            info.profileImage(),
+                            provider);
             verify(authAccountRepository).findByUserIdAndProvider(42L, provider);
-            verify(userLoginService).handleSocialLogin(
-                    user, resolvedEmail, provider, DEVICE_ID, DeviceType.PHONE);
+            verify(userLoginService)
+                    .handleSocialLogin(user, resolvedEmail, provider, DEVICE_ID, DeviceType.PHONE);
         }
     }
 
@@ -129,7 +149,9 @@ class MobileSocialAuthServiceTest {
     class InvalidToken {
 
         @ParameterizedTest
-        @EnumSource(value = Provider.class, names = {"KAKAO", "GOOGLE", "NAVER"})
+        @EnumSource(
+                value = Provider.class,
+                names = {"KAKAO", "GOOGLE", "NAVER"})
         @DisplayName("토큰 검증 실패를 전달하고 계정 처리를 시작하지 않는다")
         void 토큰_검증_실패를_전달하고_계정_처리를_시작하지_않는다(Provider provider) {
             GeneralException tokenError = new GeneralException(ErrorStatus._INVALID_ID_TOKEN);
@@ -145,22 +167,28 @@ class MobileSocialAuthServiceTest {
     private SocialInfo stubProviderInfo(Provider provider) {
         return switch (provider) {
             case KAKAO -> {
-                KakaoTokenClient.KakaoUserInfo info = new KakaoTokenClient.KakaoUserInfo(
-                        "kakao-id", "provider@example.com", "Kakao Name", "kakao-image");
+                KakaoTokenClient.KakaoUserInfo info =
+                        new KakaoTokenClient.KakaoUserInfo(
+                                "kakao-id", "provider@example.com", "Kakao Name", "kakao-image");
                 when(kakaoTokenClient.getUserInfo(TOKEN)).thenReturn(info);
-                yield new SocialInfo(info.externalId(), info.email(), info.name(), info.profileImage());
+                yield new SocialInfo(
+                        info.externalId(), info.email(), info.name(), info.profileImage());
             }
             case GOOGLE -> {
-                GoogleTokenVerifier.GoogleUserInfo info = new GoogleTokenVerifier.GoogleUserInfo(
-                        "google-id", "provider@example.com", "Google Name", "google-image");
+                GoogleTokenVerifier.GoogleUserInfo info =
+                        new GoogleTokenVerifier.GoogleUserInfo(
+                                "google-id", "provider@example.com", "Google Name", "google-image");
                 when(googleTokenVerifier.verify(TOKEN)).thenReturn(info);
-                yield new SocialInfo(info.externalId(), info.email(), info.name(), info.profileImage());
+                yield new SocialInfo(
+                        info.externalId(), info.email(), info.name(), info.profileImage());
             }
             case NAVER -> {
-                NaverTokenClient.NaverUserInfo info = new NaverTokenClient.NaverUserInfo(
-                        "naver-id", "provider@example.com", "Naver Name", "naver-image");
+                NaverTokenClient.NaverUserInfo info =
+                        new NaverTokenClient.NaverUserInfo(
+                                "naver-id", "provider@example.com", "Naver Name", "naver-image");
                 when(naverTokenClient.getUserInfo(TOKEN)).thenReturn(info);
-                yield new SocialInfo(info.externalId(), info.email(), info.name(), info.profileImage());
+                yield new SocialInfo(
+                        info.externalId(), info.email(), info.name(), info.profileImage());
             }
             default -> throw new IllegalArgumentException("지원하지 않는 소셜 제공자: " + provider);
         };

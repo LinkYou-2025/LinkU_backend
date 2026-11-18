@@ -1,18 +1,15 @@
 package com.umc.linkyou.batch;
 
-import com.umc.linkyou.domain.Alarm;
-import com.umc.linkyou.domain.AlarmSetting;
-import com.umc.linkyou.domain.Curation;
-import com.umc.linkyou.domain.UserAlarm;
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.enums.AlarmType;
-import com.umc.linkyou.repository.AlarmRepository;
-import com.umc.linkyou.repository.AlarmSettingRepository;
-import com.umc.linkyou.repository.UserAlarmRepository;
-import com.umc.linkyou.repository.curationRepository.CurationRepository;
-import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.service.alarm.FcmServiceImpl;
-import com.umc.linkyou.support.config.TestExternalConfig;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.util.List;
+
 import org.junit.jupiter.api.*;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
@@ -30,23 +27,28 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.YearMonth;
-import java.time.ZoneId;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
+import com.umc.linkyou.domain.Alarm;
+import com.umc.linkyou.domain.AlarmSetting;
+import com.umc.linkyou.domain.Curation;
+import com.umc.linkyou.domain.UserAlarm;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.AlarmType;
+import com.umc.linkyou.repository.AlarmRepository;
+import com.umc.linkyou.repository.AlarmSettingRepository;
+import com.umc.linkyou.repository.UserAlarmRepository;
+import com.umc.linkyou.repository.curationRepository.CurationRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.service.alarm.FcmServiceImpl;
+import com.umc.linkyou.support.config.TestExternalConfig;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(TestExternalConfig.class)
-@TestPropertySource(properties = {
-        "spring.batch.jdbc.initialize-schema=always",
-        "spring.batch.job.enabled=false"
-})
+@TestPropertySource(
+        properties = {
+            "spring.batch.jdbc.initialize-schema=always",
+            "spring.batch.job.enabled=false"
+        })
 @DisplayName("sendCurationAlarmStep 통합 테스트")
 class SendCurationAlarmBatchIntegrationTest {
 
@@ -57,7 +59,10 @@ class SendCurationAlarmBatchIntegrationTest {
 
     @Autowired private JobLauncher jobLauncher;
     @Autowired private JobRepository jobRepository;
-    @Autowired @Qualifier("sendCurationAlarmJob") private Job sendCurationAlarmJob;
+
+    @Autowired
+    @Qualifier("sendCurationAlarmJob")
+    private Job sendCurationAlarmJob;
 
     @Autowired private UserRepository userRepository;
     @Autowired private CurationRepository curationRepository;
@@ -107,7 +112,8 @@ class SendCurationAlarmBatchIntegrationTest {
             Curation curation = saveCuration(user, BASE_MONTH);
 
             // when
-            JobExecution execution = jobLauncherTestUtils.launchStep("sendCurationAlarmStep", uniqueJobParameters());
+            JobExecution execution =
+                    jobLauncherTestUtils.launchStep("sendCurationAlarmStep", uniqueJobParameters());
 
             // then
             assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
@@ -134,12 +140,17 @@ class SendCurationAlarmBatchIntegrationTest {
             // given
             Users user = saveUserWithSetting("유저비", true);
             Curation curation = saveCuration(user, BASE_MONTH);
-            Alarm existing = alarmRepository.save(
-                    Alarm.create(AlarmType.CURATION_UPDATED, curation.getCurationId(), "이미 보낸 알림"));
+            Alarm existing =
+                    alarmRepository.save(
+                            Alarm.create(
+                                    AlarmType.CURATION_UPDATED,
+                                    curation.getCurationId(),
+                                    "이미 보낸 알림"));
             userAlarmRepository.save(UserAlarm.create(user, existing));
 
             // when
-            JobExecution execution = jobLauncherTestUtils.launchStep("sendCurationAlarmStep", uniqueJobParameters());
+            JobExecution execution =
+                    jobLauncherTestUtils.launchStep("sendCurationAlarmStep", uniqueJobParameters());
 
             // then
             assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
@@ -163,7 +174,8 @@ class SendCurationAlarmBatchIntegrationTest {
             saveCuration(user, BASE_MONTH);
 
             // when
-            JobExecution execution = jobLauncherTestUtils.launchStep("sendCurationAlarmStep", uniqueJobParameters());
+            JobExecution execution =
+                    jobLauncherTestUtils.launchStep("sendCurationAlarmStep", uniqueJobParameters());
 
             // then
             assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
@@ -180,7 +192,8 @@ class SendCurationAlarmBatchIntegrationTest {
             saveCuration(user, YearMonth.now(ZoneId.of("Asia/Seoul")).minusMonths(1).toString());
 
             // when
-            JobExecution execution = jobLauncherTestUtils.launchStep("sendCurationAlarmStep", uniqueJobParameters());
+            JobExecution execution =
+                    jobLauncherTestUtils.launchStep("sendCurationAlarmStep", uniqueJobParameters());
 
             // then
             assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
@@ -191,7 +204,8 @@ class SendCurationAlarmBatchIntegrationTest {
         @DisplayName("대상 큐레이션이 없으면 잡이 정상 완료된다")
         void 대상없음_정상완료() throws Exception {
             // when
-            JobExecution execution = jobLauncherTestUtils.launchStep("sendCurationAlarmStep", uniqueJobParameters());
+            JobExecution execution =
+                    jobLauncherTestUtils.launchStep("sendCurationAlarmStep", uniqueJobParameters());
 
             // then
             assertThat(execution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
@@ -204,15 +218,22 @@ class SendCurationAlarmBatchIntegrationTest {
 
     // 알림 설정과 함께 유저 생성
     private Users saveUserWithSetting(String nickName, boolean curationEnabled) {
-        return new TransactionTemplate(transactionManager).execute(status -> {
-            Users user = userRepository.save(Users.builder().nickName(nickName).password("pw").build());
-            AlarmSetting setting = AlarmSetting.createDefault(user);
-            if (!curationEnabled) {
-                setting.updateCuration(false);
-            }
-            alarmSettingRepository.save(setting);
-            return user;
-        });
+        return new TransactionTemplate(transactionManager)
+                .execute(
+                        status -> {
+                            Users user =
+                                    userRepository.save(
+                                            Users.builder()
+                                                    .nickName(nickName)
+                                                    .password("pw")
+                                                    .build());
+                            AlarmSetting setting = AlarmSetting.createDefault(user);
+                            if (!curationEnabled) {
+                                setting.updateCuration(false);
+                            }
+                            alarmSettingRepository.save(setting);
+                            return user;
+                        });
     }
 
     private Curation saveCuration(Users user, String baseMonth) {

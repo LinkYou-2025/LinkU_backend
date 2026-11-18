@@ -1,25 +1,27 @@
 package com.umc.linkyou.repository.mapping;
 
-import com.umc.linkyou.domain.Keyword;
-import com.umc.linkyou.domain.Linku;
-import com.umc.linkyou.domain.mapping.LinkuKeyword;
-import com.umc.linkyou.repository.dto.KeywordCountRow;
-import com.umc.linkyou.repository.dto.LinkuKeywordRow;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import com.umc.linkyou.domain.Keyword;
+import com.umc.linkyou.domain.Linku;
+import com.umc.linkyou.domain.mapping.LinkuKeyword;
+import com.umc.linkyou.repository.dto.KeywordCountRow;
+import com.umc.linkyou.repository.dto.LinkuKeywordRow;
 
 @Repository
 public interface LinkuKeywordRepository extends JpaRepository<LinkuKeyword, Long> {
     boolean existsByLinkuAndKeyword(Linku linku, Keyword keyword);
 
     // 해당 월에 같은 직업 유저들이 저장한 링크의 키워드별 등장 횟수 상위 N건
-    @Query("""
+    @Query(
+            """
             SELECT new com.umc.linkyou.repository.dto.KeywordCountRow(k.name, COUNT(ul))
             FROM LinkuKeyword lk
             JOIN lk.keyword k
@@ -37,7 +39,8 @@ public interface LinkuKeywordRepository extends JpaRepository<LinkuKeyword, Long
             Pageable pageable);
 
     // 여러 링크의 키워드 이름을 한 번에 조회
-    @Query("""
+    @Query(
+            """
             SELECT new com.umc.linkyou.repository.dto.LinkuKeywordRow(lk.linku.linkuId, k.name)
             FROM LinkuKeyword lk
             JOIN lk.keyword k

@@ -1,19 +1,21 @@
 package com.umc.linkyou.repository.curationRepository;
 
-import com.umc.linkyou.domain.Curation;
-import com.umc.linkyou.domain.Users;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
-import java.util.Optional;
+import com.umc.linkyou.domain.Curation;
+import com.umc.linkyou.domain.Users;
 
 public interface CurationRepository extends JpaRepository<Curation, Long> {
 
     boolean existsByUserAndBaseMonth(Users user, String baseMonth);
 
-    @Query("""
+    @Query(
+            """
             SELECT c FROM Curation c
             WHERE c.user.id = :userId
             ORDER BY c.baseMonth DESC
@@ -21,12 +23,10 @@ public interface CurationRepository extends JpaRepository<Curation, Long> {
             """)
     Optional<Curation> findLatestByUserId(@Param("userId") Long userId);
 
-    @Query("""
+    @Query(
+            """
             SELECT c FROM Curation c
             WHERE c.user.id = :userId AND c.baseMonth LIKE CONCAT(:year, '-%')
             """)
-    List<Curation> findAllByUserIdAndYear(
-            @Param("userId") Long userId,
-            @Param("year") String year);
-
+    List<Curation> findAllByUserIdAndYear(@Param("userId") Long userId, @Param("year") String year);
 }

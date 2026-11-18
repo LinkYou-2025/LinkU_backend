@@ -1,18 +1,11 @@
 package com.umc.linkyou.integration;
 
-import com.umc.linkyou.domain.Alarm;
-import com.umc.linkyou.domain.AlarmSetting;
-import com.umc.linkyou.domain.UserAlarm;
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.enums.AlarmType;
-import com.umc.linkyou.domain.enums.Role;
-import com.umc.linkyou.jwt.CustomUserDetails;
-import com.umc.linkyou.repository.AlarmRepository;
-import com.umc.linkyou.repository.AlarmSettingRepository;
-import com.umc.linkyou.repository.UserAlarmRepository;
-import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.support.config.TestExternalConfig;
-import com.umc.linkyou.support.security.TestSecurityConfig;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,12 +19,19 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+import com.umc.linkyou.domain.Alarm;
+import com.umc.linkyou.domain.AlarmSetting;
+import com.umc.linkyou.domain.UserAlarm;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.AlarmType;
+import com.umc.linkyou.domain.enums.Role;
+import com.umc.linkyou.jwt.CustomUserDetails;
+import com.umc.linkyou.repository.AlarmRepository;
+import com.umc.linkyou.repository.AlarmSettingRepository;
+import com.umc.linkyou.repository.UserAlarmRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.support.config.TestExternalConfig;
+import com.umc.linkyou.support.security.TestSecurityConfig;
 
 @ActiveProfiles("test")
 @SpringBootTest
@@ -40,20 +40,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class AlarmApiIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private AlarmRepository alarmRepository;
+    @Autowired private AlarmRepository alarmRepository;
 
-    @Autowired
-    private UserAlarmRepository userAlarmRepository;
+    @Autowired private UserAlarmRepository userAlarmRepository;
 
-    @Autowired
-    private AlarmSettingRepository alarmSettingRepository;
+    @Autowired private AlarmSettingRepository alarmSettingRepository;
 
     @Test
     @DisplayName("알림 리스트 조회 - alarmType 파라미터로 정상 조회된다")
@@ -61,10 +56,11 @@ class AlarmApiIntegrationTest {
         Users user = createUser("alarm_user_1");
         saveUserAlarm(user, AlarmType.CURATION_UPDATED, 101L);
 
-        mockMvc.perform(get("/api/v1/alarm/list")
-                        .param("alarmType", "ALL")
-                        .param("size", "10")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/alarm/list")
+                                .param("alarmType", "ALL")
+                                .param("size", "10")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.code").value("ALARM2006"))
@@ -81,10 +77,11 @@ class AlarmApiIntegrationTest {
         saveUserAlarm(user, AlarmType.FOLDER_DELETED, 201L);
         saveUserAlarm(user, AlarmType.CURATION_UPDATED, 202L);
 
-        mockMvc.perform(get("/api/v1/alarm/list")
-                        .param("alarmType", "CURATION")
-                        .param("size", "10")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/alarm/list")
+                                .param("alarmType", "CURATION")
+                                .param("size", "10")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.items.length()").value(1))
@@ -98,10 +95,11 @@ class AlarmApiIntegrationTest {
         Users user = createUser("alarm_user_3");
         saveUserAlarm(user, AlarmType.CURATION_UPDATED, 301L);
 
-        mockMvc.perform(get("/api/v1/alarm/list")
-                        .param("alarmSettingType", "ALL")
-                        .param("size", "10")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/alarm/list")
+                                .param("alarmSettingType", "ALL")
+                                .param("size", "10")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -111,10 +109,11 @@ class AlarmApiIntegrationTest {
         Users user = createUser("alarm_user_4");
         alarmSettingRepository.save(AlarmSetting.createDefault(user));
 
-        mockMvc.perform(patch("/api/v1/alarm/settings")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"alarmType\": \"LINK\"}")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        patch("/api/v1/alarm/settings")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"alarmType\": \"LINK\"}")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.result.isAllEnabled").exists())
@@ -134,10 +133,11 @@ class AlarmApiIntegrationTest {
         setting.updateCuration(false);
         alarmSettingRepository.save(setting);
 
-        mockMvc.perform(patch("/api/v1/alarm/settings")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"alarmType\": \"LINK\"}")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        patch("/api/v1/alarm/settings")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"alarmType\": \"LINK\"}")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.isAllEnabled").value(false))
                 .andExpect(jsonPath("$.result.isLinkEnabled").value(false))
@@ -154,10 +154,11 @@ class AlarmApiIntegrationTest {
         setting.updateAll(false);
         alarmSettingRepository.save(setting);
 
-        mockMvc.perform(patch("/api/v1/alarm/settings")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"alarmType\": \"LINK\"}")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        patch("/api/v1/alarm/settings")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"alarmType\": \"LINK\"}")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.isAllEnabled").value(false))
                 .andExpect(jsonPath("$.result.isLinkEnabled").value(false));
@@ -174,21 +175,19 @@ class AlarmApiIntegrationTest {
         setting.updateNotice(false);
         alarmSettingRepository.save(setting);
 
-        mockMvc.perform(patch("/api/v1/alarm/settings")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"alarmType\": \"LINK\"}")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        patch("/api/v1/alarm/settings")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"alarmType\": \"LINK\"}")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.isLinkEnabled").value(true))
                 .andExpect(jsonPath("$.result.isAllEnabled").value(true));
     }
 
     private Users createUser(String nickName) {
-        Users user = Users.builder()
-                .nickName(nickName)
-                .password("password")
-                .role(Role.USER)
-                .build();
+        Users user =
+                Users.builder().nickName(nickName).password("password").role(Role.USER).build();
         return userRepository.save(user);
     }
 
@@ -199,10 +198,6 @@ class AlarmApiIntegrationTest {
 
     private Authentication authFor(Users user) {
         CustomUserDetails principal = new CustomUserDetails(user, "kakao");
-        return new UsernamePasswordAuthenticationToken(
-                principal,
-                null,
-                principal.getAuthorities()
-        );
+        return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
     }
 }

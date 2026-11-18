@@ -1,12 +1,15 @@
 package com.umc.linkyou.domain;
 
-import com.umc.linkyou.domain.common.BaseEntity;
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
-import lombok.*;
+
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import java.time.LocalDateTime;
+import com.umc.linkyou.domain.common.BaseEntity;
+
+import lombok.*;
 
 @Entity
 @Table(name = "user_fcm_tokens")

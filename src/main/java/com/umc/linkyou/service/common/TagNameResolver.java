@@ -1,9 +1,11 @@
 package com.umc.linkyou.service.common;
 
+import org.springframework.stereotype.Component;
+
 import com.umc.linkyou.domain.enums.KeywordType;
 import com.umc.linkyou.repository.classification.SituationRepository;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor

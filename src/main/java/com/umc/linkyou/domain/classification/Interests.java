@@ -1,6 +1,7 @@
 package com.umc.linkyou.domain.classification;
 
 import jakarta.persistence.*;
+
 import lombok.*;
 
 // 관심사 마스터(카탈로그) 엔티티. Users 와는 UsersInterest 조인 엔티티를 통해 다대다로 연결된다.

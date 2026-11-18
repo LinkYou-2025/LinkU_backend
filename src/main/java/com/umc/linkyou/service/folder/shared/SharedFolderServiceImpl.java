@@ -1,24 +1,24 @@
 package com.umc.linkyou.service.folder.shared;
 
-import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.folder.Folder;
-import com.umc.linkyou.domain.enums.PermissionType;
-import com.umc.linkyou.domain.mapping.folder.UsersFolder;
-import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
-import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
-import com.umc.linkyou.web.dto.folder.share.SharedFolderGroupResponseDTO;
-import com.umc.linkyou.web.dto.folder.share.*;
-
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.PermissionType;
+import com.umc.linkyou.domain.folder.Folder;
+import com.umc.linkyou.domain.mapping.folder.UsersFolder;
+import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
+import com.umc.linkyou.web.dto.folder.share.*;
+import com.umc.linkyou.web.dto.folder.share.SharedFolderGroupResponseDTO;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -37,34 +37,39 @@ public class SharedFolderServiceImpl implements SharedFolderService {
         }
 
         // 폴더 id만
-        List<Long> folderIdList = sharedFolders.stream()
-                .map(Folder::getFolderId)
-                .collect(Collectors.toList());
+        List<Long> folderIdList =
+                sharedFolders.stream().map(Folder::getFolderId).collect(Collectors.toList());
 
         // 북마크 상태 일괄 조회
-        Map<Long, Boolean> bookmarkMap = usersFolderRepository.findAllByUserIdAndFolderIdIn(userId, folderIdList).stream()
-                .collect(Collectors.toMap(
-                        uf -> uf.getFolder().getFolderId(),
-                        UsersFolder::getIsBookmarked
-                ));
+        Map<Long, Boolean> bookmarkMap =
+                usersFolderRepository.findAllByUserIdAndFolderIdIn(userId, folderIdList).stream()
+                        .collect(
+                                Collectors.toMap(
+                                        uf -> uf.getFolder().getFolderId(),
+                                        UsersFolder::getIsBookmarked));
 
         // 폴더 주인 찾기
-        List<UsersFolder> ownerMappings = usersFolderRepository.findOwnersByFolderIdIn(folderIdList);
-        Map<Long, Users> folderOwnerMap = ownerMappings.stream()
-                .collect(Collectors.toMap(
-                        uf -> uf.getFolder().getFolderId(),
-                        uf -> uf.getUser()
-                ));
+        List<UsersFolder> ownerMappings =
+                usersFolderRepository.findOwnersByFolderIdIn(folderIdList);
+        Map<Long, Users> folderOwnerMap =
+                ownerMappings.stream()
+                        .collect(
+                                Collectors.toMap(
+                                        uf -> uf.getFolder().getFolderId(), uf -> uf.getUser()));
 
         // 공유자 유저id별 그룹핑
-        Map<Long, List<Folder>> userIdFolderMap = sharedFolders.stream()
-                .collect(Collectors.groupingBy(folder -> {
-                    Users owner = folderOwnerMap.get(folder.getFolderId());
-                    if (owner == null) {
-                        throw new GeneralException(FolderErrorStatus._FOLDER_OWNER_NOT_FOUND);
-                    }
-                    return owner.getId();
-                }));
+        Map<Long, List<Folder>> userIdFolderMap =
+                sharedFolders.stream()
+                        .collect(
+                                Collectors.groupingBy(
+                                        folder -> {
+                                            Users owner = folderOwnerMap.get(folder.getFolderId());
+                                            if (owner == null) {
+                                                throw new GeneralException(
+                                                        FolderErrorStatus._FOLDER_OWNER_NOT_FOUND);
+                                            }
+                                            return owner.getId();
+                                        }));
 
         List<SharedFolderGroupResponseDTO> result = new ArrayList<>();
         for (Map.Entry<Long, List<Folder>> entry : userIdFolderMap.entrySet()) {
@@ -73,20 +78,27 @@ public class SharedFolderServiceImpl implements SharedFolderService {
             Users owner = folderOwnerMap.get(folders.get(0).getFolderId());
             String nickname = owner != null ? owner.getNickName() : "닉네임 없음";
 
-            List<SharedFolderItemDTO> folderDTOs = folders.stream()
-                    .map(folder -> SharedFolderItemDTO.builder()
-                            .folderId(folder.getFolderId())
-                            .folderName(folder.getFolderName())
-                            .isBookmarked(bookmarkMap.getOrDefault(folder.getFolderId(), false))
-                            .categoryId(folder.getCategory().getCategoryId())
-                            .build())
-                    .collect(Collectors.toList());
+            List<SharedFolderItemDTO> folderDTOs =
+                    folders.stream()
+                            .map(
+                                    folder ->
+                                            SharedFolderItemDTO.builder()
+                                                    .folderId(folder.getFolderId())
+                                                    .folderName(folder.getFolderName())
+                                                    .isBookmarked(
+                                                            bookmarkMap.getOrDefault(
+                                                                    folder.getFolderId(), false))
+                                                    .categoryId(
+                                                            folder.getCategory().getCategoryId())
+                                                    .build())
+                            .collect(Collectors.toList());
 
-            SharedFolderGroupResponseDTO dto = SharedFolderGroupResponseDTO.builder()
-                    .userId(ownerId)
-                    .nickname(nickname)
-                    .folders(folderDTOs)
-                    .build();
+            SharedFolderGroupResponseDTO dto =
+                    SharedFolderGroupResponseDTO.builder()
+                            .userId(ownerId)
+                            .nickname(nickname)
+                            .folders(folderDTOs)
+                            .build();
 
             result.add(dto);
         }
@@ -98,9 +110,11 @@ public class SharedFolderServiceImpl implements SharedFolderService {
     @Transactional
     public void deleteSharedFolder(Long userId, Long folderId) {
         // 폴더 조회
-        UsersFolder usersFolder = usersFolderRepository
-                .findByUserIdAndFolderId(userId, folderId)
-                .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
+        UsersFolder usersFolder =
+                usersFolderRepository
+                        .findByUserIdAndFolderId(userId, folderId)
+                        .orElseThrow(
+                                () -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
 
         // 소유자는 이 API로 삭제 불가 (소유자는 FolderController.deleteFolder 사용)
         if (usersFolder.getPermissionType() == PermissionType.OWNER) {

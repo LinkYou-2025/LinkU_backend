@@ -1,20 +1,21 @@
 package com.umc.linkyou.service.email;
 
-import jakarta.mail.internet.AddressException;
-import jakarta.mail.internet.InternetAddress;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import java.util.Hashtable;
+import java.util.Locale;
 
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.InitialDirContext;
-import java.util.Hashtable;
-import java.util.Locale;
 
-/**
- * 이메일 도메인 유효성 검사
- */
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+
+import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
+
+/** 이메일 도메인 유효성 검사 */
 @Slf4j
 @Component
 public class EmailDomainValidator {
@@ -46,10 +47,10 @@ public class EmailDomainValidator {
         InitialDirContext ctx = null;
         try {
             ctx = new InitialDirContext(env);
-            Attributes mxAttrs = ctx.getAttributes(domain, new String[]{"MX"});
+            Attributes mxAttrs = ctx.getAttributes(domain, new String[] {"MX"});
             if (mxAttrs.get("MX") != null) return true;
 
-            Attributes aAttrs = ctx.getAttributes(domain, new String[]{"A", "AAAA"});
+            Attributes aAttrs = ctx.getAttributes(domain, new String[] {"A", "AAAA"});
             return aAttrs.get("A") != null || aAttrs.get("AAAA") != null;
         } catch (NameNotFoundException e) {
             // 도메인이 존재하지 않음 (NXDOMAIN)
@@ -60,7 +61,10 @@ public class EmailDomainValidator {
             return true;
         } finally {
             if (ctx != null) {
-                try { ctx.close(); } catch (NamingException ignored) {}
+                try {
+                    ctx.close();
+                } catch (NamingException ignored) {
+                }
             }
         }
     }

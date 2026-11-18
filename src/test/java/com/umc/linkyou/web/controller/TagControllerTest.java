@@ -1,5 +1,25 @@
 package com.umc.linkyou.web.controller;
 
+import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResultList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.time.YearMonth;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -11,45 +31,21 @@ import com.umc.linkyou.service.tag.TagService;
 import com.umc.linkyou.support.security.TestSecurityConfig;
 import com.umc.linkyou.support.security.WithCustomUser;
 import com.umc.linkyou.web.dto.tag.MyTagRankResponse;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-
-import java.time.YearMonth;
-import java.util.List;
-
-import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResultList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(TagController.class)
 @Import({WebConfig.class, CurrentUserArgumentResolver.class, TestSecurityConfig.class})
 @DisplayName("TagController 테스트")
 class TagControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @MockitoBean
-    private TagService tagService;
+    @MockitoBean private TagService tagService;
 
-    @MockitoBean
-    private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean private JwtTokenProvider jwtTokenProvider;
 
-    @MockitoBean
-    private AccessTokenBlackListManager accessTokenBlackListManager;
+    @MockitoBean private AccessTokenBlackListManager accessTokenBlackListManager;
 
     private static final YearMonth MONTH = YearMonth.parse("2026-03");
 
@@ -64,17 +60,19 @@ class TagControllerTest {
             @DisplayName("정상 요청 시 상위 태그 목록을 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_상위태그목록을_반환한다() throws Exception {
-                MyTagRankResponse item = MyTagRankResponse.builder()
-                        .name("즐거움").percent(50).build();
+                MyTagRankResponse item =
+                        MyTagRankResponse.builder().name("즐거움").percent(50).build();
 
                 given(tagService.getMyTopTags(1L, MONTH, 3)).willReturn(List.of(item));
 
-                MvcResult result = mockMvc.perform(get("/api/v1/tags/my").param("month", "2026-03"))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(get("/api/v1/tags/my").param("month", "2026-03"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                List<MyTagRankResponse> tags = readResultList(result, objectMapper, MyTagRankResponse.class);
+                List<MyTagRankResponse> tags =
+                        readResultList(result, objectMapper, MyTagRankResponse.class);
                 assertThat(tags).hasSize(1);
                 assertThat(tags.get(0).getName()).isEqualTo("즐거움");
                 assertThat(tags.get(0).getPercent()).isEqualTo(50);
@@ -94,7 +92,9 @@ class TagControllerTest {
                 mockMvc.perform(get("/api/v1/tags/my").param("month", "2026-03"))
                         .andExpect(status().isNotFound())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(UserErrorStatus._USER_NOT_FOUND.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(UserErrorStatus._USER_NOT_FOUND.getCode()));
             }
 
             @Test

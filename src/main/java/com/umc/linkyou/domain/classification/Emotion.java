@@ -1,6 +1,7 @@
 package com.umc.linkyou.domain.classification;
 
 import jakarta.persistence.*;
+
 import lombok.*;
 
 @Entity
@@ -18,6 +19,4 @@ public class Emotion {
 
     @Column(name = "name", length = 100, nullable = false)
     private String name;
-
-
 }

@@ -1,12 +1,13 @@
 package com.umc.linkyou.repository.categoryRepository;
 
+import org.springframework.stereotype.Repository;
+
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.folder.Fcolor;
 import com.umc.linkyou.domain.folder.QFcolor;
-import com.umc.linkyou.domain.mapping.folder.QUsersCategoryColor;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
@@ -23,9 +24,6 @@ public class FcolorRepositoryImpl implements FcolorRepositoryCustom {
             builder.and(fcolor.fcolorId.eq(fcolorId));
         }
 
-        return queryFactory
-                .selectFrom(fcolor)
-                .where(builder)
-                .fetchOne();
+        return queryFactory.selectFrom(fcolor).where(builder).fetchOne();
     }
 }

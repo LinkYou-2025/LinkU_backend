@@ -1,14 +1,16 @@
 package com.umc.linkyou.oauth2.mobile.client;
 
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Map;
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -18,7 +20,8 @@ public class NaverTokenClient {
     private final RestTemplate restTemplate;
     private static final String USER_INFO_URL = "https://openapi.naver.com/v1/nid/me";
 
-    public record NaverUserInfo(String externalId, String email, String name, String profileImage) {}
+    public record NaverUserInfo(
+            String externalId, String email, String name, String profileImage) {}
 
     public NaverUserInfo getUserInfo(String accessToken) {
         HttpHeaders headers = new HttpHeaders();
@@ -28,8 +31,8 @@ public class NaverTokenClient {
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
         try {
-            ResponseEntity<Map> response = restTemplate.exchange(
-                    USER_INFO_URL, HttpMethod.GET, entity, Map.class);
+            ResponseEntity<Map> response =
+                    restTemplate.exchange(USER_INFO_URL, HttpMethod.GET, entity, Map.class);
 
             Map<String, Object> body = response.getBody();
             if (body == null) throw new GeneralException(ErrorStatus._INVALID_ID_TOKEN);

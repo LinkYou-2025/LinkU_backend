@@ -1,12 +1,13 @@
 package com.umc.linkyou.repository.categoryRepository;
 
+import org.springframework.stereotype.Repository;
+
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.mapping.folder.QUsersCategoryColor;
-import com.umc.linkyou.domain.mapping.folder.QUsersFolder;
 import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
@@ -14,7 +15,7 @@ public class UsersCategoryColorRepositoryImpl implements UsersCategoryColorRepos
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public UsersCategoryColor searchCategoryColor (Long userId, Long categoryId) {
+    public UsersCategoryColor searchCategoryColor(Long userId, Long categoryId) {
         QUsersCategoryColor usersCategoryColor = QUsersCategoryColor.usersCategoryColor;
         BooleanBuilder builder = new BooleanBuilder();
 
@@ -28,9 +29,6 @@ public class UsersCategoryColorRepositoryImpl implements UsersCategoryColorRepos
             builder.and(usersCategoryColor.category.categoryId.eq(categoryId));
         }
 
-        return queryFactory
-                .selectFrom(usersCategoryColor)
-                .where(builder)
-                .fetchOne();
+        return queryFactory.selectFrom(usersCategoryColor).where(builder).fetchOne();
     }
 }

@@ -33,7 +33,9 @@ class JwtTokenProviderTest {
 
             // then
             assertEquals(sessionId, jwtTokenProvider.getSessionId(accessToken));
-            assertTrue(jwtTokenProvider.getAccessTokenExpiresAt(accessToken) > System.currentTimeMillis());
+            assertTrue(
+                    jwtTokenProvider.getAccessTokenExpiresAt(accessToken)
+                            > System.currentTimeMillis());
         }
     }
 

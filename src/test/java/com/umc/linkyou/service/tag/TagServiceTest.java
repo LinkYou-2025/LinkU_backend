@@ -1,13 +1,13 @@
 package com.umc.linkyou.service.tag;
 
-import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.domain.enums.KeywordType;
-import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
-import com.umc.linkyou.repository.dto.TagCountRow;
-import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.service.common.TagNameResolver;
-import com.umc.linkyou.web.dto.tag.MyTagRankResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.BDDMockito.given;
+
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -16,13 +16,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
-import java.time.YearMonth;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.BDDMockito.given;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.domain.enums.KeywordType;
+import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
+import com.umc.linkyou.repository.dto.TagCountRow;
+import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.service.common.TagNameResolver;
+import com.umc.linkyou.web.dto.tag.MyTagRankResponse;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("TagService 단위 테스트")
@@ -52,15 +53,14 @@ class TagServiceTest {
             @DisplayName("이번_달_저장한_감정과_상황_카운트를_합산해_전체_합계_대비_퍼센트로_반환한다")
             void 이번_달_저장한_감정과_상황_카운트를_합산해_전체_합계_대비_퍼센트로_반환한다() {
                 given(userRepository.existsById(USER_ID)).willReturn(true);
-                given(usersLinkuRepository.countByEmotionForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
-                        .willReturn(List.of(
-                                new TagCountRow(1L, 5L),
-                                new TagCountRow(2L, 2L)
-                        ));
-                given(usersLinkuRepository.countBySituationForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
-                        .willReturn(List.of(
-                                new TagCountRow(10L, 3L)
-                        ));
+                given(
+                                usersLinkuRepository.countByEmotionForUserAndPeriod(
+                                        USER_ID, MONTH_START, MONTH_END))
+                        .willReturn(List.of(new TagCountRow(1L, 5L), new TagCountRow(2L, 2L)));
+                given(
+                                usersLinkuRepository.countBySituationForUserAndPeriod(
+                                        USER_ID, MONTH_START, MONTH_END))
+                        .willReturn(List.of(new TagCountRow(10L, 3L)));
                 given(tagNameResolver.resolve(KeywordType.EMOTION, 1L)).willReturn("즐거움");
                 given(tagNameResolver.resolve(KeywordType.SITUATION, 10L)).willReturn("출근길");
                 given(tagNameResolver.resolve(KeywordType.EMOTION, 2L)).willReturn("슬픔");
@@ -80,15 +80,14 @@ class TagServiceTest {
             @DisplayName("종류가_limit보다_많을_시_상위_limit개만_반환한다")
             void 종류가_limit보다_많을_시_상위_limit개만_반환한다() {
                 given(userRepository.existsById(USER_ID)).willReturn(true);
-                given(usersLinkuRepository.countByEmotionForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
-                        .willReturn(List.of(
-                                new TagCountRow(1L, 5L),
-                                new TagCountRow(2L, 2L)
-                        ));
-                given(usersLinkuRepository.countBySituationForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
-                        .willReturn(List.of(
-                                new TagCountRow(10L, 3L)
-                        ));
+                given(
+                                usersLinkuRepository.countByEmotionForUserAndPeriod(
+                                        USER_ID, MONTH_START, MONTH_END))
+                        .willReturn(List.of(new TagCountRow(1L, 5L), new TagCountRow(2L, 2L)));
+                given(
+                                usersLinkuRepository.countBySituationForUserAndPeriod(
+                                        USER_ID, MONTH_START, MONTH_END))
+                        .willReturn(List.of(new TagCountRow(10L, 3L)));
                 given(tagNameResolver.resolve(KeywordType.EMOTION, 1L)).willReturn("즐거움");
 
                 List<MyTagRankResponse> result = tagService.getMyTopTags(USER_ID, BASE_MONTH, 1);
@@ -102,9 +101,13 @@ class TagServiceTest {
             @DisplayName("이번_달_저장한_기록이_없을_시_빈_목록을_반환한다")
             void 이번_달_저장한_기록이_없을_시_빈_목록을_반환한다() {
                 given(userRepository.existsById(USER_ID)).willReturn(true);
-                given(usersLinkuRepository.countByEmotionForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
+                given(
+                                usersLinkuRepository.countByEmotionForUserAndPeriod(
+                                        USER_ID, MONTH_START, MONTH_END))
                         .willReturn(List.of());
-                given(usersLinkuRepository.countBySituationForUserAndPeriod(USER_ID, MONTH_START, MONTH_END))
+                given(
+                                usersLinkuRepository.countBySituationForUserAndPeriod(
+                                        USER_ID, MONTH_START, MONTH_END))
                         .willReturn(List.of());
 
                 List<MyTagRankResponse> result = tagService.getMyTopTags(USER_ID, BASE_MONTH, 3);
@@ -124,8 +127,10 @@ class TagServiceTest {
 
                 assertThatThrownBy(() -> tagService.getMyTopTags(UNKNOWN_USER_ID, BASE_MONTH, 3))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
             }
         }
     }

@@ -1,7 +1,9 @@
 package com.umc.linkyou.domain;
 
-import com.umc.linkyou.domain.common.BaseEntity;
 import jakarta.persistence.*;
+
+import com.umc.linkyou.domain.common.BaseEntity;
+
 import lombok.*;
 
 @Entity
@@ -24,9 +26,6 @@ public class LinkuSearchHistory extends BaseEntity {
     private String keyword;
 
     public static LinkuSearchHistory of(Long userId, String keyword) {
-        return LinkuSearchHistory.builder()
-                .userId(userId)
-                .keyword(keyword)
-                .build();
+        return LinkuSearchHistory.builder().userId(userId).keyword(keyword).build();
     }
 }

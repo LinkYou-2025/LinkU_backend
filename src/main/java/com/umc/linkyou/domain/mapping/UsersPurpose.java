@@ -1,13 +1,16 @@
 package com.umc.linkyou.domain.mapping;
 
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.classification.Purposes;
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
-import lombok.*;
+
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import java.time.LocalDateTime;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.classification.Purposes;
+
+import lombok.*;
 
 // Users - Purposes 다대다 관계의 조인 엔티티
 @Entity

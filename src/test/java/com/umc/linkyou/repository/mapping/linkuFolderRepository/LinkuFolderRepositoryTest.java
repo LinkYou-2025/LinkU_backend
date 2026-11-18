@@ -1,5 +1,21 @@
 package com.umc.linkyou.repository.mapping.linkuFolderRepository;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Optional;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Category;
@@ -21,20 +37,6 @@ import com.umc.linkyou.repository.classification.domainRepository.DomainReposito
 import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.config.TestExternalConfig;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Transactional
@@ -54,8 +56,7 @@ class LinkuFolderRepositoryTest {
     @Autowired private EmotionRepository emotionRepository;
     @Autowired private SituationRepository situationRepository;
 
-    @PersistenceContext
-    private EntityManager em;
+    @PersistenceContext private EntityManager em;
 
     @Nested
     @DisplayName("findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc")
@@ -77,18 +78,22 @@ class LinkuFolderRepositoryTest {
                 Folder secondFolder = folderRepository.save(createFolder("둘째 폴더", category));
 
                 linkuFolderRepository.save(createLinkuFolder(firstFolder, usersLinku));
-                LinkuFolder latest = linkuFolderRepository.save(createLinkuFolder(secondFolder, usersLinku));
+                LinkuFolder latest =
+                        linkuFolderRepository.save(createLinkuFolder(secondFolder, usersLinku));
                 em.flush();
                 em.clear();
 
                 // when
-                Optional<LinkuFolder> result = linkuFolderRepository
-                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId());
+                Optional<LinkuFolder> result =
+                        linkuFolderRepository
+                                .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(
+                                        usersLinku.getUserLinkuId());
 
                 // then
                 assertThat(result).isPresent();
                 assertThat(result.get().getLinkuFolderId()).isEqualTo(latest.getLinkuFolderId());
-                assertThat(result.get().getFolder().getFolderId()).isEqualTo(secondFolder.getFolderId());
+                assertThat(result.get().getFolder().getFolderId())
+                        .isEqualTo(secondFolder.getFolderId());
             }
 
             @Test
@@ -102,21 +107,27 @@ class LinkuFolderRepositoryTest {
                 Folder oldFolder = folderRepository.save(createFolder("옛 폴더", category));
                 Folder newFolder = folderRepository.save(createFolder("새 폴더", category));
 
-                LinkuFolder linkuFolder = linkuFolderRepository.save(createLinkuFolder(oldFolder, usersLinku));
+                LinkuFolder linkuFolder =
+                        linkuFolderRepository.save(createLinkuFolder(oldFolder, usersLinku));
                 em.flush();
                 em.clear();
 
                 // when: 서비스 로직과 동일하게 폴더만 교체 후 저장
-                LinkuFolder managed = linkuFolderRepository.findById(linkuFolder.getLinkuFolderId()).orElseThrow();
+                LinkuFolder managed =
+                        linkuFolderRepository
+                                .findById(linkuFolder.getLinkuFolderId())
+                                .orElseThrow();
                 managed.updateFolder(newFolder);
                 linkuFolderRepository.save(managed);
                 em.flush();
                 em.clear();
 
                 // then
-                LinkuFolder reloaded = linkuFolderRepository
-                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId())
-                        .orElseThrow();
+                LinkuFolder reloaded =
+                        linkuFolderRepository
+                                .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(
+                                        usersLinku.getUserLinkuId())
+                                .orElseThrow();
                 assertThat(reloaded.getFolder().getFolderId()).isEqualTo(newFolder.getFolderId());
                 assertThat(reloaded.getFolder().getFolderName()).isEqualTo("새 폴더");
             }
@@ -130,29 +141,38 @@ class LinkuFolderRepositoryTest {
                 UsersLinku usersLinku = usersLinkuRepository.save(createUsersLinku(user, category));
 
                 Folder rootFolder = folderRepository.save(createFolder("중분류", category));
-                Folder subFolder = folderRepository.save(Folder.builder()
-                        .folderName("소분류")
-                        .category(category)
-                        .parentFolder(rootFolder)
-                        .build());
+                Folder subFolder =
+                        folderRepository.save(
+                                Folder.builder()
+                                        .folderName("소분류")
+                                        .category(category)
+                                        .parentFolder(rootFolder)
+                                        .build());
 
-                LinkuFolder linkuFolder = linkuFolderRepository.save(createLinkuFolder(rootFolder, usersLinku));
+                LinkuFolder linkuFolder =
+                        linkuFolderRepository.save(createLinkuFolder(rootFolder, usersLinku));
                 em.flush();
                 em.clear();
 
                 // when
-                LinkuFolder managed = linkuFolderRepository.findById(linkuFolder.getLinkuFolderId()).orElseThrow();
+                LinkuFolder managed =
+                        linkuFolderRepository
+                                .findById(linkuFolder.getLinkuFolderId())
+                                .orElseThrow();
                 managed.updateFolder(subFolder);
                 linkuFolderRepository.save(managed);
                 em.flush();
                 em.clear();
 
                 // then
-                LinkuFolder reloaded = linkuFolderRepository
-                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(usersLinku.getUserLinkuId())
-                        .orElseThrow();
+                LinkuFolder reloaded =
+                        linkuFolderRepository
+                                .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(
+                                        usersLinku.getUserLinkuId())
+                                .orElseThrow();
                 assertThat(reloaded.getFolder().getFolderId()).isEqualTo(subFolder.getFolderId());
-                assertThat(reloaded.getFolder().getParentFolder().getFolderId()).isEqualTo(rootFolder.getFolderId());
+                assertThat(reloaded.getFolder().getParentFolder().getFolderId())
+                        .isEqualTo(rootFolder.getFolderId());
             }
         }
 
@@ -164,8 +184,9 @@ class LinkuFolderRepositoryTest {
             @DisplayName("해당 유저링크의 폴더 매핑이 없으면 빈 값을 반환한다")
             void 매핑이_없으면_빈값을_반환한다() {
                 // when
-                Optional<LinkuFolder> result = linkuFolderRepository
-                        .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(999999L);
+                Optional<LinkuFolder> result =
+                        linkuFolderRepository
+                                .findFirstByUsersLinku_UserLinkuIdOrderByLinkuFolderIdDesc(999999L);
 
                 // then
                 assertThat(result).isEmpty();
@@ -174,51 +195,48 @@ class LinkuFolderRepositoryTest {
     }
 
     private Category saveCategory(String name) {
-        Fcolor fcolor = fcolorRepository.save(Fcolor.builder()
-                .colorName("BLUE")
-                .colorCode1("#E3F2FD")
-                .colorCode2("#90CAF9")
-                .colorCode3("#42A5F5")
-                .colorCode4("#1E88E5")
-                .build());
-        return categoryRepository.save(Category.builder()
-                .categoryName(name)
-                .fcolor(fcolor)
-                .build());
+        Fcolor fcolor =
+                fcolorRepository.save(
+                        Fcolor.builder()
+                                .colorName("BLUE")
+                                .colorCode1("#E3F2FD")
+                                .colorCode2("#90CAF9")
+                                .colorCode3("#42A5F5")
+                                .colorCode4("#1E88E5")
+                                .build());
+        return categoryRepository.save(
+                Category.builder().categoryName(name).fcolor(fcolor).build());
     }
 
     private Users createUser(String nickName) {
-        return Users.builder()
-                .nickName(nickName)
-                .password("password")
-                .role(Role.USER)
-                .build();
+        return Users.builder().nickName(nickName).password("password").role(Role.USER).build();
     }
 
     private Folder createFolder(String name, Category category) {
-        return Folder.builder()
-                .folderName(name)
-                .category(category)
-                .build();
+        return Folder.builder().folderName(name).category(category).build();
     }
 
     private UsersLinku createUsersLinku(Users user, Category category) {
-        Domain domain = domainRepository.save(Domain.builder()
-                .domainTail("example.com")
-                .name("example")
-                .imageUrl("https://image.com/a.png")
-                .build());
+        Domain domain =
+                domainRepository.save(
+                        Domain.builder()
+                                .domainTail("example.com")
+                                .name("example")
+                                .imageUrl("https://image.com/a.png")
+                                .build());
         Emotion emotion = emotionRepository.save(Emotion.builder().name("기쁨").build());
         Situation situation = situationRepository.save(Situation.builder().name("일상").build());
 
-        Linku linku = linkuRepository.save(Linku.builder()
-                .title("테스트 링크")
-                .linkuUrl("https://example.com/" + System.nanoTime())
-                .category(category)
-                .domain(domain)
-                .emotion(emotion)
-                .situation(situation)
-                .build());
+        Linku linku =
+                linkuRepository.save(
+                        Linku.builder()
+                                .title("테스트 링크")
+                                .linkuUrl("https://example.com/" + System.nanoTime())
+                                .category(category)
+                                .domain(domain)
+                                .emotion(emotion)
+                                .situation(situation)
+                                .build());
 
         return UsersLinku.builder()
                 .user(user)
@@ -229,9 +247,6 @@ class LinkuFolderRepositoryTest {
     }
 
     private LinkuFolder createLinkuFolder(Folder folder, UsersLinku usersLinku) {
-        return LinkuFolder.builder()
-                .folder(folder)
-                .usersLinku(usersLinku)
-                .build();
+        return LinkuFolder.builder().folder(folder).usersLinku(usersLinku).build();
     }
 }

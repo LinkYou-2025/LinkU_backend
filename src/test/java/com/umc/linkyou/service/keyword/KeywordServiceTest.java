@@ -1,5 +1,28 @@
 package com.umc.linkyou.service.keyword;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Keyword;
@@ -10,28 +33,6 @@ import com.umc.linkyou.repository.dto.KeywordCountRow;
 import com.umc.linkyou.repository.mapping.LinkuKeywordRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.web.dto.keyword.JobKeywordRankResponse;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.LocalDateTime;
-import java.time.YearMonth;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("KeywordService 단위 테스트")
@@ -64,10 +65,13 @@ class KeywordServiceTest {
                 Job job = Job.builder().id(JOB_ID).name("개발자").build();
                 Users user = Users.builder().id(USER_ID).job(job).build();
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(linkuKeywordRepository.findTopKeywordNamesByJobIdAndPeriod(eq(JOB_ID), eq(MONTH_START), eq(MONTH_END), any()))
+                given(
+                                linkuKeywordRepository.findTopKeywordNamesByJobIdAndPeriod(
+                                        eq(JOB_ID), eq(MONTH_START), eq(MONTH_END), any()))
                         .willReturn(List.of(new KeywordCountRow("스프링", 15L)));
 
-                List<JobKeywordRankResponse> result = keywordService.getJobTopKeywords(USER_ID, BASE_MONTH, 15);
+                List<JobKeywordRankResponse> result =
+                        keywordService.getJobTopKeywords(USER_ID, BASE_MONTH, 15);
 
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).getName()).isEqualTo("스프링");
@@ -80,10 +84,13 @@ class KeywordServiceTest {
                 Job job = Job.builder().id(JOB_ID).name("개발자").build();
                 Users user = Users.builder().id(USER_ID).job(job).build();
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(linkuKeywordRepository.findTopKeywordNamesByJobIdAndPeriod(eq(JOB_ID), eq(MONTH_START), eq(MONTH_END), any()))
+                given(
+                                linkuKeywordRepository.findTopKeywordNamesByJobIdAndPeriod(
+                                        eq(JOB_ID), eq(MONTH_START), eq(MONTH_END), any()))
                         .willReturn(List.of());
 
-                List<JobKeywordRankResponse> result = keywordService.getJobTopKeywords(USER_ID, BASE_MONTH, 15);
+                List<JobKeywordRankResponse> result =
+                        keywordService.getJobTopKeywords(USER_ID, BASE_MONTH, 15);
 
                 assertThat(result).isEmpty();
             }
@@ -98,10 +105,15 @@ class KeywordServiceTest {
             void 존재하지_않는_userId로_호출_시_USER_NOT_FOUND_예외를_던진다() {
                 given(userRepository.findById(UNKNOWN_USER_ID)).willReturn(Optional.empty());
 
-                assertThatThrownBy(() -> keywordService.getJobTopKeywords(UNKNOWN_USER_ID, BASE_MONTH, 15))
+                assertThatThrownBy(
+                                () ->
+                                        keywordService.getJobTopKeywords(
+                                                UNKNOWN_USER_ID, BASE_MONTH, 15))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
             }
 
             @Test
@@ -112,8 +124,10 @@ class KeywordServiceTest {
 
                 assertThatThrownBy(() -> keywordService.getJobTopKeywords(USER_ID, BASE_MONTH, 15))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(UserErrorStatus._JOB_NOT_SET));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(UserErrorStatus._JOB_NOT_SET));
             }
         }
     }
@@ -135,8 +149,10 @@ class KeywordServiceTest {
                 Keyword java = Keyword.builder().id(2L).name("자바").build();
                 given(keywordUpsertService.upsert("스프링")).willReturn(spring);
                 given(keywordUpsertService.upsert("자바")).willReturn(java);
-                given(linkuKeywordRepository.existsByLinkuAndKeyword(linku, spring)).willReturn(false);
-                given(linkuKeywordRepository.existsByLinkuAndKeyword(linku, java)).willReturn(false);
+                given(linkuKeywordRepository.existsByLinkuAndKeyword(linku, spring))
+                        .willReturn(false);
+                given(linkuKeywordRepository.existsByLinkuAndKeyword(linku, java))
+                        .willReturn(false);
 
                 keywordService.saveKeywords(linku, "#스프링, 자바");
 
@@ -150,7 +166,8 @@ class KeywordServiceTest {
             void 이미_연결된_키워드는_다시_저장하지_않는다() {
                 Keyword spring = Keyword.builder().id(1L).name("스프링").build();
                 given(keywordUpsertService.upsert("스프링")).willReturn(spring);
-                given(linkuKeywordRepository.existsByLinkuAndKeyword(linku, spring)).willReturn(true);
+                given(linkuKeywordRepository.existsByLinkuAndKeyword(linku, spring))
+                        .willReturn(true);
 
                 keywordService.saveKeywords(linku, "스프링");
 
@@ -162,7 +179,8 @@ class KeywordServiceTest {
             void 빈_조각은_upsert하지_않고_건너뛴다() {
                 Keyword spring = Keyword.builder().id(1L).name("스프링").build();
                 given(keywordUpsertService.upsert("스프링")).willReturn(spring);
-                given(linkuKeywordRepository.existsByLinkuAndKeyword(linku, spring)).willReturn(false);
+                given(linkuKeywordRepository.existsByLinkuAndKeyword(linku, spring))
+                        .willReturn(false);
 
                 keywordService.saveKeywords(linku, "스프링,, #");
 

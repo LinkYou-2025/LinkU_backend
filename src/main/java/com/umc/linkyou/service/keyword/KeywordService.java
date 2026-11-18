@@ -1,11 +1,11 @@
 package com.umc.linkyou.service.keyword;
 
+import java.time.YearMonth;
+import java.util.List;
+
 import com.umc.linkyou.domain.Linku;
 import com.umc.linkyou.web.dto.keyword.JobKeywordRankResponse;
 import com.umc.linkyou.web.dto.keyword.KeywordLinkuItemDTO;
-
-import java.time.YearMonth;
-import java.util.List;
 
 public interface KeywordService {
     void saveKeywords(Linku linku, String rawKeywords);

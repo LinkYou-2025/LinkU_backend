@@ -1,9 +1,10 @@
 package com.umc.linkyou.web.controller.admin;
 
+import org.springframework.web.bind.annotation.*;
+
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.validation.annotation.ApiAdmin;
 import com.umc.linkyou.web.dto.TestDTO;
-import org.springframework.web.bind.annotation.*;
 
 @ApiAdmin
 @RestController("TestAdminController")
@@ -28,8 +29,7 @@ public class TestController {
     @GetMapping("/params")
     public ApiResponse<TestDTO> getTestWithParams(
             @RequestParam(defaultValue = "default-keyword") String keyword,
-            @RequestParam(required = false) Integer page
-    ) {
+            @RequestParam(required = false) Integer page) {
         TestDTO dto = new TestDTO();
         dto.setTest("keyword: " + keyword + ", page: " + (page != null ? page : "없음"));
         return ApiResponse.onSuccess(dto);

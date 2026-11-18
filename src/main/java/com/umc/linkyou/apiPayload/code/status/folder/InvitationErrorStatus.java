@@ -1,17 +1,20 @@
 package com.umc.linkyou.apiPayload.code.status.folder;
 
+import org.springframework.http.HttpStatus;
+
 import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
 @Getter
 @AllArgsConstructor
 public enum InvitationErrorStatus implements BaseErrorCode {
 
     // 403 Forbidden
-    INVITATION_CREATOR_CANNOT_ACCEPT(HttpStatus.FORBIDDEN, "INVITATION4031", "초대 생성자는 자신의 링크로 참여할 수 없습니다."),
+    INVITATION_CREATOR_CANNOT_ACCEPT(
+            HttpStatus.FORBIDDEN, "INVITATION4031", "초대 생성자는 자신의 링크로 참여할 수 없습니다."),
 
     // 404 Not Found
     INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, "INVITATION4041", "공유 폴더 토큰을 찾을 수 없습니다."),
@@ -24,11 +27,7 @@ public enum InvitationErrorStatus implements BaseErrorCode {
 
     @Override
     public ErrorReasonDTO getReason() {
-        return ErrorReasonDTO.builder()
-                .message(message)
-                .code(code)
-                .isSuccess(false)
-                .build();
+        return ErrorReasonDTO.builder().message(message).code(code).isSuccess(false).build();
     }
 
     @Override

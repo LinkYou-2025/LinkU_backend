@@ -1,11 +1,11 @@
 package com.umc.linkyou.web.dto.alarm;
 
+import java.util.Map;
+
 import com.umc.linkyou.domain.enums.AlarmType;
 import com.umc.linkyou.service.alarm.AlarmMessageRenderer;
-import lombok.Getter;
 
-import java.util.List;
-import java.util.Map;
+import lombok.Getter;
 
 @Getter
 public class FcmSendRequestDTO {
@@ -15,7 +15,8 @@ public class FcmSendRequestDTO {
     private final Long alarmId; // nullable, 저장된 Alarm 엔티티의 PK
     private final Map<String, String> values; // nullable, %s가 있는 알림 시 사용
 
-    private FcmSendRequestDTO(AlarmType type, Long targetId, Long alarmId, Map<String, String> values) {
+    private FcmSendRequestDTO(
+            AlarmType type, Long targetId, Long alarmId, Map<String, String> values) {
         this.type = type;
         this.targetId = targetId;
         this.alarmId = alarmId;
@@ -33,7 +34,8 @@ public class FcmSendRequestDTO {
     }
 
     // 큐레이션 알림 - body의 {placeholder}를 nickname으로 치환
-    public static FcmSendRequestDTO withValues(AlarmType type, Long targetId, Long alarmId, Map<String, String> values) {
+    public static FcmSendRequestDTO withValues(
+            AlarmType type, Long targetId, Long alarmId, Map<String, String> values) {
         return new FcmSendRequestDTO(type, targetId, alarmId, values);
     }
 

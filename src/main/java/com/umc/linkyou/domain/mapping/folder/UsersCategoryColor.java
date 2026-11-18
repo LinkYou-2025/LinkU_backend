@@ -1,12 +1,15 @@
 package com.umc.linkyou.domain.mapping.folder;
 
+import jakarta.persistence.*;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.folder.Fcolor;
-import jakarta.persistence.*;
+
 import lombok.*;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "users_category_colors")

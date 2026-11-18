@@ -161,8 +161,7 @@ class UserServiceImplTest {
             @ParameterizedTest
             @CsvSource({"KAKAO", "GOOGLE", "NAVER"})
             @DisplayName("성공 - TEMP 상태 유저가 프로필 완성 시 ACTIVE 상태로 변경되고 정식 토큰이 발급된다")
-            void TEMP_상태_유저가_프로필_완성_시_ACTIVE_상태로_변경되고_정식_토큰이_발급된다(
-                    String provider) {
+            void TEMP_상태_유저가_프로필_완성_시_ACTIVE_상태로_변경되고_정식_토큰이_발급된다(String provider) {
                 // given
                 Users tempUser = SocialSignupFixture.tempUser(1L);
                 assertEquals(SocialSignupFixture.TEMP_NICKNAME, tempUser.getNickName());
@@ -180,8 +179,7 @@ class UserServiceImplTest {
 
                 when(userRepository.findById(eq(tempUser.getId())))
                         .thenReturn(Optional.of(tempUser));
-                when(userRepository.findByNickName(eq("완성닉네임")))
-                        .thenReturn(Optional.empty());
+                when(userRepository.findByNickName(eq("완성닉네임"))).thenReturn(Optional.empty());
                 when(jobRepository.findById(anyLong()))
                         .thenReturn(Optional.of(Job.builder().id(1L).build()));
                 when(userRepository.save(any(Users.class)))

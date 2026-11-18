@@ -1,8 +1,10 @@
 package com.umc.linkyou.domain.mapping;
 
+import jakarta.persistence.*;
+
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.classification.Situation;
-import jakarta.persistence.*;
+
 import lombok.*;
 
 @Entity

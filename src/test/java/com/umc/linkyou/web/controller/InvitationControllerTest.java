@@ -1,5 +1,24 @@
 package com.umc.linkyou.web.controller;
 
+import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResult;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.folder.InvitationErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -11,44 +30,21 @@ import com.umc.linkyou.service.folder.share.InvitationService;
 import com.umc.linkyou.support.security.TestSecurityConfig;
 import com.umc.linkyou.support.security.WithCustomUser;
 import com.umc.linkyou.web.dto.folder.share.InvitationInfoResponseDTO;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-
-import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResult;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(InvitationController.class)
 @Import({WebConfig.class, CurrentUserArgumentResolver.class, TestSecurityConfig.class})
 @DisplayName("InvitationController 테스트")
 class InvitationControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @MockitoBean
-    private InvitationService invitationService;
+    @MockitoBean private InvitationService invitationService;
 
-    @MockitoBean
-    private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean private JwtTokenProvider jwtTokenProvider;
 
-    @MockitoBean
-    private AccessTokenBlackListManager accessTokenBlackListManager;
+    @MockitoBean private AccessTokenBlackListManager accessTokenBlackListManager;
 
     private static final String TOKEN = "invite-token";
 
@@ -63,17 +59,22 @@ class InvitationControllerTest {
             @DisplayName("유효한 토큰이면 초대 정보를 반환한다")
             @WithCustomUser(userId = 5L)
             void 유효한토큰_초대정보를_반환한다() throws Exception {
-                InvitationInfoResponseDTO response = InvitationInfoResponseDTO.builder()
-                        .folderName("어학").ownerName("주인").build();
+                InvitationInfoResponseDTO response =
+                        InvitationInfoResponseDTO.builder()
+                                .folderName("어학")
+                                .ownerName("주인")
+                                .build();
 
                 given(invitationService.getInvitationInfo(TOKEN)).willReturn(response);
 
-                MvcResult result = mockMvc.perform(get("/api/v1/invitations/{token}", TOKEN))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(get("/api/v1/invitations/{token}", TOKEN))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                InvitationInfoResponseDTO info = readResult(result, objectMapper, InvitationInfoResponseDTO.class);
+                InvitationInfoResponseDTO info =
+                        readResult(result, objectMapper, InvitationInfoResponseDTO.class);
                 assertThat(info.getFolderName()).isEqualTo("어학");
                 assertThat(info.getOwnerName()).isEqualTo("주인");
             }
@@ -87,12 +88,17 @@ class InvitationControllerTest {
             @WithCustomUser(userId = 5L)
             void 토큰이_없으면_404를_반환한다() throws Exception {
                 given(invitationService.getInvitationInfo(TOKEN))
-                        .willThrow(new GeneralException(InvitationErrorStatus.INVITATION_NOT_FOUND));
+                        .willThrow(
+                                new GeneralException(InvitationErrorStatus.INVITATION_NOT_FOUND));
 
                 mockMvc.perform(get("/api/v1/invitations/{token}", TOKEN))
                         .andExpect(status().isNotFound())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(InvitationErrorStatus.INVITATION_NOT_FOUND.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(
+                                                InvitationErrorStatus.INVITATION_NOT_FOUND
+                                                        .getCode()));
             }
 
             @Test
@@ -132,12 +138,19 @@ class InvitationControllerTest {
             @WithCustomUser(userId = 5L)
             void 생성자본인이면_403을_반환한다() throws Exception {
                 given(invitationService.acceptInvitation(5L, TOKEN))
-                        .willThrow(new GeneralException(InvitationErrorStatus.INVITATION_CREATOR_CANNOT_ACCEPT));
+                        .willThrow(
+                                new GeneralException(
+                                        InvitationErrorStatus.INVITATION_CREATOR_CANNOT_ACCEPT));
 
                 mockMvc.perform(post("/api/v1/invitations/{token}", TOKEN).with(csrf()))
                         .andExpect(status().isForbidden())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(InvitationErrorStatus.INVITATION_CREATOR_CANNOT_ACCEPT.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(
+                                                InvitationErrorStatus
+                                                        .INVITATION_CREATOR_CANNOT_ACCEPT
+                                                        .getCode()));
             }
 
             @Test

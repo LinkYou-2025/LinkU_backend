@@ -46,18 +46,26 @@ class UserLoginServiceTest {
         @DisplayName("성공 - ACTIVE 유저는 access+refresh 토큰 쌍을 받는다")
         void ACTIVE_유저는_토큰_쌍을_받는다() {
             // given
-            Users user =
-                    Users.builder().id(1L).role(Role.USER).status(UserStatus.ACTIVE).build();
+            Users user = Users.builder().id(1L).role(Role.USER).status(UserStatus.ACTIVE).build();
             when(userStatusValidator.isWithinWithdrawGracePeriod(user)).thenReturn(false);
             when(tokenIssueService.issueForStatus(
-                            eq(1L), eq("kakao@example.com"), eq("KAKAO"), eq(Role.USER),
-                            eq(UserStatus.ACTIVE), eq("device-1"), eq(DeviceType.PHONE)))
+                            eq(1L),
+                            eq("kakao@example.com"),
+                            eq("KAKAO"),
+                            eq(Role.USER),
+                            eq(UserStatus.ACTIVE),
+                            eq("device-1"),
+                            eq(DeviceType.PHONE)))
                     .thenReturn(new TokenIssueService.IssuedTokenPair("access", "refresh"));
 
             // when
             MobileLoginResponse result =
                     userLoginService.handleSocialLogin(
-                            user, "kakao@example.com", Provider.KAKAO, "device-1", DeviceType.PHONE);
+                            user,
+                            "kakao@example.com",
+                            Provider.KAKAO,
+                            "device-1",
+                            DeviceType.PHONE);
 
             // then
             assertEquals("access", result.getAccessToken());
@@ -69,11 +77,7 @@ class UserLoginServiceTest {
         @Test
         @DisplayName("TEMP 소셜 계정은 가입용 액세스 토큰만 받고 리프레시 토큰은 받지 않는다")
         void TEMP_소셜_계정은_가입용_액세스_토큰만_받는다() {
-            Users user = Users.builder()
-                    .id(4L)
-                    .role(Role.USER)
-                    .status(UserStatus.TEMP)
-                    .build();
+            Users user = Users.builder().id(4L).role(Role.USER).status(UserStatus.TEMP).build();
             when(userStatusValidator.isWithinWithdrawGracePeriod(user)).thenReturn(false);
             when(tokenIssueService.issueForStatus(
                             4L,
@@ -85,29 +89,34 @@ class UserLoginServiceTest {
                             DeviceType.PHONE))
                     .thenReturn(new TokenIssueService.IssuedTokenPair("onboarding-access", null));
 
-            MobileLoginResponse result = userLoginService.handleSocialLogin(
-                    user, "temp@example.com", Provider.GOOGLE, "device-temp", DeviceType.PHONE);
+            MobileLoginResponse result =
+                    userLoginService.handleSocialLogin(
+                            user,
+                            "temp@example.com",
+                            Provider.GOOGLE,
+                            "device-temp",
+                            DeviceType.PHONE);
 
             assertEquals("onboarding-access", result.getAccessToken());
             assertNull(result.getRefreshToken());
             assertEquals(UserStatus.TEMP, result.getStatus());
             verify(userStatusValidator).validateLoginAllowed(user);
-            verify(tokenIssueService).issueForStatus(
-                    4L,
-                    "temp@example.com",
-                    Provider.GOOGLE.name(),
-                    Role.USER,
-                    UserStatus.TEMP,
-                    "device-temp",
-                    DeviceType.PHONE);
+            verify(tokenIssueService)
+                    .issueForStatus(
+                            4L,
+                            "temp@example.com",
+                            Provider.GOOGLE.name(),
+                            Role.USER,
+                            UserStatus.TEMP,
+                            "device-temp",
+                            DeviceType.PHONE);
         }
 
         @Test
         @DisplayName("성공 - 탈퇴 유예 기간 이내인 유저는 복구 전용 토큰만 받는다")
         void 유예_기간_이내인_유저는_복구_전용_토큰만_받는다() {
             // given
-            Users user =
-                    Users.builder().id(2L).role(Role.USER).status(UserStatus.INACTIVE).build();
+            Users user = Users.builder().id(2L).role(Role.USER).status(UserStatus.INACTIVE).build();
             user.withdraw("테스트 탈퇴", LocalDateTime.now().minusDays(3));
 
             when(userStatusValidator.isWithinWithdrawGracePeriod(user)).thenReturn(true);
@@ -117,7 +126,11 @@ class UserLoginServiceTest {
             // when
             MobileLoginResponse result =
                     userLoginService.handleSocialLogin(
-                            user, "kakao@example.com", Provider.KAKAO, "device-1", DeviceType.PHONE);
+                            user,
+                            "kakao@example.com",
+                            Provider.KAKAO,
+                            "device-1",
+                            DeviceType.PHONE);
 
             // then
             assertEquals("recoveryToken", result.getAccessToken());
@@ -133,8 +146,7 @@ class UserLoginServiceTest {
         @DisplayName("실패 - 탈퇴 유예 기간이 지난 유저는 로그인이 차단된다")
         void 유예_기간이_지난_유저는_로그인이_차단된다() {
             // given
-            Users user =
-                    Users.builder().id(3L).role(Role.USER).status(UserStatus.INACTIVE).build();
+            Users user = Users.builder().id(3L).role(Role.USER).status(UserStatus.INACTIVE).build();
             user.withdraw("테스트 탈퇴", LocalDateTime.now().minusDays(20));
 
             when(userStatusValidator.isWithinWithdrawGracePeriod(user)).thenReturn(false);

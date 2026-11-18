@@ -13,8 +13,8 @@ public class AppConfig {
     @Bean
     public RestTemplate restTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(3000);  // 3초 연결 타임아웃
-        factory.setReadTimeout(5000);     // 5초 응답 타임아웃
+        factory.setConnectTimeout(3000); // 3초 연결 타임아웃
+        factory.setReadTimeout(5000); // 5초 응답 타임아웃
         return new RestTemplate(factory);
     }
 }

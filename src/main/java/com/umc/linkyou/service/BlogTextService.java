@@ -1,17 +1,18 @@
 package com.umc.linkyou.service;
 
-import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.infra.parser.TitleDomainParser;
-import com.umc.linkyou.infra.parser.WebContentExtractor;
-import com.umc.linkyou.web.dto.BlogTextResponseDTO;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
 import java.io.PrintWriter;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
+import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.infra.parser.TitleDomainParser;
+import com.umc.linkyou.infra.parser.WebContentExtractor;
+import com.umc.linkyou.web.dto.BlogTextResponseDTO;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -35,9 +36,10 @@ public class BlogTextService {
             log.warn("[데이터셋 수집 보완] 본문 추출 불가로 제목/도메인 대체 → URL: {}, 사유: {}", url, e.getMessage());
 
             // 제목이 있으면 제목을, 없으면 도메인을 본문 데이터로 대체 (학습용 최소 정보)
-            cleanText = (pageInfo.title() != null && !pageInfo.title().isBlank())
-                    ? "[본문추출불가] " + pageInfo.title()
-                    : "[본문추출불가] " + pageInfo.domain();
+            cleanText =
+                    (pageInfo.title() != null && !pageInfo.title().isBlank())
+                            ? "[본문추출불가] " + pageInfo.title()
+                            : "[본문추출불가] " + pageInfo.domain();
         } catch (Exception e) {
             cleanText = "[알수없는에러] " + url;
         }
@@ -59,7 +61,8 @@ public class BlogTextService {
             try {
                 BlogTextResponseDTO data = getBlogText(url);
 
-                writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",%d,\"%s\"\n",
+                writer.printf(
+                        "\"%s\",\"%s\",\"%s\",\"%s\",%d,\"%s\"\n",
                         data.getUrl(),
                         data.getTitle().replace("\"", "'"),
                         data.getDomain(),
@@ -69,8 +72,12 @@ public class BlogTextService {
             } catch (Exception e) {
                 log.error("[CSV 작성 실패] URL: {}", url);
                 // e.getMessage()가 null일 경우를 대비해 "Unknown Error" 등으로 처리
-                String errorMessage = (e.getMessage() != null) ? e.getMessage().replace("\"", "'") : "Internal Server Error";
-                writer.printf("\"%s\",\"FAILED\",\"ERROR\",\"%s\",0,\"%s\"\n",
+                String errorMessage =
+                        (e.getMessage() != null)
+                                ? e.getMessage().replace("\"", "'")
+                                : "Internal Server Error";
+                writer.printf(
+                        "\"%s\",\"FAILED\",\"ERROR\",\"%s\",0,\"%s\"\n",
                         url, errorMessage, LocalDateTime.now());
             }
         }

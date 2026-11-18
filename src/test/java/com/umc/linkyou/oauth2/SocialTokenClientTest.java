@@ -7,25 +7,27 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.oauth2.mobile.client.GoogleTokenVerifier;
 import com.umc.linkyou.oauth2.mobile.client.KakaoTokenClient;
 import com.umc.linkyou.oauth2.mobile.client.NaverTokenClient;
-import java.util.Map;
-import org.springframework.http.HttpStatus;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class SocialTokenClientTest {
@@ -44,7 +46,8 @@ class SocialTokenClientTest {
         void 빈_액세스_토큰이면_외부_호출_없이_오류를_반환한다() {
             KakaoTokenClient client = new KakaoTokenClient(restTemplate);
 
-            GeneralException ex = assertThrows(GeneralException.class, () -> client.getUserInfo(" "));
+            GeneralException ex =
+                    assertThrows(GeneralException.class, () -> client.getUserInfo(" "));
 
             assertEquals(ErrorStatus._INVALID_ID_TOKEN, ex.getCode());
             verifyNoInteractions(restTemplate);
@@ -53,10 +56,14 @@ class SocialTokenClientTest {
         @Test
         @DisplayName("정상 응답에서 식별자와 카카오 계정 프로필을 매핑한다")
         void 정상_응답에서_식별자와_프로필을_매핑한다() {
-            Map<String, Object> profile = Map.of(
-                    "nickname", "Kakao Name", "profile_image_url", "https://image.example/kakao.jpg");
-            Map<String, Object> kakaoAccount = Map.of(
-                    "email", "kakao@example.com", "profile", profile);
+            Map<String, Object> profile =
+                    Map.of(
+                            "nickname",
+                            "Kakao Name",
+                            "profile_image_url",
+                            "https://image.example/kakao.jpg");
+            Map<String, Object> kakaoAccount =
+                    Map.of("email", "kakao@example.com", "profile", profile);
             Map<String, Object> body = Map.of("id", 12345L, "kakao_account", kakaoAccount);
             when(restTemplate.exchange(
                             eq(KAKAO_USER_INFO_URL),
@@ -86,8 +93,8 @@ class SocialTokenClientTest {
                     .thenReturn(response(body));
             KakaoTokenClient client = new KakaoTokenClient(restTemplate);
 
-            GeneralException ex = assertThrows(GeneralException.class,
-                    () -> client.getUserInfo("valid-token"));
+            GeneralException ex =
+                    assertThrows(GeneralException.class, () -> client.getUserInfo("valid-token"));
 
             assertEquals(ErrorStatus._SOCIAL_EMAIL_REQUIRED, ex.getCode());
         }
@@ -103,8 +110,8 @@ class SocialTokenClientTest {
                     .thenThrow(new RestClientException("provider unavailable"));
             KakaoTokenClient client = new KakaoTokenClient(restTemplate);
 
-            GeneralException ex = assertThrows(GeneralException.class,
-                    () -> client.getUserInfo("valid-token"));
+            GeneralException ex =
+                    assertThrows(GeneralException.class, () -> client.getUserInfo("valid-token"));
 
             assertEquals(ErrorStatus._INVALID_ID_TOKEN, ex.getCode());
         }
@@ -117,11 +124,12 @@ class SocialTokenClientTest {
         @Test
         @DisplayName("정상 응답의 response 객체에서 사용자 정보를 매핑한다")
         void 정상_응답의_response_객체에서_사용자_정보를_매핑한다() {
-            Map<String, Object> naverUser = Map.of(
-                    "id", "naver-id",
-                    "email", "naver@example.com",
-                    "name", "Naver Name",
-                    "profile_image", "https://image.example/naver.jpg");
+            Map<String, Object> naverUser =
+                    Map.of(
+                            "id", "naver-id",
+                            "email", "naver@example.com",
+                            "name", "Naver Name",
+                            "profile_image", "https://image.example/naver.jpg");
             when(restTemplate.exchange(
                             eq(NAVER_USER_INFO_URL),
                             eq(HttpMethod.GET),
@@ -149,8 +157,8 @@ class SocialTokenClientTest {
                     .thenReturn(response(Map.of("response", Map.of("id", "naver-id"))));
             NaverTokenClient client = new NaverTokenClient(restTemplate);
 
-            GeneralException ex = assertThrows(GeneralException.class,
-                    () -> client.getUserInfo("valid-token"));
+            GeneralException ex =
+                    assertThrows(GeneralException.class, () -> client.getUserInfo("valid-token"));
 
             assertEquals(ErrorStatus._SOCIAL_EMAIL_REQUIRED, ex.getCode());
         }
@@ -166,8 +174,8 @@ class SocialTokenClientTest {
                     .thenReturn(response(Map.of("response", Map.of("email", "naver@example.com"))));
             NaverTokenClient client = new NaverTokenClient(restTemplate);
 
-            GeneralException ex = assertThrows(GeneralException.class,
-                    () -> client.getUserInfo("valid-token"));
+            GeneralException ex =
+                    assertThrows(GeneralException.class, () -> client.getUserInfo("valid-token"));
 
             assertEquals(ErrorStatus._SOCIAL_EXTERNAL_ID_REQUIRED, ex.getCode());
         }
@@ -183,8 +191,8 @@ class SocialTokenClientTest {
                     .thenThrow(new RestClientException("provider unavailable"));
             NaverTokenClient client = new NaverTokenClient(restTemplate);
 
-            GeneralException ex = assertThrows(GeneralException.class,
-                    () -> client.getUserInfo("valid-token"));
+            GeneralException ex =
+                    assertThrows(GeneralException.class, () -> client.getUserInfo("valid-token"));
 
             assertEquals(ErrorStatus._INVALID_ID_TOKEN, ex.getCode());
         }
@@ -200,8 +208,9 @@ class SocialTokenClientTest {
             GoogleTokenVerifier verifier = new GoogleTokenVerifier();
             ReflectionTestUtils.setField(verifier, "webClientId", "test-client-id");
 
-            GeneralException ex = assertThrows(GeneralException.class,
-                    () -> verifier.verify("not-a-valid-id-token"));
+            GeneralException ex =
+                    assertThrows(
+                            GeneralException.class, () -> verifier.verify("not-a-valid-id-token"));
 
             assertEquals(ErrorStatus._INVALID_ID_TOKEN, ex.getCode());
         }

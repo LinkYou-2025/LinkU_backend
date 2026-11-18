@@ -1,14 +1,14 @@
 package com.umc.linkyou.repository.mapping;
 
+import java.util.List;
+import java.util.Optional;
 
-import com.umc.linkyou.domain.classification.Job;
-import com.umc.linkyou.domain.mapping.SituationJob;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
-import java.util.Optional;
+import com.umc.linkyou.domain.classification.Job;
+import com.umc.linkyou.domain.mapping.SituationJob;
 
 public interface SituationJobRepository extends CrudRepository<SituationJob, Long> {
     List<SituationJob> findAllByJob(Job job);

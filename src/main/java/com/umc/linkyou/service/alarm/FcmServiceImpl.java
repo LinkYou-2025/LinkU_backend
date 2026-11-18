@@ -1,5 +1,20 @@
 package com.umc.linkyou.service.alarm;
 
+import static java.util.Collections.singletonList;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.lang.Nullable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+
 import com.google.firebase.messaging.*;
 import com.umc.linkyou.apiPayload.code.status.alarm.AlarmErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -8,21 +23,8 @@ import com.umc.linkyou.domain.enums.AlarmSettingType;
 import com.umc.linkyou.repository.UserFcmTokenRepository;
 import com.umc.linkyou.web.dto.alarm.FcmBulkTarget;
 import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
+
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.lang.Nullable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static java.util.Collections.singletonList;
 
 @Slf4j
 @Service
@@ -37,9 +39,10 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
     private final UserFcmTokenRepository userFcmTokenRepository;
     private final TransactionTemplate transactionTemplate;
 
-    public FcmServiceImpl(@Nullable FirebaseMessaging firebaseMessaging,
-                          UserFcmTokenRepository userFcmTokenRepository,
-                          PlatformTransactionManager transactionManager) {
+    public FcmServiceImpl(
+            @Nullable FirebaseMessaging firebaseMessaging,
+            UserFcmTokenRepository userFcmTokenRepository,
+            PlatformTransactionManager transactionManager) {
         this.firebaseMessaging = firebaseMessaging;
         this.userFcmTokenRepository = userFcmTokenRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
@@ -50,12 +53,12 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
     @Transactional
     public void sendToUser(Long userId, FcmSendRequestDTO requestDTO) {
         if (firebaseMessaging == null) return;
-        List<UsersFcmToken> activeTokens = userFcmTokenRepository.findAllActiveAndNotExpiredByUserId(userId, LocalDateTime.now());
+        List<UsersFcmToken> activeTokens =
+                userFcmTokenRepository.findAllActiveAndNotExpiredByUserId(
+                        userId, LocalDateTime.now());
         if (activeTokens.isEmpty()) return;
 
-        List<String> tokenStrings = activeTokens.stream()
-                .map(UsersFcmToken::getFcmToken)
-                .toList();
+        List<String> tokenStrings = activeTokens.stream().map(UsersFcmToken::getFcmToken).toList();
 
         MulticastMessage message = buildMulticastMessage(tokenStrings, requestDTO);
 
@@ -74,7 +77,11 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
         try {
             firebaseMessaging.send(buildMessage(token, requestDTO));
         } catch (FirebaseMessagingException e) {
-            log.error("FCM 단일 토큰 전송 실패 - errorCode: {}, message: {}", e.getMessagingErrorCode(), e.getMessage(), e);
+            log.error(
+                    "FCM 단일 토큰 전송 실패 - errorCode: {}, message: {}",
+                    e.getMessagingErrorCode(),
+                    e.getMessage(),
+                    e);
             throw new GeneralException(AlarmErrorStatus.ALARM_SEND_FAILED);
         }
     }
@@ -99,10 +106,11 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
         if (firebaseMessaging == null || targets == null || targets.isEmpty()) return;
 
         List<Long> userIds = targets.stream().map(FcmBulkTarget::userId).distinct().toList();
-        Map<Long, List<UsersFcmToken>> tokensByUser = userFcmTokenRepository
-                .findAllActiveAndNotExpiredByUserIdIn(userIds, LocalDateTime.now())
-                .stream()
-                .collect(Collectors.groupingBy(token -> token.getUser().getId()));
+        Map<Long, List<UsersFcmToken>> tokensByUser =
+                userFcmTokenRepository
+                        .findAllActiveAndNotExpiredByUserIdIn(userIds, LocalDateTime.now())
+                        .stream()
+                        .collect(Collectors.groupingBy(token -> token.getUser().getId()));
 
         List<Message> messages = new ArrayList<>();
         List<UsersFcmToken> messageTokens = new ArrayList<>();
@@ -119,19 +127,25 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
             try {
                 BatchResponse response = firebaseMessaging.sendEach(messages.subList(from, to));
                 List<UsersFcmToken> batchTokens = messageTokens.subList(from, to);
-                transactionTemplate.executeWithoutResult(status -> {
-                    handleBatchResponse(response, batchTokens);
-                    userFcmTokenRepository.saveAll(batchTokens);
-                });
+                transactionTemplate.executeWithoutResult(
+                        status -> {
+                            handleBatchResponse(response, batchTokens);
+                            userFcmTokenRepository.saveAll(batchTokens);
+                        });
             } catch (FirebaseMessagingException e) {
-                log.error("FCM 벌크 개인화 전송 실패 - errorCode: {}, message: {}", e.getMessagingErrorCode(), e.getMessage(), e);
+                log.error(
+                        "FCM 벌크 개인화 전송 실패 - errorCode: {}, message: {}",
+                        e.getMessagingErrorCode(),
+                        e.getMessage(),
+                        e);
             }
         }
     }
 
     // 토픽 구독 상태 일괄 업데이트
     @Override
-    public void updateTopicSubscription(String token, List<String> topics, boolean shouldSubscribe) {
+    public void updateTopicSubscription(
+            String token, List<String> topics, boolean shouldSubscribe) {
         if (firebaseMessaging == null) return;
         List<String> failedTopics = new ArrayList<>();
         for (String topic : topics) {
@@ -142,8 +156,11 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
                     firebaseMessaging.unsubscribeFromTopic(singletonList(token), topic);
                 }
             } catch (FirebaseMessagingException e) {
-                log.warn("토픽 구독 상태 변경 실패 - topic: {}, action: {}, error: {}",
-                        topic, shouldSubscribe ? "subscribe" : "unsubscribe", e.getMessage());
+                log.warn(
+                        "토픽 구독 상태 변경 실패 - topic: {}, action: {}, error: {}",
+                        topic,
+                        shouldSubscribe ? "subscribe" : "unsubscribe",
+                        e.getMessage());
                 failedTopics.add(topic);
             }
         }
@@ -169,22 +186,26 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
         }
     }
 
-    private MulticastMessage buildMulticastMessage(List<String> tokens, FcmSendRequestDTO requestDTO) {
-        MulticastMessage.Builder builder = MulticastMessage.builder()
-                .addAllTokens(tokens)
-                .setNotification(buildNotification(requestDTO))
-                .putData("title", requestDTO.getTitle())
-                .putData("body", requestDTO.getMessage())
-                .putData("type", requestDTO.getType().getResponseType().name())
-                .putData("targetId", requestDTO.getTargetId().toString());
+    private MulticastMessage buildMulticastMessage(
+            List<String> tokens, FcmSendRequestDTO requestDTO) {
+        MulticastMessage.Builder builder =
+                MulticastMessage.builder()
+                        .addAllTokens(tokens)
+                        .setNotification(buildNotification(requestDTO))
+                        .putData("title", requestDTO.getTitle())
+                        .putData("body", requestDTO.getMessage())
+                        .putData("type", requestDTO.getType().getResponseType().name())
+                        .putData("targetId", requestDTO.getTargetId().toString());
         if (requestDTO.getAlarmId() != null) {
             builder.putData("alarmId", requestDTO.getAlarmId().toString());
         }
-        return builder.setAndroidConfig(AndroidConfig.builder()
-                        .setNotification(AndroidNotification.builder()
-                                .setClickAction(CLICK_ACTION)
+        return builder.setAndroidConfig(
+                        AndroidConfig.builder()
+                                .setNotification(
+                                        AndroidNotification.builder()
+                                                .setClickAction(CLICK_ACTION)
+                                                .build())
                                 .build())
-                        .build())
                 .build();
     }
 
@@ -197,11 +218,13 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
                         .putData("type", requestDTO.getType().getResponseType().name())
                         .putData("targetId", requestDTO.getTargetId().toString())
                         .setToken(token)
-                        .setAndroidConfig(AndroidConfig.builder()
-                                .setNotification(AndroidNotification.builder()
-                                        .setClickAction(CLICK_ACTION)
-                                        .build())
-                                .build());
+                        .setAndroidConfig(
+                                AndroidConfig.builder()
+                                        .setNotification(
+                                                AndroidNotification.builder()
+                                                        .setClickAction(CLICK_ACTION)
+                                                        .build())
+                                        .build());
         if (requestDTO.getAlarmId() != null) {
             builder.putData("alarmId", requestDTO.getAlarmId().toString());
         }
@@ -209,21 +232,24 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
     }
 
     private Message buildTopicMessage(String topic, FcmSendRequestDTO requestDTO) {
-        Message.Builder builder = Message.builder()
-                .setNotification(buildNotification(requestDTO))
-                .putData("title", requestDTO.getTitle())
-                .putData("body", requestDTO.getMessage())
-                .putData("type", requestDTO.getType().getResponseType().name())
-                .putData("targetId", requestDTO.getTargetId().toString());
+        Message.Builder builder =
+                Message.builder()
+                        .setNotification(buildNotification(requestDTO))
+                        .putData("title", requestDTO.getTitle())
+                        .putData("body", requestDTO.getMessage())
+                        .putData("type", requestDTO.getType().getResponseType().name())
+                        .putData("targetId", requestDTO.getTargetId().toString());
         if (requestDTO.getAlarmId() != null) {
             builder.putData("alarmId", requestDTO.getAlarmId().toString());
         }
         return builder.setTopic(topic)
-                .setAndroidConfig(AndroidConfig.builder()
-                        .setNotification(AndroidNotification.builder()
-                                .setClickAction(CLICK_ACTION)
+                .setAndroidConfig(
+                        AndroidConfig.builder()
+                                .setNotification(
+                                        AndroidNotification.builder()
+                                                .setClickAction(CLICK_ACTION)
+                                                .build())
                                 .build())
-                        .build())
                 .build();
     }
 
@@ -241,7 +267,8 @@ public class FcmServiceImpl implements FcmPushSender, FcmSubscriber {
             case LINK -> "alarm-link";
             case FOLDER -> "alarm-folder";
             case CURATION -> "alarm-curation";
-            case ALL -> throw new GeneralException(AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED);
+            case ALL ->
+                    throw new GeneralException(AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED);
         };
     }
 }

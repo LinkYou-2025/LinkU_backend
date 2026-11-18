@@ -1,8 +1,8 @@
 package com.umc.linkyou.service.folder.shared;
 
-import com.umc.linkyou.web.dto.folder.share.*;
-
 import java.util.List;
+
+import com.umc.linkyou.web.dto.folder.share.*;
 
 public interface SharedFolderService {
     // 공유 받은 폴더 목록 조회 (소유자별 그룹핑)

@@ -1,24 +1,28 @@
 package com.umc.linkyou.jwt;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Map;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-import java.util.Map;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-// {@link CustomAuthenticationEntryPoint}, {@link CustomAccessDeniedHandler}가 공통으로 쓰는 401/403 응답 포맷 검증
+// {@link CustomAuthenticationEntryPoint}, {@link CustomAccessDeniedHandler}가 공통으로 쓰는 401/403 응답 포맷
+// 검증
 @DisplayName("SecurityErrorResponseWriter 단위 테스트")
 class SecurityErrorResponseWriterTest {
 
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-    private final SecurityErrorResponseWriter writer = new SecurityErrorResponseWriter(objectMapper);
+    private final ObjectMapper objectMapper =
+            new ObjectMapper().registerModule(new JavaTimeModule());
+    private final SecurityErrorResponseWriter writer =
+            new SecurityErrorResponseWriter(objectMapper);
 
     @Nested
     @DisplayName("write")
@@ -35,15 +39,18 @@ class SecurityErrorResponseWriterTest {
                 writer.write(response, AuthErrorStatus.UNAUTHORIZED);
 
                 assertThat(response.getStatus()).isEqualTo(401);
-                boolean isJson = MediaType.parseMediaType(response.getContentType())
-                        .isCompatibleWith(MediaType.APPLICATION_JSON);
+                boolean isJson =
+                        MediaType.parseMediaType(response.getContentType())
+                                .isCompatibleWith(MediaType.APPLICATION_JSON);
                 assertThat(isJson).isTrue();
                 assertThat(response.getCharacterEncoding()).isEqualToIgnoringCase("UTF-8");
 
-                Map<String, Object> body = objectMapper.readValue(response.getContentAsString(), Map.class);
+                Map<String, Object> body =
+                        objectMapper.readValue(response.getContentAsString(), Map.class);
                 assertThat(body.get("isSuccess")).isEqualTo(false);
                 assertThat(body.get("code")).isEqualTo(AuthErrorStatus.UNAUTHORIZED.getCode());
-                assertThat(body.get("message")).isEqualTo(AuthErrorStatus.UNAUTHORIZED.getMessage());
+                assertThat(body.get("message"))
+                        .isEqualTo(AuthErrorStatus.UNAUTHORIZED.getMessage());
                 assertThat(body.get("result")).isNull();
             }
         }

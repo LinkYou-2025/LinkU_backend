@@ -1,10 +1,12 @@
 package com.umc.linkyou.apiPayload.code.status.folder;
 
+import org.springframework.http.HttpStatus;
+
 import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
 @Getter
 @AllArgsConstructor
@@ -30,7 +32,8 @@ public enum FolderErrorStatus implements BaseErrorCode {
     _FOLDER_NAME_CONFLICT(HttpStatus.CONFLICT, "FOLDER4092", "카테고리명과 동일한 폴더명은 사용할 수 없습니다."),
 
     // 500 Internal Server Error
-    _FOLDER_OWNER_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "FOLDER5001", "폴더의 소유자 정보를 찾을 수 없습니다.");
+    _FOLDER_OWNER_NOT_FOUND(
+            HttpStatus.INTERNAL_SERVER_ERROR, "FOLDER5001", "폴더의 소유자 정보를 찾을 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
@@ -38,11 +41,7 @@ public enum FolderErrorStatus implements BaseErrorCode {
 
     @Override
     public ErrorReasonDTO getReason() {
-        return ErrorReasonDTO.builder()
-                .message(message)
-                .code(code)
-                .isSuccess(false)
-                .build();
+        return ErrorReasonDTO.builder().message(message).code(code).isSuccess(false).build();
     }
 
     @Override

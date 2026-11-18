@@ -1,9 +1,11 @@
 package com.umc.linkyou.web.dto.linku;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+
 import org.springframework.web.multipart.MultipartFile;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.*;
 
 public class LinkuRequestDTO {
     @Setter
@@ -63,8 +65,10 @@ public class LinkuRequestDTO {
     @AllArgsConstructor
     public static class LinkuFolderUpdateDTO {
         @NotNull(message = "이동할 폴더 ID는 필수입니다.")
-        @Schema(example = "16", description = "이동할 폴더 ID", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(
+                example = "16",
+                description = "이동할 폴더 ID",
+                requiredMode = Schema.RequiredMode.REQUIRED)
         private Long folderId;
     }
-
 }

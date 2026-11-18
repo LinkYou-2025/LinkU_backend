@@ -11,4 +11,3 @@ public class ShareFolderRequestDTO {
     private Long userId;
     private String permission;
 }
-

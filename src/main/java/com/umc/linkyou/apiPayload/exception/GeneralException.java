@@ -2,6 +2,7 @@ package com.umc.linkyou.apiPayload.exception;
 
 import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -15,7 +16,7 @@ public class GeneralException extends RuntimeException {
         return this.code.getReason();
     }
 
-    public ErrorReasonDTO getErrorReasonHttpStatus(){
+    public ErrorReasonDTO getErrorReasonHttpStatus() {
         return this.code.getReasonHttpStatus();
     }
 }

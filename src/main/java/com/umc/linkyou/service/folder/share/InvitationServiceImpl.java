@@ -1,21 +1,23 @@
 package com.umc.linkyou.service.folder.share;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.umc.linkyou.apiPayload.code.status.folder.InvitationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.FolderConverter;
 import com.umc.linkyou.converter.InvitationConverter;
 import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.enums.PermissionType;
+import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.folder.FolderShareLink;
 import com.umc.linkyou.repository.FolderShareLinkRepository;
-import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
 import com.umc.linkyou.web.dto.folder.share.InvitationInfoResponseDTO;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -28,8 +30,13 @@ public class InvitationServiceImpl implements InvitationService {
 
     // 초대 정보 조회
     public InvitationInfoResponseDTO getInvitationInfo(String token) {
-        FolderShareLink link = folderShareLinkRepository.findByToken(token)
-                .orElseThrow(() -> new GeneralException(InvitationErrorStatus.INVITATION_NOT_FOUND));
+        FolderShareLink link =
+                folderShareLinkRepository
+                        .findByToken(token)
+                        .orElseThrow(
+                                () ->
+                                        new GeneralException(
+                                                InvitationErrorStatus.INVITATION_NOT_FOUND));
 
         if (!link.isValid()) {
             throw new GeneralException(InvitationErrorStatus.INVITATION_EXPIRED);
@@ -42,30 +49,39 @@ public class InvitationServiceImpl implements InvitationService {
     @Transactional
     public Long acceptInvitation(Long userId, String token) {
         // 토큰 유효성 검증
-        FolderShareLink link = folderShareLinkRepository.findByToken(token)
-                .orElseThrow(() -> new GeneralException(InvitationErrorStatus.INVITATION_NOT_FOUND));
+        FolderShareLink link =
+                folderShareLinkRepository
+                        .findByToken(token)
+                        .orElseThrow(
+                                () ->
+                                        new GeneralException(
+                                                InvitationErrorStatus.INVITATION_NOT_FOUND));
 
         if (!link.isValid()) {
             throw new GeneralException(InvitationErrorStatus.INVITATION_EXPIRED);
         }
 
         Folder folder = link.getFolder();
-        Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+        Users user =
+                userRepository
+                        .findById(userId)
+                        .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
-        //Owner caanot accpet its own
+        // Owner caanot accpet its own
         if (link.getCreator().getId().equals(userId)) {
             throw new GeneralException(InvitationErrorStatus.INVITATION_CREATOR_CANNOT_ACCEPT);
         }
         // 이미 참여 중인지 확인
-        boolean isAlreadyMember = usersFolderRepository.existsActiveMember(userId, folder.getFolderId());
+        boolean isAlreadyMember =
+                usersFolderRepository.existsActiveMember(userId, folder.getFolderId());
         if (isAlreadyMember) {
             // 이미 멤버라면 폴더 ID만 반환
             return folder.getFolderId();
         }
 
         // 멤버 추가
-        usersFolderRepository.save(FolderConverter.toUsersFolder(user, folder, PermissionType.VIEWER));
+        usersFolderRepository.save(
+                FolderConverter.toUsersFolder(user, folder, PermissionType.VIEWER));
 
         return folder.getFolderId();
     }

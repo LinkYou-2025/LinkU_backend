@@ -1,11 +1,9 @@
 package com.umc.linkyou.service.folder;
 
-import com.umc.linkyou.domain.classification.Category;
-import com.umc.linkyou.domain.folder.Folder;
+import java.util.List;
+
 import com.umc.linkyou.web.dto.folder.*;
 import com.umc.linkyou.web.dto.folder.linku.FolderLinkusResponseDTO;
-
-import java.util.List;
 
 public interface FolderService {
     FolderResponseDTO createFolder(Long userId, Long parentFolderId, FolderCreateRequestDTO req);
@@ -27,6 +25,11 @@ public interface FolderService {
     BookmarkUpdateResponseDTO updateBookmark(Long userId, Long folderId, Boolean isBookmarked);
 
     // 폴더 내부 링크, 폴더 목록 조회. includeLinks=false면 링크 조회를 생략하고 폴더 목록만 반환한다.
-    FolderLinkusResponseDTO getFolderLinkus(Long userId, Long folderId, int limit, String cursor, String sort, boolean includeLinks);
-
+    FolderLinkusResponseDTO getFolderLinkus(
+            Long userId,
+            Long folderId,
+            int limit,
+            String cursor,
+            String sort,
+            boolean includeLinks);
 }

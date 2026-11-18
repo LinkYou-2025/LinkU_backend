@@ -1,5 +1,7 @@
 package com.umc.linkyou.support.fixture;
 
+import jakarta.persistence.EntityManager;
+
 import com.umc.linkyou.domain.AiArticle;
 import com.umc.linkyou.domain.Keyword;
 import com.umc.linkyou.domain.Linku;
@@ -14,7 +16,6 @@ import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.LinkuKeyword;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import jakarta.persistence.EntityManager;
 
 public final class LinkuDetailFixture {
     private LinkuDetailFixture() {}
@@ -22,11 +23,21 @@ public final class LinkuDetailFixture {
     public record Saved(Long userId, Long userLinkuId, Long linkuId) {}
 
     public static Saved persist(EntityManager em, boolean hasArticle, boolean hasSituation) {
-        Users user = Users.builder().nickName("detail-owner").password("encoded-password")
-                .role(Role.USER).build();
+        Users user =
+                Users.builder()
+                        .nickName("detail-owner")
+                        .password("encoded-password")
+                        .role(Role.USER)
+                        .build();
         em.persist(user);
-        Fcolor color = Fcolor.builder().colorName("blue").colorCode1("#001")
-                .colorCode2("#002").colorCode3("#003").colorCode4("#004").build();
+        Fcolor color =
+                Fcolor.builder()
+                        .colorName("blue")
+                        .colorCode1("#001")
+                        .colorCode2("#002")
+                        .colorCode3("#003")
+                        .colorCode4("#004")
+                        .build();
         em.persist(color);
         Category category = Category.builder().categoryName("기술").fcolor(color).build();
         em.persist(category);
@@ -36,11 +47,25 @@ public final class LinkuDetailFixture {
         em.persist(emotion);
         Situation situation = Situation.builder().name("공부").build();
         em.persist(situation);
-        Linku linku = Linku.builder().linkuUrl("https://example.com/detail").title("원문 제목")
-                .category(category).domain(domain).emotion(emotion).situation(situation).build();
+        Linku linku =
+                Linku.builder()
+                        .linkuUrl("https://example.com/detail")
+                        .title("원문 제목")
+                        .category(category)
+                        .domain(domain)
+                        .emotion(emotion)
+                        .situation(situation)
+                        .build();
         em.persist(linku);
-        UsersLinku ul = UsersLinku.builder().user(user).linku(linku).emotion(emotion)
-                .situation(hasSituation ? situation : null).aiExist(hasArticle).title("개인 제목").build();
+        UsersLinku ul =
+                UsersLinku.builder()
+                        .user(user)
+                        .linku(linku)
+                        .emotion(emotion)
+                        .situation(hasSituation ? situation : null)
+                        .aiExist(hasArticle)
+                        .title("개인 제목")
+                        .build();
         em.persist(ul);
         if (hasArticle) {
             em.persist(AiArticle.builder().linku(linku).summary("테스트 요약").build());

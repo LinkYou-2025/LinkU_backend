@@ -1,9 +1,7 @@
 package com.umc.linkyou.batch.alarm;
 
-import com.umc.linkyou.repository.AlarmRepository;
-import com.umc.linkyou.repository.UserAlarmRepository;
-import com.umc.linkyou.service.alarm.AlarmService;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -15,12 +13,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.LocalDateTime;
+import com.umc.linkyou.repository.AlarmRepository;
+import com.umc.linkyou.repository.UserAlarmRepository;
 
-/**
- * 7일 이상된 알람과 사용자 알람을 삭제하는 배치 작업 설정
- * - Tasklet 기반으로 구현하여 간단한 삭제 작업 수행
- */
+import lombok.RequiredArgsConstructor;
+
+/** 7일 이상된 알람과 사용자 알람을 삭제하는 배치 작업 설정 - Tasklet 기반으로 구현하여 간단한 삭제 작업 수행 */
 @Configuration
 @RequiredArgsConstructor
 public class DeleteOldAlarmJobConfig {

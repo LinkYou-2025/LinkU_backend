@@ -1,10 +1,10 @@
 package com.umc.linkyou.support.fixture;
 
+import java.time.LocalDateTime;
+
 import com.umc.linkyou.domain.*;
 import com.umc.linkyou.domain.enums.AlarmType;
 import com.umc.linkyou.domain.enums.Role;
-
-import java.time.LocalDateTime;
 
 public class AlarmFixture {
 
@@ -13,11 +13,7 @@ public class AlarmFixture {
     public static final String FCM_TOKEN = "test-fcm-token";
 
     public static Users user() {
-        return Users.builder()
-                .id(USER_ID)
-                .nickName("테스트유저")
-                .role(Role.USER)
-                .build();
+        return Users.builder().id(USER_ID).nickName("테스트유저").role(Role.USER).build();
     }
 
     public static AlarmSetting defaultSetting(Users user) {
