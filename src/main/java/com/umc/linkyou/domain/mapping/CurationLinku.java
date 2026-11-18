@@ -1,12 +1,15 @@
 package com.umc.linkyou.domain.mapping;
 
+import jakarta.persistence.*;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.enums.CurationLinkuType;
 import com.umc.linkyou.utils.UrlUtils;
-import jakarta.persistence.*;
+
 import lombok.*;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "curation_linkus")
@@ -45,7 +48,8 @@ public class CurationLinku {
     private String imageUrl;
 
     // 팩토리 메서드
-    public static CurationLinku ofExternal(Curation curation, String url, String title, String imageUrl) {
+    public static CurationLinku ofExternal(
+            Curation curation, String url, String title, String imageUrl) {
         return CurationLinku.builder()
                 .curation(curation)
                 .type(CurationLinkuType.EXTERNAL)
@@ -55,15 +59,15 @@ public class CurationLinku {
                 .build();
     }
 
-    public static CurationLinku ofInternal(Curation curation, UsersLinku usersLinku, String imageUrl) {
+    public static CurationLinku ofInternal(
+            Curation curation, UsersLinku usersLinku, String imageUrl) {
         return CurationLinku.builder()
                 .curation(curation)
                 .usersLinku(usersLinku)
                 .type(CurationLinkuType.INTERNAL)
-                .url(usersLinku.getLinku().getLinkuUrl())
+                .url(usersLinku.getSavedUrl())
                 .title(usersLinku.getLinku().getTitle())
                 .imageUrl(imageUrl)
                 .build();
     }
-
 }

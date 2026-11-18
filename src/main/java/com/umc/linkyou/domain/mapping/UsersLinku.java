@@ -1,19 +1,21 @@
 package com.umc.linkyou.domain.mapping;
 
-import com.umc.linkyou.domain.classification.Emotion;
-import com.umc.linkyou.domain.classification.Situation;
-import com.umc.linkyou.domain.Linku;
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.common.BaseEntity;
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.persistence.*;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+import com.umc.linkyou.domain.Linku;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.classification.Emotion;
+import com.umc.linkyou.domain.classification.Situation;
+import com.umc.linkyou.domain.common.BaseEntity;
+
+import lombok.*;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -52,6 +54,10 @@ public class UsersLinku extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "linku_id", nullable = false)
     private Linku linku;
+
+    // 사용자가 실제로 저장한 정규화 URL. 대표 URL(Linku.linkuUrl)과 달라도 열기 동작에는 이 값을 쓴다.
+    @Column(name = "saved_url", columnDefinition = "text", nullable = false)
+    private String savedUrl;
 
     @OneToMany(mappedBy = "usersLinku", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -103,6 +109,14 @@ public class UsersLinku extends BaseEntity {
 
     public void updateSituationAi(boolean situationAi) {
         this.situationAi = situationAi;
+    }
+
+    @PrePersist
+    private void fillSavedUrlFromLinku() {
+        // 기존 테스트/관리 데이터처럼 savedUrl 없이 생성되는 경우 폴백
+        if ((savedUrl == null || savedUrl.isBlank()) && linku != null) {
+            savedUrl = linku.getLinkuUrl();
+        }
     }
 
     @Builder.Default

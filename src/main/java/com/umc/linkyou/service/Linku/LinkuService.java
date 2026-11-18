@@ -46,6 +46,8 @@ import com.umc.linkyou.repository.mapping.LinkuKeywordRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.repository.usersFolderRepository.UsersFolderRepository;
+import com.umc.linkyou.utils.CanonicalUrlPolicy;
+import com.umc.linkyou.utils.UrlUtils;
 import com.umc.linkyou.utils.UrlValidUtils;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
@@ -80,10 +82,29 @@ public class LinkuService {
         // 1. 정규화 + 영상 링크/유효하지 않은 링크 차단
         String normalizedUrl = UrlValidUtils.normalizeAndValidateLinkuUrl(url);
 
-        // 3. 기존에 링크 저장 여부 확인
+        // 2. 사용자 입력 URL(savedUrl)을 먼저 확인하고, 기존 데이터/대표 URL에도 폴백
         List<UsersLinku> usersLinkuList =
-                usersLinkuRepository.findByUserIdAndLinku_LinkuUrlOrderByCreatedAtDesc(
+                usersLinkuRepository.findByUserIdAndSavedUrlOrderByCreatedAtDesc(
                         userId, normalizedUrl);
+
+        if (usersLinkuList.isEmpty()) {
+            usersLinkuList =
+                    usersLinkuRepository.findByUserIdAndLinku_LinkuUrlOrderByCreatedAtDesc(
+                            userId, normalizedUrl);
+        }
+
+        // 사이트 규칙으로 저장된 주소도 확인
+        String siteRuled = UrlUtils.normalizeUrl(CanonicalUrlPolicy.applySiteRules(normalizedUrl));
+        if (usersLinkuList.isEmpty() && !siteRuled.equals(normalizedUrl)) {
+            usersLinkuList =
+                    usersLinkuRepository.findByUserIdAndSavedUrlOrderByCreatedAtDesc(
+                            userId, siteRuled);
+            if (usersLinkuList.isEmpty()) {
+                usersLinkuList =
+                        usersLinkuRepository.findByUserIdAndLinku_LinkuUrlOrderByCreatedAtDesc(
+                                userId, siteRuled);
+            }
+        }
 
         UsersLinku usersLinku = usersLinkuList.isEmpty() ? null : usersLinkuList.get(0);
 
