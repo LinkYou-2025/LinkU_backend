@@ -1,24 +1,24 @@
 package com.umc.linkyou.infra.net;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
-/**
- * {@link SsrfGuard}로 검증한 URL에 대해서만 실제 네트워크 요청을 여는 단일 창구.
- * robots.txt 조회, 제목/본문/이미지 크롤링, URL 도달 가능 여부 확인이 전부 이 클래스를 거친다.
- *
- * 자동 리다이렉트는 끄고, 매 hop마다 Location 헤더를 다시 {@link SsrfGuard}로 검증한 뒤 수동으로 따라간다.
- * 원본 URL만 검증하고 리다이렉트 목적지는 그냥 따라가 버리면 allowlist 검증 자체가 우회되기 때문이다.
- * 최대 {@link SsrfGuard#MAX_REDIRECTS}회까지만 허용한다.
- */
+// 외부 요청은 SsrfGuard 검증을 거쳐 연다.
+// 리다이렉트로 검증을 우회하지 못하게 자동 리다이렉트를 끄고 hop마다 다시 검증한다.
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -28,9 +28,20 @@ public class SafeUrlFetcher {
 
     private static final int[] REDIRECT_CODES = {301, 302, 303, 307, 308};
 
-    // robots.txt 조회, URL 도달 가능 여부 확인 등에서 쓰는 raw HttpURLConnection.
-    // 반환된 connection은 이미 최종 목적지(리다이렉트를 다 따라간 뒤)에 연결된 상태다.
-    public HttpURLConnection openConnection(String urlStr, String userAgent, int connectTimeoutMs, int readTimeoutMs)
+    // 반환된 커넥션은 리다이렉트를 모두 따라간 최종 목적지에 연결돼 있다.
+    public HttpURLConnection openConnection(
+            String urlStr, String userAgent, int connectTimeoutMs, int readTimeoutMs)
+            throws IOException {
+        return openConnection(
+                urlStr, userAgent, connectTimeoutMs, readTimeoutMs, new ArrayList<>());
+    }
+
+    private HttpURLConnection openConnection(
+            String urlStr,
+            String userAgent,
+            int connectTimeoutMs,
+            int readTimeoutMs,
+            List<RedirectHop> hops)
             throws IOException {
         String current = urlStr;
         for (int hop = 0; hop <= SsrfGuard.MAX_REDIRECTS; hop++) {
@@ -45,8 +56,7 @@ public class SafeUrlFetcher {
             try {
                 status = conn.getResponseCode();
             } catch (IOException e) {
-                // getResponseCode() 자체가 실패하면(타임아웃 등) 이 hop의 커넥션이 안 닫힌 채로
-                // 새지 않도록 여기서 바로 닫고 다시 던진다.
+                // 실패한 hop의 커넥션이 새지 않게 닫고 다시 던진다.
                 conn.disconnect();
                 throw e;
             }
@@ -56,26 +66,43 @@ public class SafeUrlFetcher {
                 if (location == null || location.isBlank()) {
                     throw new SsrfGuard.BlockedException("리다이렉트 응답에 Location 헤더 없음: " + current);
                 }
-                current = new URL(url, location).toString();
+                String next = new URL(url, location).toString();
+                hops.add(new RedirectHop(current, status, next));
+                current = next;
                 continue;
             }
             return conn;
         }
-        throw new SsrfGuard.BlockedException("리다이렉트 허용 횟수(" + SsrfGuard.MAX_REDIRECTS + ") 초과: " + urlStr);
+        throw new SsrfGuard.BlockedException(
+                "리다이렉트 허용 횟수(" + SsrfGuard.MAX_REDIRECTS + ") 초과: " + urlStr);
     }
 
-    // 제목/본문/이미지 크롤링에서 쓰는 Jsoup 기반 Document 조회.
-    public Document fetchDocument(String urlStr, String userAgent, int timeoutMs) throws IOException {
+    public Document fetchDocument(String urlStr, String userAgent, int timeoutMs)
+            throws IOException {
+        return fetch(urlStr, userAgent, timeoutMs, false).document();
+    }
+
+    // fetchDocument와 달리 지연 0초 meta refresh도 따라가고, 거쳐간 이동을 hops에 담는다.
+    public FetchedPage fetchPage(String urlStr, String userAgent, int timeoutMs)
+            throws IOException {
+        return fetch(urlStr, userAgent, timeoutMs, true);
+    }
+
+    private FetchedPage fetch(
+            String urlStr, String userAgent, int timeoutMs, boolean followMetaRefresh)
+            throws IOException {
         String current = urlStr;
+        List<RedirectHop> hops = new ArrayList<>();
         for (int hop = 0; hop <= SsrfGuard.MAX_REDIRECTS; hop++) {
             URL url = ssrfGuard.validate(current);
 
-            Connection.Response response = Jsoup.connect(url.toString())
-                    .userAgent(userAgent)
-                    .timeout(timeoutMs)
-                    .followRedirects(false)
-                    .ignoreHttpErrors(true) // 상태코드를 직접 보고 리다이렉트/에러를 판단하기 위함
-                    .execute();
+            Connection.Response response =
+                    Jsoup.connect(url.toString())
+                            .userAgent(userAgent)
+                            .timeout(timeoutMs)
+                            .followRedirects(false)
+                            .ignoreHttpErrors(true)
+                            .execute();
 
             int status = response.statusCode();
             if (isRedirect(status)) {
@@ -83,31 +110,108 @@ public class SafeUrlFetcher {
                 if (location == null || location.isBlank()) {
                     throw new SsrfGuard.BlockedException("리다이렉트 응답에 Location 헤더 없음: " + current);
                 }
-                current = new URL(url, location).toString();
+                String next = new URL(url, location).toString();
+                hops.add(new RedirectHop(current, status, next));
+                current = next;
                 continue;
             }
             if (status >= 400) {
-                // 기존 Jsoup.connect().get() 기본 동작(4xx/5xx에서 예외)과 동일하게 맞춘다.
+                // Jsoup get()처럼 4xx, 5xx는 예외로 던진다.
                 throw new IOException("HTTP " + status + " for " + current);
             }
-            return response.parse();
+            Document doc = response.parse();
+            if (followMetaRefresh) {
+                Optional<String> refreshTarget = metaRefreshTarget(doc, url);
+                if (refreshTarget.isPresent()) {
+                    hops.add(new RedirectHop(current, META_REFRESH_STATUS, refreshTarget.get()));
+                    current = refreshTarget.get();
+                    continue;
+                }
+            }
+            return new FetchedPage(doc, current, List.copyOf(hops));
         }
-        throw new SsrfGuard.BlockedException("리다이렉트 허용 횟수(" + SsrfGuard.MAX_REDIRECTS + ") 초과: " + urlStr);
+        throw new SsrfGuard.BlockedException(
+                "리다이렉트 허용 횟수(" + SsrfGuard.MAX_REDIRECTS + ") 초과: " + urlStr);
     }
 
-    // URL이 실제로 응답 가능한 상태인지(2xx~3xx)만 확인한다. LinkuCreateService의 validUrl 필드에 쓰인다.
+    // 지연 0초만 리다이렉트로 본다. 지연이 있으면 사용자에게 보여주려는 안내 페이지다.
+    static Optional<String> metaRefreshTarget(Document doc, URL base) {
+        if (doc.head() == null) {
+            return Optional.empty();
+        }
+        // body 안의 meta refresh는 안내용이라 head만 본다.
+        for (Element meta : doc.head().children()) {
+            if (!meta.tagName().equalsIgnoreCase("meta") || !meta.hasAttr("http-equiv")) {
+                continue;
+            }
+            if (!"refresh".equalsIgnoreCase(meta.attr("http-equiv").trim())) {
+                continue;
+            }
+            String content = meta.attr("content");
+            int sep = content.indexOf(';');
+            if (sep < 0) {
+                continue;
+            }
+            try {
+                if (Double.parseDouble(content.substring(0, sep).trim()) > 0) {
+                    continue;
+                }
+            } catch (NumberFormatException e) {
+                continue;
+            }
+            String rest = content.substring(sep + 1).trim();
+            if (rest.regionMatches(true, 0, "url=", 0, 4)) {
+                rest = rest.substring(4).trim();
+            }
+            // URL을 감싼 따옴표를 뗀다.
+            rest = rest.replaceAll("^['\"]|['\"]$", "");
+            if (rest.isEmpty()) {
+                continue;
+            }
+            try {
+                return Optional.of(new URL(base, rest).toString());
+            } catch (MalformedURLException e) {
+                return Optional.empty();
+            }
+        }
+        return Optional.empty();
+    }
+
     public boolean isReachable(String urlStr) {
+        return probe(urlStr).isPresent();
+    }
+
+    // 최종 URL은 이어서 크롤링할 때 리다이렉트를 다시 타지 않으려고 돌려준다.
+    public Optional<ProbeResult> probe(String urlStr) {
+        HttpURLConnection conn = null;
+        List<RedirectHop> hops = new ArrayList<>();
         try {
-            HttpURLConnection conn = openConnection(urlStr, DEFAULT_USER_AGENT, 3000, 3000);
+            conn = openConnection(urlStr, DEFAULT_USER_AGENT, 3000, 3000, hops);
             int status = conn.getResponseCode();
-            conn.disconnect();
-            return status >= 200 && status < 400;
+            if (status >= 200 && status < 400) {
+                return Optional.of(new ProbeResult(conn.getURL().toString(), List.copyOf(hops)));
+            }
+            return Optional.empty();
         } catch (Exception e) {
             log.warn("[URL 도달 가능 여부 확인 실패] {}: {}", urlStr, e.getMessage());
-            return false;
+            return Optional.empty();
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
         }
     }
 
+    public record RedirectHop(String fromUrl, int status, String toUrl) {}
+
+    public record ProbeResult(String finalUrl, List<RedirectHop> hops) {}
+
+    public record FetchedPage(Document document, String finalUrl, List<RedirectHop> hops) {}
+
+    // meta refresh hop의 상태 코드. 임시 이동으로 취급된다.
+    public static final int META_REFRESH_STATUS = 0;
+
+    // TODO: DEFAULT_USER_AGENT에 브라우저 UA를 쓰는 이유를 서원에게 확인 후 주석 추가
     private static final String DEFAULT_USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36";
 

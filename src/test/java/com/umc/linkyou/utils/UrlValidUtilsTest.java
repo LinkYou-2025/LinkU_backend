@@ -1,25 +1,59 @@
 package com.umc.linkyou.utils;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 @DisplayName("UrlValidUtils 테스트")
 class UrlValidUtilsTest {
+
+    @Nested
+    @DisplayName("isVideoLink")
+    class IsVideoLink {
+
+        @Test
+        @DisplayName("네이버TV 주소는 영상 링크로 판별한다")
+        void 네이버TV_주소는_영상_링크로_판별한다() {
+            assertTrue(UrlValidUtils.isVideoLink("https://tv.naver.com/v/12345678"));
+        }
+
+        @Test
+        @DisplayName("네이버 블로그 주소는 영상 링크가 아니다")
+        void 네이버_블로그_주소는_영상_링크가_아니다() {
+            assertFalse(UrlValidUtils.isVideoLink("https://blog.naver.com/someuser/12345"));
+        }
+    }
 
     @Nested
     @DisplayName("extractDomainTailCandidates")
     class ExtractDomainTailCandidates {
 
         @Test
+        @DisplayName("대소문자와 끝 점이 있는 호스트도 저장 규칙에 맞게 정규화한다")
+        void 도메인_tail을_소문자와_끝_점_없이_정규화한다() {
+            assertEquals("example.com", UrlValidUtils.normalizeDomainTail(" WWW.Example.COM. "));
+        }
+
+        @Test
         @DisplayName("서브도메인이 없는 apex 도메인은 후보가 자기 자신 하나뿐이다")
         void apex_도메인은_후보가_하나뿐이다() {
-            List<String> candidates = UrlValidUtils.extractDomainTailCandidates("https://example.com/post");
+            List<String> candidates =
+                    UrlValidUtils.extractDomainTailCandidates("https://example.com/post");
+
+            assertEquals(List.of("example.com"), candidates);
+        }
+
+        @Test
+        @DisplayName("대문자 URL 호스트도 소문자 후보로 조회한다")
+        void 대문자_URL_호스트도_소문자_후보로_조회한다() {
+            List<String> candidates =
+                    UrlValidUtils.extractDomainTailCandidates("https://WWW.Example.COM/post");
 
             assertEquals(List.of("example.com"), candidates);
         }
@@ -27,7 +61,8 @@ class UrlValidUtilsTest {
         @Test
         @DisplayName("www. 접두사는 제거된 뒤 후보에 들어간다")
         void www_접두사는_제거된다() {
-            List<String> candidates = UrlValidUtils.extractDomainTailCandidates("https://www.example.com/post");
+            List<String> candidates =
+                    UrlValidUtils.extractDomainTailCandidates("https://www.example.com/post");
 
             assertEquals(List.of("example.com"), candidates);
         }
@@ -45,7 +80,8 @@ class UrlValidUtilsTest {
         @DisplayName("blogspot.com 서브도메인도 동일하게 apex로 폴백 후보를 준다")
         void 블로그스팟_서브도메인도_apex를_후보로_준다() {
             List<String> candidates =
-                    UrlValidUtils.extractDomainTailCandidates("https://pannchoa.blogspot.com/2024/01/post.html");
+                    UrlValidUtils.extractDomainTailCandidates(
+                            "https://pannchoa.blogspot.com/2024/01/post.html");
 
             assertEquals(List.of("pannchoa.blogspot.com", "blogspot.com"), candidates);
         }
@@ -63,7 +99,8 @@ class UrlValidUtilsTest {
         @DisplayName("이미 정확히 seed된 서브도메인(blog.naver.com)도 apex(naver.com)를 2순위 후보로 함께 준다")
         void 네이버_블로그_서브도메인도_apex를_후보에_포함한다() {
             List<String> candidates =
-                    UrlValidUtils.extractDomainTailCandidates("https://blog.naver.com/someuser/12345");
+                    UrlValidUtils.extractDomainTailCandidates(
+                            "https://blog.naver.com/someuser/12345");
 
             assertEquals(List.of("blog.naver.com", "naver.com"), candidates);
         }
