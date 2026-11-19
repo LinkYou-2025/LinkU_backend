@@ -1,35 +1,37 @@
 package com.umc.linkyou.service.curation;
 
-import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.converter.CurationConverter;
-import com.umc.linkyou.domain.Curation;
-import com.umc.linkyou.domain.CurationSectionInfo;
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.service.curation.ment.CurationMentMaterializer;
-import com.umc.linkyou.service.curation.recommend.external.ExternalRecommendMaterializer;
-import com.umc.linkyou.service.curation.recommend.internal.InternalRecommendMaterializer;
-import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
-import com.umc.linkyou.repository.curationRepository.CurationRepository;
-import com.umc.linkyou.repository.curationRepository.CurationSectionInfoRepository;
-import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.web.dto.curation.CurationDetailResponse;
-import com.umc.linkyou.web.dto.curation.CurationLatestResponse;
-import com.umc.linkyou.web.dto.curation.CurationSectionResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-import com.umc.linkyou.web.dto.curation.CurationListResponse;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.converter.CurationConverter;
+import com.umc.linkyou.domain.Curation;
+import com.umc.linkyou.domain.CurationSectionInfo;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.repository.curationRepository.CurationRepository;
+import com.umc.linkyou.repository.curationRepository.CurationSectionInfoRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.service.curation.ment.CurationMentMaterializer;
+import com.umc.linkyou.service.curation.recommend.external.ExternalRecommendMaterializer;
+import com.umc.linkyou.service.curation.recommend.internal.InternalRecommendMaterializer;
+import com.umc.linkyou.web.dto.curation.CurationDetailResponse;
+import com.umc.linkyou.web.dto.curation.CurationLatestResponse;
+import com.umc.linkyou.web.dto.curation.CurationListResponse;
+import com.umc.linkyou.web.dto.curation.CurationSectionResponse;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -47,8 +49,10 @@ public class CurationServiceImpl implements CurationService {
     @Override
     @Transactional
     public boolean generateCurationForUser(Long userId, String month) {
-        Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+        Users user =
+                userRepository
+                        .findById(userId)
+                        .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         return doGenerateCuration(user, month);
     }
 
@@ -57,20 +61,19 @@ public class CurationServiceImpl implements CurationService {
             return false;
         }
 
-        Curation curation = Curation.builder()
-                .user(user)
-                .baseMonth(month)
-                .build();
+        Curation curation = Curation.builder().user(user).baseMonth(month).build();
         curationRepository.save(curation);
 
         Long cid = curation.getCurationId();
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override public void afterCommit() {
-                curationMentMaterializer.generateMentAsync(cid);
-                internalRecommendMaterializer.generateInternalAsync(cid);
-                externalRecommendMaterializer.generateExternalAsync(cid);
-            }
-        });
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        curationMentMaterializer.generateMentAsync(cid);
+                        internalRecommendMaterializer.generateInternalAsync(cid);
+                        externalRecommendMaterializer.generateExternalAsync(cid);
+                    }
+                });
         return true;
     }
 
@@ -81,10 +84,9 @@ public class CurationServiceImpl implements CurationService {
         if (year < 2025) {
             throw new GeneralException(CurationErrorStatus._CURATION_INVALID_YEAR);
         }
-        Map<String, Curation> existing = curationRepository
-                .findAllByUserIdAndYear(userId, String.valueOf(year))
-                .stream()
-                .collect(Collectors.toMap(Curation::getBaseMonth, Function.identity()));
+        Map<String, Curation> existing =
+                curationRepository.findAllByUserIdAndYear(userId, String.valueOf(year)).stream()
+                        .collect(Collectors.toMap(Curation::getBaseMonth, Function.identity()));
 
         List<CurationListResponse> result = new ArrayList<>(12);
         for (int m = 1; m <= 12; m++) {
@@ -100,13 +102,17 @@ public class CurationServiceImpl implements CurationService {
     @Override
     @Transactional(readOnly = true)
     public Optional<CurationLatestResponse> getLatestCuration(Long userId) {
-        return curationRepository.findLatestByUserId(userId)
-                .map(curation -> CurationConverter.toCurationLatestResponse(
-                        curation, getSection1ImageUrl(curation.getBaseMonth())));
+        return curationRepository
+                .findLatestByUserId(userId)
+                .map(
+                        curation ->
+                                CurationConverter.toCurationLatestResponse(
+                                        curation, getSection1ImageUrl(curation.getBaseMonth())));
     }
 
     private String getSection1ImageUrl(String month) {
-        return curationSectionInfoRepository.findByMonthAndSectionNumber(month, 1)
+        return curationSectionInfoRepository
+                .findByMonthAndSectionNumber(month, 1)
                 .map(CurationSectionInfo::getImageUrl)
                 .orElse(null);
     }
@@ -115,9 +121,7 @@ public class CurationServiceImpl implements CurationService {
     @Override
     @Transactional(readOnly = true)
     public List<CurationSectionResponse> getCurationSections(String month) {
-        return curationSectionInfoRepository
-                .findAllByMonth(month)
-                .stream()
+        return curationSectionInfoRepository.findAllByMonth(month).stream()
                 .map(CurationConverter::toCurationSectionResponse)
                 .toList();
     }
@@ -126,11 +130,18 @@ public class CurationServiceImpl implements CurationService {
     @Override
     @Transactional(readOnly = true)
     public CurationDetailResponse getCurationDetail(Long userId, Long curationId) {
-        Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+        Users user =
+                userRepository
+                        .findById(userId)
+                        .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
-        Curation curation = curationRepository.findById(curationId)
-                .orElseThrow(() -> new GeneralException(CurationErrorStatus._CURATION_NOT_FOUND));
+        Curation curation =
+                curationRepository
+                        .findById(curationId)
+                        .orElseThrow(
+                                () ->
+                                        new GeneralException(
+                                                CurationErrorStatus._CURATION_NOT_FOUND));
 
         if (!curation.getUser().getId().equals(user.getId())) {
             throw new GeneralException(CurationErrorStatus._CURATION_FORBIDDEN);

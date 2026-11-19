@@ -1,7 +1,9 @@
 package com.umc.linkyou.domain.classification;
 
-import com.umc.linkyou.domain.enums.CrawlStrategy;
 import jakarta.persistence.*;
+
+import com.umc.linkyou.domain.enums.CrawlStrategy;
+
 import lombok.*;
 
 @Entity

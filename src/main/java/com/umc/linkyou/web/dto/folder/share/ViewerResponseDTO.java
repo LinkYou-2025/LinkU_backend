@@ -9,7 +9,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ViewerResponseDTO {
     private Long userId;
-    private String userName; 
-    private String permission; 
+    private String userName;
+    private String permission;
 }
-

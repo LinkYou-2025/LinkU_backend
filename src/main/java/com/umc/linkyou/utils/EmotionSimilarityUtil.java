@@ -1,10 +1,10 @@
 package com.umc.linkyou.utils;
 
-import org.springframework.data.util.Pair;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.springframework.data.util.Pair;
 
 public class EmotionSimilarityUtil {
 
@@ -40,10 +40,7 @@ public class EmotionSimilarityUtil {
         EMOTION_SIMILARITY_MAP = Collections.unmodifiableMap(map);
     }
 
-    /**
-     * userEmotionId, selectedEmotionId 간 감정 유사도 점수 반환
-     * 없으면 0 반환
-     */
+    /** userEmotionId, selectedEmotionId 간 감정 유사도 점수 반환 없으면 0 반환 */
     public static int getSimilarityScore(Long userEmotionId, Long selectedEmotionId) {
         if (userEmotionId == null || selectedEmotionId == null) {
             return 0;

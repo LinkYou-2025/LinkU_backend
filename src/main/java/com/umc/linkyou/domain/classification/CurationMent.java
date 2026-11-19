@@ -1,10 +1,8 @@
 package com.umc.linkyou.domain.classification;
 
-import com.umc.linkyou.domain.common.BaseEntity;
 import jakarta.persistence.*;
-import lombok.*;
 
-import java.time.LocalDateTime;
+import lombok.*;
 
 @Entity
 @Table(name = "curation_ments")

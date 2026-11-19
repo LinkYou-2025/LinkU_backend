@@ -1,21 +1,24 @@
 package com.umc.linkyou.oauth2.mobile.controller;
 
-import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.oauth2.mobile.dto.MobileLoginRequest;
-import com.umc.linkyou.web.dto.user.UserResponseDTO;
-import com.umc.linkyou.oauth2.mobile.service.GoogleMobileAuthService;
-import com.umc.linkyou.oauth2.mobile.service.KakaoMobileAuthService;
-import com.umc.linkyou.oauth2.mobile.service.NaverMobileAuthService;
-import com.umc.linkyou.validation.annotation.ApiV1;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.oauth2.mobile.dto.MobileLoginRequest;
+import com.umc.linkyou.oauth2.mobile.service.GoogleMobileAuthService;
+import com.umc.linkyou.oauth2.mobile.service.KakaoMobileAuthService;
+import com.umc.linkyou.oauth2.mobile.service.NaverMobileAuthService;
+import com.umc.linkyou.validation.annotation.ApiV1;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Tag(name = "Mobile Auth", description = "모바일 소셜 로그인 API")
@@ -29,24 +32,32 @@ public class MobileAuthController {
     private final KakaoMobileAuthService kakaoService;
     private final NaverMobileAuthService naverService;
 
-    @Operation(summary = "구글 로그인 (앱)", description = "Android/iOS Google Sign-In SDK에서 받은 **ID Token** 전달")
+    @Operation(
+            summary = "구글 로그인 (앱)",
+            description = "Android/iOS Google Sign-In SDK에서 받은 **ID Token** 전달")
     @PostMapping("/google")
-    public ApiResponse<UserResponseDTO.LoginResultDTO> googleLogin(@Valid @RequestBody MobileLoginRequest request) {
-        UserResponseDTO.LoginResultDTO result = googleService.login(request.token(), request.deviceId(), request.deviceType());
+    public ApiResponse<UserResponseDTO.LoginResultDTO> googleLogin(
+            @Valid @RequestBody MobileLoginRequest request) {
+        UserResponseDTO.LoginResultDTO result =
+                googleService.login(request.token(), request.deviceId(), request.deviceType());
         return ApiResponse.onSuccess(result);
     }
 
     @Operation(summary = "카카오 로그인 (앱)", description = "카카오 SDK에서 받은 **accessToken** 전달")
     @PostMapping("/kakao")
-    public ApiResponse<UserResponseDTO.LoginResultDTO> kakaoLogin(@Valid @RequestBody MobileLoginRequest request) {
-        UserResponseDTO.LoginResultDTO result = kakaoService.login(request.token(), request.deviceId(), request.deviceType());
+    public ApiResponse<UserResponseDTO.LoginResultDTO> kakaoLogin(
+            @Valid @RequestBody MobileLoginRequest request) {
+        UserResponseDTO.LoginResultDTO result =
+                kakaoService.login(request.token(), request.deviceId(), request.deviceType());
         return ApiResponse.onSuccess(result);
     }
 
     @Operation(summary = "네이버 로그인 (앱)", description = "네이버 SDK에서 받은 **accessToken** 전달")
     @PostMapping("/naver")
-    public ApiResponse<UserResponseDTO.LoginResultDTO> naverLogin(@Valid @RequestBody MobileLoginRequest request) {
-        UserResponseDTO.LoginResultDTO result = naverService.login(request.token(), request.deviceId(), request.deviceType());
+    public ApiResponse<UserResponseDTO.LoginResultDTO> naverLogin(
+            @Valid @RequestBody MobileLoginRequest request) {
+        UserResponseDTO.LoginResultDTO result =
+                naverService.login(request.token(), request.deviceId(), request.deviceType());
         return ApiResponse.onSuccess(result);
     }
 }

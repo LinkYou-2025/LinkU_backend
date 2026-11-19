@@ -1,6 +1,7 @@
 package com.umc.linkyou.domain.classification;
 
 import jakarta.persistence.*;
+
 import lombok.*;
 
 @Entity

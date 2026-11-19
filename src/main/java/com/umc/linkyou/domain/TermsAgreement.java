@@ -1,31 +1,34 @@
 package com.umc.linkyou.domain;
 
-import com.umc.linkyou.domain.common.BaseEntity;
-import com.umc.linkyou.domain.enums.TermsType;
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import java.time.LocalDateTime;
+
+import com.umc.linkyou.domain.common.BaseEntity;
+import com.umc.linkyou.domain.enums.TermsType;
+
+import lombok.*;
 
 @Entity
 @Table(
         name = "terms_agreements",
-        uniqueConstraints={
-                @UniqueConstraint(
-                        name = "uk_terms_agreements_user_type",
-                        columnNames={"user_id", "terms_type"}
-                )
-        }
-)
+        uniqueConstraints = {
+            @UniqueConstraint(
+                    name = "uk_terms_agreements_user_type",
+                    columnNames = {"user_id", "terms_type"})
+        })
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Getter
 public class TermsAgreement extends BaseEntity {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "terms_agreement_id")
     private Long id;
 

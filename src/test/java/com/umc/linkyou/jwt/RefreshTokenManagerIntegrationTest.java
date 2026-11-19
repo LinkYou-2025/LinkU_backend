@@ -3,11 +3,9 @@ package com.umc.linkyou.jwt;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Optional;
 import java.util.Map;
+import java.util.Optional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.umc.linkyou.domain.enums.DeviceType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,13 +18,17 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.umc.linkyou.domain.enums.DeviceType;
+
 @Testcontainers(disabledWithoutDocker = true)
 @DisplayName("RefreshTokenManager Redis Lua 통합 테스트")
 class RefreshTokenManagerIntegrationTest {
 
     @Container
     private static final GenericContainer<?> REDIS =
-            new GenericContainer<>(DockerImageName.parse("redis:7.2-alpine")).withExposedPorts(6379);
+            new GenericContainer<>(DockerImageName.parse("redis:7.2-alpine"))
+                    .withExposedPorts(6379);
 
     private LettuceConnectionFactory connectionFactory;
     private StringRedisTemplate redisTemplate;
@@ -35,7 +37,8 @@ class RefreshTokenManagerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        connectionFactory = new LettuceConnectionFactory(REDIS.getHost(), REDIS.getMappedPort(6379));
+        connectionFactory =
+                new LettuceConnectionFactory(REDIS.getHost(), REDIS.getMappedPort(6379));
         connectionFactory.afterPropertiesSet();
 
         redisTemplate = new StringRedisTemplate(connectionFactory);
@@ -92,14 +95,21 @@ class RefreshTokenManagerIntegrationTest {
         void 구형_세션_레코드를_퇴출하면_블랙리스트_등록_없이_빈_결과를_반환한다() throws Exception {
             // given
             long now = System.currentTimeMillis();
-            redisTemplate.opsForHash().put(
-                    "sessions:1:KAKAO",
-                    "legacy-device",
-                    objectMapper.writeValueAsString(Map.of(
-                            "tokenId", "legacy-refresh-token-id",
-                            "deviceType", DeviceType.PHONE.name(),
-                            "createdAt", now - 100L,
-                            "expiresAt", now + 1_209_600_000L)));
+            redisTemplate
+                    .opsForHash()
+                    .put(
+                            "sessions:1:KAKAO",
+                            "legacy-device",
+                            objectMapper.writeValueAsString(
+                                    Map.of(
+                                            "tokenId",
+                                            "legacy-refresh-token-id",
+                                            "deviceType",
+                                            DeviceType.PHONE.name(),
+                                            "createdAt",
+                                            now - 100L,
+                                            "expiresAt",
+                                            now + 1_209_600_000L)));
             saveToken("device-2", "session-2");
             saveToken("device-3", "session-3");
 

@@ -1,14 +1,16 @@
 package com.umc.linkyou.infra.parser;
 
-import com.umc.linkyou.infra.net.SafeUrlFetcher;
-import com.umc.linkyou.infra.net.SsrfGuard;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.net.URI;
+
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
+import com.umc.linkyou.infra.net.SafeUrlFetcher;
+import com.umc.linkyou.infra.net.SsrfGuard;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component

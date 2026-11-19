@@ -1,5 +1,7 @@
 package com.umc.linkyou.converter;
 
+import java.util.List;
+
 import com.umc.linkyou.domain.Curation;
 import com.umc.linkyou.domain.CurationSectionInfo;
 import com.umc.linkyou.domain.Linku;
@@ -14,8 +16,6 @@ import com.umc.linkyou.web.dto.curation.CurationLatestResponse;
 import com.umc.linkyou.web.dto.curation.CurationListResponse;
 import com.umc.linkyou.web.dto.curation.CurationSectionResponse;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
-
-import java.util.List;
 
 public class CurationConverter {
 
@@ -33,7 +33,10 @@ public class CurationConverter {
                 .domainImageUrl(domain != null ? domain.getImageUrl() : null)
                 .imageUrl(entity.getImageUrl())
                 // 카테고리 + 감정 태그 (링크의 카테고리, 저장 시 남긴 감정)
-                .categories(category != null ? List.of(category.getCategoryName(), emotion.getName()) : null)
+                .categories(
+                        category != null
+                                ? List.of(category.getCategoryName(), emotion.getName())
+                                : null)
                 .type(CurationLinkuType.INTERNAL)
                 .build();
     }
@@ -52,7 +55,8 @@ public class CurationConverter {
     }
 
     // 연도별 히스토리 항목 변환 (해당 월에 큐레이션이 없으면 month만 채운다)
-    public static CurationListResponse toCurationListResponse(Curation curation, String month, String thumbnailUrl) {
+    public static CurationListResponse toCurationListResponse(
+            Curation curation, String month, String thumbnailUrl) {
         if (curation == null) {
             return CurationListResponse.builder().month(month).build();
         }
@@ -63,7 +67,8 @@ public class CurationConverter {
                 .build();
     }
 
-    public static CurationLatestResponse toCurationLatestResponse(Curation curation, String thumbnailUrl) {
+    public static CurationLatestResponse toCurationLatestResponse(
+            Curation curation, String thumbnailUrl) {
         return CurationLatestResponse.builder()
                 .curationId(curation.getCurationId())
                 .month(curation.getBaseMonth())
@@ -86,8 +91,11 @@ public class CurationConverter {
                 .month(curation.getBaseMonth())
                 .headerMent(curation.getHeaderMent())
                 .footerMent(curation.getFooterMent())
-                .mentReady(curation.getHeaderMent() != null && !curation.getHeaderMent().isBlank()
-                        && curation.getFooterMent() != null && !curation.getFooterMent().isBlank())
+                .mentReady(
+                        curation.getHeaderMent() != null
+                                && !curation.getHeaderMent().isBlank()
+                                && curation.getFooterMent() != null
+                                && !curation.getFooterMent().isBlank())
                 .build();
     }
 }

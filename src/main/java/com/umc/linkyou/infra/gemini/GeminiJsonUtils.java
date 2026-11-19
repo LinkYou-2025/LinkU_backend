@@ -34,7 +34,7 @@ public final class GeminiJsonUtils {
         int endIndex = -1;
         for (int i = startIndex; i < content.length(); i++) {
             char c = content.charAt(i);
-            if (c == open)       depth++;
+            if (c == open) depth++;
             else if (c == close) depth--;
             if (depth == 0) {
                 endIndex = i;

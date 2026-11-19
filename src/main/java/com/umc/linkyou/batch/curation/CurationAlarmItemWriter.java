@@ -1,10 +1,12 @@
 package com.umc.linkyou.batch.curation;
 
-import com.umc.linkyou.service.curation.CurationAlarmBatchService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
+
+import com.umc.linkyou.service.curation.CurationAlarmBatchService;
+
+import lombok.RequiredArgsConstructor;
 
 /**
  * 큐레이션 알림 발송 writer

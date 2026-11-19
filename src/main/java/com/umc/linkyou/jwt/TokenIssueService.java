@@ -1,17 +1,17 @@
 package com.umc.linkyou.jwt;
 
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
 import com.umc.linkyou.config.properties.JwtProperties;
 import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Role;
 import com.umc.linkyou.domain.enums.UserStatus;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
-/**
- * 액세스 토큰과 리프레시 토큰을 발급하는 서비스
- */
+/** 액세스 토큰과 리프레시 토큰을 발급하는 서비스 */
 @Service
 @RequiredArgsConstructor
 public class TokenIssueService {
@@ -37,10 +37,10 @@ public class TokenIssueService {
             String provider,
             Role role,
             String deviceId,
-            DeviceType deviceType
-    ) {
+            DeviceType deviceType) {
         String sessionId = UUID.randomUUID().toString();
-        String accessToken = jwtTokenProvider.createAccessToken(userId, email, provider, role, sessionId);
+        String accessToken =
+                jwtTokenProvider.createAccessToken(userId, email, provider, role, sessionId);
         String refreshToken = jwtTokenProvider.createRefreshToken(email, provider);
         String tokenId = jwtTokenProvider.hmac(jwtTokenProvider.normalizeStrict(refreshToken));
         long expiresAt = System.currentTimeMillis() + jwtProperties.expiration().refresh();
@@ -59,9 +59,8 @@ public class TokenIssueService {
     }
 
     /**
-     * 유저 상태에 따라 발급 범위를 결정
-     * TEMP(온보딩 미완료): 세션이 오래 유지되지 않도록 access token만 발급
-     * 그 외의 경우 : access + refresh 토큰 쌍 발급
+     * 유저 상태에 따라 발급 범위를 결정 TEMP(온보딩 미완료): 세션이 오래 유지되지 않도록 access token만 발급 그 외의 경우 : access +
+     * refresh 토큰 쌍 발급
      */
     public IssuedTokenPair issueForStatus(
             Long userId,
@@ -70,14 +69,12 @@ public class TokenIssueService {
             Role role,
             UserStatus status,
             String deviceId,
-            DeviceType deviceType
-    ) {
+            DeviceType deviceType) {
         if (status == UserStatus.TEMP) {
             return new IssuedTokenPair(issueAccessToken(userId, email, provider, role), null);
         }
         return issueTokenPair(userId, email, provider, role, deviceId, deviceType);
     }
 
-    public record IssuedTokenPair(String accessToken, String refreshToken) {
-    }
+    public record IssuedTokenPair(String accessToken, String refreshToken) {}
 }

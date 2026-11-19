@@ -1,12 +1,12 @@
 package com.umc.linkyou.converter;
 
+import java.time.LocalDateTime;
+
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
 import com.umc.linkyou.web.dto.folder.share.MySharedFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
-
-import java.time.LocalDateTime;
 
 public class ShareFolderConverter {
 
@@ -28,7 +28,8 @@ public class ShareFolderConverter {
         return dto;
     }
 
-    public static MySharedFolderResponseDTO toMySharedFolderResponseDTO(Folder folder, int memberCount) {
+    public static MySharedFolderResponseDTO toMySharedFolderResponseDTO(
+            Folder folder, int memberCount) {
         return MySharedFolderResponseDTO.builder()
                 .folderId(folder.getFolderId())
                 .folderName(folder.getFolderName())

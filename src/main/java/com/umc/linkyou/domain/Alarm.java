@@ -1,12 +1,14 @@
 package com.umc.linkyou.domain;
 
-import com.umc.linkyou.domain.common.BaseEntity;
-import com.umc.linkyou.domain.enums.AlarmType;
-import jakarta.persistence.*;
-import lombok.*;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.persistence.*;
+
+import com.umc.linkyou.domain.common.BaseEntity;
+import com.umc.linkyou.domain.enums.AlarmType;
+
+import lombok.*;
 
 @Entity
 @Table(name = "alarms")
@@ -33,11 +35,7 @@ public class Alarm extends BaseEntity {
     private Long targetId;
 
     @Builder(access = AccessLevel.PRIVATE)
-    private Alarm(
-            AlarmType alarmType,
-            Long targetId,
-            String body
-    ) {
+    private Alarm(AlarmType alarmType, Long targetId, String body) {
         this.alarmType = alarmType;
         this.title = alarmType.getTitle();
         this.body = body;
@@ -52,11 +50,7 @@ public class Alarm extends BaseEntity {
     }
 
     public static Alarm create(AlarmType alarmType, Long targetId, String renderedBody) {
-        return Alarm.builder()
-                .alarmType(alarmType)
-                .targetId(targetId)
-                .body(renderedBody)
-                .build();
+        return Alarm.builder().alarmType(alarmType).targetId(targetId).body(renderedBody).build();
     }
 
     public static Alarm createWithBody(AlarmType alarmType, Long targetId, String body) {

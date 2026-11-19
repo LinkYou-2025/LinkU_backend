@@ -1,15 +1,16 @@
 package com.umc.linkyou.apiPayload.code.status.linku;
 
+import org.springframework.http.HttpStatus;
+
 import com.umc.linkyou.apiPayload.code.BaseSuccessCode;
 import com.umc.linkyou.apiPayload.code.SuccessReasonDTO;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
 @Getter
 @AllArgsConstructor
 public enum LinkuSuccessStatus implements BaseSuccessCode {
-
     LINKU_CREATED(HttpStatus.OK, "LINKU2001", "링크가 저장되었습니다."),
     LINKU_SUSPICIOUS_URL(HttpStatus.ACCEPTED, "LINKU2002", "유효하지 않은 링크일 가능성이 있습니다."),
     LINKU_RECENT_OK(HttpStatus.OK, "LINKU2003", "최근 열람한 링크를 가져왔습니다."),
@@ -34,6 +35,11 @@ public enum LinkuSuccessStatus implements BaseSuccessCode {
 
     @Override
     public SuccessReasonDTO getReasonHttpStatus() {
-        return SuccessReasonDTO.builder().message(message).code(code).isSuccess(true).httpStatus(httpStatus).build();
+        return SuccessReasonDTO.builder()
+                .message(message)
+                .code(code)
+                .isSuccess(true)
+                .httpStatus(httpStatus)
+                .build();
     }
 }

@@ -1,15 +1,17 @@
 package com.umc.linkyou.infra.gemini.service;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.gemini.GeminiErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.infra.ai.AiClient;
 import com.umc.linkyou.infra.gemini.GeminiJsonUtils;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +40,8 @@ public class GeminiService {
         }
     }
 
-    public <T> List<T> callAndParseWithSearch(String systemMsg, String userMsg, TypeReference<List<T>> typeRef) {
+    public <T> List<T> callAndParseWithSearch(
+            String systemMsg, String userMsg, TypeReference<List<T>> typeRef) {
         String raw = geminiClient.completionWithSearch(systemMsg, userMsg);
         String sanitized = GeminiJsonUtils.extractJsonArray(raw);
         if (sanitized == null) {

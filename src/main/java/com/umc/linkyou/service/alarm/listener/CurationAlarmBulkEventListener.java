@@ -1,12 +1,14 @@
 package com.umc.linkyou.service.alarm.listener;
 
-import com.umc.linkyou.service.alarm.FcmPushSender;
-import com.umc.linkyou.service.alarm.event.CurationAlarmBulkEvent;
-import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+
+import com.umc.linkyou.service.alarm.FcmPushSender;
+import com.umc.linkyou.service.alarm.event.CurationAlarmBulkEvent;
+
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor

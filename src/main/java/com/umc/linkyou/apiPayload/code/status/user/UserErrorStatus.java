@@ -1,10 +1,12 @@
 package com.umc.linkyou.apiPayload.code.status.user;
 
+import org.springframework.http.HttpStatus;
+
 import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
 @Getter
 @AllArgsConstructor
@@ -24,20 +26,25 @@ public enum UserErrorStatus implements BaseErrorCode {
     _VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "USERS4011", "인증 코드 검증 실패"),
     _LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "USERS4012", "이메일 주소 또는 비밀번호를 다시 확인하세요."),
     _SOCIAL_ACCOUNT_ONLY(HttpStatus.UNAUTHORIZED, "USERS4014", "소셜 전용 계정입니다. 소셜 로그인을 이용하세요."),
-    //404 Not Found
+    // 404 Not Found
     _USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USERS4041", "사용자를 찾을 수 없습니다."),
     _USER_INACTIVE(HttpStatus.NOT_FOUND, "USERS4042", "사용자가 INACTIVE 임시 회원탈퇴 상태입니다."),
-    //409 Conflict
+    // 409 Conflict
     _JOB_NOT_SET(HttpStatus.BAD_REQUEST, "USERS4007", "직업이 설정되지 않은 사용자입니다."),
     _DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "USERS4091", "중복된 닉네임입니다."),
     _DUPLICATE_JOIN_REQUEST(HttpStatus.CONFLICT, "USERS4092", "중복된 이메일입니다."),
-    _GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS (HttpStatus.CONFLICT, "USERS4093", "이미 구글 로그인으로 가입된 이메일입니다. 소셜 로그인을 이용하세요."),
-    _KAKAO_SOCIAL_ACCOUNT_ALREADY_EXISTS (HttpStatus.CONFLICT, "USERS4094", "이미 카카오 로그인으로 가입된 이메일입니다. 소셜 로그인을 이용하세요."),
-    _KAKAO_GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS (HttpStatus.CONFLICT, "USERS4095", "이미 카카오, 구글 로그인으로 가입된 이메일입니다. 소셜 로그인을 이용하세요."),
+    _GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS(
+            HttpStatus.CONFLICT, "USERS4093", "이미 구글 로그인으로 가입된 이메일입니다. 소셜 로그인을 이용하세요."),
+    _KAKAO_SOCIAL_ACCOUNT_ALREADY_EXISTS(
+            HttpStatus.CONFLICT, "USERS4094", "이미 카카오 로그인으로 가입된 이메일입니다. 소셜 로그인을 이용하세요."),
+    _KAKAO_GOOGLE_SOCIAL_ACCOUNT_ALREADY_EXISTS(
+            HttpStatus.CONFLICT, "USERS4095", "이미 카카오, 구글 로그인으로 가입된 이메일입니다. 소셜 로그인을 이용하세요."),
     // 인증 코드 전송실패
     _SEND_MAIL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "USERS5001", "인증 코드 전송 실패"),
-    _REFRESH_TOKEN_SESSION_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, "USERS5002", "리프레시 토큰 세션 정보가 올바르지 않습니다."),
-    _REFRESH_TOKEN_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "USERS5003", "리프레시 토큰 세션 정보 파싱에 실패했습니다.");
+    _REFRESH_TOKEN_SESSION_INVALID(
+            HttpStatus.INTERNAL_SERVER_ERROR, "USERS5002", "리프레시 토큰 세션 정보가 올바르지 않습니다."),
+    _REFRESH_TOKEN_PARSE_ERROR(
+            HttpStatus.INTERNAL_SERVER_ERROR, "USERS5003", "리프레시 토큰 세션 정보 파싱에 실패했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
@@ -50,6 +57,11 @@ public enum UserErrorStatus implements BaseErrorCode {
 
     @Override
     public ErrorReasonDTO getReasonHttpStatus() {
-        return ErrorReasonDTO.builder().message(message).code(code).isSuccess(false).httpStatus(httpStatus).build();
+        return ErrorReasonDTO.builder()
+                .message(message)
+                .code(code)
+                .isSuccess(false)
+                .httpStatus(httpStatus)
+                .build();
     }
 }

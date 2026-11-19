@@ -1,20 +1,13 @@
 package com.umc.linkyou.infra.ai;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.umc.linkyou.domain.classification.Category;
-import com.umc.linkyou.infra.ai.dto.MentResultDTO;
-import com.umc.linkyou.infra.ai.dto.AiArticleResultDTO;
-import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
-import com.umc.linkyou.infra.ai.dto.ExternalLinkResultDTO;
-import com.umc.linkyou.infra.ai.dto.ExternalSearchRequest;
-import com.umc.linkyou.infra.gemini.prompt.common.PromptComposer;
-import com.umc.linkyou.infra.gemini.service.GeminiArticleService;
-import com.umc.linkyou.infra.gemini.service.GeminiExternalSearchService;
-import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
-import com.umc.linkyou.infra.gemini.service.GeminiMentService;
-import com.umc.linkyou.infra.gemini.service.GeminiService;
-import com.umc.linkyou.infra.parser.TitleDomainParser;
-import com.umc.linkyou.infra.parser.WebContentExtractor;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.given;
+
+import java.util.List;
+import java.util.Optional;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,14 +16,22 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.BDDMockito.given;
+import com.umc.linkyou.domain.classification.Category;
+import com.umc.linkyou.infra.ai.dto.AiArticleResultDTO;
+import com.umc.linkyou.infra.ai.dto.ExternalLinkResultDTO;
+import com.umc.linkyou.infra.ai.dto.ExternalSearchRequest;
+import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
+import com.umc.linkyou.infra.ai.dto.MentResultDTO;
+import com.umc.linkyou.infra.gemini.prompt.common.PromptComposer;
+import com.umc.linkyou.infra.gemini.service.GeminiArticleService;
+import com.umc.linkyou.infra.gemini.service.GeminiExternalSearchService;
+import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
+import com.umc.linkyou.infra.gemini.service.GeminiMentService;
+import com.umc.linkyou.infra.gemini.service.GeminiService;
+import com.umc.linkyou.infra.parser.TitleDomainParser;
+import com.umc.linkyou.infra.parser.WebContentExtractor;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Gemini AI 서비스 단위 테스트")
@@ -55,7 +56,9 @@ class GeminiAiIntegrationTest {
 
             given(webContentExtractor.extractTextFromUrl(url)).willReturn("Spring 관련 본문 내용...");
             given(promptComposer.general()).willReturn("system prompt");
-            given(geminiService.callAndParse(anyString(), anyString(), eq(AiArticleResultDTO.class)))
+            given(
+                            geminiService.callAndParse(
+                                    anyString(), anyString(), eq(AiArticleResultDTO.class)))
                     .willReturn(mockResult);
 
             // when
@@ -99,9 +102,8 @@ class GeminiAiIntegrationTest {
         @Mock private PromptComposer promptComposer;
         @InjectMocks private GeminiLinkuService geminiLinkuService;
 
-        private final List<Category> categories = List.of(
-                Category.builder().categoryId(1L).categoryName("기술·IT").build()
-        );
+        private final List<Category> categories =
+                List.of(Category.builder().categoryId(1L).categoryName("기술·IT").build());
 
         @Test
         @DisplayName("성공 - 제목이 있는 URL은 Gemini가 카테고리와 키워드를 반환한다")
@@ -111,14 +113,16 @@ class GeminiAiIntegrationTest {
             LinkuResultDTO mockResult = new LinkuResultDTO(1L, "#Spring #Java", null, null, null);
 
             given(titleDomainParser.parseUrl(url))
-                    .willReturn(new TitleDomainParser.ParsedPageInfo("tech.com", "Spring Boot 활용 가이드"));
+                    .willReturn(
+                            new TitleDomainParser.ParsedPageInfo("tech.com", "Spring Boot 활용 가이드"));
             given(webContentExtractor.extractTextFromUrl(url)).willReturn("Spring Boot 관련 본문...");
             given(promptComposer.general()).willReturn("system prompt");
             given(geminiService.callAndParse(anyString(), anyString(), eq(LinkuResultDTO.class)))
                     .willReturn(mockResult);
 
             // when
-            Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, categories, List.of(), List.of());
+            Optional<LinkuResultDTO> result =
+                    geminiLinkuService.analyzeByUrl(url, categories, List.of(), List.of());
 
             // then
             assertThat(result).isPresent();
@@ -141,7 +145,8 @@ class GeminiAiIntegrationTest {
                     .willReturn(mockResult);
 
             // when
-            Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, categories, List.of(), List.of());
+            Optional<LinkuResultDTO> result =
+                    geminiLinkuService.analyzeByUrl(url, categories, List.of(), List.of());
 
             // then
             assertThat(result).isPresent();
@@ -156,7 +161,9 @@ class GeminiAiIntegrationTest {
                     .willReturn(new TitleDomainParser.ParsedPageInfo("example.com", null));
 
             // when
-            Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl("https://unknown.com", List.of(), List.of(), List.of());
+            Optional<LinkuResultDTO> result =
+                    geminiLinkuService.analyzeByUrl(
+                            "https://unknown.com", List.of(), List.of(), List.of());
 
             // then
             assertThat(result).isEmpty();
@@ -179,7 +186,9 @@ class GeminiAiIntegrationTest {
             MentResultDTO mockResult = new MentResultDTO("오늘도 수고했어요!", "더 많은 링크를 저장해보세요.");
 
             given(promptComposer.mention()).willReturn("ment system prompt");
-            given(geminiService.callAndParseCreative(anyString(), anyString(), eq(MentResultDTO.class)))
+            given(
+                            geminiService.callAndParseCreative(
+                                    anyString(), anyString(), eq(MentResultDTO.class)))
                     .willReturn(mockResult);
 
             // when
@@ -204,18 +213,28 @@ class GeminiAiIntegrationTest {
         @DisplayName("성공 - 태그·직무·성별 기반으로 외부 링크 목록을 반환한다")
         void searchExternalLinks_success() {
             // given
-            List<ExternalLinkResultDTO> mockRaw = List.of(
-                    ExternalLinkResultDTO.builder().title("Spring 공식 문서").url("https://spring.io/docs").build(),
-                    ExternalLinkResultDTO.builder().title("Java 튜토리얼").url("https://docs.oracle.com/javase/tutorial").build()
-            );
+            List<ExternalLinkResultDTO> mockRaw =
+                    List.of(
+                            ExternalLinkResultDTO.builder()
+                                    .title("Spring 공식 문서")
+                                    .url("https://spring.io/docs")
+                                    .build(),
+                            ExternalLinkResultDTO.builder()
+                                    .title("Java 튜토리얼")
+                                    .url("https://docs.oracle.com/javase/tutorial")
+                                    .build());
 
             given(promptComposer.externalSearch()).willReturn("search system prompt");
-            given(geminiService.callAndParseWithSearch(anyString(), anyString(), any(TypeReference.class)))
+            given(
+                            geminiService.callAndParseWithSearch(
+                                    anyString(), anyString(), any(TypeReference.class)))
                     .willReturn(mockRaw);
 
             // when
-            List<ExternalLinkResultDTO> results = geminiExternalSearchService.searchExternalLinks(
-                    new ExternalSearchRequest(List.of("Spring", "Java"), 3, "Developer", "Male"));
+            List<ExternalLinkResultDTO> results =
+                    geminiExternalSearchService.searchExternalLinks(
+                            new ExternalSearchRequest(
+                                    List.of("Spring", "Java"), 3, "Developer", "Male"));
 
             // then
             assertThat(results).hasSize(2);
@@ -227,18 +246,24 @@ class GeminiAiIntegrationTest {
         @DisplayName("실패 - URL이 비어있는 항목은 필터링되어 결과에서 제외된다")
         void searchExternalLinks_emptyUrl_filtered() {
             // given
-            List<ExternalLinkResultDTO> mockRaw = List.of(
-                    ExternalLinkResultDTO.builder().title("유효한 링크").url("https://valid.com").build(),
-                    ExternalLinkResultDTO.builder().title("URL 없는 링크").url("").build()
-            );
+            List<ExternalLinkResultDTO> mockRaw =
+                    List.of(
+                            ExternalLinkResultDTO.builder()
+                                    .title("유효한 링크")
+                                    .url("https://valid.com")
+                                    .build(),
+                            ExternalLinkResultDTO.builder().title("URL 없는 링크").url("").build());
 
             given(promptComposer.externalSearch()).willReturn("search system prompt");
-            given(geminiService.callAndParseWithSearch(anyString(), anyString(), any(TypeReference.class)))
+            given(
+                            geminiService.callAndParseWithSearch(
+                                    anyString(), anyString(), any(TypeReference.class)))
                     .willReturn(mockRaw);
 
             // when
-            List<ExternalLinkResultDTO> results = geminiExternalSearchService.searchExternalLinks(
-                    new ExternalSearchRequest(List.of("태그1"), 5, "Designer", "Female"));
+            List<ExternalLinkResultDTO> results =
+                    geminiExternalSearchService.searchExternalLinks(
+                            new ExternalSearchRequest(List.of("태그1"), 5, "Designer", "Female"));
 
             // then
             assertThat(results).hasSize(1);
@@ -249,20 +274,35 @@ class GeminiAiIntegrationTest {
         @DisplayName("엣지 케이스 - limit보다 많은 결과가 있으면 limit 수만큼만 반환한다")
         void searchExternalLinks_respectsLimit() {
             // given
-            List<ExternalLinkResultDTO> mockRaw = List.of(
-                    ExternalLinkResultDTO.builder().title("링크1").url("https://link1.com").build(),
-                    ExternalLinkResultDTO.builder().title("링크2").url("https://link2.com").build(),
-                    ExternalLinkResultDTO.builder().title("링크3").url("https://link3.com").build(),
-                    ExternalLinkResultDTO.builder().title("링크4").url("https://link4.com").build()
-            );
+            List<ExternalLinkResultDTO> mockRaw =
+                    List.of(
+                            ExternalLinkResultDTO.builder()
+                                    .title("링크1")
+                                    .url("https://link1.com")
+                                    .build(),
+                            ExternalLinkResultDTO.builder()
+                                    .title("링크2")
+                                    .url("https://link2.com")
+                                    .build(),
+                            ExternalLinkResultDTO.builder()
+                                    .title("링크3")
+                                    .url("https://link3.com")
+                                    .build(),
+                            ExternalLinkResultDTO.builder()
+                                    .title("링크4")
+                                    .url("https://link4.com")
+                                    .build());
 
             given(promptComposer.externalSearch()).willReturn("system prompt");
-            given(geminiService.callAndParseWithSearch(anyString(), anyString(), any(TypeReference.class)))
+            given(
+                            geminiService.callAndParseWithSearch(
+                                    anyString(), anyString(), any(TypeReference.class)))
                     .willReturn(mockRaw);
 
             // when
-            List<ExternalLinkResultDTO> results = geminiExternalSearchService.searchExternalLinks(
-                    new ExternalSearchRequest(List.of("태그"), 2, "PM", "Male"));
+            List<ExternalLinkResultDTO> results =
+                    geminiExternalSearchService.searchExternalLinks(
+                            new ExternalSearchRequest(List.of("태그"), 2, "PM", "Male"));
 
             // then
             assertThat(results).hasSize(2);

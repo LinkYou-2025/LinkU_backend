@@ -1,16 +1,18 @@
 package com.umc.linkyou.batch.curation;
 
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.util.List;
+
+import jakarta.persistence.EntityManagerFactory;
+
+import org.springframework.stereotype.Component;
+
 import com.querydsl.jpa.JPAExpressions;
 import com.umc.linkyou.batch.common.QuerydslPagingItemReader;
 import com.umc.linkyou.domain.QCuration;
 import com.umc.linkyou.domain.QUsers;
 import com.umc.linkyou.domain.Users;
-import jakarta.persistence.EntityManagerFactory;
-import org.springframework.stereotype.Component;
-
-import java.time.YearMonth;
-import java.time.ZoneId;
-import java.util.List;
 
 @Component("curationItemReader")
 public class CurationItemReader extends QuerydslPagingItemReader<Users> {
@@ -25,17 +27,14 @@ public class CurationItemReader extends QuerydslPagingItemReader<Users> {
         QCuration curation = QCuration.curation;
         String baseMonth = YearMonth.now(ZoneId.of("Asia/Seoul")).toString();
 
-        return queryFactory.selectFrom(users)
+        return queryFactory
+                .selectFrom(users)
                 .where(
                         users.id.gt(lastId),
                         JPAExpressions.selectOne()
                                 .from(curation)
-                                .where(
-                                        curation.user.eq(users),
-                                        curation.baseMonth.eq(baseMonth)
-                                )
-                                .notExists()
-                )
+                                .where(curation.user.eq(users), curation.baseMonth.eq(baseMonth))
+                                .notExists())
                 .orderBy(users.id.asc())
                 .limit(pageSize)
                 .fetch();

@@ -1,13 +1,18 @@
 package com.umc.linkyou.domain.mapping;
 
-import com.umc.linkyou.domain.folder.Folder;
 import jakarta.persistence.*;
-import lombok.*;
+
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import com.umc.linkyou.domain.folder.Folder;
 
-@Getter @NoArgsConstructor @AllArgsConstructor @Builder
+import lombok.*;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "linku_folders")
 public class LinkuFolder {

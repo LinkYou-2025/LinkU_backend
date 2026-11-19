@@ -1,15 +1,17 @@
 package com.umc.linkyou.batch.curation;
 
-import com.umc.linkyou.service.curation.CurationBatchService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
 
+import com.umc.linkyou.service.curation.CurationBatchService;
+
+import lombok.RequiredArgsConstructor;
+
 /**
  * 월간 큐레이션 생성 writer
  *
- * 실제 로직은 배치 전용 서비스로 위임함
+ * <p>실제 로직은 배치 전용 서비스로 위임함
  */
 @Component
 @RequiredArgsConstructor

@@ -1,12 +1,13 @@
 package com.umc.linkyou.repository.classification;
 
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.mapping.UsersInterest;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.mapping.UsersInterest;
 
 // Users - Interests 다대다 조인 레포지토리
 public interface UsersInterestRepository extends JpaRepository<UsersInterest, Long> {

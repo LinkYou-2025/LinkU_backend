@@ -1,14 +1,16 @@
 package com.umc.linkyou.awss3.controller.manager;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.awss3.AwsS3Service;
 import com.umc.linkyou.validation.annotation.ApiManager;
 import com.umc.linkyou.validation.annotation.ApiV1;
 import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @ApiManager
 @ApiV1
@@ -34,13 +36,16 @@ public class AwsS3Controller {
         return ResponseEntity.ok(fileUrl);
     }
 
-    @ApiErrorCode(errorStatus = {ErrorStatus._S3_FILE_EMPTY, ErrorStatus._S3_INVALID_IMAGE, ErrorStatus._S3_UPLOAD_FAILED})
+    @ApiErrorCode(
+            errorStatus = {
+                ErrorStatus._S3_FILE_EMPTY,
+                ErrorStatus._S3_INVALID_IMAGE,
+                ErrorStatus._S3_UPLOAD_FAILED
+            })
     @PostMapping(value = "/upload/{folder}", consumes = "multipart/form-data")
     public ResponseEntity<String> uploadFile(
-            @PathVariable String folder,
-            @RequestParam("file") MultipartFile multipartFile) {
-        String fileUrl = awsS3Service.uploadFile(multipartFile, folder);  // 폴더 전달!
+            @PathVariable String folder, @RequestParam("file") MultipartFile multipartFile) {
+        String fileUrl = awsS3Service.uploadFile(multipartFile, folder); // 폴더 전달!
         return ResponseEntity.ok(fileUrl);
     }
-
 }

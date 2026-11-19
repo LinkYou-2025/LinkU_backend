@@ -1,16 +1,15 @@
 package com.umc.linkyou.batch;
 
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.UsersFcmToken;
-import com.umc.linkyou.repository.UserFcmTokenRepository;
-import com.umc.linkyou.repository.userRepository.UserRepository;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.*;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.JobRepositoryTestUtils;
-import com.umc.linkyou.support.config.TestExternalConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,23 +18,29 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
-import java.time.LocalDateTime;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.UsersFcmToken;
+import com.umc.linkyou.repository.UserFcmTokenRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.support.config.TestExternalConfig;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(TestExternalConfig.class)
-@TestPropertySource(properties = {
-        "spring.batch.jdbc.initialize-schema=always",
-        "spring.batch.job.enabled=false"
-})
+@TestPropertySource(
+        properties = {
+            "spring.batch.jdbc.initialize-schema=always",
+            "spring.batch.job.enabled=false"
+        })
 @DisplayName("DeleteExpiredFcmTokenJob 통합 테스트")
 class DeleteExpiredFcmTokenBatchIntegrationTest {
 
     @Autowired private JobLauncher jobLauncher;
     @Autowired private JobRepository jobRepository;
-    @Autowired @Qualifier("deleteExpiredFcmTokenJob") private Job deleteExpiredFcmTokenJob;
+
+    @Autowired
+    @Qualifier("deleteExpiredFcmTokenJob")
+    private Job deleteExpiredFcmTokenJob;
 
     @Autowired private UserFcmTokenRepository userFcmTokenRepository;
     @Autowired private UserRepository userRepository;
@@ -72,8 +77,10 @@ class DeleteExpiredFcmTokenBatchIntegrationTest {
         void 만료토큰_삭제_유효토큰_보존() throws Exception {
             // given
             Users user = saveUser("fcm-test-user");
-            UsersFcmToken expiredToken = saveFcmToken(user, "expired-token", LocalDateTime.now().minusDays(31));
-            UsersFcmToken activeToken  = saveFcmToken(user, "active-token",  LocalDateTime.now().minusDays(10));
+            UsersFcmToken expiredToken =
+                    saveFcmToken(user, "expired-token", LocalDateTime.now().minusDays(31));
+            UsersFcmToken activeToken =
+                    saveFcmToken(user, "active-token", LocalDateTime.now().minusDays(10));
 
             // when
             JobExecution execution = jobLauncherTestUtils.launchJob(uniqueJobParameters());
@@ -89,8 +96,11 @@ class DeleteExpiredFcmTokenBatchIntegrationTest {
         void lastUsedAt_30일_1초전_삭제() throws Exception {
             // given — WHERE lastUsedAt < cutoff: cutoff보다 1초 이전 → 삭제 대상
             Users user = saveUser("just-over-cutoff-user");
-            UsersFcmToken expiredToken = saveFcmToken(user, "just-expired-token",
-                    LocalDateTime.now().minusDays(30).minusSeconds(1));
+            UsersFcmToken expiredToken =
+                    saveFcmToken(
+                            user,
+                            "just-expired-token",
+                            LocalDateTime.now().minusDays(30).minusSeconds(1));
 
             // when
             JobExecution execution = jobLauncherTestUtils.launchJob(uniqueJobParameters());
@@ -126,12 +136,13 @@ class DeleteExpiredFcmTokenBatchIntegrationTest {
     }
 
     private UsersFcmToken saveFcmToken(Users user, String token, LocalDateTime lastUsedAt) {
-        UsersFcmToken saved = userFcmTokenRepository.save(
-                UsersFcmToken.builder().user(user).fcmToken(token).build());
+        UsersFcmToken saved =
+                userFcmTokenRepository.save(
+                        UsersFcmToken.builder().user(user).fcmToken(token).build());
         jdbcTemplate.update(
                 "UPDATE user_fcm_tokens SET last_used_at = ? WHERE user_fcm_token_id = ?",
-                lastUsedAt, saved.getId()
-        );
+                lastUsedAt,
+                saved.getId());
         return userFcmTokenRepository.findById(saved.getId()).orElseThrow();
     }
 

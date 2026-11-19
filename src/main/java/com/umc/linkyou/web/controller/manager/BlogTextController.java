@@ -1,18 +1,21 @@
 package com.umc.linkyou.web.controller.manager;
 
+import java.io.IOException;
+import java.time.LocalDate;
+
+import jakarta.servlet.http.HttpServletResponse;
+
+import org.springframework.web.bind.annotation.*;
+
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.service.BlogTextService;
 import com.umc.linkyou.validation.annotation.ApiManager;
 import com.umc.linkyou.web.dto.BlogTextRequestDTO;
 import com.umc.linkyou.web.dto.BlogTextResponseDTO;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
-
-import java.io.IOException;
-import java.time.LocalDate;
 
 @ApiManager
 @RestController("BlogTextManagerController")
@@ -31,10 +34,11 @@ public class BlogTextController {
 
     @Operation(
             summary = "URL 리스트로 즉시 CSV 다운로드",
-            description = "입력된 URL 리스트를 크롤링하여 DB 저장 없이 즉시 CSV로 내뱉습니다."
-    )
+            description = "입력된 URL 리스트를 크롤링하여 DB 저장 없이 즉시 CSV로 내뱉습니다.")
     @PostMapping(value = "/export") // produces = "text/csv"는 브라우저가 인식하도록 유지
-    public void exportDirectCsv(@RequestBody BlogTextRequestDTO request, HttpServletResponse response) throws IOException {
+    public void exportDirectCsv(
+            @RequestBody BlogTextRequestDTO request, HttpServletResponse response)
+            throws IOException {
 
         // 1. 파일 설정
         String fileName = "blog_dataset_" + LocalDate.now() + ".csv";

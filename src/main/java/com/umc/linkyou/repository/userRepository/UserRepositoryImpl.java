@@ -1,16 +1,18 @@
 package com.umc.linkyou.repository.userRepository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.stereotype.Repository;
+
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.umc.linkyou.domain.*;
 import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.domain.mapping.QUsersLinku;
 import com.umc.linkyou.domain.mapping.folder.QUsersFolder;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
@@ -22,68 +24,69 @@ public class UserRepositoryImpl implements UserRepositoryCustom {
     private final QUsersLinku usersLinku = QUsersLinku.usersLinku;
     private final QUsersFolder usersFolder = QUsersFolder.usersFolder;
     private final QAuthAccount authAccount = QAuthAccount.authAccount;
-//    private final QLinku linku = QLinku.linku;
-//    private final QAiArticle aiArticle = QAiArticle.aiArticle;
-//    private final QFolder folder = QFolder.folder;
-//    private final QJob job = QJob.job;
-//
-//    @Override
-//    public UserResponseDTO.UserInfoDTO findUserWithFoldersAndLinks(Long userId) {
-//        return queryFactory.select(Projections.constructor(
-//                        UserResponseDTO.UserInfoDTO.class,
-//                        users.nickName,
-//                        users.email,
-//                        users.gender,
-//                        users.job,
-//                        // 링크 개수: UsersLinku에서 userId 조건으로 countDistinct linkuId
-//                        queryFactory.select(usersLinku.linku.linkuId.countDistinct())
-//                                .from(usersLinku)
-//                                .where(usersLinku.user.id.eq(userId)),
-//                        // 폴더 개수: UsersFolder에서 userId 조건으로 countDistinct folderId
-//                        queryFactory.select(usersFolder.folder.folderId.countDistinct())
-//                                .from(usersFolder)
-//                                .where(usersFolder.user.id.eq(userId)),
-//                        // AI 링크 개수: UsersLinku → linku → aiArticle 조건 (title not null and not empty)
-//                        queryFactory.select(usersLinku.linku.aiArticle.countDistinct())
-//                                .from(usersLinku)
-//                                .where(usersLinku.user.id.eq(userId)
-//                                        .and(usersLinku.linku.aiArticle.title.isNotNull())
-//                                        .and(usersLinku.linku.aiArticle.title.isNotEmpty()))
-//                ))
-//                .from(users)
-//                .where(users.id.eq(userId))
-//                .fetchOne();
-//    }
-//
-//    @Override
-//    public List<Users> findAllByStatusAndInactiveDateBefore(String status, LocalDateTime beforeDateTime) {
-//        return queryFactory.selectFrom(users)
-//                .where(users.status.eq(status)
-//                        .and(users.inactiveDate.before(beforeDateTime)))
-//                .fetch();
-//    }
+
+    //    private final QLinku linku = QLinku.linku;
+    //    private final QAiArticle aiArticle = QAiArticle.aiArticle;
+    //    private final QFolder folder = QFolder.folder;
+    //    private final QJob job = QJob.job;
+    //
+    //    @Override
+    //    public UserResponseDTO.UserInfoDTO findUserWithFoldersAndLinks(Long userId) {
+    //        return queryFactory.select(Projections.constructor(
+    //                        UserResponseDTO.UserInfoDTO.class,
+    //                        users.nickName,
+    //                        users.email,
+    //                        users.gender,
+    //                        users.job,
+    //                        // 링크 개수: UsersLinku에서 userId 조건으로 countDistinct linkuId
+    //                        queryFactory.select(usersLinku.linku.linkuId.countDistinct())
+    //                                .from(usersLinku)
+    //                                .where(usersLinku.user.id.eq(userId)),
+    //                        // 폴더 개수: UsersFolder에서 userId 조건으로 countDistinct folderId
+    //                        queryFactory.select(usersFolder.folder.folderId.countDistinct())
+    //                                .from(usersFolder)
+    //                                .where(usersFolder.user.id.eq(userId)),
+    //                        // AI 링크 개수: UsersLinku → linku → aiArticle 조건 (title not null and not
+    // empty)
+    //                        queryFactory.select(usersLinku.linku.aiArticle.countDistinct())
+    //                                .from(usersLinku)
+    //                                .where(usersLinku.user.id.eq(userId)
+    //                                        .and(usersLinku.linku.aiArticle.title.isNotNull())
+    //                                        .and(usersLinku.linku.aiArticle.title.isNotEmpty()))
+    //                ))
+    //                .from(users)
+    //                .where(users.id.eq(userId))
+    //                .fetchOne();
+    //    }
+    //
+    //    @Override
+    //    public List<Users> findAllByStatusAndInactiveDateBefore(String status, LocalDateTime
+    // beforeDateTime) {
+    //        return queryFactory.selectFrom(users)
+    //                .where(users.status.eq(status)
+    //                        .and(users.inactiveDate.before(beforeDateTime)))
+    //                .fetch();
+    //    }
 
     @Override
     public List<Long> findInactiveUserIds(LocalDateTime beforeDateTime) {
         return queryFactory
-                .select(users.id)  // ID만 select (최적화!)
+                .select(users.id) // ID만 select (최적화!)
                 .from(users)
                 .where(
-                        users.status.eq(UserStatus.INACTIVE)
-                                .and(users.inactiveDate.before(beforeDateTime))
-                )
-                .fetch();  // 단일 쿼리! N+1 없음
+                        users.status
+                                .eq(UserStatus.INACTIVE)
+                                .and(users.inactiveDate.before(beforeDateTime)))
+                .fetch(); // 단일 쿼리! N+1 없음
     }
 
     @Override
-    public Optional<Users> findNotInactiveUserById(Long userId){
+    public Optional<Users> findNotInactiveUserById(Long userId) {
         return Optional.ofNullable(
-                queryFactory.selectFrom(users)
-                        .where(
-                                users.id.eq(userId)
-                                        .and(users.status.ne(UserStatus.INACTIVE))
-                        )
-                        .fetchOne() //1개값 기대
-        );
+                queryFactory
+                        .selectFrom(users)
+                        .where(users.id.eq(userId).and(users.status.ne(UserStatus.INACTIVE)))
+                        .fetchOne() // 1개값 기대
+                );
     }
 }

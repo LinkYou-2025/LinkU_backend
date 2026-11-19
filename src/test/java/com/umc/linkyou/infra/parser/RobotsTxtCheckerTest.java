@@ -1,12 +1,6 @@
 package com.umc.linkyou.infra.parser;
 
-import com.sun.net.httpserver.HttpServer;
-import com.umc.linkyou.infra.net.SafeUrlFetcher;
-import com.umc.linkyou.infra.net.SsrfGuard;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.BufferedReader;
 import java.io.OutputStream;
@@ -16,7 +10,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import com.sun.net.httpserver.HttpServer;
+import com.umc.linkyou.infra.net.SafeUrlFetcher;
+import com.umc.linkyou.infra.net.SsrfGuard;
 
 @DisplayName("RobotsTxtChecker 테스트")
 class RobotsTxtCheckerTest {
@@ -90,7 +91,8 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("기본 Disallow 규칙이 적용된다")
         void 기본_disallow() throws Exception {
-            String robots = """
+            String robots =
+                    """
                     User-agent: *
                     Disallow: /private/
                     """;
@@ -105,7 +107,8 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("빈 Disallow 값은 무시되어 전체 허용된다")
         void 빈_disallow_전체허용() throws Exception {
-            String robots = """
+            String robots =
+                    """
                     User-agent: *
                     Disallow:
                     """;
@@ -118,7 +121,8 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("전체 차단 후 특정 디렉터리만 허용하는 패턴을 처리한다 (namu.wiki 실제 사례)")
         void 전체차단_일부허용() throws Exception {
-            String robots = """
+            String robots =
+                    """
                     User-agent: *
                     Disallow: /
                     Allow: /public/
@@ -135,7 +139,8 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("길이가 같은 Allow/Disallow가 충돌하면 Allow(제한이 적은 규칙)가 우선한다")
         void 동률_충돌시_allow_우선() throws Exception {
-            String robots = """
+            String robots =
+                    """
                     User-agent: *
                     Allow: /folder
                     Disallow: /folder
@@ -149,7 +154,8 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("길이가 같은 충돌은 선언 순서와 무관하게 항상 Allow가 이긴다")
         void 동률_충돌_순서무관() throws Exception {
-            String robots = """
+            String robots =
+                    """
                     User-agent: *
                     Disallow: /folder
                     Allow: /folder
@@ -162,17 +168,18 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("인라인 주석은 값에서 제거된다")
         void 인라인_주석_제거() throws Exception {
-            String robots = """
+            String robots =
+                    """
                     User-agent: *
                     Disallow: /secret # admin only
                     Allow: /open # public
                     """;
             List<RobotsTxtChecker.Rule> rules = parse(robots, "*");
 
-            assertThat(rules).containsExactly(
-                    new RobotsTxtChecker.Rule("/secret", false),
-                    new RobotsTxtChecker.Rule("/open", true)
-            );
+            assertThat(rules)
+                    .containsExactly(
+                            new RobotsTxtChecker.Rule("/secret", false),
+                            new RobotsTxtChecker.Rule("/open", true));
             assertThat(checker.isPathAllowed("/secret", rules)).isFalse();
             assertThat(checker.isPathAllowed("/secret/page", rules)).isFalse();
             assertThat(checker.isPathAllowed("/open", rules)).isTrue();
@@ -181,7 +188,8 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("주석으로만 이루어진 줄은 무시된다")
         void 주석전용_줄_무시() throws Exception {
-            String robots = """
+            String robots =
+                    """
                     # 전체 정책 주석
                     User-agent: *
                     Disallow: /private/
@@ -194,7 +202,8 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("특정 크롤러 전용 규칙은 다른 크롤러에 영향을 주지 않는다")
         void 특정_크롤러_전용_규칙() throws Exception {
-            String robots = """
+            String robots =
+                    """
                     User-agent: Googlebot
                     Disallow: /nogoogle/
 
@@ -212,7 +221,8 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("[버그 수정] 연속된 User-agent 줄은 하나의 그룹으로 OR 결합된다")
         void 연속된_useragent_그룹결합() throws Exception {
-            String robots = """
+            String robots =
+                    """
                     User-agent: Googlebot
                     User-agent: Storebot-Google
                     Allow: /cats
@@ -232,7 +242,8 @@ class RobotsTxtCheckerTest {
         @DisplayName("[버그 수정] '*'가 다른 봇 이름보다 먼저 선언돼도 매칭이 유실되지 않는다")
         void 와일드카드_먼저선언되어도_그룹유실_안됨() throws Exception {
             // 이전 버그: 두 번째 User-agent 줄에서 무조건 덮어써서 '*' 매칭이 사라졌음
-            String robots = """
+            String robots =
+                    """
                     User-agent: *
                     User-agent: SomeBot
                     Disallow: /x
@@ -247,7 +258,8 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("빈 줄로 그룹이 구분되면 이전 그룹의 매칭 상태가 초기화된다")
         void 빈줄로_그룹_초기화() throws Exception {
-            String robots = """
+            String robots =
+                    """
                     User-agent: SomeBot
                     Disallow: /a/
 
@@ -275,7 +287,8 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("나무위키 실제 robots.txt로 /w/ 하위 문서는 허용된다")
         void 나무위키_실제_케이스() throws Exception {
-            String robots = """
+            String robots =
+                    """
                     User-agent: *
                     Disallow: /
                     Allow: /$
@@ -304,18 +317,21 @@ class RobotsTxtCheckerTest {
             }
         }
 
-        private String startServer(int statusCode, String body, String contentType) throws Exception {
+        private String startServer(int statusCode, String body, String contentType)
+                throws Exception {
             server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
-            server.createContext("/robots.txt", exchange -> {
-                byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-                if (contentType != null) {
-                    exchange.getResponseHeaders().add("Content-Type", contentType);
-                }
-                exchange.sendResponseHeaders(statusCode, bytes.length);
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(bytes);
-                }
-            });
+            server.createContext(
+                    "/robots.txt",
+                    exchange -> {
+                        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+                        if (contentType != null) {
+                            exchange.getResponseHeaders().add("Content-Type", contentType);
+                        }
+                        exchange.sendResponseHeaders(statusCode, bytes.length);
+                        try (OutputStream os = exchange.getResponseBody()) {
+                            os.write(bytes);
+                        }
+                    });
             server.start();
             return "http://localhost:" + server.getAddress().getPort();
         }
@@ -323,10 +339,14 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("200 응답이면 robots.txt 규칙대로 판정한다")
         void 정상_응답_규칙적용() throws Exception {
-            String base = startServer(200, """
+            String base =
+                    startServer(
+                            200,
+                            """
                     User-agent: *
                     Disallow: /private/
-                    """, "text/plain; charset=UTF-8");
+                    """,
+                            "text/plain; charset=UTF-8");
 
             assertThat(checker.isAllowed(base + "/public/page", "Mozilla/5.0")).isTrue();
             assertThat(checker.isAllowed(base + "/private/page", "Mozilla/5.0")).isFalse();
@@ -343,23 +363,32 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("[버그 수정] '$' 앵커 규칙은 쿼리스트링이 붙은 URL을 차단하지 않는다")
         void 달러앵커_쿼리스트링_미차단() throws Exception {
-            String base = startServer(200, """
+            String base =
+                    startServer(
+                            200,
+                            """
                     User-agent: *
                     Disallow: /*.xls$
-                    """, "text/plain; charset=UTF-8");
+                    """,
+                            "text/plain; charset=UTF-8");
 
             assertThat(checker.isAllowed(base + "/cats.xls", "Mozilla/5.0")).isFalse();
-            assertThat(checker.isAllowed(base + "/cats.xls?personality=loki", "Mozilla/5.0")).isTrue();
+            assertThat(checker.isAllowed(base + "/cats.xls?personality=loki", "Mozilla/5.0"))
+                    .isTrue();
         }
 
         @Test
         @DisplayName("UTF-8로 인코딩된 한글 값도 깨지지 않고 파싱된다")
         void UTF8_한글_인코딩() throws Exception {
-            String base = startServer(200, """
+            String base =
+                    startServer(
+                            200,
+                            """
                     # 한글 주석: 관리자 페이지 차단
                     User-agent: *
                     Disallow: /관리자/
-                    """, "text/plain; charset=UTF-8");
+                    """,
+                            "text/plain; charset=UTF-8");
 
             assertThat(checker.isAllowed(base + "/관리자/설정", "Mozilla/5.0")).isFalse();
             assertThat(checker.isAllowed(base + "/공개", "Mozilla/5.0")).isTrue();
@@ -369,7 +398,10 @@ class RobotsTxtCheckerTest {
         @DisplayName("robots.txt 연결이 실패해도 예외 없이 기본 허용한다")
         void 연결_실패시_기본_허용() {
             // RFC 2606에 의해 예약된, 절대 존재할 수 없는 도메인 - DNS 조회 자체가 실패한다.
-            assertThat(checker.isAllowed("http://robots-cache-test.invalid/private/x", "Mozilla/5.0")).isTrue();
+            assertThat(
+                            checker.isAllowed(
+                                    "http://robots-cache-test.invalid/private/x", "Mozilla/5.0"))
+                    .isTrue();
         }
 
         @Test
@@ -377,7 +409,8 @@ class RobotsTxtCheckerTest {
         void SSRF_차단_대상은_기본_거부한다() {
             // 링크로컬(169.254.169.254 등 AWS 메타데이터 엔드포인트 포함)은 DNS 실패와 달리
             // 의도적으로 막는 것이므로 fail-open 하지 않고 false를 반환해야 한다.
-            assertThat(checker.isAllowed("http://169.254.169.254/latest/meta-data/", "Mozilla/5.0")).isFalse();
+            assertThat(checker.isAllowed("http://169.254.169.254/latest/meta-data/", "Mozilla/5.0"))
+                    .isFalse();
         }
     }
 
@@ -399,15 +432,18 @@ class RobotsTxtCheckerTest {
         private String startCountingServer(String body) throws Exception {
             requestCount = new AtomicInteger(0);
             server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
-            server.createContext("/robots.txt", exchange -> {
-                requestCount.incrementAndGet();
-                byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-                exchange.getResponseHeaders().add("Content-Type", "text/plain; charset=UTF-8");
-                exchange.sendResponseHeaders(200, bytes.length);
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(bytes);
-                }
-            });
+            server.createContext(
+                    "/robots.txt",
+                    exchange -> {
+                        requestCount.incrementAndGet();
+                        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+                        exchange.getResponseHeaders()
+                                .add("Content-Type", "text/plain; charset=UTF-8");
+                        exchange.sendResponseHeaders(200, bytes.length);
+                        try (OutputStream os = exchange.getResponseBody()) {
+                            os.write(bytes);
+                        }
+                    });
             server.start();
             return "http://localhost:" + server.getAddress().getPort();
         }
@@ -415,7 +451,9 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("같은 호스트를 두 번 조회해도 robots.txt는 한 번만 요청된다")
         void 같은_호스트_반복조회시_robots_txt는_한번만_요청된다() throws Exception {
-            String base = startCountingServer("""
+            String base =
+                    startCountingServer(
+                            """
                     User-agent: *
                     Disallow: /private/
                     """);
@@ -436,7 +474,9 @@ class RobotsTxtCheckerTest {
         @Test
         @DisplayName("robots.txt 조회에 성공하면 SUCCESS_TTL로 캐시된다")
         void 조회_성공시_SUCCESS_TTL로_캐시된다() throws Exception {
-            String base = startCountingServer("""
+            String base =
+                    startCountingServer(
+                            """
                     User-agent: *
                     Disallow: /private/
                     """);

@@ -1,16 +1,19 @@
 package com.umc.linkyou.domain;
 
-import com.umc.linkyou.domain.common.BaseEntity;
-import com.umc.linkyou.domain.enums.*;
 import jakarta.persistence.*;
-import lombok.*;
+
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+
+import com.umc.linkyou.domain.common.BaseEntity;
+import com.umc.linkyou.domain.enums.*;
+
+import lombok.*;
+
 @Entity
-@Table(name = "auth_accounts",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"provider", "external_id"})
-        })
+@Table(
+        name = "auth_accounts",
+        uniqueConstraints = {@UniqueConstraint(columnNames = {"provider", "external_id"})})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -32,10 +35,10 @@ public class AuthAccount extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false, length = 50)
-    private Provider provider;   // GOOGLE, KAKAO 등
+    private Provider provider; // GOOGLE, KAKAO 등
 
     @Column(name = "external_id", nullable = false, columnDefinition = "TEXT")
-    private String externalId;   // sub, kakao id 등
+    private String externalId; // sub, kakao id 등
 
     @Column(name = "social_token", columnDefinition = "TEXT")
     private String socialToken;
@@ -46,6 +49,7 @@ public class AuthAccount extends BaseEntity {
     public void updateToken(String token) {
         this.socialToken = token;
     }
+
     public void updateProfileImage(String profileImage) {
         this.profileImage = profileImage;
     }

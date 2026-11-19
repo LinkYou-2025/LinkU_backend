@@ -7,7 +7,8 @@ public record ExternalSearchPrompt(ExternalSearchRequest request) {
     private static final int FETCH_BUFFER = 2;
 
     public String render() {
-        return String.format("""
+        return String.format(
+                """
                 # Audience Profile
                 - Job: %s
                 - Gender: %s
@@ -26,7 +27,9 @@ public record ExternalSearchPrompt(ExternalSearchRequest request) {
                 """,
                 safe(request.jobName()),
                 safe(request.gender()),
-                (request.tagNames() == null || request.tagNames().isEmpty()) ? "(none)" : String.join(", ", request.tagNames()),
+                (request.tagNames() == null || request.tagNames().isEmpty())
+                        ? "(none)"
+                        : String.join(", ", request.tagNames()),
                 request.limit() + FETCH_BUFFER);
     }
 

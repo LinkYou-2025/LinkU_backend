@@ -1,17 +1,14 @@
 package com.umc.linkyou.service.curation.recommend.internal;
 
-import com.umc.linkyou.domain.Curation;
-import com.umc.linkyou.domain.Linku;
-import com.umc.linkyou.domain.classification.Category;
-import com.umc.linkyou.domain.classification.Domain;
-import com.umc.linkyou.domain.classification.Emotion;
-import com.umc.linkyou.domain.enums.KeywordType;
-import com.umc.linkyou.domain.log.KeywordMonthlyCount;
-import com.umc.linkyou.domain.mapping.UsersLinku;
-import com.umc.linkyou.repository.curationRepository.CurationRepository;
-import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
-import com.umc.linkyou.repository.mapping.SituationCategoryRepository;
-import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,19 +18,22 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import com.umc.linkyou.domain.Curation;
+import com.umc.linkyou.domain.Linku;
+import com.umc.linkyou.domain.classification.Category;
+import com.umc.linkyou.domain.classification.Domain;
+import com.umc.linkyou.domain.classification.Emotion;
+import com.umc.linkyou.domain.enums.KeywordType;
+import com.umc.linkyou.domain.log.KeywordMonthlyCount;
+import com.umc.linkyou.domain.mapping.UsersLinku;
+import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
+import com.umc.linkyou.repository.curationRepository.CurationRepository;
+import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
+import com.umc.linkyou.repository.mapping.SituationCategoryRepository;
 
 @ExtendWith(MockitoExtension.class)
 class InternalLinkCandidateServiceImplTest {
-    @InjectMocks
-    private InternalLinkCandidateServiceImpl service;
+    @InjectMocks private InternalLinkCandidateServiceImpl service;
 
     @Mock private UsersLinkuRepository usersLinkuRepository;
     @Mock private CurationRepository curationRepository;
@@ -57,28 +57,25 @@ class InternalLinkCandidateServiceImplTest {
     private static final long LINK_ID_3 = 3L;
 
     private Curation makeCuration() {
-        return Curation.builder()
-                .baseMonth(MONTH)
-                .build();
+        return Curation.builder().baseMonth(MONTH).build();
     }
 
-    private UsersLinku makeLink(Long userLinkuId, Long emotionId, Long categoryId, LocalDateTime createdAt) {
-        Domain domain = Domain.builder().name("example.com").imageUrl("https://img.example.com").build();
-        Category category = categoryId != null
-                ? Category.builder().categoryId(categoryId).build()
-                : null;
-        Linku linku = Linku.builder()
-                .linkuUrl("https://example.com/" + userLinkuId)
-                .title("Title " + userLinkuId)
-                .domain(domain)
-                .category(category)
-                .build();
+    private UsersLinku makeLink(
+            Long userLinkuId, Long emotionId, Long categoryId, LocalDateTime createdAt) {
+        Domain domain =
+                Domain.builder().name("example.com").imageUrl("https://img.example.com").build();
+        Category category =
+                categoryId != null ? Category.builder().categoryId(categoryId).build() : null;
+        Linku linku =
+                Linku.builder()
+                        .linkuUrl("https://example.com/" + userLinkuId)
+                        .title("Title " + userLinkuId)
+                        .domain(domain)
+                        .category(category)
+                        .build();
         Emotion emotion = Emotion.builder().emotionId(emotionId).build();
-        UsersLinku ul = UsersLinku.builder()
-                .userLinkuId(userLinkuId)
-                .emotion(emotion)
-                .linku(linku)
-                .build();
+        UsersLinku ul =
+                UsersLinku.builder().userLinkuId(userLinkuId).emotion(emotion).linku(linku).build();
         ReflectionTestUtils.setField(ul, "createdAt", createdAt);
         return ul;
     }
@@ -121,11 +118,17 @@ class InternalLinkCandidateServiceImplTest {
                 .thenReturn(List.of(link3, link2, link1));
 
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
+                        eq(USER_ID),
+                        eq(DATA_MONTH),
+                        eq(KeywordType.EMOTION),
+                        any(PageRequest.class)))
                 .thenReturn(List.of(makeKmc(KeywordType.EMOTION, EMOTION_JOY)));
 
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
+                        eq(USER_ID),
+                        eq(DATA_MONTH),
+                        eq(KeywordType.SITUATION),
+                        any(PageRequest.class)))
                 .thenReturn(List.of(makeKmc(KeywordType.SITUATION, SITUATION_ID)));
 
         when(situationCategoryRepository.findCategoryIdsBySituationId(SITUATION_ID))
@@ -145,18 +148,24 @@ class InternalLinkCandidateServiceImplTest {
         when(curationRepository.findById(CURATION_ID)).thenReturn(Optional.of(makeCuration()));
 
         LocalDateTime base = LocalDateTime.now();
-        List<UsersLinku> links = List.of(
-                makeLink(LINK_ID_1, EMOTION_JOY, null, base),
-                makeLink(LINK_ID_2, EMOTION_JOY, null, base),
-                makeLink(LINK_ID_3, EMOTION_JOY, null, base)
-        );
+        List<UsersLinku> links =
+                List.of(
+                        makeLink(LINK_ID_1, EMOTION_JOY, null, base),
+                        makeLink(LINK_ID_2, EMOTION_JOY, null, base),
+                        makeLink(LINK_ID_3, EMOTION_JOY, null, base));
         when(usersLinkuRepository.findAllByUserIdAndCreatedAtBetween(eq(USER_ID), any(), any()))
                 .thenReturn(links);
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
+                        eq(USER_ID),
+                        eq(DATA_MONTH),
+                        eq(KeywordType.EMOTION),
+                        any(PageRequest.class)))
                 .thenReturn(List.of());
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
+                        eq(USER_ID),
+                        eq(DATA_MONTH),
+                        eq(KeywordType.SITUATION),
+                        any(PageRequest.class)))
                 .thenReturn(List.of());
 
         List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 2);
@@ -177,10 +186,16 @@ class InternalLinkCandidateServiceImplTest {
         when(usersLinkuRepository.findAllByUserIdAndCreatedAtBetween(eq(USER_ID), any(), any()))
                 .thenReturn(List.of(oldLink, newLink));
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
+                        eq(USER_ID),
+                        eq(DATA_MONTH),
+                        eq(KeywordType.EMOTION),
+                        any(PageRequest.class)))
                 .thenReturn(List.of());
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
+                        eq(USER_ID),
+                        eq(DATA_MONTH),
+                        eq(KeywordType.SITUATION),
+                        any(PageRequest.class)))
                 .thenReturn(List.of());
 
         List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);
@@ -201,10 +216,16 @@ class InternalLinkCandidateServiceImplTest {
         when(usersLinkuRepository.findAllByUserIdAndCreatedAtBetween(eq(USER_ID), any(), any()))
                 .thenReturn(List.of(link1, link2));
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.EMOTION), any(PageRequest.class)))
+                        eq(USER_ID),
+                        eq(DATA_MONTH),
+                        eq(KeywordType.EMOTION),
+                        any(PageRequest.class)))
                 .thenReturn(List.of());
         when(keywordMonthlyCountRepository.findTopByUserIdAndBaseMonthAndType(
-                eq(USER_ID), eq(DATA_MONTH), eq(KeywordType.SITUATION), any(PageRequest.class)))
+                        eq(USER_ID),
+                        eq(DATA_MONTH),
+                        eq(KeywordType.SITUATION),
+                        any(PageRequest.class)))
                 .thenReturn(List.of());
 
         List<UsersLinku> result = service.getInternalCandidates(USER_ID, CURATION_ID, 4);

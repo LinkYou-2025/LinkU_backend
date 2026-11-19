@@ -1,5 +1,30 @@
 package com.umc.linkyou.service.folder;
 
+import static com.umc.linkyou.support.fixture.FolderFixture.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
+
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Sort;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -27,30 +52,6 @@ import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderUpdateRequestDTO;
 import com.umc.linkyou.web.dto.folder.linku.FolderLinkusResponseDTO;
 import com.umc.linkyou.web.dto.folder.linku.LinkuSummaryDTO;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Sort;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import static com.umc.linkyou.support.fixture.FolderFixture.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FolderService 단위 테스트")
@@ -77,18 +78,21 @@ class FolderServiceTest {
                 Folder folder = folder();
 
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder));
-                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
-                given(usersFolderRepository.findAllParticipantsByFolderId(FOLDER_ID)).willReturn(List.of(
-                        participant(OWNER_ID, PermissionType.OWNER),
-                        participant(2L, PermissionType.VIEWER),
-                        participant(3L, PermissionType.WRITER)
-                ));
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID))
+                        .willReturn(true);
+                given(usersFolderRepository.findAllParticipantsByFolderId(FOLDER_ID))
+                        .willReturn(
+                                List.of(
+                                        participant(OWNER_ID, PermissionType.OWNER),
+                                        participant(2L, PermissionType.VIEWER),
+                                        participant(3L, PermissionType.WRITER)));
                 given(userRepository.findById(OWNER_ID)).willReturn(Optional.of(owner()));
 
                 folderService.deleteFolder(OWNER_ID, FOLDER_ID);
                 verify(folderRepository).delete(folder);
 
-                ArgumentCaptor<FolderDeletedAlarmEvent> captor = ArgumentCaptor.forClass(FolderDeletedAlarmEvent.class);
+                ArgumentCaptor<FolderDeletedAlarmEvent> captor =
+                        ArgumentCaptor.forClass(FolderDeletedAlarmEvent.class);
                 verify(eventPublisher).publishEvent(captor.capture());
                 FolderDeletedAlarmEvent event = captor.getValue();
                 assertThat(event.folderId()).isEqualTo(FOLDER_ID);
@@ -103,10 +107,10 @@ class FolderServiceTest {
                 Folder folder = folder();
 
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder));
-                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
-                given(usersFolderRepository.findAllParticipantsByFolderId(FOLDER_ID)).willReturn(List.of(
-                        participant(OWNER_ID, PermissionType.OWNER)
-                ));
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID))
+                        .willReturn(true);
+                given(usersFolderRepository.findAllParticipantsByFolderId(FOLDER_ID))
+                        .willReturn(List.of(participant(OWNER_ID, PermissionType.OWNER)));
                 given(userRepository.findById(OWNER_ID)).willReturn(Optional.of(owner()));
 
                 folderService.deleteFolder(OWNER_ID, FOLDER_ID);
@@ -126,20 +130,27 @@ class FolderServiceTest {
 
                 assertThatThrownBy(() -> folderService.deleteFolder(OWNER_ID, FOLDER_ID))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(FolderErrorStatus._FOLDER_NOT_FOUND));
             }
 
             @Test
             @DisplayName("소유자가 아니면 _FOLDER_DELETE_FORBIDDEN을 던지고, 알람도 발행하지 않는다")
             void 소유자아님_예외() {
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
-                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(false);
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID))
+                        .willReturn(false);
 
                 assertThatThrownBy(() -> folderService.deleteFolder(OWNER_ID, FOLDER_ID))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_DELETE_FORBIDDEN));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        FolderErrorStatus
+                                                                ._FOLDER_DELETE_FORBIDDEN));
 
                 verify(folderRepository, never()).delete(any());
                 verify(eventPublisher, never()).publishEvent(any());
@@ -167,12 +178,15 @@ class FolderServiceTest {
                 Folder parent = parentFolder();
 
                 given(folderRepository.findById(PARENT_FOLDER_ID)).willReturn(Optional.of(parent));
-                given(usersFolderRepository.existsFolderOwnerOrWriter(OWNER_ID, PARENT_FOLDER_ID)).willReturn(true);
+                given(usersFolderRepository.existsFolderOwnerOrWriter(OWNER_ID, PARENT_FOLDER_ID))
+                        .willReturn(true);
                 given(categoryRepository.existsByCategoryName(NEW_FOLDER_NAME)).willReturn(false);
-                given(folderRepository.existsByParentIdAndName(PARENT_FOLDER_ID, NEW_FOLDER_NAME)).willReturn(false);
+                given(folderRepository.existsByParentIdAndName(PARENT_FOLDER_ID, NEW_FOLDER_NAME))
+                        .willReturn(false);
                 given(userRepository.findById(OWNER_ID)).willReturn(Optional.of(owner()));
 
-                FolderResponseDTO result = folderService.createFolder(OWNER_ID, PARENT_FOLDER_ID, request());
+                FolderResponseDTO result =
+                        folderService.createFolder(OWNER_ID, PARENT_FOLDER_ID, request());
 
                 assertThat(result.getFolderName()).isEqualTo(NEW_FOLDER_NAME);
                 assertThat(result.getCategoryId()).isEqualTo(CATEGORY_ID);
@@ -190,10 +204,17 @@ class FolderServiceTest {
             void 부모폴더없음_예외() {
                 given(folderRepository.findById(PARENT_FOLDER_ID)).willReturn(Optional.empty());
 
-                assertThatThrownBy(() -> folderService.createFolder(OWNER_ID, PARENT_FOLDER_ID, request()))
+                assertThatThrownBy(
+                                () ->
+                                        folderService.createFolder(
+                                                OWNER_ID, PARENT_FOLDER_ID, request()))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_PARENT_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        FolderErrorStatus
+                                                                ._FOLDER_PARENT_NOT_FOUND));
             }
 
             @Test
@@ -202,52 +223,85 @@ class FolderServiceTest {
                 Folder grandParent = parentFolder();
                 Folder subFolderAsParent = subFolder(grandParent);
 
-                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(subFolderAsParent));
-                given(usersFolderRepository.existsFolderOwnerOrWriter(OWNER_ID, FOLDER_ID)).willReturn(true);
+                given(folderRepository.findById(FOLDER_ID))
+                        .willReturn(Optional.of(subFolderAsParent));
+                given(usersFolderRepository.existsFolderOwnerOrWriter(OWNER_ID, FOLDER_ID))
+                        .willReturn(true);
 
                 assertThatThrownBy(() -> folderService.createFolder(OWNER_ID, FOLDER_ID, request()))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_MAX_DEPTH_EXCEEDED));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        FolderErrorStatus
+                                                                ._FOLDER_MAX_DEPTH_EXCEEDED));
             }
 
             @Test
             @DisplayName("생성 권한(소유자/편집자)이 없으면 _FOLDER_CREATE_FORBIDDEN을 던진다")
             void 생성권한없음_예외() {
-                given(folderRepository.findById(PARENT_FOLDER_ID)).willReturn(Optional.of(parentFolder()));
-                given(usersFolderRepository.existsFolderOwnerOrWriter(OWNER_ID, PARENT_FOLDER_ID)).willReturn(false);
+                given(folderRepository.findById(PARENT_FOLDER_ID))
+                        .willReturn(Optional.of(parentFolder()));
+                given(usersFolderRepository.existsFolderOwnerOrWriter(OWNER_ID, PARENT_FOLDER_ID))
+                        .willReturn(false);
 
-                assertThatThrownBy(() -> folderService.createFolder(OWNER_ID, PARENT_FOLDER_ID, request()))
+                assertThatThrownBy(
+                                () ->
+                                        folderService.createFolder(
+                                                OWNER_ID, PARENT_FOLDER_ID, request()))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_CREATE_FORBIDDEN));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        FolderErrorStatus
+                                                                ._FOLDER_CREATE_FORBIDDEN));
             }
 
             @Test
             @DisplayName("카테고리명과 동일한 이름이면 _FOLDER_NAME_CONFLICT를 던진다")
             void 카테고리명중복_예외() {
-                given(folderRepository.findById(PARENT_FOLDER_ID)).willReturn(Optional.of(parentFolder()));
-                given(usersFolderRepository.existsFolderOwnerOrWriter(OWNER_ID, PARENT_FOLDER_ID)).willReturn(true);
+                given(folderRepository.findById(PARENT_FOLDER_ID))
+                        .willReturn(Optional.of(parentFolder()));
+                given(usersFolderRepository.existsFolderOwnerOrWriter(OWNER_ID, PARENT_FOLDER_ID))
+                        .willReturn(true);
                 given(categoryRepository.existsByCategoryName(NEW_FOLDER_NAME)).willReturn(true);
 
-                assertThatThrownBy(() -> folderService.createFolder(OWNER_ID, PARENT_FOLDER_ID, request()))
+                assertThatThrownBy(
+                                () ->
+                                        folderService.createFolder(
+                                                OWNER_ID, PARENT_FOLDER_ID, request()))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_NAME_CONFLICT));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        FolderErrorStatus._FOLDER_NAME_CONFLICT));
             }
 
             @Test
             @DisplayName("같은 부모 아래 동일한 이름이 있으면 _FOLDER_CREATE_DUPLICATE를 던진다")
             void 폴더명중복_예외() {
-                given(folderRepository.findById(PARENT_FOLDER_ID)).willReturn(Optional.of(parentFolder()));
-                given(usersFolderRepository.existsFolderOwnerOrWriter(OWNER_ID, PARENT_FOLDER_ID)).willReturn(true);
+                given(folderRepository.findById(PARENT_FOLDER_ID))
+                        .willReturn(Optional.of(parentFolder()));
+                given(usersFolderRepository.existsFolderOwnerOrWriter(OWNER_ID, PARENT_FOLDER_ID))
+                        .willReturn(true);
                 given(categoryRepository.existsByCategoryName(NEW_FOLDER_NAME)).willReturn(false);
-                given(folderRepository.existsByParentIdAndName(PARENT_FOLDER_ID, NEW_FOLDER_NAME)).willReturn(true);
+                given(folderRepository.existsByParentIdAndName(PARENT_FOLDER_ID, NEW_FOLDER_NAME))
+                        .willReturn(true);
 
-                assertThatThrownBy(() -> folderService.createFolder(OWNER_ID, PARENT_FOLDER_ID, request()))
+                assertThatThrownBy(
+                                () ->
+                                        folderService.createFolder(
+                                                OWNER_ID, PARENT_FOLDER_ID, request()))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_CREATE_DUPLICATE));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        FolderErrorStatus
+                                                                ._FOLDER_CREATE_DUPLICATE));
             }
         }
     }
@@ -271,15 +325,23 @@ class FolderServiceTest {
             void 정상_요청_시_폴더명이_수정된다() {
                 Folder parent = parentFolder();
                 Folder folder = subFolder(parent);
-                UsersFolder usersFolder = UsersFolder.builder()
-                        .user(owner()).folder(folder).permissionType(PermissionType.OWNER).isBookmarked(true).build();
+                UsersFolder usersFolder =
+                        UsersFolder.builder()
+                                .user(owner())
+                                .folder(folder)
+                                .permissionType(PermissionType.OWNER)
+                                .isBookmarked(true)
+                                .build();
 
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder));
-                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID)).willReturn(Optional.of(usersFolder));
+                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID))
+                        .willReturn(Optional.of(usersFolder));
                 given(categoryRepository.existsByCategoryName(RENAMED)).willReturn(false);
-                given(folderRepository.existsByParentIdAndName(PARENT_FOLDER_ID, RENAMED)).willReturn(false);
+                given(folderRepository.existsByParentIdAndName(PARENT_FOLDER_ID, RENAMED))
+                        .willReturn(false);
 
-                FolderResponseDTO result = folderService.updateFolder(OWNER_ID, FOLDER_ID, request());
+                FolderResponseDTO result =
+                        folderService.updateFolder(OWNER_ID, FOLDER_ID, request());
 
                 assertThat(result.getFolderName()).isEqualTo(RENAMED);
                 assertThat(result.getIsBookmarked()).isTrue();
@@ -296,52 +358,82 @@ class FolderServiceTest {
 
                 assertThatThrownBy(() -> folderService.updateFolder(OWNER_ID, FOLDER_ID, request()))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(FolderErrorStatus._FOLDER_NOT_FOUND));
             }
 
             @Test
             @DisplayName("유저-폴더 관계가 없으면 _FOLDER_UPDATE_FORBIDDEN을 던진다")
             void 유저폴더관계없음_예외() {
-                given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(subFolder(parentFolder())));
-                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID)).willReturn(Optional.empty());
+                given(folderRepository.findById(FOLDER_ID))
+                        .willReturn(Optional.of(subFolder(parentFolder())));
+                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID))
+                        .willReturn(Optional.empty());
 
                 assertThatThrownBy(() -> folderService.updateFolder(OWNER_ID, FOLDER_ID, request()))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_UPDATE_FORBIDDEN));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        FolderErrorStatus
+                                                                ._FOLDER_UPDATE_FORBIDDEN));
             }
 
             @Test
             @DisplayName("소유자가 아니면 _FOLDER_UPDATE_FORBIDDEN을 던진다")
             void 소유자아님_예외() {
                 Folder folder = subFolder(parentFolder());
-                UsersFolder usersFolder = UsersFolder.builder()
-                        .user(owner()).folder(folder).permissionType(PermissionType.VIEWER).build();
+                UsersFolder usersFolder =
+                        UsersFolder.builder()
+                                .user(owner())
+                                .folder(folder)
+                                .permissionType(PermissionType.VIEWER)
+                                .build();
 
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder));
-                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID)).willReturn(Optional.of(usersFolder));
+                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID))
+                        .willReturn(Optional.of(usersFolder));
 
                 assertThatThrownBy(() -> folderService.updateFolder(OWNER_ID, FOLDER_ID, request()))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_UPDATE_FORBIDDEN));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        FolderErrorStatus
+                                                                ._FOLDER_UPDATE_FORBIDDEN));
             }
 
             @Test
             @DisplayName("중분류(부모 없는) 폴더면 _FOLDER_PARENT_NOT_FOUND를 던진다")
             void 부모폴더없음_예외() {
                 Folder rootFolder = parentFolder();
-                UsersFolder usersFolder = UsersFolder.builder()
-                        .user(owner()).folder(rootFolder).permissionType(PermissionType.OWNER).build();
+                UsersFolder usersFolder =
+                        UsersFolder.builder()
+                                .user(owner())
+                                .folder(rootFolder)
+                                .permissionType(PermissionType.OWNER)
+                                .build();
 
-                given(folderRepository.findById(PARENT_FOLDER_ID)).willReturn(Optional.of(rootFolder));
-                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, PARENT_FOLDER_ID)).willReturn(Optional.of(usersFolder));
+                given(folderRepository.findById(PARENT_FOLDER_ID))
+                        .willReturn(Optional.of(rootFolder));
+                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, PARENT_FOLDER_ID))
+                        .willReturn(Optional.of(usersFolder));
 
-                assertThatThrownBy(() -> folderService.updateFolder(OWNER_ID, PARENT_FOLDER_ID, request()))
+                assertThatThrownBy(
+                                () ->
+                                        folderService.updateFolder(
+                                                OWNER_ID, PARENT_FOLDER_ID, request()))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_PARENT_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        FolderErrorStatus
+                                                                ._FOLDER_PARENT_NOT_FOUND));
             }
 
             @Test
@@ -349,18 +441,28 @@ class FolderServiceTest {
             void 폴더명중복_예외() {
                 Folder parent = parentFolder();
                 Folder folder = subFolder(parent);
-                UsersFolder usersFolder = UsersFolder.builder()
-                        .user(owner()).folder(folder).permissionType(PermissionType.OWNER).build();
+                UsersFolder usersFolder =
+                        UsersFolder.builder()
+                                .user(owner())
+                                .folder(folder)
+                                .permissionType(PermissionType.OWNER)
+                                .build();
 
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder));
-                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID)).willReturn(Optional.of(usersFolder));
+                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID))
+                        .willReturn(Optional.of(usersFolder));
                 given(categoryRepository.existsByCategoryName(RENAMED)).willReturn(false);
-                given(folderRepository.existsByParentIdAndName(PARENT_FOLDER_ID, RENAMED)).willReturn(true);
+                given(folderRepository.existsByParentIdAndName(PARENT_FOLDER_ID, RENAMED))
+                        .willReturn(true);
 
                 assertThatThrownBy(() -> folderService.updateFolder(OWNER_ID, FOLDER_ID, request()))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_CREATE_DUPLICATE));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        FolderErrorStatus
+                                                                ._FOLDER_CREATE_DUPLICATE));
             }
         }
     }
@@ -374,10 +476,23 @@ class FolderServiceTest {
             Folder parent = parentFolder();
             Folder child = subFolder(parent);
 
-            UsersFolder parentUf = UsersFolder.builder().user(owner()).folder(parent).permissionType(PermissionType.OWNER).isBookmarked(false).build();
-            UsersFolder childUf = UsersFolder.builder().user(owner()).folder(child).permissionType(PermissionType.OWNER).isBookmarked(true).build();
+            UsersFolder parentUf =
+                    UsersFolder.builder()
+                            .user(owner())
+                            .folder(parent)
+                            .permissionType(PermissionType.OWNER)
+                            .isBookmarked(false)
+                            .build();
+            UsersFolder childUf =
+                    UsersFolder.builder()
+                            .user(owner())
+                            .folder(child)
+                            .permissionType(PermissionType.OWNER)
+                            .isBookmarked(true)
+                            .build();
 
-            given(usersFolderRepository.findAllByUserId(OWNER_ID)).willReturn(List.of(parentUf, childUf));
+            given(usersFolderRepository.findAllByUserId(OWNER_ID))
+                    .willReturn(List.of(parentUf, childUf));
 
             List<FolderTreeResponseDTO> result = folderService.getMyFolderTree(OWNER_ID);
 
@@ -397,10 +512,17 @@ class FolderServiceTest {
         @DisplayName("공유 중인 폴더는 isSharing이 share로 표시된다")
         void 공유폴더_isSharing_share() {
             Folder parent = parentFolder();
-            UsersFolder uf = UsersFolder.builder().user(owner()).folder(parent).permissionType(PermissionType.OWNER).isBookmarked(false).build();
+            UsersFolder uf =
+                    UsersFolder.builder()
+                            .user(owner())
+                            .folder(parent)
+                            .permissionType(PermissionType.OWNER)
+                            .isBookmarked(false)
+                            .build();
 
             given(usersFolderRepository.findParentFolders(OWNER_ID)).willReturn(List.of(uf));
-            given(usersFolderRepository.findAllSharedFolderIdsIn(List.of(PARENT_FOLDER_ID))).willReturn(Set.of(PARENT_FOLDER_ID));
+            given(usersFolderRepository.findAllSharedFolderIdsIn(List.of(PARENT_FOLDER_ID)))
+                    .willReturn(Set.of(PARENT_FOLDER_ID));
 
             List<FolderListResponseDTO> result = folderService.getParentFolders(OWNER_ID, "name");
 
@@ -412,10 +534,17 @@ class FolderServiceTest {
         @DisplayName("공유 중이지 않은 폴더는 isSharing이 private로 표시된다")
         void 비공유폴더_isSharing_private() {
             Folder parent = parentFolder();
-            UsersFolder uf = UsersFolder.builder().user(owner()).folder(parent).permissionType(PermissionType.OWNER).isBookmarked(false).build();
+            UsersFolder uf =
+                    UsersFolder.builder()
+                            .user(owner())
+                            .folder(parent)
+                            .permissionType(PermissionType.OWNER)
+                            .isBookmarked(false)
+                            .build();
 
             given(usersFolderRepository.findParentFolders(OWNER_ID)).willReturn(List.of(uf));
-            given(usersFolderRepository.findAllSharedFolderIdsIn(List.of(PARENT_FOLDER_ID))).willReturn(Collections.emptySet());
+            given(usersFolderRepository.findAllSharedFolderIdsIn(List.of(PARENT_FOLDER_ID)))
+                    .willReturn(Collections.emptySet());
 
             List<FolderListResponseDTO> result = folderService.getParentFolders(OWNER_ID, "name");
 
@@ -426,10 +555,17 @@ class FolderServiceTest {
         @DisplayName("응답에 categoryId가 포함된다")
         void 응답에_categoryId가_포함된다() {
             Folder parent = parentFolder();
-            UsersFolder uf = UsersFolder.builder().user(owner()).folder(parent).permissionType(PermissionType.OWNER).isBookmarked(false).build();
+            UsersFolder uf =
+                    UsersFolder.builder()
+                            .user(owner())
+                            .folder(parent)
+                            .permissionType(PermissionType.OWNER)
+                            .isBookmarked(false)
+                            .build();
 
             given(usersFolderRepository.findParentFolders(OWNER_ID)).willReturn(List.of(uf));
-            given(usersFolderRepository.findAllSharedFolderIdsIn(List.of(PARENT_FOLDER_ID))).willReturn(Collections.emptySet());
+            given(usersFolderRepository.findAllSharedFolderIdsIn(List.of(PARENT_FOLDER_ID)))
+                    .willReturn(Collections.emptySet());
 
             List<FolderListResponseDTO> result = folderService.getParentFolders(OWNER_ID, "name");
 
@@ -443,9 +579,13 @@ class FolderServiceTest {
         @Test
         @DisplayName("자식 폴더가 없으면 빈 리스트를 반환한다")
         void 자식폴더없음_빈리스트반환() {
-            given(usersFolderRepository.findAllByUserIdAndParentFolderId(OWNER_ID, PARENT_FOLDER_ID)).willReturn(List.of());
+            given(
+                            usersFolderRepository.findAllByUserIdAndParentFolderId(
+                                    OWNER_ID, PARENT_FOLDER_ID))
+                    .willReturn(List.of());
 
-            List<FolderListResponseDTO> result = folderService.getSubFolders(OWNER_ID, PARENT_FOLDER_ID);
+            List<FolderListResponseDTO> result =
+                    folderService.getSubFolders(OWNER_ID, PARENT_FOLDER_ID);
 
             assertThat(result).isEmpty();
             verify(usersFolderRepository, never()).findAllSharedFolderIdsIn(any());
@@ -456,12 +596,23 @@ class FolderServiceTest {
         void 자식폴더존재_목록반환() {
             Folder parent = parentFolder();
             Folder child = subFolder(parent);
-            UsersFolder uf = UsersFolder.builder().user(owner()).folder(child).permissionType(PermissionType.OWNER).isBookmarked(false).build();
+            UsersFolder uf =
+                    UsersFolder.builder()
+                            .user(owner())
+                            .folder(child)
+                            .permissionType(PermissionType.OWNER)
+                            .isBookmarked(false)
+                            .build();
 
-            given(usersFolderRepository.findAllByUserIdAndParentFolderId(OWNER_ID, PARENT_FOLDER_ID)).willReturn(List.of(uf));
-            given(usersFolderRepository.findAllSharedFolderIdsIn(List.of(FOLDER_ID))).willReturn(Collections.emptySet());
+            given(
+                            usersFolderRepository.findAllByUserIdAndParentFolderId(
+                                    OWNER_ID, PARENT_FOLDER_ID))
+                    .willReturn(List.of(uf));
+            given(usersFolderRepository.findAllSharedFolderIdsIn(List.of(FOLDER_ID)))
+                    .willReturn(Collections.emptySet());
 
-            List<FolderListResponseDTO> result = folderService.getSubFolders(OWNER_ID, PARENT_FOLDER_ID);
+            List<FolderListResponseDTO> result =
+                    folderService.getSubFolders(OWNER_ID, PARENT_FOLDER_ID);
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).getFolderId()).isEqualTo(FOLDER_ID);
@@ -479,10 +630,18 @@ class FolderServiceTest {
             @Test
             @DisplayName("정상 요청 시 북마크 상태를 변경한다")
             void 정상_요청_시_북마크상태가_변경된다() {
-                UsersFolder usersFolder = UsersFolder.builder().user(owner()).folder(folder()).permissionType(PermissionType.OWNER).isBookmarked(false).build();
-                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID)).willReturn(Optional.of(usersFolder));
+                UsersFolder usersFolder =
+                        UsersFolder.builder()
+                                .user(owner())
+                                .folder(folder())
+                                .permissionType(PermissionType.OWNER)
+                                .isBookmarked(false)
+                                .build();
+                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID))
+                        .willReturn(Optional.of(usersFolder));
 
-                BookmarkUpdateResponseDTO result = folderService.updateBookmark(OWNER_ID, FOLDER_ID, true);
+                BookmarkUpdateResponseDTO result =
+                        folderService.updateBookmark(OWNER_ID, FOLDER_ID, true);
 
                 assertThat(result.getFolderId()).isEqualTo(FOLDER_ID);
                 assertThat(result.getIsBookmarked()).isTrue();
@@ -495,25 +654,36 @@ class FolderServiceTest {
             @Test
             @DisplayName("유저-폴더 관계가 없으면 _FOLDER_BOOKMARK_NOT_FOUND를 던진다")
             void 유저폴더관계없음_예외() {
-                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID)).willReturn(Optional.empty());
+                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID))
+                        .willReturn(Optional.empty());
 
                 assertThatThrownBy(() -> folderService.updateBookmark(OWNER_ID, FOLDER_ID, true))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND));
             }
 
             @Test
             @DisplayName("공유 해제 등으로 권한이 NONE이 된 경우 _FOLDER_BOOKMARK_NOT_FOUND를 던진다")
             void 권한이_NONE이면_예외() {
-                UsersFolder revokedUsersFolder = UsersFolder.builder()
-                        .user(owner()).folder(folder()).permissionType(PermissionType.NONE).isBookmarked(false).build();
-                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID)).willReturn(Optional.of(revokedUsersFolder));
+                UsersFolder revokedUsersFolder =
+                        UsersFolder.builder()
+                                .user(owner())
+                                .folder(folder())
+                                .permissionType(PermissionType.NONE)
+                                .isBookmarked(false)
+                                .build();
+                given(usersFolderRepository.findByUserIdAndFolderId(OWNER_ID, FOLDER_ID))
+                        .willReturn(Optional.of(revokedUsersFolder));
 
                 assertThatThrownBy(() -> folderService.updateBookmark(OWNER_ID, FOLDER_ID, true))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND));
             }
         }
     }
@@ -528,11 +698,17 @@ class FolderServiceTest {
             @DisplayName("하위 폴더와 링크가 없으면 빈 목록과 null 커서를 반환한다")
             void 하위폴더와_링크가_없으면_빈목록을_반환한다() {
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
-                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
-                given(folderRepository.findAllByParentFolderId(eq(FOLDER_ID), any(Sort.class))).willReturn(List.of());
-                given(linkuFolderRepository.findWithCursor(eq(FOLDER_ID), eq(Long.MAX_VALUE), any())).willReturn(List.of());
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID))
+                        .willReturn(true);
+                given(folderRepository.findAllByParentFolderId(eq(FOLDER_ID), any(Sort.class)))
+                        .willReturn(List.of());
+                given(
+                                linkuFolderRepository.findWithCursor(
+                                        eq(FOLDER_ID), eq(Long.MAX_VALUE), any()))
+                        .willReturn(List.of());
 
-                FolderLinkusResponseDTO result = folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name", true);
+                FolderLinkusResponseDTO result =
+                        folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name", true);
 
                 assertThat(result.getFolders()).isEmpty();
                 assertThat(result.getLinks()).isEmpty();
@@ -543,12 +719,19 @@ class FolderServiceTest {
             @DisplayName("소유자가 아니어도 활성 공유 멤버면 조회할 수 있다")
             void 활성공유멤버는_조회할_수_있다() {
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
-                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(false);
-                given(usersFolderRepository.existsActiveMember(OWNER_ID, FOLDER_ID)).willReturn(true);
-                given(folderRepository.findAllByParentFolderId(eq(FOLDER_ID), any(Sort.class))).willReturn(List.of());
-                given(linkuFolderRepository.findWithCursor(eq(FOLDER_ID), eq(Long.MAX_VALUE), any())).willReturn(List.of());
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID))
+                        .willReturn(false);
+                given(usersFolderRepository.existsActiveMember(OWNER_ID, FOLDER_ID))
+                        .willReturn(true);
+                given(folderRepository.findAllByParentFolderId(eq(FOLDER_ID), any(Sort.class)))
+                        .willReturn(List.of());
+                given(
+                                linkuFolderRepository.findWithCursor(
+                                        eq(FOLDER_ID), eq(Long.MAX_VALUE), any()))
+                        .willReturn(List.of());
 
-                FolderLinkusResponseDTO result = folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name", true);
+                FolderLinkusResponseDTO result =
+                        folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name", true);
 
                 assertThat(result.getFolders()).isEmpty();
             }
@@ -559,22 +742,35 @@ class FolderServiceTest {
                 Linku linku = LinkuFixture.linku("https://img.example.com/a.jpg");
                 ReflectionTestUtils.setField(linku, "createdAt", LocalDateTime.now());
                 Users user = owner();
-                UsersLinku usersLinku = UsersLinku.builder()
-                        .user(user)
-                        .linku(linku)
-                        .emotion(LinkuFixture.emotion())
-                        .situation(LinkuFixture.situation())
-                        .build();
-                LinkuFolder linkuFolder = LinkuFolder.builder().folder(folder()).usersLinku(usersLinku).build();
+                UsersLinku usersLinku =
+                        UsersLinku.builder()
+                                .user(user)
+                                .linku(linku)
+                                .emotion(LinkuFixture.emotion())
+                                .situation(LinkuFixture.situation())
+                                .build();
+                LinkuFolder linkuFolder =
+                        LinkuFolder.builder().folder(folder()).usersLinku(usersLinku).build();
 
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
-                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
-                given(folderRepository.findAllByParentFolderId(eq(FOLDER_ID), any(Sort.class))).willReturn(List.of());
-                given(linkuFolderRepository.findWithCursor(eq(FOLDER_ID), eq(Long.MAX_VALUE), any())).willReturn(List.of(linkuFolder));
-                given(linkuKeywordRepository.findKeywordNamesByLinkuIdIn(List.of(linku.getLinkuId())))
-                        .willReturn(List.of(new LinkuKeywordRow(linku.getLinkuId(), "자바"), new LinkuKeywordRow(linku.getLinkuId(), "스프링")));
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID))
+                        .willReturn(true);
+                given(folderRepository.findAllByParentFolderId(eq(FOLDER_ID), any(Sort.class)))
+                        .willReturn(List.of());
+                given(
+                                linkuFolderRepository.findWithCursor(
+                                        eq(FOLDER_ID), eq(Long.MAX_VALUE), any()))
+                        .willReturn(List.of(linkuFolder));
+                given(
+                                linkuKeywordRepository.findKeywordNamesByLinkuIdIn(
+                                        List.of(linku.getLinkuId())))
+                        .willReturn(
+                                List.of(
+                                        new LinkuKeywordRow(linku.getLinkuId(), "자바"),
+                                        new LinkuKeywordRow(linku.getLinkuId(), "스프링")));
 
-                FolderLinkusResponseDTO result = folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name", true);
+                FolderLinkusResponseDTO result =
+                        folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name", true);
 
                 assertThat(result.getLinks()).hasSize(1);
                 LinkuSummaryDTO item = result.getLinks().get(0);
@@ -593,15 +789,31 @@ class FolderServiceTest {
             void includeLinks가_false면_폴더목록만_반환한다() {
                 Folder parent = parentFolder();
                 Folder child = subFolder(parent);
-                UsersFolder uf = UsersFolder.builder().user(owner()).folder(child).permissionType(PermissionType.OWNER).isBookmarked(false).build();
+                UsersFolder uf =
+                        UsersFolder.builder()
+                                .user(owner())
+                                .folder(child)
+                                .permissionType(PermissionType.OWNER)
+                                .isBookmarked(false)
+                                .build();
 
                 given(folderRepository.findById(PARENT_FOLDER_ID)).willReturn(Optional.of(parent));
-                given(usersFolderRepository.existsFolderOwner(OWNER_ID, PARENT_FOLDER_ID)).willReturn(true);
-                given(folderRepository.findAllByParentFolderId(eq(PARENT_FOLDER_ID), any(Sort.class))).willReturn(List.of(child));
-                given(usersFolderRepository.findAllByUserIdAndFolderIdIn(OWNER_ID, List.of(FOLDER_ID))).willReturn(List.of(uf));
-                given(usersFolderRepository.findAllSharedFolderIdsIn(List.of(FOLDER_ID))).willReturn(Collections.emptySet());
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, PARENT_FOLDER_ID))
+                        .willReturn(true);
+                given(
+                                folderRepository.findAllByParentFolderId(
+                                        eq(PARENT_FOLDER_ID), any(Sort.class)))
+                        .willReturn(List.of(child));
+                given(
+                                usersFolderRepository.findAllByUserIdAndFolderIdIn(
+                                        OWNER_ID, List.of(FOLDER_ID)))
+                        .willReturn(List.of(uf));
+                given(usersFolderRepository.findAllSharedFolderIdsIn(List.of(FOLDER_ID)))
+                        .willReturn(Collections.emptySet());
 
-                FolderLinkusResponseDTO result = folderService.getFolderLinkus(OWNER_ID, PARENT_FOLDER_ID, 20, null, "name", false);
+                FolderLinkusResponseDTO result =
+                        folderService.getFolderLinkus(
+                                OWNER_ID, PARENT_FOLDER_ID, 20, null, "name", false);
 
                 assertThat(result.getFolders()).hasSize(1);
                 assertThat(result.getLinks()).isEmpty();
@@ -619,36 +831,58 @@ class FolderServiceTest {
             void 폴더없음_예외() {
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.empty());
 
-                assertThatThrownBy(() -> folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name", true))
+                assertThatThrownBy(
+                                () ->
+                                        folderService.getFolderLinkus(
+                                                OWNER_ID, FOLDER_ID, 20, null, "name", true))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(FolderErrorStatus._FOLDER_NOT_FOUND));
             }
 
             @Test
             @DisplayName("소유자도 활성 멤버도 아니면 _FOLDER_ACCESS_FORBIDDEN을 던진다")
             void 접근권한없음_예외() {
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
-                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(false);
-                given(usersFolderRepository.existsActiveMember(OWNER_ID, FOLDER_ID)).willReturn(false);
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID))
+                        .willReturn(false);
+                given(usersFolderRepository.existsActiveMember(OWNER_ID, FOLDER_ID))
+                        .willReturn(false);
 
-                assertThatThrownBy(() -> folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, null, "name", true))
+                assertThatThrownBy(
+                                () ->
+                                        folderService.getFolderLinkus(
+                                                OWNER_ID, FOLDER_ID, 20, null, "name", true))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        FolderErrorStatus
+                                                                ._FOLDER_ACCESS_FORBIDDEN));
             }
 
             @Test
             @DisplayName("커서가 숫자로 변환되지 않으면 _FOLDER_INVALID_CURSOR를 던진다")
             void 잘못된커서_예외() {
                 given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder()));
-                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID)).willReturn(true);
-                given(folderRepository.findAllByParentFolderId(eq(FOLDER_ID), any(Sort.class))).willReturn(List.of());
+                given(usersFolderRepository.existsFolderOwner(OWNER_ID, FOLDER_ID))
+                        .willReturn(true);
+                given(folderRepository.findAllByParentFolderId(eq(FOLDER_ID), any(Sort.class)))
+                        .willReturn(List.of());
 
-                assertThatThrownBy(() -> folderService.getFolderLinkus(OWNER_ID, FOLDER_ID, 20, "abc", "name", true))
+                assertThatThrownBy(
+                                () ->
+                                        folderService.getFolderLinkus(
+                                                OWNER_ID, FOLDER_ID, 20, "abc", "name", true))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(FolderErrorStatus._FOLDER_INVALID_CURSOR));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        FolderErrorStatus._FOLDER_INVALID_CURSOR));
             }
         }
     }

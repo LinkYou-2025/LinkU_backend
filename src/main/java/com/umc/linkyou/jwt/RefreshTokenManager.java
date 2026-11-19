@@ -1,31 +1,34 @@
 package com.umc.linkyou.jwt;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.stereotype.Component;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Provider;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
 public class RefreshTokenManager {
 
-    private final StringRedisTemplate redisTemplate; //Redis 서버와 실제로 통신하는 객체
-    private final ObjectMapper objectMapper;  //JSON 직렬화/역직렬화
-    private static final int MAX_SESSION = 3; //동시 접속 인원 = 3
+    private final StringRedisTemplate redisTemplate; // Redis 서버와 실제로 통신하는 객체
+    private final ObjectMapper objectMapper; // JSON 직렬화/역직렬화
+    private static final int MAX_SESSION = 3; // 동시 접속 인원 = 3
 
     // 세션초과체크 + 만료세션정리 + 동일기기갱신 + 신규추가 + TTL설정
-    private static final String ADD_TOKEN_SCRIPT = """
+    private static final String ADD_TOKEN_SCRIPT =
+            """
         local key = KEYS[1]
         local deviceId = ARGV[1]
         local newValue = ARGV[2]
@@ -100,19 +103,18 @@ public class RefreshTokenManager {
             DeviceType deviceType,
             long expiresAt,
             String sessionId,
-            long accessExpiresAt
-    ) {
+            long accessExpiresAt) {
         String key = buildKey(userId, provider);
         long now = System.currentTimeMillis();
         long ttlMs = Math.max(1L, expiresAt - now);
-        Map<String, Object> tokenData = Map.of(
-                "tokenId", tokenId,
-                "deviceType", deviceType.name(),
-                "sessionId", sessionId,
-                "accessExpiresAt", accessExpiresAt,
-                "createdAt", now,
-                "expiresAt", expiresAt
-        );
+        Map<String, Object> tokenData =
+                Map.of(
+                        "tokenId", tokenId,
+                        "deviceType", deviceType.name(),
+                        "sessionId", sessionId,
+                        "accessExpiresAt", accessExpiresAt,
+                        "createdAt", now,
+                        "expiresAt", expiresAt);
 
         String tokenJson;
         try {
@@ -121,17 +123,17 @@ public class RefreshTokenManager {
             throw new UserHandler(AuthErrorStatus._REFRESH_TOKEN_SESSION_SAVE_ERROR);
         }
 
-        String invalidatedRaw = redisTemplate.execute(
-                new DefaultRedisScript<>(ADD_TOKEN_SCRIPT, String.class),
-                List.of(key),
-                deviceId,
-                tokenJson,
-                String.valueOf(MAX_SESSION),
-                String.valueOf(ttlMs),
-                String.valueOf(now),
-                AccessTokenBlackListManager.SESSION_BLACKLIST_PREFIX,
-                AccessTokenBlackListManager.BLACKLIST_REASON_LOGOUT
-        );
+        String invalidatedRaw =
+                redisTemplate.execute(
+                        new DefaultRedisScript<>(ADD_TOKEN_SCRIPT, String.class),
+                        List.of(key),
+                        deviceId,
+                        tokenJson,
+                        String.valueOf(MAX_SESSION),
+                        String.valueOf(ttlMs),
+                        String.valueOf(now),
+                        AccessTokenBlackListManager.SESSION_BLACKLIST_PREFIX,
+                        AccessTokenBlackListManager.BLACKLIST_REASON_LOGOUT);
 
         return toInvalidatedSession(invalidatedRaw);
     }
@@ -170,8 +172,8 @@ public class RefreshTokenManager {
         }
     }
 
-
-    private static final String CONSUME_TOKEN_SCRIPT = """
+    private static final String CONSUME_TOKEN_SCRIPT =
+            """
         local key = KEYS[1]
         local deviceId = ARGV[1]
         local expectedTokenId = ARGV[2]
@@ -199,13 +201,13 @@ public class RefreshTokenManager {
     public DeviceType consumeToken(Long userId, String provider, String deviceId, String tokenId) {
         String key = buildKey(userId, provider);
 
-        String raw = redisTemplate.execute(
-                new DefaultRedisScript<>(CONSUME_TOKEN_SCRIPT, String.class),
-                List.of(key),
-                deviceId,
-                tokenId,
-                String.valueOf(System.currentTimeMillis())
-        );
+        String raw =
+                redisTemplate.execute(
+                        new DefaultRedisScript<>(CONSUME_TOKEN_SCRIPT, String.class),
+                        List.of(key),
+                        deviceId,
+                        tokenId,
+                        String.valueOf(System.currentTimeMillis()));
 
         if (raw == null) {
             throw new UserHandler(UserErrorStatus._INVALID_REFRESH_TOKEN);
@@ -216,7 +218,11 @@ public class RefreshTokenManager {
             String storedTokenId = (String) map.get("tokenId");
             Long expiresAt = toLong(map.get("expiresAt"));
             String deviceType = (String) map.get("deviceType");
-            if (storedTokenId == null || storedTokenId.isBlank() || expiresAt == null || deviceType == null || deviceType.isBlank()) {
+            if (storedTokenId == null
+                    || storedTokenId.isBlank()
+                    || expiresAt == null
+                    || deviceType == null
+                    || deviceType.isBlank()) {
                 throw new UserHandler(UserErrorStatus._REFRESH_TOKEN_SESSION_INVALID);
             }
             return DeviceType.valueOf(deviceType);
@@ -316,6 +322,5 @@ public class RefreshTokenManager {
         return "sessions:" + userId + ":" + provider;
     }
 
-    public record InvalidatedSession(String sessionId, long accessExpiresAt) {
-    }
+    public record InvalidatedSession(String sessionId, long accessExpiresAt) {}
 }

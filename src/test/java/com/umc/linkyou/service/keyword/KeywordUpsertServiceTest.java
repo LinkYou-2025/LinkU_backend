@@ -1,9 +1,12 @@
 package com.umc.linkyou.service.keyword;
 
-import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.domain.Keyword;
-import com.umc.linkyou.repository.keywordRepository.KeywordRepository;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+
+import java.util.Optional;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -12,12 +15,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
+import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.domain.Keyword;
+import com.umc.linkyou.repository.keywordRepository.KeywordRepository;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("KeywordUpsertService 단위 테스트")
@@ -59,8 +60,10 @@ class KeywordUpsertServiceTest {
 
                 assertThatThrownBy(() -> keywordUpsertService.upsert(NAME))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(LinkuErrorStatus._KEYWORD_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(LinkuErrorStatus._KEYWORD_NOT_FOUND));
             }
         }
     }

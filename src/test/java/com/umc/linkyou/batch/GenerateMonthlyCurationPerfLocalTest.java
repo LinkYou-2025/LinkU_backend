@@ -1,11 +1,12 @@
 package com.umc.linkyou.batch;
 
-import com.umc.linkyou.domain.AlarmSetting;
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.repository.AlarmSettingRepository;
-import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.service.alarm.FcmServiceImpl;
-import com.umc.linkyou.support.config.TestExternalConfig;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.*;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
@@ -23,32 +24,31 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import com.umc.linkyou.domain.AlarmSetting;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.repository.AlarmSettingRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.service.alarm.FcmServiceImpl;
+import com.umc.linkyou.support.config.TestExternalConfig;
 
 /**
  * 월간 큐레이션 배치 로컬 성능/누락 확인용 수동 테스트
  *
- * <p>실제 CurationBatchService/CurationAlarmBatchService를 그대로 태워 유저 N명을
- * 시드하고, 큐레이션 생성 Job과 알림 발송 Job을 순서대로 실행한 뒤(두 Job은 발송 시각이 달라
- * 운영에서도 별도로 스케줄링됨), Step별 read/write/skip count와 소요시간을 출력함.
- * FCM 실전송만 mock 처리함
+ * <p>실제 CurationBatchService/CurationAlarmBatchService를 그대로 태워 유저 N명을 시드하고, 큐레이션 생성 Job과 알림 발송 Job을
+ * 순서대로 실행한 뒤(두 Job은 발송 시각이 달라 운영에서도 별도로 스케줄링됨), Step별 read/write/skip count와 소요시간을 출력함. FCM 실전송만
+ * mock 처리함
  *
- * <p>CI에 매번 끼면 안 되므로 기본은 @Disabled. 로컬에서 확인할 때만 아래 애노테이션을
- * 주석 처리하고 실행한 뒤 다시 원복함
+ * <p>CI에 매번 끼면 안 되므로 기본은 @Disabled. 로컬에서 확인할 때만 아래 애노테이션을 주석 처리하고 실행한 뒤 다시 원복함
  */
 @Disabled("로컬 성능 확인용 수동 테스트 — 실행 시 이 줄만 주석 처리 후 실행하고 끝나면 원복할 것")
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(TestExternalConfig.class)
-@TestPropertySource(properties = {
-        "spring.batch.jdbc.initialize-schema=always",
-        "spring.batch.job.enabled=false"
-})
+@TestPropertySource(
+        properties = {
+            "spring.batch.jdbc.initialize-schema=always",
+            "spring.batch.job.enabled=false"
+        })
 @DisplayName("월간 큐레이션 배치 로컬 성능 확인")
 class GenerateMonthlyCurationPerfLocalTest {
 
@@ -57,8 +57,14 @@ class GenerateMonthlyCurationPerfLocalTest {
 
     @Autowired private JobLauncher jobLauncher;
     @Autowired private JobRepository jobRepository;
-    @Autowired @Qualifier("generateMonthlyCurationJob") private Job generateMonthlyCurationJob;
-    @Autowired @Qualifier("sendCurationAlarmJob") private Job sendCurationAlarmJob;
+
+    @Autowired
+    @Qualifier("generateMonthlyCurationJob")
+    private Job generateMonthlyCurationJob;
+
+    @Autowired
+    @Qualifier("sendCurationAlarmJob")
+    private Job sendCurationAlarmJob;
 
     @Autowired private UserRepository userRepository;
     @Autowired private AlarmSettingRepository alarmSettingRepository;
@@ -110,12 +116,15 @@ class GenerateMonthlyCurationPerfLocalTest {
         assertThat(alarmExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
 
         System.out.printf("%n[PERF] 유저 %d명, 두 Job 합산 소요시간: %dms%n", USER_COUNT, elapsedMs);
-        for (StepExecution step : Stream.concat(
-                curationExecution.getStepExecutions().stream(),
-                alarmExecution.getStepExecutions().stream()).toList()) {
-            long stepMs = (step.getStartTime() != null && step.getEndTime() != null)
-                    ? Duration.between(step.getStartTime(), step.getEndTime()).toMillis()
-                    : -1;
+        for (StepExecution step :
+                Stream.concat(
+                                curationExecution.getStepExecutions().stream(),
+                                alarmExecution.getStepExecutions().stream())
+                        .toList()) {
+            long stepMs =
+                    (step.getStartTime() != null && step.getEndTime() != null)
+                            ? Duration.between(step.getStartTime(), step.getEndTime()).toMillis()
+                            : -1;
             System.out.printf(
                     "[PERF] step=%-28s read=%-6d write=%-6d skip=%-4d commit=%-4d duration=%dms%n",
                     step.getStepName(),
@@ -140,23 +149,29 @@ class GenerateMonthlyCurationPerfLocalTest {
         return execution.getStepExecutions().stream()
                 .filter(s -> s.getStepName().equals(stepName))
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException(stepName + " step execution not found"));
+                .orElseThrow(
+                        () -> new IllegalStateException(stepName + " step execution not found"));
     }
 
     // AlarmSetting이 @MapsId로 Users를 참조하므로, 같은 트랜잭션 안에서 함께 저장해야 함
     private void seedUsers(int count) {
-        new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
-            List<Users> users = new ArrayList<>();
-            for (int i = 0; i < count; i++) {
-                users.add(Users.builder().nickName("perf-user-" + i).password("pw").build());
-            }
-            List<Users> savedUsers = userRepository.saveAll(users);
+        new TransactionTemplate(transactionManager)
+                .executeWithoutResult(
+                        status -> {
+                            List<Users> users = new ArrayList<>();
+                            for (int i = 0; i < count; i++) {
+                                users.add(
+                                        Users.builder()
+                                                .nickName("perf-user-" + i)
+                                                .password("pw")
+                                                .build());
+                            }
+                            List<Users> savedUsers = userRepository.saveAll(users);
 
-            List<AlarmSetting> settings = savedUsers.stream()
-                    .map(AlarmSetting::createDefault)
-                    .toList();
-            alarmSettingRepository.saveAll(settings);
-        });
+                            List<AlarmSetting> settings =
+                                    savedUsers.stream().map(AlarmSetting::createDefault).toList();
+                            alarmSettingRepository.saveAll(settings);
+                        });
     }
 
     private JobParameters uniqueJobParameters() {

@@ -1,11 +1,13 @@
 package com.umc.linkyou.service.gemini;
 
-import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
-import com.umc.linkyou.infra.gemini.prompt.common.PromptComposer;
-import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
-import com.umc.linkyou.infra.gemini.service.GeminiService;
-import com.umc.linkyou.infra.parser.TitleDomainParser;
-import com.umc.linkyou.infra.parser.WebContentExtractor;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+
+import java.util.List;
+import java.util.Optional;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -14,13 +16,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
+import com.umc.linkyou.infra.ai.dto.LinkuResultDTO;
+import com.umc.linkyou.infra.gemini.prompt.common.PromptComposer;
+import com.umc.linkyou.infra.gemini.service.GeminiLinkuService;
+import com.umc.linkyou.infra.gemini.service.GeminiService;
+import com.umc.linkyou.infra.parser.TitleDomainParser;
+import com.umc.linkyou.infra.parser.WebContentExtractor;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("GeminiLinkuService 테스트")
@@ -31,8 +32,7 @@ class GeminiLinkuServiceTest {
     @Mock private TitleDomainParser titleDomainParser;
     @Mock private PromptComposer promptComposer;
 
-    @InjectMocks
-    private GeminiLinkuService geminiLinkuService;
+    @InjectMocks private GeminiLinkuService geminiLinkuService;
 
     @Nested
     @DisplayName("URL 분석 (analyzeByUrl)")
@@ -49,13 +49,18 @@ class GeminiLinkuServiceTest {
                 LinkuResultDTO mockResult = new LinkuResultDTO(1L, "Spring,Java", null, null, null);
 
                 given(titleDomainParser.parseUrl(url))
-                        .willReturn(new TitleDomainParser.ParsedPageInfo("tech-blog.com", "Tech Article"));
+                        .willReturn(
+                                new TitleDomainParser.ParsedPageInfo(
+                                        "tech-blog.com", "Tech Article"));
                 given(webContentExtractor.extractTextFromUrl(url)).willReturn("본문 내용");
                 given(promptComposer.general()).willReturn("system prompt");
-                given(geminiService.callAndParse(anyString(), anyString(), eq(LinkuResultDTO.class)))
+                given(
+                                geminiService.callAndParse(
+                                        anyString(), anyString(), eq(LinkuResultDTO.class)))
                         .willReturn(mockResult);
 
-                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of(), List.of(), List.of());
+                Optional<LinkuResultDTO> result =
+                        geminiLinkuService.analyzeByUrl(url, List.of(), List.of(), List.of());
 
                 assertThat(result).isPresent();
                 assertThat(result.get().categoryId()).isEqualTo(1L);
@@ -68,13 +73,18 @@ class GeminiLinkuServiceTest {
                 LinkuResultDTO mockResult = new LinkuResultDTO(2L, "Java", null, null, null);
 
                 given(titleDomainParser.parseUrl(url))
-                        .willReturn(new TitleDomainParser.ParsedPageInfo("tech-blog.com", "Tech Article"));
+                        .willReturn(
+                                new TitleDomainParser.ParsedPageInfo(
+                                        "tech-blog.com", "Tech Article"));
                 given(webContentExtractor.extractTextFromUrl(url)).willReturn(null);
                 given(promptComposer.general()).willReturn("system prompt");
-                given(geminiService.callAndParse(anyString(), anyString(), eq(LinkuResultDTO.class)))
+                given(
+                                geminiService.callAndParse(
+                                        anyString(), anyString(), eq(LinkuResultDTO.class)))
                         .willReturn(mockResult);
 
-                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of(), List.of(), List.of());
+                Optional<LinkuResultDTO> result =
+                        geminiLinkuService.analyzeByUrl(url, List.of(), List.of(), List.of());
 
                 assertThat(result).isPresent();
             }
@@ -93,7 +103,8 @@ class GeminiLinkuServiceTest {
                         .willReturn(new TitleDomainParser.ParsedPageInfo("empty.com", null));
                 given(webContentExtractor.extractTextFromUrl(url)).willReturn(null);
 
-                Optional<LinkuResultDTO> result = geminiLinkuService.analyzeByUrl(url, List.of(), List.of(), List.of());
+                Optional<LinkuResultDTO> result =
+                        geminiLinkuService.analyzeByUrl(url, List.of(), List.of(), List.of());
 
                 assertThat(result).isEmpty();
             }

@@ -1,20 +1,21 @@
 package com.umc.linkyou.jwt;
 
+import java.io.IOException;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.annotation.Order;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-import io.jsonwebtoken.JwtException;
 
-import java.io.IOException;
+import io.jsonwebtoken.JwtException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
 @Component
@@ -27,9 +28,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String RECOVERY_ENDPOINT = "/api/v1/users/recover";
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
+    protected void doFilterInternal(
+            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String token = JwtTokenProvider.resolveToken(request);
 
@@ -42,7 +42,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throw new JwtException("Blacklisted access token");
         }
 
-        if (jwtTokenProvider.isRecoveryToken(token) && !RECOVERY_ENDPOINT.equals(request.getRequestURI())) {
+        if (jwtTokenProvider.isRecoveryToken(token)
+                && !RECOVERY_ENDPOINT.equals(request.getRequestURI())) {
             throw new JwtException("복구 전용 토큰은 회원 복구 API에서만 사용할 수 있습니다.");
         }
 

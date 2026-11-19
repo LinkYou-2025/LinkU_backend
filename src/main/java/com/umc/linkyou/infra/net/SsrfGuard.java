@@ -1,8 +1,5 @@
 package com.umc.linkyou.infra.net;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -10,15 +7,17 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Set;
 
+import org.springframework.stereotype.Component;
+
+import lombok.extern.slf4j.Slf4j;
+
 /**
- * 사용자가 입력한 URL로 서버가 직접 나가는 모든 outbound 요청이 반드시 거쳐야 하는 SSRF 방어 게이트.
- * OWASP SSRF Prevention Cheat Sheet 권고를 따른다: 스킴/포트/목적지(IP) allowlist.
- * 리다이렉트 처리(매 hop 재검증)는 {@link SafeUrlFetcher}가 담당한다.
+ * 사용자가 입력한 URL로 서버가 직접 나가는 모든 outbound 요청이 반드시 거쳐야 하는 SSRF 방어 게이트. OWASP SSRF Prevention Cheat
+ * Sheet 권고를 따른다: 스킴/포트/목적지(IP) allowlist. 리다이렉트 처리(매 hop 재검증)는 {@link SafeUrlFetcher}가 담당한다.
  *
- * 주의(TOCTOU/DNS rebinding): 여기서는 "검증 시점에 확인한 IP"와 "실제 연결 시점에 재조회되는 IP"가
- * 다를 수 있는 문제를 완전히 막지는 못한다. 완전히 막으려면 여기서 확인한 IP로 직접 소켓을 열고
- * Host 헤더만 원래 호스트명으로 보내는 방식(IP pinning)이 필요한데, Jsoup/HttpURLConnection 양쪽에
- * 그런 훅이 마땅치 않아 이번 범위에서는 검증 직후 곧바로 연결해 창을 최대한 좁히는 선에서 처리한다.
+ * <p>주의(TOCTOU/DNS rebinding): 여기서는 "검증 시점에 확인한 IP"와 "실제 연결 시점에 재조회되는 IP"가 다를 수 있는 문제를 완전히 막지는 못한다.
+ * 완전히 막으려면 여기서 확인한 IP로 직접 소켓을 열고 Host 헤더만 원래 호스트명으로 보내는 방식(IP pinning)이 필요한데,
+ * Jsoup/HttpURLConnection 양쪽에 그런 훅이 마땅치 않아 이번 범위에서는 검증 직후 곧바로 연결해 창을 최대한 좁히는 선에서 처리한다.
  */
 @Slf4j
 @Component
@@ -43,8 +42,8 @@ public class SsrfGuard {
     }
 
     /**
-     * 테스트 전용 팩토리: 로컬 HTTP 서버(127.0.0.1/::1)를 대상으로 통합 테스트할 때만 사용한다.
-     * 운영 코드에서는 절대 호출하지 말 것 - 운영 빈은 항상 기본 생성자({@link #SsrfGuard()})로 구성된다.
+     * 테스트 전용 팩토리: 로컬 HTTP 서버(127.0.0.1/::1)를 대상으로 통합 테스트할 때만 사용한다. 운영 코드에서는 절대 호출하지 말 것 - 운영 빈은 항상
+     * 기본 생성자({@link #SsrfGuard()})로 구성된다.
      */
     public static SsrfGuard forTesting(boolean allowLoopback) {
         return new SsrfGuard(allowLoopback);
@@ -107,7 +106,10 @@ public class SsrfGuard {
         if (h.startsWith("[") && h.endsWith("]")) {
             h = h.substring(1, h.length() - 1);
         }
-        return h.equals("localhost") || h.equals("127.0.0.1") || h.equals("::1") || h.startsWith("127.");
+        return h.equals("localhost")
+                || h.equals("127.0.0.1")
+                || h.equals("::1")
+                || h.startsWith("127.");
     }
 
     private void assertHostResolvesToPublicAddress(String host) throws UnknownHostException {
@@ -140,17 +142,18 @@ public class SsrfGuard {
         if (allowLoopback && address.isLoopbackAddress()) {
             return false;
         }
-        if (address.isLoopbackAddress()          // 127.0.0.0/8, ::1
-                || address.isLinkLocalAddress()   // 169.254.0.0/16 (AWS 메타데이터 포함), fe80::/10
-                || address.isSiteLocalAddress()   // 10/8, 172.16/12, 192.168/16
-                || address.isAnyLocalAddress()    // 0.0.0.0, ::
-                || address.isMulticastAddress()) {// 224.0.0.0/4, ff00::/8
+        if (address.isLoopbackAddress() // 127.0.0.0/8, ::1
+                || address.isLinkLocalAddress() // 169.254.0.0/16 (AWS 메타데이터 포함), fe80::/10
+                || address.isSiteLocalAddress() // 10/8, 172.16/12, 192.168/16
+                || address.isAnyLocalAddress() // 0.0.0.0, ::
+                || address.isMulticastAddress()) { // 224.0.0.0/4, ff00::/8
             return true;
         }
         return isIpv6UniqueLocal(address) || isIpv4ZeroPrefix(address);
     }
 
-    // fc00::/7 (Unique Local Address) - InetAddress#isSiteLocalAddress()는 IPv6는 구식 fec0::/10만 걸러서 별도 처리 필요.
+    // fc00::/7 (Unique Local Address) - InetAddress#isSiteLocalAddress()는 IPv6는 구식 fec0::/10만 걸러서
+    // 별도 처리 필요.
     private boolean isIpv6UniqueLocal(InetAddress address) {
         if (!(address instanceof Inet6Address)) {
             return false;

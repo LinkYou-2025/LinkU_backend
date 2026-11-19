@@ -1,7 +1,9 @@
 package com.umc.linkyou.domain;
 
-import com.umc.linkyou.domain.common.BaseEntity;
 import jakarta.persistence.*;
+
+import com.umc.linkyou.domain.common.BaseEntity;
+
 import lombok.*;
 
 @Entity

@@ -1,5 +1,25 @@
 package com.umc.linkyou.web.controller;
 
+import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResultList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.time.YearMonth;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -11,45 +31,21 @@ import com.umc.linkyou.service.keyword.KeywordService;
 import com.umc.linkyou.support.security.TestSecurityConfig;
 import com.umc.linkyou.support.security.WithCustomUser;
 import com.umc.linkyou.web.dto.keyword.JobKeywordRankResponse;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-
-import java.time.YearMonth;
-import java.util.List;
-
-import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResultList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(KeywordController.class)
 @Import({WebConfig.class, CurrentUserArgumentResolver.class, TestSecurityConfig.class})
 @DisplayName("KeywordController 테스트")
 class KeywordControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @MockitoBean
-    private KeywordService keywordService;
+    @MockitoBean private KeywordService keywordService;
 
-    @MockitoBean
-    private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean private JwtTokenProvider jwtTokenProvider;
 
-    @MockitoBean
-    private AccessTokenBlackListManager accessTokenBlackListManager;
+    @MockitoBean private AccessTokenBlackListManager accessTokenBlackListManager;
 
     private static final YearMonth MONTH = YearMonth.parse("2026-03");
 
@@ -64,17 +60,19 @@ class KeywordControllerTest {
             @DisplayName("정상 요청 시 상위 키워드 목록을 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_상위키워드목록을_반환한다() throws Exception {
-                JobKeywordRankResponse item = JobKeywordRankResponse.builder()
-                        .name("스프링").count(15L).build();
+                JobKeywordRankResponse item =
+                        JobKeywordRankResponse.builder().name("스프링").count(15L).build();
 
                 given(keywordService.getJobTopKeywords(1L, MONTH, 10)).willReturn(List.of(item));
 
-                MvcResult result = mockMvc.perform(get("/api/v1/keywords/job").param("month", "2026-03"))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(get("/api/v1/keywords/job").param("month", "2026-03"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                List<JobKeywordRankResponse> keywords = readResultList(result, objectMapper, JobKeywordRankResponse.class);
+                List<JobKeywordRankResponse> keywords =
+                        readResultList(result, objectMapper, JobKeywordRankResponse.class);
                 assertThat(keywords).hasSize(1);
                 assertThat(keywords.get(0).getName()).isEqualTo("스프링");
                 assertThat(keywords.get(0).getCount()).isEqualTo(15L);
@@ -94,7 +92,9 @@ class KeywordControllerTest {
                 mockMvc.perform(get("/api/v1/keywords/job").param("month", "2026-03"))
                         .andExpect(status().isNotFound())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(UserErrorStatus._USER_NOT_FOUND.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(UserErrorStatus._USER_NOT_FOUND.getCode()));
             }
 
             @Test
@@ -107,7 +107,8 @@ class KeywordControllerTest {
                 mockMvc.perform(get("/api/v1/keywords/job").param("month", "2026-03"))
                         .andExpect(status().isBadRequest())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(UserErrorStatus._JOB_NOT_SET.getCode()));
+                        .andExpect(
+                                jsonPath("$.code").value(UserErrorStatus._JOB_NOT_SET.getCode()));
             }
 
             @Test

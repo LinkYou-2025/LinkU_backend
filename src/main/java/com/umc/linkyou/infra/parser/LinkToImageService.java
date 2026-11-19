@@ -1,15 +1,17 @@
 package com.umc.linkyou.infra.parser;
 
-import com.umc.linkyou.infra.net.SafeUrlFetcher;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.util.Set;
+
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.util.Set;
+import com.umc.linkyou.infra.net.SafeUrlFetcher;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -26,15 +28,20 @@ public class LinkToImageService {
     private static final long MIN_IMAGE_BYTES = 15 * 1024;
 
     // svg, ico, gif 제외
-    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
+    private static final Set<String> ALLOWED_IMAGE_TYPES =
+            Set.of("image/jpeg", "image/png", "image/webp");
 
     // Content-Type, Content-Length 확인, 실패하면 false로 처리함
     private boolean isValidImage(String imageUrl) {
         try {
-            HttpURLConnection conn = safeUrlFetcher.openConnection(imageUrl, "Mozilla/5.0", 1500, 1500);
+            HttpURLConnection conn =
+                    safeUrlFetcher.openConnection(imageUrl, "Mozilla/5.0", 1500, 1500);
             String contentType = conn.getContentType();
-            String mimeType = contentType == null ? "" : contentType.split(";")[0].trim().toLowerCase();
-            boolean valid = ALLOWED_IMAGE_TYPES.contains(mimeType) && conn.getContentLengthLong() >= MIN_IMAGE_BYTES;
+            String mimeType =
+                    contentType == null ? "" : contentType.split(";")[0].trim().toLowerCase();
+            boolean valid =
+                    ALLOWED_IMAGE_TYPES.contains(mimeType)
+                            && conn.getContentLengthLong() >= MIN_IMAGE_BYTES;
             conn.disconnect();
             return valid;
         } catch (Exception e) {
@@ -84,7 +91,8 @@ public class LinkToImageService {
                 log.warn("[크롤링 제한] robots.txt에 의해 이미지 추출 금지된 URL: {}", blogUrl);
                 return null;
             }
-            Document doc = safeUrlFetcher.fetchDocument(blogUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
+            Document doc =
+                    safeUrlFetcher.fetchDocument(blogUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
             Element frame = doc.selectFirst("iframe#mainFrame");
             if (frame == null) return null;
 
@@ -94,7 +102,8 @@ public class LinkToImageService {
                 log.warn("[크롤링 제한] robots.txt에 의해 이미지 추출 금지된 URL: {}", realUrl);
                 return null;
             }
-            Document realDoc = safeUrlFetcher.fetchDocument(realUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
+            Document realDoc =
+                    safeUrlFetcher.fetchDocument(realUrl, "Mozilla/5.0", IMAGE_FETCH_TIMEOUT_MS);
 
             String ogImage = firstValidImage(realDoc, "meta[property=og:image]", "content", 1);
             if (ogImage != null) return ogImage;
@@ -122,10 +131,10 @@ public class LinkToImageService {
         if (doc == null) return null;
 
         String[] selectors = {
-                "meta[property=og:image]",
-                "meta[name=twitter:image]",
-                "meta[itemprop=image]",
-                "link[rel=image_src]"
+            "meta[property=og:image]",
+            "meta[name=twitter:image]",
+            "meta[itemprop=image]",
+            "link[rel=image_src]"
         };
 
         for (String selector : selectors) {
@@ -148,6 +157,8 @@ public class LinkToImageService {
         if (isNaverBlog(url)) {
             return extractFromNaverBlog(url);
         }
-        return (doc != null) ? extractRepresentativeImageFromDoc(doc) : extractRepresentativeImage(url);
+        return (doc != null)
+                ? extractRepresentativeImageFromDoc(doc)
+                : extractRepresentativeImage(url);
     }
 }

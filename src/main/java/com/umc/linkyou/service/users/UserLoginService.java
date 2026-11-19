@@ -1,14 +1,15 @@
 package com.umc.linkyou.service.users;
 
+import org.springframework.stereotype.Service;
+
 import com.umc.linkyou.converter.UserConverter;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Provider;
-import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.jwt.TokenIssueService;
 import com.umc.linkyou.web.dto.user.UserResponseDTO;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +20,7 @@ public class UserLoginService {
 
     /**
      * 공통 소셜 로그인 처리
+     *
      * @param user
      * @param resolvedEmail
      * @param provider
@@ -31,8 +33,7 @@ public class UserLoginService {
             String resolvedEmail,
             Provider provider,
             String deviceId,
-            DeviceType deviceType
-    ) {
+            DeviceType deviceType) {
         if (userStatusValidator.isWithinWithdrawGracePeriod(user)) {
             // 탈퇴 유예중인 사용자는 복구 토큰만 발급하고, refresh token은 발급하지 않음
             String recoveryToken =
@@ -50,8 +51,7 @@ public class UserLoginService {
                         user.getRole(),
                         user.getStatus(),
                         deviceId,
-                        deviceType
-                );
+                        deviceType);
 
         return UserConverter.toLoginResultDTO(
                 user, tokenPair.accessToken(), tokenPair.refreshToken());

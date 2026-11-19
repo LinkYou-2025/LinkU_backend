@@ -44,19 +44,19 @@ class TokenIssueServiceTest {
             when(jwtTokenProvider.createAccessToken(7L, "temp@example.com", "KAKAO", Role.USER))
                     .thenReturn("onboarding-access");
 
-            TokenIssueService.IssuedTokenPair result = tokenIssueService.issueForStatus(
-                    7L,
-                    "temp@example.com",
-                    "KAKAO",
-                    Role.USER,
-                    UserStatus.TEMP,
-                    "device-1",
-                    DeviceType.PHONE);
+            TokenIssueService.IssuedTokenPair result =
+                    tokenIssueService.issueForStatus(
+                            7L,
+                            "temp@example.com",
+                            "KAKAO",
+                            Role.USER,
+                            UserStatus.TEMP,
+                            "device-1",
+                            DeviceType.PHONE);
 
             assertEquals("onboarding-access", result.accessToken());
             assertNull(result.refreshToken());
-            verify(jwtTokenProvider)
-                    .createAccessToken(7L, "temp@example.com", "KAKAO", Role.USER);
+            verify(jwtTokenProvider).createAccessToken(7L, "temp@example.com", "KAKAO", Role.USER);
             org.mockito.Mockito.verifyNoInteractions(refreshTokenManager);
         }
     }
@@ -77,7 +77,8 @@ class TokenIssueServiceTest {
                     .thenReturn("refresh-token");
             when(jwtTokenProvider.normalizeStrict("refresh-token")).thenReturn("refresh-token");
             when(jwtTokenProvider.hmac("refresh-token")).thenReturn("refresh-token-id");
-            when(jwtTokenProvider.getAccessTokenExpiresAt("access-token")).thenReturn(accessExpiresAt);
+            when(jwtTokenProvider.getAccessTokenExpiresAt("access-token"))
+                    .thenReturn(accessExpiresAt);
             when(jwtProperties.expiration()).thenReturn(expiration);
             when(expiration.refresh()).thenReturn(1_209_600_000L);
             when(refreshTokenManager.saveToken(
@@ -94,12 +95,7 @@ class TokenIssueServiceTest {
             // when
             TokenIssueService.IssuedTokenPair result =
                     tokenIssueService.issueTokenPair(
-                            1L,
-                            "user@test.com",
-                            "KAKAO",
-                            Role.USER,
-                            "device-1",
-                            DeviceType.PHONE);
+                            1L, "user@test.com", "KAKAO", Role.USER, "device-1", DeviceType.PHONE);
 
             // then
             assertEquals("access-token", result.accessToken());

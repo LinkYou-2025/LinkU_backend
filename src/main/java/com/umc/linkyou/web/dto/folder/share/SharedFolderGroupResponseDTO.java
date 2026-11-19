@@ -1,8 +1,8 @@
 package com.umc.linkyou.web.dto.folder.share;
 
-import lombok.*;
-
 import java.util.List;
+
+import lombok.*;
 
 @Getter
 @Setter

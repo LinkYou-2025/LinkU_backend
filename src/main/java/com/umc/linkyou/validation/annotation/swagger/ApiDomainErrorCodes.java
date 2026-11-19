@@ -1,8 +1,8 @@
 package com.umc.linkyou.validation.annotation.swagger;
 
-import com.umc.linkyou.apiPayload.code.BaseErrorCode;
-
 import java.lang.annotation.*;
+
+import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

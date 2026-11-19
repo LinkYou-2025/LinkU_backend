@@ -2,7 +2,6 @@ package com.umc.linkyou.web.dto;
 
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
 
 public class AiArticleResponseDTO {
     @Getter

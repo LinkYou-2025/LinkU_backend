@@ -238,8 +238,7 @@ class UserWithdrawServiceTest {
         Long curationId = curation.getCurationId();
 
         CurationLinku curationLinku =
-                curationLinkuRepository.save(
-                        CurationLinku.ofInternal(curation, usersLinku, null));
+                curationLinkuRepository.save(CurationLinku.ofInternal(curation, usersLinku, null));
         Long curationLinkuId = curationLinku.getCurationLinkuId();
 
         // 영속성 컨텍스트 반영
@@ -262,10 +261,14 @@ class UserWithdrawServiceTest {
         assertTrue(authAccount.isEmpty(), "OrphanRemoval 또는 clear() 처리가 정상적으로 동작하지 않았습니다.");
 
         // 개인 데이터(관심사/목적 연결, 링크 저장 기록과 그 하위 연관)는 모두 CASCADE로 삭제되어야 한다
-        assertTrue(usersInterestRepository.findById(usersInterestId).isEmpty(), "관심사 연결이 삭제되지 않았습니다.");
+        assertTrue(
+                usersInterestRepository.findById(usersInterestId).isEmpty(), "관심사 연결이 삭제되지 않았습니다.");
         assertTrue(usersPurposeRepository.findById(usersPurposeId).isEmpty(), "목적 연결이 삭제되지 않았습니다.");
-        assertTrue(usersLinkuRepository.findById(usersLinkuId).isEmpty(), "개인 링크 저장 기록이 삭제되지 않았습니다.");
-        assertTrue(linkuFolderRepository.findById(linkuFolderId).isEmpty(), "linku_folders 가 CASCADE로 삭제되지 않았습니다.");
+        assertTrue(
+                usersLinkuRepository.findById(usersLinkuId).isEmpty(), "개인 링크 저장 기록이 삭제되지 않았습니다.");
+        assertTrue(
+                linkuFolderRepository.findById(linkuFolderId).isEmpty(),
+                "linku_folders 가 CASCADE로 삭제되지 않았습니다.");
         assertTrue(curationRepository.findById(curationId).isEmpty(), "curations 가 삭제되지 않았습니다.");
         assertTrue(
                 curationLinkuRepository.findById(curationLinkuId).isEmpty(),
@@ -273,7 +276,8 @@ class UserWithdrawServiceTest {
 
         // 공용/마스터 데이터는 유저 삭제와 무관하게 유지되어야 한다
         assertTrue(linkuRepository.existsById(linkuId), "공용 데이터인 linkus 가 함께 삭제되면 안 됩니다.");
-        assertTrue(categoryRepository.existsById(category.getCategoryId()), "공용 분류 데이터가 삭제되면 안 됩니다.");
+        assertTrue(
+                categoryRepository.existsById(category.getCategoryId()), "공용 분류 데이터가 삭제되면 안 됩니다.");
         assertTrue(interestRepository.existsById(interest.getId()), "관심사 마스터(카탈로그)는 유지되어야 합니다.");
         assertTrue(purposeRepository.existsById(purpose.getId()), "목적 마스터(카탈로그)는 유지되어야 합니다.");
     }

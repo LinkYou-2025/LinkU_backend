@@ -1,37 +1,39 @@
 package com.umc.linkyou.service.common;
 
-import com.umc.linkyou.config.properties.RecommendScoreProperties;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.within;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import com.umc.linkyou.config.properties.RecommendScoreProperties;
 
 /**
- * HomeRecommendScoreService의 Java 메모리 스코어링(*Match, score/FeatureVector)에 대한 단위 테스트.
- * 실제 Native SQL 랭킹과 커서 동작은 UsersLinkuRepositoryImplTest 통합 테스트에서 다룬다.
+ * HomeRecommendScoreService의 Java 메모리 스코어링(*Match, score/FeatureVector)에 대한 단위 테스트. 실제 Native SQL
+ * 랭킹과 커서 동작은 UsersLinkuRepositoryImplTest 통합 테스트에서 다룬다.
  */
 @DisplayName("HomeRecommendScoreService 단위 테스트")
 class HomeRecommendScoreServiceTest {
 
-    private static final long EMOTION_JOY = 1L;       // 즐거움
-    private static final long EMOTION_CALM = 2L;      // 평온
+    private static final long EMOTION_JOY = 1L; // 즐거움
+    private static final long EMOTION_CALM = 2L; // 평온
     private static final long EMOTION_EXCITEMENT = 3L; // 설렘
-    private static final long EMOTION_SADNESS = 4L;   // 슬픔
+    private static final long EMOTION_SADNESS = 4L; // 슬픔
 
     private static final long SITUATION_A = 10L;
     private static final long SITUATION_B = 20L;
     private static final long CATEGORY_MATCHED = 100L;
     private static final long CATEGORY_UNMATCHED = 200L;
 
-    private final RecommendScoreProperties properties = new RecommendScoreProperties(
-            new RecommendScoreProperties.Weight(0.25, 0.20, 0.25, 0.20, 0.10),
-            new RecommendScoreProperties.Normalization(20, 14, 1000),
-            new RecommendScoreProperties.Confidence(0.8, 0.8));
+    private final RecommendScoreProperties properties =
+            new RecommendScoreProperties(
+                    new RecommendScoreProperties.Weight(0.25, 0.20, 0.25, 0.20, 0.10),
+                    new RecommendScoreProperties.Normalization(20, 14, 1000),
+                    new RecommendScoreProperties.Confidence(0.8, 0.8));
 
     private final HomeRecommendScoreService service = new HomeRecommendScoreService(properties);
 

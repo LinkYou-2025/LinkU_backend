@@ -1,12 +1,14 @@
 package com.umc.linkyou.domain.folder;
 
-import com.umc.linkyou.domain.classification.Category;
-import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
-import jakarta.persistence.*;
-import lombok.*;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.persistence.*;
+
+import com.umc.linkyou.domain.classification.Category;
+import com.umc.linkyou.domain.mapping.folder.UsersCategoryColor;
+
+import lombok.*;
 
 @Entity
 @Table(name = "fcolors")

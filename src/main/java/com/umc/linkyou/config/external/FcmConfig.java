@@ -1,10 +1,8 @@
 package com.umc.linkyou.config.external;
 
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.FirebaseOptions;
-import com.google.firebase.messaging.FirebaseMessaging;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.io.InputStream;
+
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -14,8 +12,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 
-import java.io.IOException;
-import java.io.InputStream;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.messaging.FirebaseMessaging;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
@@ -35,7 +37,9 @@ public class FcmConfig {
     public FirebaseApp firebaseApp() throws IOException {
         Resource resource = resourceLoader.getResource(firebaseCredentialsPath);
         if (!resource.exists() || resource.contentLength() == 0) {
-            log.warn("Firebase credentials file not found or empty — FCM disabled: {}", firebaseCredentialsPath);
+            log.warn(
+                    "Firebase credentials file not found or empty — FCM disabled: {}",
+                    firebaseCredentialsPath);
             return null;
         }
         try {
@@ -45,9 +49,7 @@ public class FcmConfig {
         }
         try (InputStream inputStream = resource.getInputStream()) {
             GoogleCredentials credentials = GoogleCredentials.fromStream(inputStream);
-            FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(credentials)
-                    .build();
+            FirebaseOptions options = FirebaseOptions.builder().setCredentials(credentials).build();
             return FirebaseApp.initializeApp(options);
         }
     }

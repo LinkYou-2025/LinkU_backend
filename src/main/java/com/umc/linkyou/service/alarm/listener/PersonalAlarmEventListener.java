@@ -1,15 +1,17 @@
 package com.umc.linkyou.service.alarm.listener;
 
-import com.umc.linkyou.service.alarm.FcmPushSender;
-import com.umc.linkyou.service.alarm.event.PersonalAlarmEvent;
-import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
-import lombok.RequiredArgsConstructor;
+import java.util.Map;
+
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import java.util.Map;
+import com.umc.linkyou.service.alarm.FcmPushSender;
+import com.umc.linkyou.service.alarm.event.PersonalAlarmEvent;
+import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
+
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
@@ -21,9 +23,15 @@ public class PersonalAlarmEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(PersonalAlarmEvent event) {
         Map<String, String> values = event.payload().toValues();
-        FcmSendRequestDTO requestDTO = values.isEmpty()
-                ? FcmSendRequestDTO.of(event.alarmType(), event.targetId(), event.alarmId()) // data 없을 때
-                : FcmSendRequestDTO.withValues(event.alarmType(), event.targetId(), event.alarmId(), values); // data 있을 때
+        FcmSendRequestDTO requestDTO =
+                values.isEmpty()
+                        ? FcmSendRequestDTO.of(
+                                event.alarmType(), event.targetId(), event.alarmId()) // data 없을 때
+                        : FcmSendRequestDTO.withValues(
+                                event.alarmType(),
+                                event.targetId(),
+                                event.alarmId(),
+                                values); // data 있을 때
 
         fcmPushSender.sendToUser(event.userId(), requestDTO);
     }

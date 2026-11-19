@@ -1,5 +1,32 @@
 package com.umc.linkyou.web.controller;
 
+import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResult;
+import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResultList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
@@ -16,52 +43,21 @@ import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.MySharedFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-
-import java.util.List;
-
-import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResult;
-import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResultList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ShareFolderController.class)
 @Import({WebConfig.class, CurrentUserArgumentResolver.class, TestSecurityConfig.class})
 @DisplayName("ShareFolderController 테스트")
 class ShareFolderControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @MockitoBean
-    private ShareFolderService shareFolderService;
+    @MockitoBean private ShareFolderService shareFolderService;
 
-    @MockitoBean
-    private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean private JwtTokenProvider jwtTokenProvider;
 
-    @MockitoBean
-    private AccessTokenBlackListManager accessTokenBlackListManager;
+    @MockitoBean private AccessTokenBlackListManager accessTokenBlackListManager;
 
     private static final Long FOLDER_ID = 100L;
     private static final Long USERS_FOLDER_ID = 10L;
@@ -79,7 +75,9 @@ class ShareFolderControllerTest {
             void 정상_요청_시_초대링크를_반환한다() throws Exception {
                 given(shareFolderService.createInviteLink(1L, FOLDER_ID)).willReturn("token-abc");
 
-                mockMvc.perform(post("/api/v1/folders/share/{folderId}/invitation", FOLDER_ID).with(csrf()))
+                mockMvc.perform(
+                                post("/api/v1/folders/share/{folderId}/invitation", FOLDER_ID)
+                                        .with(csrf()))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("FOLDER2008"))
@@ -95,18 +93,29 @@ class ShareFolderControllerTest {
             @WithCustomUser(userId = 1L)
             void 소유자가_아니면_403을_반환한다() throws Exception {
                 given(shareFolderService.createInviteLink(1L, FOLDER_ID))
-                        .willThrow(new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED));
+                        .willThrow(
+                                new GeneralException(
+                                        ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED));
 
-                mockMvc.perform(post("/api/v1/folders/share/{folderId}/invitation", FOLDER_ID).with(csrf()))
+                mockMvc.perform(
+                                post("/api/v1/folders/share/{folderId}/invitation", FOLDER_ID)
+                                        .with(csrf()))
                         .andExpect(status().isForbidden())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(
+                                                ShareFolderErrorStatus
+                                                        ._FOLDER_PERMISSION_NOT_ALLOWED
+                                                        .getCode()));
             }
 
             @Test
             @DisplayName("인증되지 않은 요청은 401을 반환한다")
             void 인증되지_않으면_401을_반환한다() throws Exception {
-                mockMvc.perform(post("/api/v1/folders/share/{folderId}/invitation", FOLDER_ID).with(csrf()))
+                mockMvc.perform(
+                                post("/api/v1/folders/share/{folderId}/invitation", FOLDER_ID)
+                                        .with(csrf()))
                         .andExpect(status().isUnauthorized());
             }
         }
@@ -123,7 +132,9 @@ class ShareFolderControllerTest {
             @DisplayName("정상 요청 시 비활성화에 성공한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_비활성화에_성공한다() throws Exception {
-                mockMvc.perform(delete("/api/v1/folders/share/{folderId}/invitation", FOLDER_ID).with(csrf()))
+                mockMvc.perform(
+                                delete("/api/v1/folders/share/{folderId}/invitation", FOLDER_ID)
+                                        .with(csrf()))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("FOLDER2009"));
@@ -149,12 +160,14 @@ class ShareFolderControllerTest {
 
                 given(shareFolderService.getViewers(1L, FOLDER_ID)).willReturn(List.of(viewer));
 
-                MvcResult result = mockMvc.perform(get("/api/v1/folders/share/{folderId}/members", FOLDER_ID))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(get("/api/v1/folders/share/{folderId}/members", FOLDER_ID))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                List<ViewerResponseDTO> viewers = readResultList(result, objectMapper, ViewerResponseDTO.class);
+                List<ViewerResponseDTO> viewers =
+                        readResultList(result, objectMapper, ViewerResponseDTO.class);
                 assertThat(viewers).hasSize(1);
                 assertThat(viewers.get(0).getUserId()).isEqualTo(5L);
                 assertThat(viewers.get(0).getPermission()).isEqualTo("VIEWER");
@@ -174,7 +187,9 @@ class ShareFolderControllerTest {
                 mockMvc.perform(get("/api/v1/folders/share/{folderId}/members", FOLDER_ID))
                         .andExpect(status().isNotFound())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(FolderErrorStatus._FOLDER_NOT_FOUND.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(FolderErrorStatus._FOLDER_NOT_FOUND.getCode()));
             }
         }
     }
@@ -193,21 +208,34 @@ class ShareFolderControllerTest {
                 FolderPermissionRequestDTO request = new FolderPermissionRequestDTO();
                 request.setPermission(PermissionType.WRITER);
 
-                ShareFolderResponseDTO response = ShareFolderResponseDTO.builder()
-                        .folderId(FOLDER_ID).userId(5L).permission("WRITER").sharedAt("2026-01-01T00:00:00").build();
+                ShareFolderResponseDTO response =
+                        ShareFolderResponseDTO.builder()
+                                .folderId(FOLDER_ID)
+                                .userId(5L)
+                                .permission("WRITER")
+                                .sharedAt("2026-01-01T00:00:00")
+                                .build();
 
-                given(shareFolderService.updateViewerPermission(eq(1L), eq(FOLDER_ID), eq(USERS_FOLDER_ID), any()))
+                given(
+                                shareFolderService.updateViewerPermission(
+                                        eq(1L), eq(FOLDER_ID), eq(USERS_FOLDER_ID), any()))
                         .willReturn(response);
 
-                MvcResult result = mockMvc.perform(put("/api/v1/folders/share/{folderId}/members/{userFolderId}", FOLDER_ID, USERS_FOLDER_ID)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                                .with(csrf()))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(
+                                        put(
+                                                        "/api/v1/folders/share/{folderId}/members/{userFolderId}",
+                                                        FOLDER_ID,
+                                                        USERS_FOLDER_ID)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request))
+                                                .with(csrf()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                ShareFolderResponseDTO permission = readResult(result, objectMapper, ShareFolderResponseDTO.class);
+                ShareFolderResponseDTO permission =
+                        readResult(result, objectMapper, ShareFolderResponseDTO.class);
                 assertThat(permission.getPermission()).isEqualTo("WRITER");
             }
         }
@@ -222,16 +250,29 @@ class ShareFolderControllerTest {
                 FolderPermissionRequestDTO request = new FolderPermissionRequestDTO();
                 request.setPermission(PermissionType.WRITER);
 
-                given(shareFolderService.updateViewerPermission(eq(1L), eq(FOLDER_ID), eq(USERS_FOLDER_ID), any()))
-                        .willThrow(new GeneralException(ShareFolderErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED));
+                given(
+                                shareFolderService.updateViewerPermission(
+                                        eq(1L), eq(FOLDER_ID), eq(USERS_FOLDER_ID), any()))
+                        .willThrow(
+                                new GeneralException(
+                                        ShareFolderErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED));
 
-                mockMvc.perform(put("/api/v1/folders/share/{folderId}/members/{userFolderId}", FOLDER_ID, USERS_FOLDER_ID)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                                .with(csrf()))
+                mockMvc.perform(
+                                put(
+                                                "/api/v1/folders/share/{folderId}/members/{userFolderId}",
+                                                FOLDER_ID,
+                                                USERS_FOLDER_ID)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request))
+                                        .with(csrf()))
                         .andExpect(status().isForbidden())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(ShareFolderErrorStatus._FOLDER_OWNER_UPDATE_NOT_ALLOWED.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(
+                                                ShareFolderErrorStatus
+                                                        ._FOLDER_OWNER_UPDATE_NOT_ALLOWED
+                                                        .getCode()));
             }
         }
     }
@@ -247,17 +288,26 @@ class ShareFolderControllerTest {
             @DisplayName("정상 요청 시 비공개 전환 결과를 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_비공개전환결과를_반환한다() throws Exception {
-                ShareFolderResponseDTO response = ShareFolderResponseDTO.builder()
-                        .folderId(FOLDER_ID).userId(1L).permission("PRIVATE").sharedAt("2026-01-01T00:00:00").build();
+                ShareFolderResponseDTO response =
+                        ShareFolderResponseDTO.builder()
+                                .folderId(FOLDER_ID)
+                                .userId(1L)
+                                .permission("PRIVATE")
+                                .sharedAt("2026-01-01T00:00:00")
+                                .build();
 
                 given(shareFolderService.unshare(1L, FOLDER_ID)).willReturn(response);
 
-                MvcResult result = mockMvc.perform(post("/api/v1/folders/share/{folderId}/unshare", FOLDER_ID).with(csrf()))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(
+                                        post("/api/v1/folders/share/{folderId}/unshare", FOLDER_ID)
+                                                .with(csrf()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                ShareFolderResponseDTO unshared = readResult(result, objectMapper, ShareFolderResponseDTO.class);
+                ShareFolderResponseDTO unshared =
+                        readResult(result, objectMapper, ShareFolderResponseDTO.class);
                 assertThat(unshared.getPermission()).isEqualTo("PRIVATE");
             }
         }
@@ -274,17 +324,26 @@ class ShareFolderControllerTest {
             @DisplayName("정상 요청 시 소유권 위임 결과를 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_소유권위임결과를_반환한다() throws Exception {
-                ShareFolderResponseDTO response = ShareFolderResponseDTO.builder()
-                        .folderId(FOLDER_ID).userId(5L).permission("OWNER").sharedAt("2026-01-01T00:00:00").build();
+                ShareFolderResponseDTO response =
+                        ShareFolderResponseDTO.builder()
+                                .folderId(FOLDER_ID)
+                                .userId(5L)
+                                .permission("OWNER")
+                                .sharedAt("2026-01-01T00:00:00")
+                                .build();
 
                 given(shareFolderService.leaveFolder(1L, FOLDER_ID)).willReturn(response);
 
-                MvcResult result = mockMvc.perform(post("/api/v1/folders/share/{folderId}/leave", FOLDER_ID).with(csrf()))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(
+                                        post("/api/v1/folders/share/{folderId}/leave", FOLDER_ID)
+                                                .with(csrf()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                ShareFolderResponseDTO left = readResult(result, objectMapper, ShareFolderResponseDTO.class);
+                ShareFolderResponseDTO left =
+                        readResult(result, objectMapper, ShareFolderResponseDTO.class);
                 assertThat(left.getUserId()).isEqualTo(5L);
             }
         }
@@ -297,12 +356,22 @@ class ShareFolderControllerTest {
             @WithCustomUser(userId = 1L)
             void 위임할멤버가_없으면_409를_반환한다() throws Exception {
                 given(shareFolderService.leaveFolder(1L, FOLDER_ID))
-                        .willThrow(new GeneralException(ShareFolderErrorStatus._FOLDER_LEAVE_NO_MEMBER_TO_TRANSFER));
+                        .willThrow(
+                                new GeneralException(
+                                        ShareFolderErrorStatus
+                                                ._FOLDER_LEAVE_NO_MEMBER_TO_TRANSFER));
 
-                mockMvc.perform(post("/api/v1/folders/share/{folderId}/leave", FOLDER_ID).with(csrf()))
+                mockMvc.perform(
+                                post("/api/v1/folders/share/{folderId}/leave", FOLDER_ID)
+                                        .with(csrf()))
                         .andExpect(status().isConflict())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(ShareFolderErrorStatus._FOLDER_LEAVE_NO_MEMBER_TO_TRANSFER.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(
+                                                ShareFolderErrorStatus
+                                                        ._FOLDER_LEAVE_NO_MEMBER_TO_TRANSFER
+                                                        .getCode()));
             }
         }
     }
@@ -318,18 +387,24 @@ class ShareFolderControllerTest {
             @DisplayName("정상 요청 시 공유한 폴더 목록을 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_공유한폴더목록을_반환한다() throws Exception {
-                MySharedFolderResponseDTO item = MySharedFolderResponseDTO.builder()
-                        .folderId(FOLDER_ID).folderName("어학").memberCount(2).build();
+                MySharedFolderResponseDTO item =
+                        MySharedFolderResponseDTO.builder()
+                                .folderId(FOLDER_ID)
+                                .folderName("어학")
+                                .memberCount(2)
+                                .build();
 
                 given(shareFolderService.getMySharedFolders(1L)).willReturn(List.of(item));
 
-                MvcResult result = mockMvc.perform(get("/api/v1/folders/share/my"))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andExpect(jsonPath("$.code").value("FOLDER2019"))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(get("/api/v1/folders/share/my"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andExpect(jsonPath("$.code").value("FOLDER2019"))
+                                .andReturn();
 
-                List<MySharedFolderResponseDTO> folders = readResultList(result, objectMapper, MySharedFolderResponseDTO.class);
+                List<MySharedFolderResponseDTO> folders =
+                        readResultList(result, objectMapper, MySharedFolderResponseDTO.class);
                 assertThat(folders).hasSize(1);
                 assertThat(folders.get(0).getMemberCount()).isEqualTo(2);
             }

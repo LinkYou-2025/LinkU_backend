@@ -1,5 +1,26 @@
 package com.umc.linkyou.service.alarm;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
+
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
@@ -10,26 +31,6 @@ import com.umc.linkyou.domain.enums.AlarmType;
 import com.umc.linkyou.repository.UserFcmTokenRepository;
 import com.umc.linkyou.web.dto.alarm.FcmBulkTarget;
 import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.util.List;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FcmServiceImpl 단위 테스트")
@@ -48,7 +49,8 @@ class FcmServiceImplTest {
     @BeforeEach
     void setUp() {
         lenient().when(transactionManager.getTransaction(any())).thenReturn(transactionStatus);
-        fcmServiceImpl = new FcmServiceImpl(firebaseMessaging, userFcmTokenRepository, transactionManager);
+        fcmServiceImpl =
+                new FcmServiceImpl(firebaseMessaging, userFcmTokenRepository, transactionManager);
     }
 
     private FcmBulkTarget target(Long userId, String nickname) {
@@ -63,15 +65,13 @@ class FcmServiceImplTest {
     @DisplayName("단일 토큰 전송 시 alarmId를 data에 포함한다")
     void 단일토큰_전송_alarmId포함() throws Exception {
         fcmServiceImpl.sendToToken(
-                "test-token",
-                FcmSendRequestDTO.of(AlarmType.ANNOUNCEMENT_UPDATE, 100L, 1000L));
+                "test-token", FcmSendRequestDTO.of(AlarmType.ANNOUNCEMENT_UPDATE, 100L, 1000L));
 
         ArgumentCaptor<Message> captor = ArgumentCaptor.forClass(Message.class);
         verify(firebaseMessaging).send(captor.capture());
-        Map<String, String> data = (Map<String, String>) ReflectionTestUtils.getField(captor.getValue(), "data");
-        assertThat(data)
-                .containsEntry("alarmId", "1000")
-                .containsEntry("targetId", "100");
+        Map<String, String> data =
+                (Map<String, String>) ReflectionTestUtils.getField(captor.getValue(), "data");
+        assertThat(data).containsEntry("alarmId", "1000").containsEntry("targetId", "100");
     }
 
     @Nested

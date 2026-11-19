@@ -1,5 +1,16 @@
 package com.umc.linkyou.repository.usersFolderRepository;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.enums.PermissionType;
@@ -12,16 +23,6 @@ import com.umc.linkyou.repository.categoryRepository.FcolorRepository;
 import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.config.TestExternalConfig;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Transactional
@@ -54,7 +55,9 @@ class UsersFolderRepositoryTest {
                 usersFolderRepository.save(createUsersFolder(user, folder, PermissionType.OWNER));
 
                 // when
-                boolean result = usersFolderRepository.existsFolderOwnerOrWriter(user.getId(), folder.getFolderId());
+                boolean result =
+                        usersFolderRepository.existsFolderOwnerOrWriter(
+                                user.getId(), folder.getFolderId());
 
                 // then
                 assertThat(result).isTrue();
@@ -69,10 +72,13 @@ class UsersFolderRepositoryTest {
                 Users writer = userRepository.save(createUser("writer"));
                 Folder folder = folderRepository.save(createFolder("공유 폴더", category));
                 usersFolderRepository.save(createUsersFolder(owner, folder, PermissionType.OWNER));
-                usersFolderRepository.save(createUsersFolder(writer, folder, PermissionType.WRITER));
+                usersFolderRepository.save(
+                        createUsersFolder(writer, folder, PermissionType.WRITER));
 
                 // when
-                boolean result = usersFolderRepository.existsFolderOwnerOrWriter(writer.getId(), folder.getFolderId());
+                boolean result =
+                        usersFolderRepository.existsFolderOwnerOrWriter(
+                                writer.getId(), folder.getFolderId());
 
                 // then
                 assertThat(result).isTrue();
@@ -85,11 +91,15 @@ class UsersFolderRepositoryTest {
                 Category category = saveCategory("기술");
                 Users user = userRepository.save(createUser("subOwner"));
                 Folder rootFolder = folderRepository.save(createFolder("중분류", category));
-                Folder subFolder = folderRepository.save(createSubFolder("소분류", category, rootFolder));
-                usersFolderRepository.save(createUsersFolder(user, subFolder, PermissionType.OWNER));
+                Folder subFolder =
+                        folderRepository.save(createSubFolder("소분류", category, rootFolder));
+                usersFolderRepository.save(
+                        createUsersFolder(user, subFolder, PermissionType.OWNER));
 
                 // when
-                boolean result = usersFolderRepository.existsFolderOwnerOrWriter(user.getId(), subFolder.getFolderId());
+                boolean result =
+                        usersFolderRepository.existsFolderOwnerOrWriter(
+                                user.getId(), subFolder.getFolderId());
 
                 // then
                 assertThat(result).isTrue();
@@ -109,10 +119,13 @@ class UsersFolderRepositoryTest {
                 Users viewer = userRepository.save(createUser("viewer"));
                 Folder folder = folderRepository.save(createFolder("공유 폴더2", category));
                 usersFolderRepository.save(createUsersFolder(owner, folder, PermissionType.OWNER));
-                usersFolderRepository.save(createUsersFolder(viewer, folder, PermissionType.VIEWER));
+                usersFolderRepository.save(
+                        createUsersFolder(viewer, folder, PermissionType.VIEWER));
 
                 // when
-                boolean result = usersFolderRepository.existsFolderOwnerOrWriter(viewer.getId(), folder.getFolderId());
+                boolean result =
+                        usersFolderRepository.existsFolderOwnerOrWriter(
+                                viewer.getId(), folder.getFolderId());
 
                 // then
                 assertThat(result).isFalse();
@@ -129,7 +142,9 @@ class UsersFolderRepositoryTest {
                 usersFolderRepository.save(createUsersFolder(owner, folder, PermissionType.OWNER));
 
                 // when
-                boolean result = usersFolderRepository.existsFolderOwnerOrWriter(stranger.getId(), folder.getFolderId());
+                boolean result =
+                        usersFolderRepository.existsFolderOwnerOrWriter(
+                                stranger.getId(), folder.getFolderId());
 
                 // then
                 assertThat(result).isFalse();
@@ -138,32 +153,25 @@ class UsersFolderRepositoryTest {
     }
 
     private Category saveCategory(String name) {
-        Fcolor fcolor = fcolorRepository.save(Fcolor.builder()
-                .colorName("BLUE")
-                .colorCode1("#E3F2FD")
-                .colorCode2("#90CAF9")
-                .colorCode3("#42A5F5")
-                .colorCode4("#1E88E5")
-                .build());
-        return categoryRepository.save(Category.builder()
-                .categoryName(name)
-                .fcolor(fcolor)
-                .build());
+        Fcolor fcolor =
+                fcolorRepository.save(
+                        Fcolor.builder()
+                                .colorName("BLUE")
+                                .colorCode1("#E3F2FD")
+                                .colorCode2("#90CAF9")
+                                .colorCode3("#42A5F5")
+                                .colorCode4("#1E88E5")
+                                .build());
+        return categoryRepository.save(
+                Category.builder().categoryName(name).fcolor(fcolor).build());
     }
 
     private Users createUser(String nickName) {
-        return Users.builder()
-                .nickName(nickName)
-                .password("password")
-                .role(Role.USER)
-                .build();
+        return Users.builder().nickName(nickName).password("password").role(Role.USER).build();
     }
 
     private Folder createFolder(String name, Category category) {
-        return Folder.builder()
-                .folderName(name)
-                .category(category)
-                .build();
+        return Folder.builder().folderName(name).category(category).build();
     }
 
     private Folder createSubFolder(String name, Category category, Folder parentFolder) {
@@ -174,7 +182,8 @@ class UsersFolderRepositoryTest {
                 .build();
     }
 
-    private UsersFolder createUsersFolder(Users user, Folder folder, PermissionType permissionType) {
+    private UsersFolder createUsersFolder(
+            Users user, Folder folder, PermissionType permissionType) {
         return UsersFolder.builder()
                 .user(user)
                 .folder(folder)
