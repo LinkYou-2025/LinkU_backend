@@ -1,5 +1,30 @@
 package com.umc.linkyou.service.Linku;
 
+import static com.umc.linkyou.support.fixture.LinkuFixture.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.lenient;
+import static org.mockito.Mockito.*;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.awss3.AwsS3Service;
@@ -26,37 +51,12 @@ import com.umc.linkyou.service.folder.FolderService;
 import com.umc.linkyou.service.keyword.KeywordService;
 import com.umc.linkyou.support.fixture.LinkuFixture;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.transaction.support.TransactionCallback;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
-import java.util.Optional;
-
-import static com.umc.linkyou.support.fixture.LinkuFixture.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.lenient;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("LinkuCreateService 테스트")
 class LinkuCreateServiceTest {
 
-    @InjectMocks
-    private LinkuCreateService linkuCreateService;
+    @InjectMocks private LinkuCreateService linkuCreateService;
 
     @Mock private LinkuRepository linkuRepository;
     @Mock private CategoryRepository categoryRepository;
@@ -84,11 +84,14 @@ class LinkuCreateServiceTest {
 
     @BeforeEach
     void setUpTransactionTemplate() {
-        lenient().doAnswer(invocation -> {
-                    TransactionCallback<?> callback = invocation.getArgument(0);
-                    return callback.doInTransaction(null);
-                })
-                .when(transactionTemplate).execute(any());
+        lenient()
+                .doAnswer(
+                        invocation -> {
+                            TransactionCallback<?> callback = invocation.getArgument(0);
+                            return callback.doInTransaction(null);
+                        })
+                .when(transactionTemplate)
+                .execute(any());
     }
 
     @Nested
@@ -111,10 +114,12 @@ class LinkuCreateServiceTest {
 
                 // String 캡처러를 사용하여 5번째 파라미터(imgUrl) 검증
                 ArgumentCaptor<String> imgUrlCaptor = ArgumentCaptor.forClass(String.class);
-                verify(linkuUpsertService).upsert(any(), any(), any(), any(), imgUrlCaptor.capture(), any(), any());
+                verify(linkuUpsertService)
+                        .upsert(any(), any(), any(), any(), imgUrlCaptor.capture(), any(), any());
                 assertEquals(CRAWLED_IMAGE_URL, imgUrlCaptor.getValue());
 
-                ArgumentCaptor<UsersLinku> usersLinkuCaptor = ArgumentCaptor.forClass(UsersLinku.class);
+                ArgumentCaptor<UsersLinku> usersLinkuCaptor =
+                        ArgumentCaptor.forClass(UsersLinku.class);
                 verify(usersLinkuRepository).save(usersLinkuCaptor.capture());
                 assertEquals(S3_IMAGE_URL, usersLinkuCaptor.getValue().getImageUrl());
                 assertEquals(EMOTION_ID, usersLinkuCaptor.getValue().getEmotion().getEmotionId());
@@ -129,10 +134,12 @@ class LinkuCreateServiceTest {
 
                 // String 캡처러를 사용하여 5번째 파라미터(imgUrl) 검증
                 ArgumentCaptor<String> imgUrlCaptor = ArgumentCaptor.forClass(String.class);
-                verify(linkuUpsertService).upsert(any(), any(), any(), any(), imgUrlCaptor.capture(), any(), any());
+                verify(linkuUpsertService)
+                        .upsert(any(), any(), any(), any(), imgUrlCaptor.capture(), any(), any());
                 assertEquals(CRAWLED_IMAGE_URL, imgUrlCaptor.getValue());
 
-                ArgumentCaptor<UsersLinku> usersLinkuCaptor = ArgumentCaptor.forClass(UsersLinku.class);
+                ArgumentCaptor<UsersLinku> usersLinkuCaptor =
+                        ArgumentCaptor.forClass(UsersLinku.class);
                 verify(usersLinkuRepository).save(usersLinkuCaptor.capture());
                 assertNull(usersLinkuCaptor.getValue().getImageUrl());
                 assertEquals(EMOTION_ID, usersLinkuCaptor.getValue().getEmotion().getEmotionId());
@@ -147,10 +154,12 @@ class LinkuCreateServiceTest {
 
                 // String 캡처러를 사용하여 5번째 파라미터(imgUrl) 검증
                 ArgumentCaptor<String> imgUrlCaptor = ArgumentCaptor.forClass(String.class);
-                verify(linkuUpsertService).upsert(any(), any(), any(), any(), imgUrlCaptor.capture(), any(), any());
+                verify(linkuUpsertService)
+                        .upsert(any(), any(), any(), any(), imgUrlCaptor.capture(), any(), any());
                 assertNull(imgUrlCaptor.getValue());
 
-                ArgumentCaptor<UsersLinku> usersLinkuCaptor = ArgumentCaptor.forClass(UsersLinku.class);
+                ArgumentCaptor<UsersLinku> usersLinkuCaptor =
+                        ArgumentCaptor.forClass(UsersLinku.class);
                 verify(usersLinkuRepository).save(usersLinkuCaptor.capture());
                 assertEquals(EMOTION_ID, usersLinkuCaptor.getValue().getEmotion().getEmotionId());
             }
@@ -199,7 +208,8 @@ class LinkuCreateServiceTest {
                 assertEquals(EMOTION_ID, captor.getValue().getEmotion().getEmotionId());
 
                 // 기존 링크가 존재하면 upsert 로직이 수행되지 않아야 함
-                verify(linkuUpsertService, never()).upsert(any(), any(), any(), any(), any(), any(), any());
+                verify(linkuUpsertService, never())
+                        .upsert(any(), any(), any(), any(), any(), any(), any());
             }
         }
     }
@@ -215,28 +225,34 @@ class LinkuCreateServiceTest {
             @Test
             @DisplayName("비디오 링크 입력 시 예외가 발생한다")
             void 비디오_링크_입력_시_예외가_발생한다() {
-                LinkuRequestDTO.LinkuCreateDTO dto = LinkuRequestDTO.LinkuCreateDTO.builder()
-                        .linku("https://www.youtube.com/watch?v=abc123")
-                        .emotionId(EMOTION_ID)
-                        .situationId(SITUATION_ID)
-                        .build();
+                LinkuRequestDTO.LinkuCreateDTO dto =
+                        LinkuRequestDTO.LinkuCreateDTO.builder()
+                                .linku("https://www.youtube.com/watch?v=abc123")
+                                .emotionId(EMOTION_ID)
+                                .situationId(SITUATION_ID)
+                                .build();
 
-                GeneralException ex = assertThrows(GeneralException.class,
-                        () -> linkuCreateService.createLinku(USER_ID, dto, null));
+                GeneralException ex =
+                        assertThrows(
+                                GeneralException.class,
+                                () -> linkuCreateService.createLinku(USER_ID, dto, null));
                 assertEquals(LinkuErrorStatus._LINKU_VIDEO_NOT_ALLOWED, ex.getCode());
             }
 
             @Test
             @DisplayName("잘못된 URL 형식 입력 시 예외가 발생한다")
             void 잘못된_URL_형식_입력_시_예외가_발생한다() {
-                LinkuRequestDTO.LinkuCreateDTO dto = LinkuRequestDTO.LinkuCreateDTO.builder()
-                        .linku("not-a-valid-url")
-                        .emotionId(EMOTION_ID)
-                        .situationId(SITUATION_ID)
-                        .build();
+                LinkuRequestDTO.LinkuCreateDTO dto =
+                        LinkuRequestDTO.LinkuCreateDTO.builder()
+                                .linku("not-a-valid-url")
+                                .emotionId(EMOTION_ID)
+                                .situationId(SITUATION_ID)
+                                .build();
 
-                GeneralException ex = assertThrows(GeneralException.class,
-                        () -> linkuCreateService.createLinku(USER_ID, dto, null));
+                GeneralException ex =
+                        assertThrows(
+                                GeneralException.class,
+                                () -> linkuCreateService.createLinku(USER_ID, dto, null));
                 assertEquals(LinkuErrorStatus._LINKU_INVALID_URL, ex.getCode());
             }
         }
@@ -250,16 +266,31 @@ class LinkuCreateServiceTest {
         @DisplayName("본인이_이전에_같은_링크를_저장하며_AI_요약을_확인한_적_있으면_새_UsersLinku도_aiExist가_true로_생성된다")
         void 본인이_이전에_같은_링크를_저장하며_AI_요약을_확인한_적_있으면_새_UsersLinku도_aiExist가_true로_생성된다() {
             Linku linku = LinkuFixture.linku(null);
-            UsersLinku previousSave = UsersLinku.builder()
-                    .user(LinkuFixture.user()).linku(linku).aiExist(true).build();
+            UsersLinku previousSave =
+                    UsersLinku.builder()
+                            .user(LinkuFixture.user())
+                            .linku(linku)
+                            .aiExist(true)
+                            .build();
 
-            given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(LinkuFixture.USER_ID, linku.getLinkuId()))
+            given(
+                            usersLinkuRepository.findByUser_IdAndLinku_LinkuId(
+                                    LinkuFixture.USER_ID, linku.getLinkuId()))
                     .willReturn(List.of(previousSave));
             given(usersLinkuRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
-            UsersLinku result = linkuCreateService.createUsersLinku(
-                    LinkuFixture.user(), linku, LinkuFixture.emotion(), LinkuFixture.situation(),
-                    null, null, "2번째 저장", true, true);
+            UsersLinku result =
+                    linkuCreateService.createUsersLinku(
+                            LinkuFixture.user(),
+                            linku,
+                            LinkuFixture.emotion(),
+                            LinkuFixture.situation(),
+                            linku.getLinkuUrl(),
+                            null,
+                            null,
+                            "2번째 저장",
+                            true,
+                            true);
 
             assertTrue(result.getAiExist());
         }
@@ -269,13 +300,24 @@ class LinkuCreateServiceTest {
         void 본인의_이전_저장_이력이_없으면_UsersLinku는_aiExist가_false로_생성된다() {
             Linku linku = LinkuFixture.linku(null);
 
-            given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(LinkuFixture.USER_ID, linku.getLinkuId()))
+            given(
+                            usersLinkuRepository.findByUser_IdAndLinku_LinkuId(
+                                    LinkuFixture.USER_ID, linku.getLinkuId()))
                     .willReturn(List.of());
             given(usersLinkuRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
-            UsersLinku result = linkuCreateService.createUsersLinku(
-                    LinkuFixture.user(), linku, LinkuFixture.emotion(), LinkuFixture.situation(),
-                    null, null, "1번째 저장", true, true);
+            UsersLinku result =
+                    linkuCreateService.createUsersLinku(
+                            LinkuFixture.user(),
+                            linku,
+                            LinkuFixture.emotion(),
+                            LinkuFixture.situation(),
+                            linku.getLinkuUrl(),
+                            null,
+                            null,
+                            "1번째 저장",
+                            true,
+                            true);
 
             assertFalse(result.getAiExist());
         }
@@ -285,13 +327,24 @@ class LinkuCreateServiceTest {
         void 다른_유저가_이미_이_링크를_요약해뒀어도_본인이_요청_조회한_적_없으면_aiExist가_false로_생성된다() {
             Linku linku = LinkuFixture.linku(null);
             // 다른 유저가 저장하며 이미 AI 요약을 확인해둔 상태 - 본인의 이력이 아니므로 조회 대상이 아니다.
-            given(usersLinkuRepository.findByUser_IdAndLinku_LinkuId(LinkuFixture.USER_ID, linku.getLinkuId()))
+            given(
+                            usersLinkuRepository.findByUser_IdAndLinku_LinkuId(
+                                    LinkuFixture.USER_ID, linku.getLinkuId()))
                     .willReturn(List.of());
             given(usersLinkuRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
-            UsersLinku result = linkuCreateService.createUsersLinku(
-                    LinkuFixture.user(), linku, LinkuFixture.emotion(), LinkuFixture.situation(),
-                    null, null, "1번째 저장", true, true);
+            UsersLinku result =
+                    linkuCreateService.createUsersLinku(
+                            LinkuFixture.user(),
+                            linku,
+                            LinkuFixture.emotion(),
+                            LinkuFixture.situation(),
+                            linku.getLinkuUrl(),
+                            null,
+                            null,
+                            "1번째 저장",
+                            true,
+                            true);
 
             assertFalse(result.getAiExist());
         }
@@ -305,9 +358,11 @@ class LinkuCreateServiceTest {
         @DisplayName("정확히 일치하는 도메인이 있으면 apex 후보는 조회하지 않고 그대로 사용한다")
         void 정확히_일치하면_해당_도메인을_우선_사용한다() {
             Domain exact = Domain.builder().name("네이버 블로그").domainTail("blog.naver.com").build();
-            given(domainRepository.findByDomainTail("blog.naver.com")).willReturn(Optional.of(exact));
+            given(domainRepository.findByDomainTail("blog.naver.com"))
+                    .willReturn(Optional.of(exact));
 
-            Domain result = linkuCreateService.resolveDomain(List.of("blog.naver.com", "naver.com"));
+            Domain result =
+                    linkuCreateService.resolveDomain(List.of("blog.naver.com", "naver.com"));
 
             assertEquals(exact, result);
             verify(domainRepository, never()).findByDomainTail("naver.com");
@@ -316,11 +371,14 @@ class LinkuCreateServiceTest {
         @Test
         @DisplayName("정확히 일치하는 도메인이 없으면 registry-suffix apex 도메인으로 폴백한다")
         void 정확히_일치하지_않으면_apex_도메인으로_폴백한다() {
-            given(domainRepository.findByDomainTail("someuser.tistory.com")).willReturn(Optional.empty());
+            given(domainRepository.findByDomainTail("someuser.tistory.com"))
+                    .willReturn(Optional.empty());
             Domain apex = Domain.builder().name("티스토리").domainTail("tistory.com").build();
             given(domainRepository.findByDomainTail("tistory.com")).willReturn(Optional.of(apex));
 
-            Domain result = linkuCreateService.resolveDomain(List.of("someuser.tistory.com", "tistory.com"));
+            Domain result =
+                    linkuCreateService.resolveDomain(
+                            List.of("someuser.tistory.com", "tistory.com"));
 
             assertEquals(apex, result);
         }
@@ -354,43 +412,53 @@ class LinkuCreateServiceTest {
         lenient().when(linkuRepository.findByLinku(TEST_URL)).thenReturn(Optional.empty());
 
         // 가짜 AI 분석 결과 DTO 주입
-        LinkuResultDTO mockAiResult = new LinkuResultDTO(
-                1L,
-                "테스트 제목",
-                "키워드1, 키워드2",
-                EMOTION_ID,
-                SITUATION_ID
-        );
-        lenient().when(geminiLinkuService.analyzeByUrl(any(), any(), any(), any(), any())).thenReturn(Optional.of(mockAiResult));
+        LinkuResultDTO mockAiResult =
+                new LinkuResultDTO(1L, "테스트 제목", "키워드1, 키워드2", EMOTION_ID, SITUATION_ID);
+        lenient()
+                .when(geminiLinkuService.analyzeByUrl(any(), any(), any(), any(), any()))
+                .thenReturn(Optional.of(mockAiResult));
 
-        lenient().when(categoryRepository.findById(any()))
+        lenient()
+                .when(categoryRepository.findById(any()))
                 .thenAnswer(inv -> Optional.of(LinkuFixture.category()));
 
-        lenient().when(domainRepository.findByDomainTail(any()))
+        lenient()
+                .when(domainRepository.findByDomainTail(any()))
                 .thenAnswer(inv -> Optional.of(LinkuFixture.domain()));
-        lenient().when(domainRepository.findById(anyLong()))
+        lenient()
+                .when(domainRepository.findById(anyLong()))
                 .thenAnswer(inv -> Optional.of(LinkuFixture.domain()));
 
-        lenient().when(linkToImageService.getRelatedImageFromUrl(eq(TEST_URL), any(), any())).thenReturn(crawledImageUrl);
+        lenient()
+                .when(linkToImageService.getRelatedImageFromUrl(eq(TEST_URL), any(), any()))
+                .thenReturn(crawledImageUrl);
 
         // linkuUpsertService.upsert() 결과 모킹 추가
         Linku mockLinku = LinkuFixture.linku(crawledImageUrl);
         if (mockLinku.getEmotion() == null) mockLinku.updateEmotion(LinkuFixture.emotion());
         if (mockLinku.getSituation() == null) mockLinku.updateSituation(LinkuFixture.situation());
 
-        lenient().when(linkuUpsertService.upsert(any(), any(), any(), any(), any(), any(), any()))
+        lenient()
+                .when(linkuUpsertService.upsert(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(mockLinku);
 
         lenient().when(aiArticleRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        lenient().when(userRepository.findById(USER_ID)).thenReturn(Optional.of(LinkuFixture.user()));
+        lenient()
+                .when(userRepository.findById(USER_ID))
+                .thenReturn(Optional.of(LinkuFixture.user()));
 
-        lenient().when(emotionRepository.findById(anyLong()))
+        lenient()
+                .when(emotionRepository.findById(anyLong()))
                 .thenAnswer(inv -> Optional.of(LinkuFixture.emotion()));
 
-        lenient().when(situationRepository.findById(anyLong()))
+        lenient()
+                .when(situationRepository.findById(anyLong()))
                 .thenAnswer(inv -> Optional.of(LinkuFixture.situation()));
 
-        lenient().when(usersFolderRepository.findFolderByUserIdAndCategory(eq(USER_ID), any(Category.class)))
+        lenient()
+                .when(
+                        usersFolderRepository.findFolderByUserIdAndCategory(
+                                eq(USER_ID), any(Category.class)))
                 .thenReturn(Optional.of(mock(com.umc.linkyou.domain.folder.Folder.class)));
 
         lenient().when(usersLinkuRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -398,17 +466,38 @@ class LinkuCreateServiceTest {
     }
 
     private void setupExistingLinkMocks(Linku existingLinku) {
-        lenient().when(linkuRepository.findByLinku(TEST_URL)).thenReturn(Optional.of(existingLinku));
-        lenient().when(userRepository.findById(USER_ID)).thenReturn(Optional.of(LinkuFixture.user()));
-        lenient().when(emotionRepository.findById(EMOTION_ID)).thenReturn(Optional.of(LinkuFixture.emotion()));
-        lenient().when(emotionRepository.findById(anyLong())).thenReturn(Optional.of(LinkuFixture.emotion()));
-        lenient().when(situationRepository.findById(SITUATION_ID)).thenReturn(Optional.of(LinkuFixture.situation()));
-        lenient().when(situationRepository.findById(anyLong())).thenReturn(Optional.of(LinkuFixture.situation()));
-        lenient().when(domainRepository.findByDomainTail("example.com")).thenReturn(Optional.of(LinkuFixture.domain()));
-        lenient().when(domainRepository.findByDomainTail(any())).thenReturn(Optional.of(LinkuFixture.domain()));
-        lenient().when(domainRepository.findById(anyLong())).thenReturn(Optional.of(LinkuFixture.domain()));
+        lenient()
+                .when(linkuRepository.findByLinku(TEST_URL))
+                .thenReturn(Optional.of(existingLinku));
+        lenient()
+                .when(userRepository.findById(USER_ID))
+                .thenReturn(Optional.of(LinkuFixture.user()));
+        lenient()
+                .when(emotionRepository.findById(EMOTION_ID))
+                .thenReturn(Optional.of(LinkuFixture.emotion()));
+        lenient()
+                .when(emotionRepository.findById(anyLong()))
+                .thenReturn(Optional.of(LinkuFixture.emotion()));
+        lenient()
+                .when(situationRepository.findById(SITUATION_ID))
+                .thenReturn(Optional.of(LinkuFixture.situation()));
+        lenient()
+                .when(situationRepository.findById(anyLong()))
+                .thenReturn(Optional.of(LinkuFixture.situation()));
+        lenient()
+                .when(domainRepository.findByDomainTail("example.com"))
+                .thenReturn(Optional.of(LinkuFixture.domain()));
+        lenient()
+                .when(domainRepository.findByDomainTail(any()))
+                .thenReturn(Optional.of(LinkuFixture.domain()));
+        lenient()
+                .when(domainRepository.findById(anyLong()))
+                .thenReturn(Optional.of(LinkuFixture.domain()));
 
-        lenient().when(usersFolderRepository.findFolderByUserIdAndCategory(eq(USER_ID), any(Category.class)))
+        lenient()
+                .when(
+                        usersFolderRepository.findFolderByUserIdAndCategory(
+                                eq(USER_ID), any(Category.class)))
                 .thenReturn(Optional.of(mock(com.umc.linkyou.domain.folder.Folder.class)));
 
         lenient().when(usersLinkuRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));

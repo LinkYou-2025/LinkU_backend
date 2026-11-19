@@ -8,10 +8,10 @@ import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.DeviceType;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.oauth2.mobile.client.GoogleTokenVerifier;
-import com.umc.linkyou.oauth2.mobile.dto.MobileLoginResponse;
 import com.umc.linkyou.oauth2.utils.UserSocialLoginHelper;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.service.users.UserLoginService;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,7 +26,8 @@ public class GoogleMobileAuthService implements MobileAuthService {
     private final AuthAccountRepository authAccountRepository;
 
     @Override
-    public MobileLoginResponse login(String idToken, String deviceId, DeviceType deviceType) {
+    public UserResponseDTO.LoginResultDTO login(
+            String idToken, String deviceId, DeviceType deviceType) {
         GoogleTokenVerifier.GoogleUserInfo info = googleTokenVerifier.verify(idToken);
         String email = info.email();
         Users user =
