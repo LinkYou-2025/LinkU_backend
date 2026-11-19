@@ -7,7 +7,6 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.http.protocol.HTTP;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 

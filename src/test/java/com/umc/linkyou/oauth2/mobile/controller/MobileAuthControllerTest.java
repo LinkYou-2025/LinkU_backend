@@ -23,11 +23,11 @@ import com.umc.linkyou.domain.enums.UserStatus;
 import com.umc.linkyou.jwt.AccessTokenBlackListManager;
 import com.umc.linkyou.jwt.JwtTokenProvider;
 import com.umc.linkyou.oauth2.mobile.dto.MobileLoginRequest;
-import com.umc.linkyou.oauth2.mobile.dto.MobileLoginResponse;
 import com.umc.linkyou.oauth2.mobile.service.GoogleMobileAuthService;
 import com.umc.linkyou.oauth2.mobile.service.KakaoMobileAuthService;
 import com.umc.linkyou.oauth2.mobile.service.NaverMobileAuthService;
 import com.umc.linkyou.support.security.TestSecurityConfig;
+import com.umc.linkyou.web.dto.user.UserResponseDTO;
 
 @WebMvcTest(MobileAuthController.class)
 @Import(TestSecurityConfig.class)
@@ -62,12 +62,13 @@ class MobileAuthControllerTest {
                         createRequest(
                                 "kakao_access_token_123", "ios-iphone-16-pro", DeviceType.PHONE);
 
-                MobileLoginResponse response =
-                        MobileLoginResponse.builder()
+                UserResponseDTO.LoginResultDTO response =
+                        UserResponseDTO.LoginResultDTO.builder()
                                 .userId(1L)
                                 .accessToken("jwt_access_token")
                                 .refreshToken("jwt_refresh_token")
                                 .status(UserStatus.ACTIVE)
+                                .createdAt(2025)
                                 .build();
 
                 given(kakaoService.login(any(), any(), any())).willReturn(response);
@@ -78,7 +79,8 @@ class MobileAuthControllerTest {
                                         .content(objectMapper.writeValueAsString(request))
                                         .with(csrf()))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true));
+                        .andExpect(jsonPath("$.isSuccess").value(true))
+                        .andExpect(jsonPath("$.result.createdAt").value(2025));
             }
 
             @Test
@@ -88,8 +90,8 @@ class MobileAuthControllerTest {
                         createRequest(
                                 "kakao_temp_token_456", "android-galaxy-s24", DeviceType.PHONE);
 
-                MobileLoginResponse response =
-                        MobileLoginResponse.builder()
+                UserResponseDTO.LoginResultDTO response =
+                        UserResponseDTO.LoginResultDTO.builder()
                                 .userId(999L)
                                 .accessToken("jwt_temp_access_token")
                                 .refreshToken(null)
@@ -155,12 +157,13 @@ class MobileAuthControllerTest {
                     new MobileLoginRequest(
                             "google_access_token_abc", "ios-ipad-pro", DeviceType.TABLET);
 
-            MobileLoginResponse response =
-                    MobileLoginResponse.builder()
+            UserResponseDTO.LoginResultDTO response =
+                    UserResponseDTO.LoginResultDTO.builder()
                             .userId(3L)
                             .accessToken("google_jwt_access_token")
                             .refreshToken("google_jwt_refresh_token")
                             .status(UserStatus.ACTIVE)
+                            .createdAt(2025)
                             .build();
 
             given(googleService.login(any(), any(), any())).willReturn(response);
@@ -170,7 +173,8 @@ class MobileAuthControllerTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request))
                                     .with(csrf()))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.result.createdAt").value(2025));
         }
     }
 
@@ -185,12 +189,13 @@ class MobileAuthControllerTest {
                     new MobileLoginRequest(
                             "naver_access_token_xyz", "android-pixel-8", DeviceType.PHONE);
 
-            MobileLoginResponse response =
-                    MobileLoginResponse.builder()
+            UserResponseDTO.LoginResultDTO response =
+                    UserResponseDTO.LoginResultDTO.builder()
                             .userId(5L)
                             .accessToken("naver_jwt_access_token")
                             .refreshToken("naver_jwt_refresh_token")
                             .status(UserStatus.ACTIVE)
+                            .createdAt(2025)
                             .build();
 
             given(naverService.login(any(), any(), any())).willReturn(response);

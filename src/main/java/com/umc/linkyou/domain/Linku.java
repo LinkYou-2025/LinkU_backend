@@ -1,5 +1,10 @@
 package com.umc.linkyou.domain;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.persistence.*;
+
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.classification.Emotion;
@@ -7,11 +12,8 @@ import com.umc.linkyou.domain.classification.Situation;
 import com.umc.linkyou.domain.common.BaseEntity;
 import com.umc.linkyou.domain.mapping.LinkuKeyword;
 import com.umc.linkyou.domain.mapping.UsersLinku;
-import jakarta.persistence.*;
-import lombok.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import lombok.*;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -61,7 +63,7 @@ public class Linku extends BaseEntity {
     @JoinColumn(name = "emotion_id", nullable = false)
     private Emotion emotion;
 
-    //AI 캐시용 상황
+    // AI 캐시용 상황
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "situation_id", nullable = false)
     private Situation situation;
@@ -82,6 +84,11 @@ public class Linku extends BaseEntity {
         this.title = title;
     }
 
-    public void updateEmotion(Emotion emotion) {this.emotion = emotion;}
-    public void updateSituation(Situation situation) {this.situation = situation;}
+    public void updateEmotion(Emotion emotion) {
+        this.emotion = emotion;
+    }
+
+    public void updateSituation(Situation situation) {
+        this.situation = situation;
+    }
 }

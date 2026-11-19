@@ -43,8 +43,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 .where(
                         usersLinku.user.id.eq(userId),
                         linku.category.categoryId.eq(categoryId),
-                        usersLinku.aiExist.isTrue()
-                        )
+                        usersLinku.aiExist.isTrue())
                 .orderBy(usersLinku.createdAt.desc())
                 .fetch();
     }
@@ -88,8 +87,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                         usersLinku.user.id.eq(userId),
                         eqCategoryId(categoryId),
                         usersLinku.aiExist.isTrue(),
-                        ltCursorId(cursorId)
-                        )
+                        ltCursorId(cursorId))
                 .orderBy(usersLinku.createdAt.desc(), usersLinku.userLinkuId.desc())
                 .limit(limit + 1) // 다음 페이지 여부 확인용
                 .fetch();
