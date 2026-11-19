@@ -176,6 +176,9 @@ src
 | `chore` | 빌드·설정·의존성 변경 |
 | `style` | 포맷·공백 수정 |
 
+### 코드 포맷
+- Spotless(google-java-format AOSP)를 사용하며, PR CI에서 `spotlessCheck`로 검사합니다.
+- 커밋 전에 `./gradlew spotlessApply`를 실행합니다.
 
 ### pr 컨벤션
 - PR 제목은 커밋과 동일한 형식으로 작성합니다.
