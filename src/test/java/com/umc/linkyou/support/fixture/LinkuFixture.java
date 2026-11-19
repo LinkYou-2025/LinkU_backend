@@ -89,6 +89,7 @@ public final class LinkuFixture {
                 .userLinkuId(10L)
                 .user(user())
                 .linku(link)
+                .savedUrl(TEST_URL)
                 .emotion(emotion())
                 .situation(situation())
                 .aiExist(aiExist)
