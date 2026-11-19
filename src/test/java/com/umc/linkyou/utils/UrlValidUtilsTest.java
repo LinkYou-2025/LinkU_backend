@@ -1,6 +1,7 @@
 package com.umc.linkyou.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -13,14 +14,46 @@ import org.junit.jupiter.api.Test;
 class UrlValidUtilsTest {
 
     @Nested
+    @DisplayName("isVideoLink")
+    class IsVideoLink {
+
+        @Test
+        @DisplayName("네이버TV 주소는 영상 링크로 판별한다")
+        void 네이버TV_주소는_영상_링크로_판별한다() {
+            assertTrue(UrlValidUtils.isVideoLink("https://tv.naver.com/v/12345678"));
+        }
+
+        @Test
+        @DisplayName("네이버 블로그 주소는 영상 링크가 아니다")
+        void 네이버_블로그_주소는_영상_링크가_아니다() {
+            assertFalse(UrlValidUtils.isVideoLink("https://blog.naver.com/someuser/12345"));
+        }
+    }
+
+    @Nested
     @DisplayName("extractDomainTailCandidates")
     class ExtractDomainTailCandidates {
+
+        @Test
+        @DisplayName("대소문자와 끝 점이 있는 호스트도 저장 규칙에 맞게 정규화한다")
+        void 도메인_tail을_소문자와_끝_점_없이_정규화한다() {
+            assertEquals("example.com", UrlValidUtils.normalizeDomainTail(" WWW.Example.COM. "));
+        }
 
         @Test
         @DisplayName("서브도메인이 없는 apex 도메인은 후보가 자기 자신 하나뿐이다")
         void apex_도메인은_후보가_하나뿐이다() {
             List<String> candidates =
                     UrlValidUtils.extractDomainTailCandidates("https://example.com/post");
+
+            assertEquals(List.of("example.com"), candidates);
+        }
+
+        @Test
+        @DisplayName("대문자 URL 호스트도 소문자 후보로 조회한다")
+        void 대문자_URL_호스트도_소문자_후보로_조회한다() {
+            List<String> candidates =
+                    UrlValidUtils.extractDomainTailCandidates("https://WWW.Example.COM/post");
 
             assertEquals(List.of("example.com"), candidates);
         }

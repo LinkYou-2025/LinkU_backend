@@ -36,6 +36,20 @@ public interface UsersLinkuRepository
     // 존재 여부 확인은 "1개 이상 있으면 존재"로 처리해야 하므로 목록으로 조회한다.
     List<UsersLinku> findByUserIdAndLinku_LinkuUrlOrderByCreatedAtDesc(Long userId, String url);
 
+    List<UsersLinku> findByUserIdAndSavedUrlOrderByCreatedAtDesc(Long userId, String savedUrl);
+
+    @Query(
+            value =
+                    """
+                    SELECT ul.linku_id
+                    FROM users_linkus ul
+                    WHERE ul.saved_url = :savedUrl
+                    ORDER BY ul.created_at DESC
+                    LIMIT 1
+                    """,
+            nativeQuery = true)
+    Optional<Long> findLatestLinkuIdBySavedUrl(@Param("savedUrl") String savedUrl);
+
     List<UsersLinku> findByUser_IdAndLinku_LinkuId(Long userId, Long linkuId);
 
     List<UsersLinku> findByUser_Id(Long userId);

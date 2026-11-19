@@ -65,7 +65,7 @@ public class CurationLinku {
                 .curation(curation)
                 .usersLinku(usersLinku)
                 .type(CurationLinkuType.INTERNAL)
-                .url(usersLinku.getLinku().getLinkuUrl())
+                .url(usersLinku.getSavedUrl())
                 .title(usersLinku.getLinku().getTitle())
                 .imageUrl(imageUrl)
                 .build();

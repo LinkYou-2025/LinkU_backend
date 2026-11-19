@@ -36,17 +36,14 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
 
         return queryFactory
                 .selectFrom(usersLinku)
-                // UsersLinku -> Linku (ManyToOne) 페치 조인
                 .join(usersLinku.linku, linku)
                 .fetchJoin()
-                // Linku -> AiArticle (OneToOne) 페치 조인
                 .leftJoin(linku.aiArticle, aiArticle)
                 .fetchJoin()
                 .where(
                         usersLinku.user.id.eq(userId),
-                        linku.category.categoryId.eq(categoryId), // QLinku 내부의 category 참조
-                        usersLinku.aiExist.isTrue() // AI 분석 데이터가 존재하는 것만
-                        )
+                        linku.category.categoryId.eq(categoryId),
+                        usersLinku.aiExist.isTrue())
                 .orderBy(usersLinku.createdAt.desc())
                 .fetch();
     }
@@ -79,9 +76,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 .join(usersLinku.linku, linku)
                 .fetchJoin()
                 .leftJoin(linku.aiArticle, aiArticle)
-                // 서비스단(getMyAiArticlesByCategory)에서 ul.getEmotion()/l.getDomain()/l.getCategory()를
-                // 사용하므로 emotion/domain/category는 페치 조인하되, AiArticle은 응답에서 읽지 않아
-                // 일반 LEFT JOIN으로 둔다.
+                // 응답에서 읽는 emotion, domain, category만 페치 조인한다.
                 .join(usersLinku.emotion)
                 .fetchJoin()
                 .join(linku.domain)
@@ -90,16 +85,15 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 .fetchJoin()
                 .where(
                         usersLinku.user.id.eq(userId),
-                        eqCategoryId(categoryId), // null이면 카테고리 필터 없이 전체 조회
+                        eqCategoryId(categoryId),
                         usersLinku.aiExist.isTrue(),
-                        ltCursorId(cursorId) // 커서 조건 추가
-                        )
-                .orderBy(usersLinku.createdAt.desc(), usersLinku.userLinkuId.desc()) // 정렬 순서 보장
+                        ltCursorId(cursorId))
+                .orderBy(usersLinku.createdAt.desc(), usersLinku.userLinkuId.desc())
                 .limit(limit + 1) // 다음 페이지 여부 확인용
                 .fetch();
     }
 
-    // categoryId가 없으면(=전체 카테고리 조회) 조건을 걸지 않는다
+    // null이면 전체 카테고리를 조회한다.
     private BooleanExpression eqCategoryId(Long categoryId) {
         if (categoryId == null) {
             return null;
@@ -107,7 +101,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
         return QLinku.linku.category.categoryId.eq(categoryId);
     }
 
-    // 커서 조건 처리 (최신순이므로 현재 커서보다 작은 ID를 가져옴)
+    // null이나 0이면 첫 페이지다.
     private BooleanExpression ltCursorId(Long cursorId) {
         if (cursorId == null || cursorId == 0L) {
             return null;
@@ -136,7 +130,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                 limit);
     }
 
-    //  점수식을 CTE에서 한 번만 계산해 HQL 파서의 대형 표현식 중복을 피하는 Native 쿼리 방식 조회
+    // 긴 점수식을 CTE에서 한 번만 계산하기 위해 native 쿼리를 사용
     private List<RankedUsersLinku> findNormalRecommendCandidatesNative(
             Long userId,
             Long selectedEmotionId,
@@ -168,7 +162,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                         ul.user_linku_id,
                         l.linku_id,
                         l.category_id,
-                        l.linku_url,
+                        ul.saved_url AS linku_url,
                         l.title AS linku_title,
                         l.img_url,
                         l.total_view_count,
@@ -264,9 +258,7 @@ public class UsersLinkuRepositoryImpl implements UsersLinkuRepositoryCustom {
                         + " * CASE WHEN b.is_situation_ai THEN "
                         + decimal(confidence.aiSituationDiscount())
                         + " ELSE 1.0 END";
-        // staleness: COALESCE(last_viewed_at, created_at)가 오래될수록 1에 가까워진다 — 최근에 보거나
-        // 만든 것을 우대하던 예전 recency 항의 부호를 뒤집은 것(예전 Novelty Quota의 하드 제외 필터를
-        // 이 축의 연속값으로 대체). half-life는 기존 recencyHalfLifeDays를 그대로 재사용한다.
+        // 조회수와 마지막으로 본 지 지난 시간의 평균. 오래 안 본 링크일수록 점수가 높다.
         String engagement =
                 "((LEAST(CAST(b.view_count AS double precision), "
                         + normalization.viewCountCap()

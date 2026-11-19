@@ -746,6 +746,7 @@ class FolderServiceTest {
                         UsersLinku.builder()
                                 .user(user)
                                 .linku(linku)
+                                .savedUrl(linku.getLinkuUrl())
                                 .emotion(LinkuFixture.emotion())
                                 .situation(LinkuFixture.situation())
                                 .build();

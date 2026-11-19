@@ -14,8 +14,9 @@ import com.umc.linkyou.web.dto.folder.linku.LinkuSummaryDTO;
 import com.umc.linkyou.web.dto.linku.LinkuRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
 
+// 응답 URL은 대표 URL(linku_url)이 아니라 사용자가 저장한 savedUrl을 쓴다.
+// 제목, 이미지는 사용자가 수정한 UsersLinku 값을 먼저 쓰고, 없으면 Linku 값을 쓴다.
 public class LinkuConverter {
-    // Converter: RequestParam으로 받은 데이터 -> LinkuCreateDTO 생성
     public static LinkuRequestDTO.LinkuCreateDTO toLinkuCreateDTO(
             String linku, String memo, Long emotionId, Long situationId, String title) {
         return LinkuRequestDTO.LinkuCreateDTO.builder()
@@ -27,7 +28,6 @@ public class LinkuConverter {
                 .build();
     }
 
-    // Linku생성 → LinkuResultDTO 변환
     public static LinkuResponseDTO.LinkuResultDTO toLinkuResultDTO(
             Long userId,
             Linku linku,
@@ -47,7 +47,7 @@ public class LinkuConverter {
                                 ? linkuFolder.getFolder().getFolderName()
                                 : null)
                 .categoryId(category != null ? category.getCategoryId() : null)
-                .linku(linku.getLinkuUrl())
+                .linku(usersLinku.getSavedUrl())
                 .memo(usersLinku.getMemo())
                 .emotionId(
                         usersLinku.getEmotion() != null
@@ -90,7 +90,7 @@ public class LinkuConverter {
                                 ? linkuFolder.getFolder().getFolderName()
                                 : null)
                 .categoryId(category != null ? category.getCategoryId() : null)
-                .linku(linku.getLinkuUrl())
+                .linku(usersLinku.getSavedUrl())
                 .memo(usersLinku.getMemo())
                 .emotionId(
                         usersLinku.getEmotion() != null
@@ -115,7 +115,7 @@ public class LinkuConverter {
                 .build();
     }
 
-    // 링크 폴더 이동 → LinkuFolderChangeResultDTO 변환 (folderId는 실제 Folder PK, category는 직접 변경하지 않으므로 미포함)
+    // 폴더 이동은 카테고리를 바꾸지 않으므로 응답에 넣지 않는다.
     public static LinkuResponseDTO.LinkuFolderChangeResultDTO toLinkuFolderChangeResultDTO(
             UsersLinku usersLinku, LinkuFolder linkuFolder) {
         Folder folder = linkuFolder != null ? linkuFolder.getFolder() : null;
@@ -128,7 +128,6 @@ public class LinkuConverter {
                 .build();
     }
 
-    // Linku -> LinkuIsExistDTO 변환
     public static LinkuResponseDTO.LinkuIsExistDTO toLinkuIsExistDTO(
             Long userId, UsersLinku usersLinku) {
         if (usersLinku == null) {
@@ -156,12 +155,12 @@ public class LinkuConverter {
                 .build();
     }
 
-    // UsersLinku 생성
     public static UsersLinku toUsersLinku(
             Users user,
             Linku linku,
             Emotion emotion,
             Situation situation,
+            String savedUrl,
             String memo,
             String imageUrl,
             String title,
@@ -170,6 +169,7 @@ public class LinkuConverter {
         return UsersLinku.builder()
                 .user(user)
                 .linku(linku)
+                .savedUrl(savedUrl)
                 .emotion(emotion)
                 .situation(situation)
                 .memo(memo)
@@ -180,12 +180,10 @@ public class LinkuConverter {
                 .build();
     }
 
-    // LinkuFolder 생성
     public static LinkuFolder toLinkuFolder(Folder folder, UsersLinku usersLinku) {
         return LinkuFolder.builder().folder(folder).usersLinku(usersLinku).build();
     }
 
-    // Linku 생성
     public static Linku toLinku(
             String linkuUrl,
             Category category,
@@ -216,7 +214,7 @@ public class LinkuConverter {
                 .categoryId(
                         linku.getCategory() != null ? linku.getCategory().getCategoryId() : null)
                 .folderName(linkuFolder != null ? linkuFolder.getFolder().getFolderName() : null)
-                .linku(linku.getLinkuUrl())
+                .linku(usersLinku != null ? usersLinku.getSavedUrl() : linku.getLinkuUrl())
                 .memo(usersLinku != null ? usersLinku.getMemo() : null)
                 .emotionId(
                         usersLinku != null && usersLinku.getEmotion() != null
@@ -237,7 +235,7 @@ public class LinkuConverter {
                 .aiArticleExists(aiArticleExists)
                 .lastViewedAt(usersLinku != null ? usersLinku.getLastViewedAt() : null)
                 .build();
-    } // 리스트로 반환할때 쓰이는 것
+    }
 
     public static LinkuResponseDTO.LinkuSimpleDTO toLinkuSimpleDTO(
             RankedUsersLinku candidate, LinkuFolder linkuFolder) {
@@ -257,8 +255,6 @@ public class LinkuConverter {
                 .build();
     }
 
-    // 마이페이지 AI 요약 링크 목록용 - toLinkuSimpleDTO와 동일한 title/linkuImageUrl 우선순위 패턴
-    // (usersLinku 우선, 없으면 linku)을 사용한다.
     public static LinkuResponseDTO.AiArticleSummaryDTO toAiArticleSummaryDTO(
             UsersLinku usersLinku) {
         Linku linku = usersLinku.getLinku();
@@ -266,7 +262,7 @@ public class LinkuConverter {
         Category category = linku.getCategory();
         return LinkuResponseDTO.AiArticleSummaryDTO.builder()
                 .userLinkuId(usersLinku.getUserLinkuId())
-                .linku(linku.getLinkuUrl())
+                .linku(usersLinku.getSavedUrl())
                 .emotionId(
                         usersLinku.getEmotion() != null
                                 ? usersLinku.getEmotion().getEmotionId()
@@ -292,7 +288,7 @@ public class LinkuConverter {
                 .userLinkuId(usersLinku.getUserLinkuId())
                 .linkuId(linku.getLinkuId())
                 .title(usersLinku.getTitle() != null ? usersLinku.getTitle() : linku.getTitle())
-                .url(linku.getLinkuUrl())
+                .url(usersLinku.getSavedUrl())
                 .keyword(keyword.isEmpty() ? null : keyword)
                 .linkuImageUrl(
                         usersLinku.getImageUrl() != null
