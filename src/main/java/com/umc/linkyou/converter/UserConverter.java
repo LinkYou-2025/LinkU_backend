@@ -37,7 +37,7 @@ public class UserConverter {
             Users users, String accessToken, String refreshToken) {
         return UserResponseDTO.JoinResultDTO.builder()
                 .userId(users.getId())
-                .createdAt(users.getCreatedAt())
+                .createdAt(users.getCreatedAt().getYear())
                 .tokenResponse(new UserResponseDTO.TokenPair(accessToken, refreshToken))
                 .build();
     }
@@ -51,6 +51,7 @@ public class UserConverter {
                 .refreshToken(refreshToken)
                 .status(user.getStatus())
                 .inactiveDate(user.getInactiveDate())
+                .createdAt(user.getCreatedAt().getYear())
                 .build();
     }
 

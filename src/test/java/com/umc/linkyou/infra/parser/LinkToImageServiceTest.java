@@ -1,19 +1,5 @@
 package com.umc.linkyou.infra.parser;
 
-import com.umc.linkyou.infra.net.SafeUrlFetcher;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.net.HttpURLConnection;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,13 +12,27 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import java.net.HttpURLConnection;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import com.umc.linkyou.infra.net.SafeUrlFetcher;
+
 // private 메서드는 ReflectionTestUtils로 직접 호출한다.
 @ExtendWith(MockitoExtension.class)
 @DisplayName("LinkToImageService 테스트")
 class LinkToImageServiceTest {
 
-    @InjectMocks
-    private LinkToImageService linkToImageService;
+    @InjectMocks private LinkToImageService linkToImageService;
 
     @Mock private SafeUrlFetcher safeUrlFetcher;
     @Mock private RobotsTxtChecker robotsTxtChecker;
@@ -58,15 +58,24 @@ class LinkToImageServiceTest {
         void robots_허용시_og_image를_추출한다() throws Exception {
             // given
             given(robotsTxtChecker.isAllowed(URL, UA)).willReturn(true);
-            Document doc = Jsoup.parse(
-                    "<html><head><meta property=\"og:image\" content=\"https://example.com/thumb.jpg\"></head><body></body></html>", URL);
+            Document doc =
+                    Jsoup.parse(
+                            "<html><head><meta property=\"og:image\" content=\"https://example.com/thumb.jpg\"></head><body></body></html>",
+                            URL);
             given(safeUrlFetcher.fetchDocument(eq(URL), eq(UA), anyInt())).willReturn(doc);
             HttpURLConnection thumbConn = imageConnection("image/jpeg", 50_000);
-            given(safeUrlFetcher.openConnection(eq("https://example.com/thumb.jpg"), eq(UA), anyInt(), anyInt()))
+            given(
+                            safeUrlFetcher.openConnection(
+                                    eq("https://example.com/thumb.jpg"),
+                                    eq(UA),
+                                    anyInt(),
+                                    anyInt()))
                     .willReturn(thumbConn);
 
             // when
-            String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractRepresentativeImage", URL);
+            String result =
+                    ReflectionTestUtils.invokeMethod(
+                            linkToImageService, "extractRepresentativeImage", URL);
 
             // then
             assertEquals("https://example.com/thumb.jpg", result);
@@ -77,15 +86,21 @@ class LinkToImageServiceTest {
         void og_image가_작으면_채택하지_않는다() throws Exception {
             // given
             given(robotsTxtChecker.isAllowed(URL, UA)).willReturn(true);
-            Document doc = Jsoup.parse(
-                    "<html><head><meta property=\"og:image\" content=\"https://example.com/icon.png\"></head><body></body></html>", URL);
+            Document doc =
+                    Jsoup.parse(
+                            "<html><head><meta property=\"og:image\" content=\"https://example.com/icon.png\"></head><body></body></html>",
+                            URL);
             given(safeUrlFetcher.fetchDocument(eq(URL), eq(UA), anyInt())).willReturn(doc);
             HttpURLConnection iconConn = imageConnection("image/png", 2_000);
-            given(safeUrlFetcher.openConnection(eq("https://example.com/icon.png"), eq(UA), anyInt(), anyInt()))
+            given(
+                            safeUrlFetcher.openConnection(
+                                    eq("https://example.com/icon.png"), eq(UA), anyInt(), anyInt()))
                     .willReturn(iconConn);
 
             // when
-            String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractRepresentativeImage", URL);
+            String result =
+                    ReflectionTestUtils.invokeMethod(
+                            linkToImageService, "extractRepresentativeImage", URL);
 
             // then
             assertNull(result);
@@ -96,15 +111,24 @@ class LinkToImageServiceTest {
         void 상대경로_og_image를_절대경로로_변환한다() throws Exception {
             // given
             given(robotsTxtChecker.isAllowed(URL, UA)).willReturn(true);
-            Document doc = Jsoup.parse(
-                    "<html><head><meta property=\"og:image\" content=\"//cdn.example.com/thumb.jpg\"></head><body></body></html>", URL);
+            Document doc =
+                    Jsoup.parse(
+                            "<html><head><meta property=\"og:image\" content=\"//cdn.example.com/thumb.jpg\"></head><body></body></html>",
+                            URL);
             given(safeUrlFetcher.fetchDocument(eq(URL), eq(UA), anyInt())).willReturn(doc);
             HttpURLConnection thumbConn = imageConnection("image/jpeg", 50_000);
-            given(safeUrlFetcher.openConnection(eq("https://cdn.example.com/thumb.jpg"), eq(UA), anyInt(), anyInt()))
+            given(
+                            safeUrlFetcher.openConnection(
+                                    eq("https://cdn.example.com/thumb.jpg"),
+                                    eq(UA),
+                                    anyInt(),
+                                    anyInt()))
                     .willReturn(thumbConn);
 
             // when
-            String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractRepresentativeImage", URL);
+            String result =
+                    ReflectionTestUtils.invokeMethod(
+                            linkToImageService, "extractRepresentativeImage", URL);
 
             // then
             assertEquals("https://cdn.example.com/thumb.jpg", result);
@@ -115,12 +139,16 @@ class LinkToImageServiceTest {
         void http_og_image는_허용하지_않는다() throws Exception {
             // given
             given(robotsTxtChecker.isAllowed(URL, UA)).willReturn(true);
-            Document doc = Jsoup.parse(
-                    "<html><head><meta property=\"og:image\" content=\"http://example.com/thumb.jpg\"></head><body></body></html>", URL);
+            Document doc =
+                    Jsoup.parse(
+                            "<html><head><meta property=\"og:image\" content=\"http://example.com/thumb.jpg\"></head><body></body></html>",
+                            URL);
             given(safeUrlFetcher.fetchDocument(eq(URL), eq(UA), anyInt())).willReturn(doc);
 
             // when
-            String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractRepresentativeImage", URL);
+            String result =
+                    ReflectionTestUtils.invokeMethod(
+                            linkToImageService, "extractRepresentativeImage", URL);
 
             // then
             assertNull(result);
@@ -132,15 +160,21 @@ class LinkToImageServiceTest {
         void svg_og_image는_채택하지_않는다() throws Exception {
             // given
             given(robotsTxtChecker.isAllowed(URL, UA)).willReturn(true);
-            Document doc = Jsoup.parse(
-                    "<html><head><meta property=\"og:image\" content=\"https://example.com/logo.svg\"></head><body></body></html>", URL);
+            Document doc =
+                    Jsoup.parse(
+                            "<html><head><meta property=\"og:image\" content=\"https://example.com/logo.svg\"></head><body></body></html>",
+                            URL);
             given(safeUrlFetcher.fetchDocument(eq(URL), eq(UA), anyInt())).willReturn(doc);
             HttpURLConnection svgConn = imageConnection("image/svg+xml", 50_000);
-            given(safeUrlFetcher.openConnection(eq("https://example.com/logo.svg"), eq(UA), anyInt(), anyInt()))
+            given(
+                            safeUrlFetcher.openConnection(
+                                    eq("https://example.com/logo.svg"), eq(UA), anyInt(), anyInt()))
                     .willReturn(svgConn);
 
             // when
-            String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractRepresentativeImage", URL);
+            String result =
+                    ReflectionTestUtils.invokeMethod(
+                            linkToImageService, "extractRepresentativeImage", URL);
 
             // then
             assertNull(result);
@@ -153,7 +187,9 @@ class LinkToImageServiceTest {
             given(robotsTxtChecker.isAllowed(URL, UA)).willReturn(false);
 
             // when
-            String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractRepresentativeImage", URL);
+            String result =
+                    ReflectionTestUtils.invokeMethod(
+                            linkToImageService, "extractRepresentativeImage", URL);
 
             // then
             assertNull(result);
@@ -170,10 +206,17 @@ class LinkToImageServiceTest {
         void 블로그가_아닌_네이버_페이지는_일반_경로를_탄다() throws Exception {
             // given
             String newsUrl = "https://n.news.naver.com/article/001/0000000001";
-            Document doc = Jsoup.parse(
-                    "<html><head><meta property=\"og:image\" content=\"https://imgnews.pstatic.net/thumb.jpg\"></head><body></body></html>", newsUrl);
+            Document doc =
+                    Jsoup.parse(
+                            "<html><head><meta property=\"og:image\" content=\"https://imgnews.pstatic.net/thumb.jpg\"></head><body></body></html>",
+                            newsUrl);
             HttpURLConnection thumbConn = imageConnection("image/jpeg", 50_000);
-            given(safeUrlFetcher.openConnection(eq("https://imgnews.pstatic.net/thumb.jpg"), eq(UA), anyInt(), anyInt()))
+            given(
+                            safeUrlFetcher.openConnection(
+                                    eq("https://imgnews.pstatic.net/thumb.jpg"),
+                                    eq(UA),
+                                    anyInt(),
+                                    anyInt()))
                     .willReturn(thumbConn);
 
             // when
@@ -190,7 +233,8 @@ class LinkToImageServiceTest {
     class ExtractFromNaverBlog {
 
         private static final String BLOG_URL = "https://blog.naver.com/someuser/12345";
-        private static final String IFRAME_URL = "https://blog.naver.com/PostView.naver?blogId=someuser&logNo=12345";
+        private static final String IFRAME_URL =
+                "https://blog.naver.com/PostView.naver?blogId=someuser&logNo=12345";
 
         @Test
         @DisplayName("원본 블로그 URL이 robots.txt에 막히면 null을 반환하고 fetch는 시도하지 않는다")
@@ -199,7 +243,9 @@ class LinkToImageServiceTest {
             given(robotsTxtChecker.isAllowed(BLOG_URL, UA)).willReturn(false);
 
             // when
-            String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractFromNaverBlog", BLOG_URL);
+            String result =
+                    ReflectionTestUtils.invokeMethod(
+                            linkToImageService, "extractFromNaverBlog", BLOG_URL);
 
             // then
             assertNull(result);
@@ -211,13 +257,18 @@ class LinkToImageServiceTest {
         void iframe_URL이_robots에_막히면_null을_반환한다() throws Exception {
             // given
             given(robotsTxtChecker.isAllowed(BLOG_URL, UA)).willReturn(true);
-            Document outerDoc = Jsoup.parse(
-                    "<html><body><iframe id=\"mainFrame\" src=\"/PostView.naver?blogId=someuser&logNo=12345\"></iframe></body></html>", BLOG_URL);
-            given(safeUrlFetcher.fetchDocument(eq(BLOG_URL), eq(UA), anyInt())).willReturn(outerDoc);
+            Document outerDoc =
+                    Jsoup.parse(
+                            "<html><body><iframe id=\"mainFrame\" src=\"/PostView.naver?blogId=someuser&logNo=12345\"></iframe></body></html>",
+                            BLOG_URL);
+            given(safeUrlFetcher.fetchDocument(eq(BLOG_URL), eq(UA), anyInt()))
+                    .willReturn(outerDoc);
             given(robotsTxtChecker.isAllowed(IFRAME_URL, UA)).willReturn(false);
 
             // when
-            String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractFromNaverBlog", BLOG_URL);
+            String result =
+                    ReflectionTestUtils.invokeMethod(
+                            linkToImageService, "extractFromNaverBlog", BLOG_URL);
 
             // then
             assertNull(result);
@@ -229,19 +280,32 @@ class LinkToImageServiceTest {
         void 모두_허용되면_대표이미지를_추출한다() throws Exception {
             // given
             given(robotsTxtChecker.isAllowed(BLOG_URL, UA)).willReturn(true);
-            Document outerDoc = Jsoup.parse(
-                    "<html><body><iframe id=\"mainFrame\" src=\"/PostView.naver?blogId=someuser&logNo=12345\"></iframe></body></html>", BLOG_URL);
-            given(safeUrlFetcher.fetchDocument(eq(BLOG_URL), eq(UA), anyInt())).willReturn(outerDoc);
+            Document outerDoc =
+                    Jsoup.parse(
+                            "<html><body><iframe id=\"mainFrame\" src=\"/PostView.naver?blogId=someuser&logNo=12345\"></iframe></body></html>",
+                            BLOG_URL);
+            given(safeUrlFetcher.fetchDocument(eq(BLOG_URL), eq(UA), anyInt()))
+                    .willReturn(outerDoc);
             given(robotsTxtChecker.isAllowed(IFRAME_URL, UA)).willReturn(true);
-            Document iframeDoc = Jsoup.parse(
-                    "<html><head><meta property=\"og:image\" content=\"https://blog.naver.com/real-thumb.jpg\"></head><body></body></html>", IFRAME_URL);
-            given(safeUrlFetcher.fetchDocument(eq(IFRAME_URL), eq(UA), anyInt())).willReturn(iframeDoc);
+            Document iframeDoc =
+                    Jsoup.parse(
+                            "<html><head><meta property=\"og:image\" content=\"https://blog.naver.com/real-thumb.jpg\"></head><body></body></html>",
+                            IFRAME_URL);
+            given(safeUrlFetcher.fetchDocument(eq(IFRAME_URL), eq(UA), anyInt()))
+                    .willReturn(iframeDoc);
             HttpURLConnection realThumbConn = imageConnection("image/jpeg", 80_000);
-            given(safeUrlFetcher.openConnection(eq("https://blog.naver.com/real-thumb.jpg"), eq(UA), anyInt(), anyInt()))
+            given(
+                            safeUrlFetcher.openConnection(
+                                    eq("https://blog.naver.com/real-thumb.jpg"),
+                                    eq(UA),
+                                    anyInt(),
+                                    anyInt()))
                     .willReturn(realThumbConn);
 
             // when
-            String result = ReflectionTestUtils.invokeMethod(linkToImageService, "extractFromNaverBlog", BLOG_URL);
+            String result =
+                    ReflectionTestUtils.invokeMethod(
+                            linkToImageService, "extractFromNaverBlog", BLOG_URL);
 
             // then
             assertEquals("https://blog.naver.com/real-thumb.jpg", result);

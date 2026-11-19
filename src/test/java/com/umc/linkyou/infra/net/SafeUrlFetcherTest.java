@@ -1,19 +1,20 @@
 package com.umc.linkyou.infra.net;
 
-import com.sun.net.httpserver.HttpServer;
-import org.jsoup.nodes.Document;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.jsoup.nodes.Document;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import com.sun.net.httpserver.HttpServer;
 
 @DisplayName("SafeUrlFetcher 테스트")
 class SafeUrlFetcherTest {
@@ -33,37 +34,48 @@ class SafeUrlFetcherTest {
     private String startServer() throws Exception {
         server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
 
-        server.createContext("/final", exchange -> {
-            byte[] body = "<html><body>final page</body></html>".getBytes(StandardCharsets.UTF_8);
-            exchange.getResponseHeaders().add("Content-Type", "text/html; charset=UTF-8");
-            exchange.sendResponseHeaders(200, body.length);
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(body);
-            }
-        });
+        server.createContext(
+                "/final",
+                exchange -> {
+                    byte[] body =
+                            "<html><body>final page</body></html>".getBytes(StandardCharsets.UTF_8);
+                    exchange.getResponseHeaders().add("Content-Type", "text/html; charset=UTF-8");
+                    exchange.sendResponseHeaders(200, body.length);
+                    try (OutputStream os = exchange.getResponseBody()) {
+                        os.write(body);
+                    }
+                });
 
-        server.createContext("/start", exchange -> {
-            exchange.getResponseHeaders().add("Location", "/final");
-            exchange.sendResponseHeaders(302, -1);
-            exchange.close();
-        });
+        server.createContext(
+                "/start",
+                exchange -> {
+                    exchange.getResponseHeaders().add("Location", "/final");
+                    exchange.sendResponseHeaders(302, -1);
+                    exchange.close();
+                });
 
-        server.createContext("/loop", exchange -> {
-            exchange.getResponseHeaders().add("Location", "/loop");
-            exchange.sendResponseHeaders(302, -1);
-            exchange.close();
-        });
+        server.createContext(
+                "/loop",
+                exchange -> {
+                    exchange.getResponseHeaders().add("Location", "/loop");
+                    exchange.sendResponseHeaders(302, -1);
+                    exchange.close();
+                });
 
-        server.createContext("/toBlocked", exchange -> {
-            exchange.getResponseHeaders().add("Location", "http://169.254.169.254/");
-            exchange.sendResponseHeaders(302, -1);
-            exchange.close();
-        });
+        server.createContext(
+                "/toBlocked",
+                exchange -> {
+                    exchange.getResponseHeaders().add("Location", "http://169.254.169.254/");
+                    exchange.sendResponseHeaders(302, -1);
+                    exchange.close();
+                });
 
-        server.createContext("/notfound", exchange -> {
-            exchange.sendResponseHeaders(404, -1);
-            exchange.close();
-        });
+        server.createContext(
+                "/notfound",
+                exchange -> {
+                    exchange.sendResponseHeaders(404, -1);
+                    exchange.close();
+                });
 
         server.start();
         return "http://localhost:" + server.getAddress().getPort();
@@ -98,7 +110,8 @@ class SafeUrlFetcherTest {
         void 리다이렉트_목적지가_차단대상이면_예외를_던진다() throws Exception {
             String base = startServer();
 
-            assertThatThrownBy(() -> fetcher.fetchDocument(base + "/toBlocked", "Mozilla/5.0", 5000))
+            assertThatThrownBy(
+                            () -> fetcher.fetchDocument(base + "/toBlocked", "Mozilla/5.0", 5000))
                     .isInstanceOf(SsrfGuard.BlockedException.class);
         }
 
@@ -143,7 +156,8 @@ class SafeUrlFetcherTest {
         void 리다이렉트를_따라간_뒤_최종_연결을_반환한다() throws Exception {
             String base = startServer();
 
-            HttpURLConnection conn = fetcher.openConnection(base + "/start", "Mozilla/5.0", 5000, 5000);
+            HttpURLConnection conn =
+                    fetcher.openConnection(base + "/start", "Mozilla/5.0", 5000, 5000);
 
             assertThat(conn.getResponseCode()).isEqualTo(200);
             conn.disconnect();

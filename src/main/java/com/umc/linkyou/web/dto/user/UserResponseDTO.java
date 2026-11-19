@@ -20,7 +20,7 @@ public class UserResponseDTO {
     @AllArgsConstructor
     public static class JoinResultDTO {
         Long userId;
-        LocalDateTime createdAt;
+        Integer createdAt;
         TokenPair tokenResponse;
     }
 
@@ -34,6 +34,7 @@ public class UserResponseDTO {
         String refreshToken; // 리프레시 토큰
         UserStatus status;
         LocalDateTime inactiveDate;
+        Integer createdAt;
     }
 
     // 리프레시 토큰 로테이션
@@ -42,27 +43,6 @@ public class UserResponseDTO {
     public static class TokenPair {
         private final String accessToken;
         private final String refreshToken;
-    }
-
-    @Builder
-    @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class UserInfoDTO {
-        String nickName;
-
-        String email;
-
-        Gender gender;
-
-        Job job;
-
-        Long myLinku; // 나의 링크
-
-        Long myFolder; // 나의 폴더
-
-        // 내가 만든 ai 링크
-        Boolean myAiLinku;
     }
 
     @Builder
@@ -135,29 +115,5 @@ public class UserResponseDTO {
 
         @Schema(description = "필수 약관 모두 동의했는지 여부", example = "true")
         private boolean allRequiredAgreed;
-    }
-
-    @Getter
-    @Setter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Schema(description = "개별 약관 동의 정보")
-    public static class TermsAgreementDTO {
-
-        @Schema(description = "약관 타입", example = "TERMS_OF_USE")
-        private String termsType;
-
-        @Schema(description = "필수 약관 여부", example = "true")
-        private boolean isRequired;
-
-        @Schema(description = "약관 버전", example = "v1.0")
-        private String termsVersion;
-
-        @Schema(description = "동의 시점", example = "2026-02-12T06:28:00")
-        private LocalDateTime agreedAt;
-
-        @Schema(description = "현재 동의 상태", example = "true")
-        private boolean isAgreed;
     }
 }
