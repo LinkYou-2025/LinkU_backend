@@ -226,6 +226,32 @@ class LinkToImageServiceTest {
             assertEquals("https://imgnews.pstatic.net/thumb.jpg", result);
             verifyNoInteractions(robotsTxtChecker);
         }
+
+        @Test
+        @DisplayName("네이버 블로그 iframe 안 문서를 넘기면 다시 요청하지 않고 대표 이미지를 추출한다")
+        void 네이버_블로그_iframe_안_문서를_넘기면_다시_요청하지_않고_대표_이미지를_추출한다() throws Exception {
+            // given
+            String iframeUrl = "https://blog.naver.com/PostView.naver?blogId=someuser&logNo=12345";
+            Document iframeDoc =
+                    Jsoup.parse(
+                            "<html><head><meta property=\"og:image\" content=\"https://blog.naver.com/real-thumb.jpg\"></head><body></body></html>",
+                            iframeUrl);
+            HttpURLConnection realThumbConn = imageConnection("image/jpeg", 80_000);
+            given(
+                            safeUrlFetcher.openConnection(
+                                    eq("https://blog.naver.com/real-thumb.jpg"),
+                                    eq(UA),
+                                    anyInt(),
+                                    anyInt()))
+                    .willReturn(realThumbConn);
+
+            // when
+            String result = linkToImageService.getRelatedImageFromUrl(iframeUrl, null, iframeDoc);
+
+            // then
+            assertEquals("https://blog.naver.com/real-thumb.jpg", result);
+            verify(safeUrlFetcher, never()).fetchDocument(any(), any(), anyInt());
+        }
     }
 
     @Nested
