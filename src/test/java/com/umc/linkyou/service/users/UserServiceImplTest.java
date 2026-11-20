@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,6 +28,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
@@ -62,6 +64,13 @@ import com.umc.linkyou.web.dto.user.UserResponseDTO;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
+
+    private static final int CREATED_YEAR = 2025;
+
+    private static Users withCreatedAt(Users user) {
+        ReflectionTestUtils.setField(user, "createdAt", LocalDateTime.of(CREATED_YEAR, 3, 1, 0, 0));
+        return user;
+    }
 
     @InjectMocks private UserService userService;
 
@@ -125,7 +134,7 @@ class UserServiceImplTest {
                                 anyString(), eq(Provider.GENERAL)))
                         .thenReturn(Optional.empty());
                 when(userRepository.save(any(Users.class)))
-                        .thenAnswer(invocation -> invocation.getArgument(0));
+                        .thenAnswer(invocation -> withCreatedAt(invocation.getArgument(0)));
                 when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
                 when(categoryRepository.findAll()).thenReturn(new ArrayList<>());
                 when(usersCategoryColorRepository.saveAll(anyList()))
@@ -144,6 +153,7 @@ class UserServiceImplTest {
                 assertEquals(Role.USER, savedUserCaptor.getValue().getRole());
                 assertEquals("accessToken", result.getTokenResponse().getAccessToken());
                 assertEquals("refreshToken", result.getTokenResponse().getRefreshToken());
+                assertEquals(CREATED_YEAR, result.getCreatedAt());
                 verify(termsAgreementService).upsertTerms(any(Users.class), any());
                 verify(alarmSettingRepository).save(any());
             }
@@ -183,7 +193,7 @@ class UserServiceImplTest {
                 when(jobRepository.findById(anyLong()))
                         .thenReturn(Optional.of(Job.builder().id(1L).build()));
                 when(userRepository.save(any(Users.class)))
-                        .thenAnswer(invocation -> invocation.getArgument(0));
+                        .thenAnswer(invocation -> withCreatedAt(invocation.getArgument(0)));
                 when(categoryRepository.findAll()).thenReturn(new ArrayList<>());
                 when(usersCategoryColorRepository.saveAll(anyList()))
                         .thenAnswer(invocation -> invocation.getArgument(0));
@@ -211,6 +221,7 @@ class UserServiceImplTest {
                 assertEquals("완성닉네임", tempUser.getNickName());
                 assertEquals("accessToken", result.getTokenResponse().getAccessToken());
                 assertEquals("refreshToken", result.getTokenResponse().getRefreshToken());
+                assertEquals(CREATED_YEAR, result.getCreatedAt());
                 verify(termsAgreementService).upsertTerms(any(Users.class), any());
             }
         }
@@ -319,6 +330,7 @@ class UserServiceImplTest {
                                 .status(UserStatus.ACTIVE)
                                 .password("encodedPassword")
                                 .build();
+                withCreatedAt(user);
 
                 AuthAccount authAccount =
                         AuthAccount.builder().user(user).email("test@example.com").build();
@@ -353,6 +365,7 @@ class UserServiceImplTest {
 
                 // then
                 assertEquals("mockAccess", result.getAccessToken());
+                assertEquals(CREATED_YEAR, result.getCreatedAt());
                 verify(userStatusValidator).validateLoginAllowed(user);
                 verify(tokenIssueService)
                         .issueTokenPair(
@@ -383,6 +396,7 @@ class UserServiceImplTest {
                                 .password("encodedPassword")
                                 .build();
                 user.withdraw("테스트 탈퇴", java.time.LocalDateTime.now().minusDays(3));
+                withCreatedAt(user);
 
                 AuthAccount authAccount =
                         AuthAccount.builder().user(user).email("inactive@example.com").build();
@@ -411,6 +425,7 @@ class UserServiceImplTest {
                 assertEquals("recoveryToken", result.getAccessToken());
                 assertNull(result.getRefreshToken());
                 assertEquals(UserStatus.INACTIVE, result.getStatus());
+                assertEquals(CREATED_YEAR, result.getCreatedAt());
                 verify(tokenIssueService, never())
                         .issueTokenPair(any(), any(), any(), any(), any(), any());
                 verify(userStatusValidator, never()).validateLoginAllowed(any());
@@ -528,7 +543,7 @@ class UserServiceImplTest {
                 when(userRepository.findById(eq(1L))).thenReturn(Optional.of(user));
                 when(jobRepository.findById(eq(2L))).thenReturn(Optional.of(newJob));
                 when(userRepository.save(any(Users.class)))
-                        .thenAnswer(invocation -> invocation.getArgument(0));
+                        .thenAnswer(invocation -> withCreatedAt(invocation.getArgument(0)));
 
                 // when
                 userService.updateUserProfile(1L, request);
@@ -554,7 +569,7 @@ class UserServiceImplTest {
                 when(userRepository.findById(eq(1L))).thenReturn(Optional.of(user));
                 when(userRepository.findByNickName(eq("새닉네임"))).thenReturn(Optional.empty());
                 when(userRepository.save(any(Users.class)))
-                        .thenAnswer(invocation -> invocation.getArgument(0));
+                        .thenAnswer(invocation -> withCreatedAt(invocation.getArgument(0)));
 
                 // when
                 userService.updateUserProfile(1L, request);

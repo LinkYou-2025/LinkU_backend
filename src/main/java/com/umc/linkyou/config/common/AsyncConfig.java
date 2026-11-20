@@ -1,13 +1,13 @@
 package com.umc.linkyou.config.common;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-
-import java.util.concurrent.Executor;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
 @EnableAsync
@@ -72,7 +72,6 @@ public class AsyncConfig {
         return ex;
     }
 
-
     // 일반 fcm 알림 전송용
     @Bean(name = "fcmTaskExecutor")
     public Executor fcmTaskExecutor() {
@@ -102,7 +101,6 @@ public class AsyncConfig {
         ex.initialize();
         return ex;
     }
-
 
     // 외부 추천 큐레이션 이미지 fetch
     @Bean(name = "imageFetchTaskExecutor")
