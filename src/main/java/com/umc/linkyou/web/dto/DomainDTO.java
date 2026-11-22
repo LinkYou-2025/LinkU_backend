@@ -1,15 +1,13 @@
 package com.umc.linkyou.web.dto;
 
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
-import java.util.List;
-
 public class DomainDTO {
 
-    /**
-     * 도메인 생성/수정 요청 DTO
-     */
+    /** 도메인 생성/수정 요청 DTO */
     @Getter
     @Setter
     @Builder
@@ -27,9 +25,7 @@ public class DomainDTO {
         private String domainTail;
     }
 
-    /**
-     * 단건 응답 DTO
-     */
+    /** 단건 응답 DTO */
     @Getter
     @Setter
     @Builder
@@ -41,9 +37,7 @@ public class DomainDTO {
         private String imageUrl;
     }
 
-    /**
-     * 커서 페이징 응답 DTO
-     */
+    /** 커서 페이징 응답 DTO */
     @Getter
     @Setter
     @Builder
@@ -51,7 +45,7 @@ public class DomainDTO {
     @AllArgsConstructor
     public static class DomainCursorPageResponse {
         private List<DomainReponseDTO> items; // Domain 목록
-        private Long nextCursor;              // 다음 요청 시작 ID
-        private boolean hasNext;              // 다음 페이지 존재 여부
+        private Long nextCursor; // 다음 요청 시작 ID
+        private boolean hasNext; // 다음 페이지 존재 여부
     }
 }

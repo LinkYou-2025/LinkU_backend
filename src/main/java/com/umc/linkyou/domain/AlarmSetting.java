@@ -1,11 +1,13 @@
 package com.umc.linkyou.domain;
 
-
-import com.umc.linkyou.domain.enums.AlarmSettingType;
 import jakarta.persistence.*;
-import lombok.*;
+
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+
+import com.umc.linkyou.domain.enums.AlarmSettingType;
+
+import lombok.*;
 
 @Entity
 @Table(name = "alarm_settings")
@@ -45,8 +47,7 @@ public class AlarmSetting {
             boolean noticeEnabled,
             boolean linkEnabled,
             boolean curationEnabled,
-            boolean folderEnabled
-    ) {
+            boolean folderEnabled) {
         this.user = user;
         this.alarmAllEnabled = alarmAllEnabled;
         this.noticeEnabled = noticeEnabled;

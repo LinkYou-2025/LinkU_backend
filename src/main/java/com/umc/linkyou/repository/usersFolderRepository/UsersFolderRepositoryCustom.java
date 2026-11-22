@@ -1,4 +1,3 @@
 package com.umc.linkyou.repository.usersFolderRepository;
 
-public interface UsersFolderRepositoryCustom {
-}
+public interface UsersFolderRepositoryCustom {}

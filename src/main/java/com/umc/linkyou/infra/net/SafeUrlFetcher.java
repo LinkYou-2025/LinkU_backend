@@ -1,23 +1,23 @@
 package com.umc.linkyou.infra.net;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * {@link SsrfGuard}로 검증한 URL에 대해서만 실제 네트워크 요청을 여는 단일 창구.
- * robots.txt 조회, 제목/본문/이미지 크롤링, URL 도달 가능 여부 확인이 전부 이 클래스를 거친다.
+ * {@link SsrfGuard}로 검증한 URL에 대해서만 실제 네트워크 요청을 여는 단일 창구. robots.txt 조회, 제목/본문/이미지 크롤링, URL 도달 가능 여부
+ * 확인이 전부 이 클래스를 거친다.
  *
- * 자동 리다이렉트는 끄고, 매 hop마다 Location 헤더를 다시 {@link SsrfGuard}로 검증한 뒤 수동으로 따라간다.
- * 원본 URL만 검증하고 리다이렉트 목적지는 그냥 따라가 버리면 allowlist 검증 자체가 우회되기 때문이다.
- * 최대 {@link SsrfGuard#MAX_REDIRECTS}회까지만 허용한다.
+ * <p>자동 리다이렉트는 끄고, 매 hop마다 Location 헤더를 다시 {@link SsrfGuard}로 검증한 뒤 수동으로 따라간다. 원본 URL만 검증하고 리다이렉트
+ * 목적지는 그냥 따라가 버리면 allowlist 검증 자체가 우회되기 때문이다. 최대 {@link SsrfGuard#MAX_REDIRECTS}회까지만 허용한다.
  */
 @Slf4j
 @Component
@@ -30,7 +30,8 @@ public class SafeUrlFetcher {
 
     // robots.txt 조회, URL 도달 가능 여부 확인 등에서 쓰는 raw HttpURLConnection.
     // 반환된 connection은 이미 최종 목적지(리다이렉트를 다 따라간 뒤)에 연결된 상태다.
-    public HttpURLConnection openConnection(String urlStr, String userAgent, int connectTimeoutMs, int readTimeoutMs)
+    public HttpURLConnection openConnection(
+            String urlStr, String userAgent, int connectTimeoutMs, int readTimeoutMs)
             throws IOException {
         String current = urlStr;
         for (int hop = 0; hop <= SsrfGuard.MAX_REDIRECTS; hop++) {
@@ -61,21 +62,24 @@ public class SafeUrlFetcher {
             }
             return conn;
         }
-        throw new SsrfGuard.BlockedException("리다이렉트 허용 횟수(" + SsrfGuard.MAX_REDIRECTS + ") 초과: " + urlStr);
+        throw new SsrfGuard.BlockedException(
+                "리다이렉트 허용 횟수(" + SsrfGuard.MAX_REDIRECTS + ") 초과: " + urlStr);
     }
 
     // 제목/본문/이미지 크롤링에서 쓰는 Jsoup 기반 Document 조회.
-    public Document fetchDocument(String urlStr, String userAgent, int timeoutMs) throws IOException {
+    public Document fetchDocument(String urlStr, String userAgent, int timeoutMs)
+            throws IOException {
         String current = urlStr;
         for (int hop = 0; hop <= SsrfGuard.MAX_REDIRECTS; hop++) {
             URL url = ssrfGuard.validate(current);
 
-            Connection.Response response = Jsoup.connect(url.toString())
-                    .userAgent(userAgent)
-                    .timeout(timeoutMs)
-                    .followRedirects(false)
-                    .ignoreHttpErrors(true) // 상태코드를 직접 보고 리다이렉트/에러를 판단하기 위함
-                    .execute();
+            Connection.Response response =
+                    Jsoup.connect(url.toString())
+                            .userAgent(userAgent)
+                            .timeout(timeoutMs)
+                            .followRedirects(false)
+                            .ignoreHttpErrors(true) // 상태코드를 직접 보고 리다이렉트/에러를 판단하기 위함
+                            .execute();
 
             int status = response.statusCode();
             if (isRedirect(status)) {
@@ -92,7 +96,8 @@ public class SafeUrlFetcher {
             }
             return response.parse();
         }
-        throw new SsrfGuard.BlockedException("리다이렉트 허용 횟수(" + SsrfGuard.MAX_REDIRECTS + ") 초과: " + urlStr);
+        throw new SsrfGuard.BlockedException(
+                "리다이렉트 허용 횟수(" + SsrfGuard.MAX_REDIRECTS + ") 초과: " + urlStr);
     }
 
     // URL이 실제로 응답 가능한 상태인지(2xx~3xx)만 확인한다. LinkuCreateService의 validUrl 필드에 쓰인다.

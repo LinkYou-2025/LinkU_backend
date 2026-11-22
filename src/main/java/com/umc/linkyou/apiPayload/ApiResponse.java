@@ -1,17 +1,18 @@
 package com.umc.linkyou.apiPayload;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.BaseSuccessCode;
 import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
-import java.util.Collections;
 
 @Getter
 @AllArgsConstructor
@@ -41,12 +42,16 @@ public class ApiResponse<T> {
 
     // result가 비어 있을 경우
     public static ApiResponse<Object> onSuccess(BaseSuccessCode code) {
-        return success(code.getReason().getCode(), code.getReason().getMessage(), Collections.emptyMap());
+        return success(
+                code.getReason().getCode(), code.getReason().getMessage(), Collections.emptyMap());
     }
 
     // 기본 SUCCESS, result 포함
     public static <T> ApiResponse<T> onSuccess(T result) {
-        return success(SuccessStatus._OK.getReason().getCode(), SuccessStatus._OK.getReason().getMessage(), result);
+        return success(
+                SuccessStatus._OK.getReason().getCode(),
+                SuccessStatus._OK.getReason().getMessage(),
+                result);
     }
 
     private static <T> ApiResponse<T> success(String code, String message, T result) {

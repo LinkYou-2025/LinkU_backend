@@ -1,9 +1,10 @@
 package com.umc.linkyou.repository;
 
-import com.umc.linkyou.domain.Alarm;
+import java.time.LocalDateTime;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.time.LocalDateTime;
+import com.umc.linkyou.domain.Alarm;
 
 public interface AlarmRepository extends JpaRepository<Alarm, Long> {
     void deleteByCreatedAtBefore(LocalDateTime threshold);

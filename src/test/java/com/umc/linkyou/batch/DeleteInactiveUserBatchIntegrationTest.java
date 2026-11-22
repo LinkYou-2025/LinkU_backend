@@ -1,17 +1,17 @@
 package com.umc.linkyou.batch;
 
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.enums.UserStatus;
-import com.umc.linkyou.jwt.RefreshTokenManager;
-import com.umc.linkyou.repository.redis.FcmTokenRedisRepository;
-import com.umc.linkyou.repository.userRepository.UserRepository;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
+
+import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.*;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.JobRepositoryTestUtils;
-import com.umc.linkyou.support.config.TestExternalConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,25 +20,30 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import java.time.LocalDateTime;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.doThrow;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.UserStatus;
+import com.umc.linkyou.jwt.RefreshTokenManager;
+import com.umc.linkyou.repository.redis.FcmTokenRedisRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.support.config.TestExternalConfig;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(TestExternalConfig.class)
-@TestPropertySource(properties = {
-        "spring.batch.jdbc.initialize-schema=always",
-        "spring.batch.job.enabled=false"
-})
+@TestPropertySource(
+        properties = {
+            "spring.batch.jdbc.initialize-schema=always",
+            "spring.batch.job.enabled=false"
+        })
 @DisplayName("DeleteInactiveUserJob 통합 테스트")
 class DeleteInactiveUserBatchIntegrationTest {
 
     @Autowired private JobLauncher jobLauncher;
     @Autowired private JobRepository jobRepository;
-    @Autowired @Qualifier("deleteInactiveUserJob") private Job deleteInactiveUserJob;
+
+    @Autowired
+    @Qualifier("deleteInactiveUserJob")
+    private Job deleteInactiveUserJob;
 
     @Autowired private UserRepository userRepository;
 
@@ -75,9 +80,14 @@ class DeleteInactiveUserBatchIntegrationTest {
         @DisplayName("INACTIVE 상태이고 inactiveDate가 14일 초과된 사용자는 삭제되고, 미만이거나 ACTIVE인 사용자는 보존된다")
         void INACTIVE_14일초과_삭제_그외_보존() throws Exception {
             // given
-            Users deleteTarget = saveUser("delete-target", UserStatus.INACTIVE, LocalDateTime.now().minusDays(15));
-            Users keepRecent   = saveUser("keep-recent",   UserStatus.INACTIVE, LocalDateTime.now().minusDays(10));
-            Users keepActive   = saveUser("keep-active",   UserStatus.ACTIVE,   null);
+            Users deleteTarget =
+                    saveUser(
+                            "delete-target",
+                            UserStatus.INACTIVE,
+                            LocalDateTime.now().minusDays(15));
+            Users keepRecent =
+                    saveUser("keep-recent", UserStatus.INACTIVE, LocalDateTime.now().minusDays(10));
+            Users keepActive = saveUser("keep-active", UserStatus.ACTIVE, null);
 
             // when
             JobExecution execution = jobLauncherTestUtils.launchJob(uniqueJobParameters());
@@ -93,8 +103,11 @@ class DeleteInactiveUserBatchIntegrationTest {
         @DisplayName("inactiveDate가 정확히 14일 전(경계값)이면 삭제된다")
         void inactiveDate_정확히_14일_전_경계값_삭제() throws Exception {
             // given — inactiveDate == now() - 14일: loe(cutoff) 조건에 해당하므로 삭제 대상
-            Users boundaryUser = saveUser("boundary-user", UserStatus.INACTIVE,
-                    LocalDateTime.now().minusDays(14));
+            Users boundaryUser =
+                    saveUser(
+                            "boundary-user",
+                            UserStatus.INACTIVE,
+                            LocalDateTime.now().minusDays(14));
 
             // when
             JobExecution execution = jobLauncherTestUtils.launchJob(uniqueJobParameters());
@@ -115,8 +128,11 @@ class DeleteInactiveUserBatchIntegrationTest {
         @DisplayName("inactiveDate가 13일 전이면 유예기간 내이므로 삭제되지 않는다")
         void inactiveDate_13일_전_유예기간_보존() throws Exception {
             // given — inactiveDate == now() - 13일: loe(cutoff) 조건 불충족 → 보존
-            Users recentInactive = saveUser("recent-inactive", UserStatus.INACTIVE,
-                    LocalDateTime.now().minusDays(13));
+            Users recentInactive =
+                    saveUser(
+                            "recent-inactive",
+                            UserStatus.INACTIVE,
+                            LocalDateTime.now().minusDays(13));
 
             // when
             JobExecution execution = jobLauncherTestUtils.launchJob(uniqueJobParameters());
@@ -164,11 +180,15 @@ class DeleteInactiveUserBatchIntegrationTest {
         @DisplayName("afterCommit Redis 실패해도 배치는 COMPLETED이고 DB 삭제는 유지된다")
         void afterCommit_Redis_실패해도_COMPLETED_DB_삭제_유지() throws Exception {
             // given
-            Users deleteTarget = saveUser("redis-fail-user", UserStatus.INACTIVE,
-                    LocalDateTime.now().minusDays(15));
+            Users deleteTarget =
+                    saveUser(
+                            "redis-fail-user",
+                            UserStatus.INACTIVE,
+                            LocalDateTime.now().minusDays(15));
 
             doThrow(new RuntimeException("Redis connection refused"))
-                    .when(refreshTokenManager).deleteAllTokens(anyLong());
+                    .when(refreshTokenManager)
+                    .deleteAllTokens(anyLong());
 
             // when
             JobExecution execution = jobLauncherTestUtils.launchJob(uniqueJobParameters());
@@ -182,12 +202,13 @@ class DeleteInactiveUserBatchIntegrationTest {
     // ── 헬퍼 ────────────────────────────────────────────
 
     private Users saveUser(String nickName, UserStatus status, LocalDateTime inactiveDate) {
-        return userRepository.save(Users.builder()
-                .nickName(nickName)
-                .password("pw")
-                .status(status)
-                .inactiveDate(inactiveDate)
-                .build());
+        return userRepository.save(
+                Users.builder()
+                        .nickName(nickName)
+                        .password("pw")
+                        .status(status)
+                        .inactiveDate(inactiveDate)
+                        .build());
     }
 
     private JobParameters uniqueJobParameters() {

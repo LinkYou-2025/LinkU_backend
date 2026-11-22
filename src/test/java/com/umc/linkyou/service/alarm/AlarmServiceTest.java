@@ -1,5 +1,27 @@
 package com.umc.linkyou.service.alarm;
 
+import static com.umc.linkyou.support.fixture.AlarmFixture.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import com.umc.linkyou.apiPayload.code.status.alarm.AlarmErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -17,27 +39,6 @@ import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmResponseDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmSettingResponseDTO;
 import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Pageable;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.util.List;
-import java.util.Optional;
-
-import static com.umc.linkyou.support.fixture.AlarmFixture.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AlarmService 단위 테스트")
@@ -65,10 +66,13 @@ class AlarmServiceTest {
             void 신규토큰_저장() {
                 Users user = user();
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(userFcmTokenRepository.findByUser_IdAndFcmToken(USER_ID, FCM_TOKEN)).willReturn(null);
-                given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user)));
+                given(userFcmTokenRepository.findByUser_IdAndFcmToken(USER_ID, FCM_TOKEN))
+                        .willReturn(null);
+                given(alarmSettingRepository.findByUserId(USER_ID))
+                        .willReturn(Optional.of(defaultSetting(user)));
 
-                alarmService.registerFcmToken(USER_ID, new AlarmRequestDTO.AlarmFcmTokenDTO(FCM_TOKEN));
+                alarmService.registerFcmToken(
+                        USER_ID, new AlarmRequestDTO.AlarmFcmTokenDTO(FCM_TOKEN));
 
                 verify(userFcmTokenRepository).save(any(UsersFcmToken.class));
                 ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
@@ -85,10 +89,13 @@ class AlarmServiceTest {
                 UsersFcmToken token = AlarmFixture.inactiveToken(user);
 
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(userFcmTokenRepository.findByUser_IdAndFcmToken(USER_ID, FCM_TOKEN)).willReturn(token);
-                given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user)));
+                given(userFcmTokenRepository.findByUser_IdAndFcmToken(USER_ID, FCM_TOKEN))
+                        .willReturn(token);
+                given(alarmSettingRepository.findByUserId(USER_ID))
+                        .willReturn(Optional.of(defaultSetting(user)));
 
-                alarmService.registerFcmToken(USER_ID, new AlarmRequestDTO.AlarmFcmTokenDTO(FCM_TOKEN));
+                alarmService.registerFcmToken(
+                        USER_ID, new AlarmRequestDTO.AlarmFcmTokenDTO(FCM_TOKEN));
 
                 assertThat(token.getIsActive()).isTrue();
                 verify(userFcmTokenRepository, never()).save(any());
@@ -105,11 +112,16 @@ class AlarmServiceTest {
             void 유저없음_예외() {
                 given(userRepository.findById(USER_ID)).willReturn(Optional.empty());
 
-                assertThatThrownBy(() ->
-                        alarmService.registerFcmToken(USER_ID, new AlarmRequestDTO.AlarmFcmTokenDTO(FCM_TOKEN)))
+                assertThatThrownBy(
+                                () ->
+                                        alarmService.registerFcmToken(
+                                                USER_ID,
+                                                new AlarmRequestDTO.AlarmFcmTokenDTO(FCM_TOKEN)))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
             }
         }
     }
@@ -122,7 +134,8 @@ class AlarmServiceTest {
         @DisplayName("토큰이 존재하면 deactivate 처리한다")
         void 토큰존재_비활성화() {
             UsersFcmToken token = AlarmFixture.activeToken(user());
-            given(userFcmTokenRepository.findByUser_IdAndFcmToken(USER_ID, FCM_TOKEN)).willReturn(token);
+            given(userFcmTokenRepository.findByUser_IdAndFcmToken(USER_ID, FCM_TOKEN))
+                    .willReturn(token);
 
             alarmService.deleteFcmToken(USER_ID, FCM_TOKEN);
 
@@ -132,7 +145,8 @@ class AlarmServiceTest {
         @Test
         @DisplayName("토큰이 없어도 예외 없이 종료한다")
         void 토큰없음_노옵() {
-            given(userFcmTokenRepository.findByUser_IdAndFcmToken(USER_ID, FCM_TOKEN)).willReturn(null);
+            given(userFcmTokenRepository.findByUser_IdAndFcmToken(USER_ID, FCM_TOKEN))
+                    .willReturn(null);
 
             alarmService.deleteFcmToken(USER_ID, FCM_TOKEN);
 
@@ -149,7 +163,8 @@ class AlarmServiceTest {
         void 설정조회_성공() {
             Users user = user();
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-            given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user)));
+            given(alarmSettingRepository.findByUserId(USER_ID))
+                    .willReturn(Optional.of(defaultSetting(user)));
 
             AlarmSettingResponseDTO result = alarmService.viewAlarm(USER_ID);
 
@@ -165,8 +180,10 @@ class AlarmServiceTest {
 
             assertThatThrownBy(() -> alarmService.viewAlarm(USER_ID))
                     .isInstanceOf(GeneralException.class)
-                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                            .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
+                    .satisfies(
+                            ex ->
+                                    assertThat(((GeneralException) ex).getCode())
+                                            .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
         }
 
         @Test
@@ -177,8 +194,12 @@ class AlarmServiceTest {
 
             assertThatThrownBy(() -> alarmService.viewAlarm(USER_ID))
                     .isInstanceOf(GeneralException.class)
-                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                            .isEqualTo(AlarmErrorStatus.ALARM_SETTING_NOT_INITIALIZED));
+                    .satisfies(
+                            ex ->
+                                    assertThat(((GeneralException) ex).getCode())
+                                            .isEqualTo(
+                                                    AlarmErrorStatus
+                                                            .ALARM_SETTING_NOT_INITIALIZED));
         }
     }
 
@@ -195,9 +216,11 @@ class AlarmServiceTest {
             void ALL_토글_이벤트발행() {
                 Users user = user();
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user)));
+                given(alarmSettingRepository.findByUserId(USER_ID))
+                        .willReturn(Optional.of(defaultSetting(user)));
 
-                AlarmSettingResponseDTO result = alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.ALL);
+                AlarmSettingResponseDTO result =
+                        alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.ALL);
 
                 assertThat(result.isAllEnabled()).isFalse();
                 assertThat(result.isLinkEnabled()).isFalse();
@@ -209,9 +232,11 @@ class AlarmServiceTest {
             void NOTICE_토글_이벤트발행() {
                 Users user = user();
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user)));
+                given(alarmSettingRepository.findByUserId(USER_ID))
+                        .willReturn(Optional.of(defaultSetting(user)));
 
-                AlarmSettingResponseDTO result = alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.NOTICE);
+                AlarmSettingResponseDTO result =
+                        alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.NOTICE);
 
                 assertThat(result.isNoticeEnabled()).isFalse();
                 verify(eventPublisher).publishEvent((Object) any());
@@ -222,9 +247,11 @@ class AlarmServiceTest {
             void LINK_토글_이벤트없음() {
                 Users user = user();
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user)));
+                given(alarmSettingRepository.findByUserId(USER_ID))
+                        .willReturn(Optional.of(defaultSetting(user)));
 
-                AlarmSettingResponseDTO result = alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.LINK);
+                AlarmSettingResponseDTO result =
+                        alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.LINK);
 
                 assertThat(result.isLinkEnabled()).isFalse();
                 assertThat(result.isAllEnabled()).isTrue();
@@ -241,9 +268,11 @@ class AlarmServiceTest {
                 setting.updateCuration(false);
 
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(setting));
+                given(alarmSettingRepository.findByUserId(USER_ID))
+                        .willReturn(Optional.of(setting));
 
-                AlarmSettingResponseDTO result = alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.LINK);
+                AlarmSettingResponseDTO result =
+                        alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.LINK);
 
                 assertThat(result.isAllEnabled()).isFalse();
                 assertThat(result.isLinkEnabled()).isFalse();
@@ -260,12 +289,15 @@ class AlarmServiceTest {
                 setting.updateAll(false);
 
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-                given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(setting));
+                given(alarmSettingRepository.findByUserId(USER_ID))
+                        .willReturn(Optional.of(setting));
 
-                AlarmSettingResponseDTO result = alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.LINK);
+                AlarmSettingResponseDTO result =
+                        alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.LINK);
 
                 assertThat(result.isAllEnabled()).isFalse();
-                assertThat(result.isLinkEnabled()).isFalse(); // alarmAllEnabled && linkEnabled = false
+                assertThat(result.isLinkEnabled())
+                        .isFalse(); // alarmAllEnabled && linkEnabled = false
             }
         }
 
@@ -278,11 +310,15 @@ class AlarmServiceTest {
             void 유저없음_예외() {
                 given(userRepository.findById(USER_ID)).willReturn(Optional.empty());
 
-                assertThatThrownBy(() ->
-                        alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.LINK))
+                assertThatThrownBy(
+                                () ->
+                                        alarmService.updateNoticeAlarmSetting(
+                                                USER_ID, AlarmSettingType.LINK))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
             }
 
             @Test
@@ -291,11 +327,17 @@ class AlarmServiceTest {
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
                 given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.empty());
 
-                assertThatThrownBy(() ->
-                        alarmService.updateNoticeAlarmSetting(USER_ID, AlarmSettingType.NOTICE))
+                assertThatThrownBy(
+                                () ->
+                                        alarmService.updateNoticeAlarmSetting(
+                                                USER_ID, AlarmSettingType.NOTICE))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(AlarmErrorStatus.ALARM_SETTING_NOT_INITIALIZED));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        AlarmErrorStatus
+                                                                .ALARM_SETTING_NOT_INITIALIZED));
             }
         }
     }
@@ -312,9 +354,11 @@ class AlarmServiceTest {
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
             given(alarmRepository.save(any(Alarm.class))).willReturn(savedAlarm);
 
-            FcmSendRequestDTO result = alarmService.createTestAlarm(
-                    USER_ID,
-                    new AlarmRequestDTO.TestAlarmSendDTO(FCM_TOKEN, AlarmType.ANNOUNCEMENT_UPDATE, 100L));
+            FcmSendRequestDTO result =
+                    alarmService.createTestAlarm(
+                            USER_ID,
+                            new AlarmRequestDTO.TestAlarmSendDTO(
+                                    FCM_TOKEN, AlarmType.ANNOUNCEMENT_UPDATE, 100L));
 
             assertThat(result.getAlarmId()).isEqualTo(ALARM_ID);
             assertThat(result.getTargetId()).isEqualTo(100L);
@@ -329,11 +373,14 @@ class AlarmServiceTest {
         @DisplayName("알림이 저장되고 PersonalAlarmEvent가 발행된다")
         void 알림발송_성공() {
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
-            given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user())));
+            given(alarmSettingRepository.findByUserId(USER_ID))
+                    .willReturn(Optional.of(defaultSetting(user())));
             given(alarmRepository.save(any())).willReturn(alarm(AlarmType.LINK_SUMMARY_COMPLETE));
 
-            alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                    AlarmType.LINK_SUMMARY_COMPLETE, 100L, null));
+            alarmService.sendAlarm(
+                    USER_ID,
+                    new AlarmRequestDTO.AlarmSendRequestDTO(
+                            AlarmType.LINK_SUMMARY_COMPLETE, 100L, null));
 
             verify(alarmRepository).save(any());
             verify(userAlarmRepository).save(any());
@@ -345,12 +392,17 @@ class AlarmServiceTest {
         void 폴더삭제알림_본문전체일치() {
             ArgumentCaptor<Alarm> alarmCaptor = ArgumentCaptor.forClass(Alarm.class);
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
-            given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user())));
-            given(alarmRepository.save(alarmCaptor.capture())).willAnswer(inv -> inv.getArgument(0));
+            given(alarmSettingRepository.findByUserId(USER_ID))
+                    .willReturn(Optional.of(defaultSetting(user())));
+            given(alarmRepository.save(alarmCaptor.capture()))
+                    .willAnswer(inv -> inv.getArgument(0));
 
-            alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                    AlarmType.FOLDER_DELETED, 300L,
-                    new AlarmPayload.NicknameAndFolder("주인", "어학")));
+            alarmService.sendAlarm(
+                    USER_ID,
+                    new AlarmRequestDTO.AlarmSendRequestDTO(
+                            AlarmType.FOLDER_DELETED,
+                            300L,
+                            new AlarmPayload.NicknameAndFolder("주인", "어학")));
 
             assertThat(alarmCaptor.getValue().getBody())
                     .isEqualTo("주인님이 '어학' 폴더를 삭제해 더 이상 접근할 수 없어요");
@@ -361,14 +413,17 @@ class AlarmServiceTest {
         void 큐레이션알림_닉네임포함() {
             ArgumentCaptor<Alarm> alarmCaptor = ArgumentCaptor.forClass(Alarm.class);
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
-            given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(defaultSetting(user())));
-            given(alarmRepository.save(alarmCaptor.capture())).willAnswer(inv -> inv.getArgument(0));
+            given(alarmSettingRepository.findByUserId(USER_ID))
+                    .willReturn(Optional.of(defaultSetting(user())));
+            given(alarmRepository.save(alarmCaptor.capture()))
+                    .willAnswer(inv -> inv.getArgument(0));
 
-            alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                    AlarmType.CURATION_UPDATED, 200L, null));
+            alarmService.sendAlarm(
+                    USER_ID,
+                    new AlarmRequestDTO.AlarmSendRequestDTO(
+                            AlarmType.CURATION_UPDATED, 200L, null));
 
-            assertThat(alarmCaptor.getValue().getBody())
-                    .isEqualTo("테스트유저님을 위한 이 달의 큐레이션이 도착했어요!");
+            assertThat(alarmCaptor.getValue().getBody()).isEqualTo("테스트유저님을 위한 이 달의 큐레이션이 도착했어요!");
         }
 
         @Test
@@ -376,12 +431,17 @@ class AlarmServiceTest {
         void 유저없음_예외() {
             given(userRepository.findById(USER_ID)).willReturn(Optional.empty());
 
-            assertThatThrownBy(() ->
-                    alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                            AlarmType.LINK_SUMMARY_COMPLETE, 1L, null)))
+            assertThatThrownBy(
+                            () ->
+                                    alarmService.sendAlarm(
+                                            USER_ID,
+                                            new AlarmRequestDTO.AlarmSendRequestDTO(
+                                                    AlarmType.LINK_SUMMARY_COMPLETE, 1L, null)))
                     .isInstanceOf(GeneralException.class)
-                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                            .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
+                    .satisfies(
+                            ex ->
+                                    assertThat(((GeneralException) ex).getCode())
+                                            .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
         }
 
         @Test
@@ -393,8 +453,10 @@ class AlarmServiceTest {
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
             given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.of(setting));
 
-            alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                    AlarmType.LINK_SUMMARY_COMPLETE, 1L, new AlarmPayload.LinkTitle("제목")));
+            alarmService.sendAlarm(
+                    USER_ID,
+                    new AlarmRequestDTO.AlarmSendRequestDTO(
+                            AlarmType.LINK_SUMMARY_COMPLETE, 1L, new AlarmPayload.LinkTitle("제목")));
 
             verify(alarmRepository, never()).save(any());
             verify(userAlarmRepository, never()).save(any());
@@ -407,8 +469,10 @@ class AlarmServiceTest {
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user()));
             given(alarmSettingRepository.findByUserId(USER_ID)).willReturn(Optional.empty());
 
-            alarmService.sendAlarm(USER_ID, new AlarmRequestDTO.AlarmSendRequestDTO(
-                    AlarmType.LINK_SUMMARY_COMPLETE, 1L, new AlarmPayload.LinkTitle("제목")));
+            alarmService.sendAlarm(
+                    USER_ID,
+                    new AlarmRequestDTO.AlarmSendRequestDTO(
+                            AlarmType.LINK_SUMMARY_COMPLETE, 1L, new AlarmPayload.LinkTitle("제목")));
 
             verify(alarmRepository, never()).save(any());
             verify(userAlarmRepository, never()).save(any());
@@ -442,7 +506,8 @@ class AlarmServiceTest {
             List<Long> ids = List.of(MEMBER_A, MEMBER_B, MEMBER_C);
             given(alarmSettingRepository.findAllByUserIdIn(ids)).willReturn(List.of(sA, sB, sC));
             given(alarmRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
-            given(userRepository.getReferenceById(anyLong())).willAnswer(inv -> userWith(inv.getArgument(0)));
+            given(userRepository.getReferenceById(anyLong()))
+                    .willAnswer(inv -> userWith(inv.getArgument(0)));
 
             alarmService.sendAlarmBulk(ids, AlarmType.FOLDER_DELETED, TARGET_ID, payload);
 
@@ -458,9 +523,11 @@ class AlarmServiceTest {
         void 전원꺼짐_스킵() {
             AlarmSetting sA = defaultSetting(userWith(MEMBER_A));
             sA.updateFolder(false);
-            given(alarmSettingRepository.findAllByUserIdIn(List.of(MEMBER_A))).willReturn(List.of(sA));
+            given(alarmSettingRepository.findAllByUserIdIn(List.of(MEMBER_A)))
+                    .willReturn(List.of(sA));
 
-            alarmService.sendAlarmBulk(List.of(MEMBER_A), AlarmType.FOLDER_DELETED, TARGET_ID, payload);
+            alarmService.sendAlarmBulk(
+                    List.of(MEMBER_A), AlarmType.FOLDER_DELETED, TARGET_ID, payload);
 
             verify(alarmRepository, never()).save(any());
             verify(userAlarmRepository, never()).saveAll(any());
@@ -472,7 +539,8 @@ class AlarmServiceTest {
         void 빈리스트_스킵() {
             alarmService.sendAlarmBulk(List.of(), AlarmType.FOLDER_DELETED, TARGET_ID, payload);
 
-            verifyNoInteractions(alarmSettingRepository, alarmRepository, userAlarmRepository, eventPublisher);
+            verifyNoInteractions(
+                    alarmSettingRepository, alarmRepository, userAlarmRepository, eventPublisher);
         }
     }
 
@@ -487,8 +555,9 @@ class AlarmServiceTest {
             given(savedAlarm.getId()).willReturn(ALARM_ID);
             given(alarmRepository.save(any())).willReturn(savedAlarm);
 
-            alarmService.registerAdminAlarm(new AlarmRequestDTO.AdminAlarmSendRequestDTO(
-                    AlarmType.ANNOUNCEMENT_UPDATE, "공지 내용"));
+            alarmService.registerAdminAlarm(
+                    new AlarmRequestDTO.AdminAlarmSendRequestDTO(
+                            AlarmType.ANNOUNCEMENT_UPDATE, "공지 내용"));
 
             verify(eventPublisher, times(2)).publishEvent((Object) any());
         }
@@ -505,7 +574,9 @@ class AlarmServiceTest {
             UserAlarm ua = userAlarm(user, alarm(AlarmType.CURATION_UPDATED));
 
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-            given(userAlarmRepository.findAlarmListByCursor(eq(USER_ID), anyLong(), any(Pageable.class)))
+            given(
+                            userAlarmRepository.findAlarmListByCursor(
+                                    eq(USER_ID), anyLong(), any(Pageable.class)))
                     .willReturn(List.of(ua));
 
             AlarmResponseDTO.AlarmCursorPageResponse result =
@@ -522,7 +593,9 @@ class AlarmServiceTest {
             UserAlarm ua = userAlarm(user, alarm(AlarmType.FOLDER_DELETED));
 
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-            given(userAlarmRepository.findAlarmListByCursor(eq(USER_ID), anyLong(), anyList(), any(Pageable.class)))
+            given(
+                            userAlarmRepository.findAlarmListByCursor(
+                                    eq(USER_ID), anyLong(), anyList(), any(Pageable.class)))
                     .willReturn(List.of(ua));
 
             AlarmResponseDTO.AlarmCursorPageResponse result =
@@ -548,11 +621,15 @@ class AlarmServiceTest {
         void 유저없음_예외() {
             given(userRepository.findById(USER_ID)).willReturn(Optional.empty());
 
-            assertThatThrownBy(() ->
-                    alarmService.viewAlarmList(USER_ID, AlarmSettingType.ALL, null, 10))
+            assertThatThrownBy(
+                            () ->
+                                    alarmService.viewAlarmList(
+                                            USER_ID, AlarmSettingType.ALL, null, 10))
                     .isInstanceOf(GeneralException.class)
-                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                            .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
+                    .satisfies(
+                            ex ->
+                                    assertThat(((GeneralException) ex).getCode())
+                                            .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
         }
     }
 
@@ -563,7 +640,9 @@ class AlarmServiceTest {
         @Test
         @DisplayName("읽지 않은 알림이 있으면 hasUnread=true를 반환한다")
         void 읽지않은알림_있음() {
-            given(userAlarmRepository.existsByUser_IdAndIsReadFalseAndCreatedAtAfter(eq(USER_ID), any()))
+            given(
+                            userAlarmRepository.existsByUser_IdAndIsReadFalseAndCreatedAtAfter(
+                                    eq(USER_ID), any()))
                     .willReturn(true);
 
             AlarmResponseDTO.UnreadAlarmExistsDTO result = alarmService.hasUnreadAlarm(USER_ID);
@@ -574,7 +653,9 @@ class AlarmServiceTest {
         @Test
         @DisplayName("읽지 않은 알림이 없으면 hasUnread=false를 반환한다")
         void 읽지않은알림_없음() {
-            given(userAlarmRepository.existsByUser_IdAndIsReadFalseAndCreatedAtAfter(eq(USER_ID), any()))
+            given(
+                            userAlarmRepository.existsByUser_IdAndIsReadFalseAndCreatedAtAfter(
+                                    eq(USER_ID), any()))
                     .willReturn(false);
 
             AlarmResponseDTO.UnreadAlarmExistsDTO result = alarmService.hasUnreadAlarm(USER_ID);
@@ -590,9 +671,11 @@ class AlarmServiceTest {
         @Test
         @DisplayName("알림이 있으면 AlarmDetailDTO를 반환한다")
         void 알림상세_조회_성공() {
-            given(alarmRepository.findById(ALARM_ID)).willReturn(Optional.of(alarm(AlarmType.ANNOUNCEMENT_UPDATE)));
+            given(alarmRepository.findById(ALARM_ID))
+                    .willReturn(Optional.of(alarm(AlarmType.ANNOUNCEMENT_UPDATE)));
 
-            AlarmResponseDTO.AlarmDetailDTO result = alarmService.viewAlarmDetail(USER_ID, ALARM_ID);
+            AlarmResponseDTO.AlarmDetailDTO result =
+                    alarmService.viewAlarmDetail(USER_ID, ALARM_ID);
 
             assertThat(result.title()).isEqualTo(AlarmType.ANNOUNCEMENT_UPDATE.getTitle());
             assertThat(result.content()).isNotBlank();
@@ -605,8 +688,10 @@ class AlarmServiceTest {
 
             assertThatThrownBy(() -> alarmService.viewAlarmDetail(USER_ID, ALARM_ID))
                     .isInstanceOf(GeneralException.class)
-                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                            .isEqualTo(AlarmErrorStatus.ALARM_NOT_FOUND));
+                    .satisfies(
+                            ex ->
+                                    assertThat(((GeneralException) ex).getCode())
+                                            .isEqualTo(AlarmErrorStatus.ALARM_NOT_FOUND));
         }
     }
 
@@ -637,8 +722,10 @@ class AlarmServiceTest {
 
             assertThatThrownBy(() -> alarmService.markAlarmAsRead(USER_ID, ALARM_ID))
                     .isInstanceOf(GeneralException.class)
-                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                            .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
+                    .satisfies(
+                            ex ->
+                                    assertThat(((GeneralException) ex).getCode())
+                                            .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
         }
 
         @Test
@@ -649,8 +736,10 @@ class AlarmServiceTest {
 
             assertThatThrownBy(() -> alarmService.markAlarmAsRead(USER_ID, ALARM_ID))
                     .isInstanceOf(GeneralException.class)
-                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                            .isEqualTo(AlarmErrorStatus.ALARM_NOT_FOUND));
+                    .satisfies(
+                            ex ->
+                                    assertThat(((GeneralException) ex).getCode())
+                                            .isEqualTo(AlarmErrorStatus.ALARM_NOT_FOUND));
         }
 
         @Test
@@ -665,8 +754,10 @@ class AlarmServiceTest {
 
             assertThatThrownBy(() -> alarmService.markAlarmAsRead(USER_ID, ALARM_ID))
                     .isInstanceOf(GeneralException.class)
-                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                            .isEqualTo(AlarmErrorStatus.ALARM_NOT_FOUND));
+                    .satisfies(
+                            ex ->
+                                    assertThat(((GeneralException) ex).getCode())
+                                            .isEqualTo(AlarmErrorStatus.ALARM_NOT_FOUND));
         }
     }
 }

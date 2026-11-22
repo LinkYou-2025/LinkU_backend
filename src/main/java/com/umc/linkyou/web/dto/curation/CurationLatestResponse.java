@@ -19,6 +19,8 @@ public class CurationLatestResponse {
     @Schema(description = "큐레이션 기준 월", example = "2025-07")
     private String month;
 
-    @Schema(description = "썸네일 이미지 URL (섹션 1 대표 이미지)", example = "https://d3f9zmi4jicqrs.cloudfront.net/curation/section01/07.png")
+    @Schema(
+            description = "썸네일 이미지 URL (섹션 1 대표 이미지)",
+            example = "https://d3f9zmi4jicqrs.cloudfront.net/curation/section01/07.png")
     private String thumbnailUrl;
 }

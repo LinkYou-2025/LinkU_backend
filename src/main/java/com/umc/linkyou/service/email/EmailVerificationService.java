@@ -1,26 +1,29 @@
 package com.umc.linkyou.service.email;
 
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.util.Objects;
+
+import jakarta.mail.internet.AddressException;
+
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.domain.redis.EmailVerificationCache;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.redis.EmailVerificationRedisRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import jakarta.mail.internet.AddressException;
-import java.security.SecureRandom;
-import java.time.Duration;
-import java.util.Objects;
 
 /*
-    * 이메일 인증 기능을 담당하는 서비스
-    * 회원가입 시 이메일로 인증 코드를 발송하고, 사용자가 입력한 코드와 Redis에 저장된 코드를 비교하여 검증하는 로직을 포함
-    * 도메인 검증 로직 포함
+ * 이메일 인증 기능을 담당하는 서비스
+ * 회원가입 시 이메일로 인증 코드를 발송하고, 사용자가 입력한 코드와 Redis에 저장된 코드를 비교하여 검증하는 로직을 포함
+ * 도메인 검증 로직 포함
  */
 @Slf4j
 @Service
@@ -55,8 +58,13 @@ public class EmailVerificationService {
             throw new UserHandler(UserErrorStatus._DUPLICATE_JOIN_REQUEST);
         }
 
-        rateLimiter.enforce(email, SEND_COOLDOWN_KEY, DAILY_SEND_COUNT_KEY,
-                SEND_COOLDOWN, DAILY_LIMIT_TTL, MAX_DAILY_SEND_COUNT);
+        rateLimiter.enforce(
+                email,
+                SEND_COOLDOWN_KEY,
+                DAILY_SEND_COUNT_KEY,
+                SEND_COOLDOWN,
+                DAILY_LIMIT_TTL,
+                MAX_DAILY_SEND_COUNT);
 
         String hashedEmail = EmailRateLimiter.hashEmail(email);
         String code = generateCode();
@@ -71,8 +79,11 @@ public class EmailVerificationService {
     // Redis에 코드가 없으면 만료, 코드 불일치면 검증 실패
     public void verifyCode(String email, String code) {
         String hashedEmail = EmailRateLimiter.hashEmail(email);
-        EmailVerificationCache cache = emailVerificationRedisRepository.findById(hashedEmail)
-                .orElseThrow(() -> new UserHandler(UserErrorStatus._EXPIRED_VERIFICATION_CODE));
+        EmailVerificationCache cache =
+                emailVerificationRedisRepository
+                        .findById(hashedEmail)
+                        .orElseThrow(
+                                () -> new UserHandler(UserErrorStatus._EXPIRED_VERIFICATION_CODE));
 
         if (!Objects.equals(cache.getCode(), code)) {
             long failureCount = increaseVerifyFailureCount(hashedEmail);

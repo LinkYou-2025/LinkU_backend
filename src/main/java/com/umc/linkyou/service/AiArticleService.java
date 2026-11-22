@@ -1,7 +1,12 @@
 package com.umc.linkyou.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -14,21 +19,16 @@ import com.umc.linkyou.domain.enums.AlarmType;
 import com.umc.linkyou.domain.mapping.UsersLinku;
 import com.umc.linkyou.infra.ai.AiArticleAnalyzer;
 import com.umc.linkyou.infra.ai.dto.AiArticleResultDTO;
-
-import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.UserLinkuRepository.UsersLinkuRepository;
+import com.umc.linkyou.repository.aiArticleRepository.AiArticleRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.service.alarm.AlarmService;
 import com.umc.linkyou.web.dto.AiArticleResponseDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import com.umc.linkyou.web.dto.linku.LinkuResponseDTO;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -43,25 +43,31 @@ public class AiArticleService {
 
     @Transactional
     public AiArticleResponseDTO.AiArticleResultDTO saveAiArticle(Long userLinkuId, Long userId) {
-        userRepository.findById(userId)
+        userRepository
+                .findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         UsersLinku usersLinku = getOwnedUsersLinku(userId, userLinkuId);
         Linku linku = usersLinku.getLinku();
         // 동일 (user, linku) 조합으로 저장된 UsersLinku가 여러 건일 수 있다. 응답/알림에는 최신 1건을
         // 대표로 쓰지만, "AI 요약 있음" 표시는 같은 링크를 여러 번 저장한 모든 건에 동일하게 남아야 한다
         // (요약은 linku 단위로 한 번만 생성되므로, 그 link를 저장한 기록이라면 몇 번째 저장이든 동일하게 적용된다).
-        List<UsersLinku> usersLinkus = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linku.getLinkuId());
+        List<UsersLinku> usersLinkus =
+                usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linku.getLinkuId());
 
         AiArticleResultDTO result = aiArticleAnalyzer.analyzeByUrl(linku.getLinkuUrl());
 
-        AiArticle article = aiArticleRepository.findByLinku(linku)
-                .map(existing -> {
-                    existing.updateSummary(result.summary());
-                    return existing;
-                })
-                .orElseGet(() -> aiArticleRepository.save(
-                        AiArticleConverter.toEntity(result, linku)
-                ));
+        AiArticle article =
+                aiArticleRepository
+                        .findByLinku(linku)
+                        .map(
+                                existing -> {
+                                    existing.updateSummary(result.summary());
+                                    return existing;
+                                })
+                        .orElseGet(
+                                () ->
+                                        aiArticleRepository.save(
+                                                AiArticleConverter.toEntity(result, linku)));
 
         usersLinkus.forEach(ul -> ul.markAiExist(true));
         usersLinku.markAiExist(true);
@@ -69,20 +75,27 @@ public class AiArticleService {
         String linkTitle = resolveTitle(linku, usersLinku);
 
         // 알림 클릭 시 요청한 사용자 저장 링크 화면으로 이동할 수 있도록 userLinkuId를 전달한다.
-        alarmService.sendAlarm(userId, new AlarmRequestDTO.AlarmSendRequestDTO(
-                AlarmType.LINK_SUMMARY_COMPLETE, usersLinku.getUserLinkuId(), new AlarmPayload.LinkTitle(linkTitle)));
+        alarmService.sendAlarm(
+                userId,
+                new AlarmRequestDTO.AlarmSendRequestDTO(
+                        AlarmType.LINK_SUMMARY_COMPLETE,
+                        usersLinku.getUserLinkuId(),
+                        new AlarmPayload.LinkTitle(linkTitle)));
 
         return AiArticleConverter.toDto(article, linku, usersLinku, resolveTags(linku));
     }
 
     @Transactional
-    public AiArticleResponseDTO.AiArticleResultDTO saveOrGetAiArticle(Long userLinkuId, Long userId) {
+    public AiArticleResponseDTO.AiArticleResultDTO saveOrGetAiArticle(
+            Long userLinkuId, Long userId) {
         UsersLinku usersLinku = getOwnedUsersLinku(userId, userLinkuId);
         Linku linku = usersLinku.getLinku();
 
         AiArticle aiArticle = aiArticleRepository.findByLinku(linku).orElse(null);
 
-        if (aiArticle == null || aiArticle.getSummary() == null || aiArticle.getSummary().isBlank()) {
+        if (aiArticle == null
+                || aiArticle.getSummary() == null
+                || aiArticle.getSummary().isBlank()) {
             return saveAiArticle(userLinkuId, userId);
         } else {
             return showAiArticle(userLinkuId, userId);
@@ -93,15 +106,22 @@ public class AiArticleService {
     public AiArticleResponseDTO.AiArticleResultDTO showAiArticle(Long userLinkuId, Long userId) {
         UsersLinku usersLinku = getOwnedUsersLinku(userId, userLinkuId);
         Linku linku = usersLinku.getLinku();
-        AiArticle article = aiArticleRepository.findByLinku(linku)
-                .orElseThrow(() -> new GeneralException(AiArticleErrorStatus._AI_ARTICLE_NOT_FOUND));
-        userRepository.findById(userId)
+        AiArticle article =
+                aiArticleRepository
+                        .findByLinku(linku)
+                        .orElseThrow(
+                                () ->
+                                        new GeneralException(
+                                                AiArticleErrorStatus._AI_ARTICLE_NOT_FOUND));
+        userRepository
+                .findById(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
         // 동일 (user, linku) 조합으로 저장된 UsersLinku가 여러 건일 수 있다. 응답에는 최신 1건을 대표로
         // 쓰되, "AI 요약 있음" 표시는 본인이 저장한 모든 건에 동일하게 남긴다 (saveAiArticle과 동일한 패턴).
         // 요청 유저가 이 linku를 저장한 적이 없으면(=UsersLinku 없음) 소유권이 없는 것이므로 예외를 던진다.
         // (다른 유저가 먼저 요약을 만들어둔 linkuId를 알기만 하면 조회되는 것을 막기 위함)
-        List<UsersLinku> usersLinkus = usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linku.getLinkuId());
+        List<UsersLinku> usersLinkus =
+                usersLinkuRepository.findByUser_IdAndLinku_LinkuId(userId, linku.getLinkuId());
 
         // 다른 유저가 먼저 만들어둔 요약이라도, 본인이 직접 조회한 시점부터는 본인 소유 UsersLinku에도
         // "AI 요약 있음"으로 남긴다 (본인이 요청/조회한 적 없는데 true로 보이는 문제를 막기 위해 저장
@@ -113,8 +133,11 @@ public class AiArticleService {
     }
 
     private UsersLinku getOwnedUsersLinku(Long userId, Long userLinkuId) {
-        UsersLinku usersLinku = usersLinkuRepository.findById(userLinkuId)
-                .orElseThrow(() -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
+        UsersLinku usersLinku =
+                usersLinkuRepository
+                        .findById(userLinkuId)
+                        .orElseThrow(
+                                () -> new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND));
         if (!usersLinku.getUser().getId().equals(userId)) {
             throw new GeneralException(LinkuErrorStatus._USER_LINKU_NOT_FOUND);
         }
@@ -139,19 +162,21 @@ public class AiArticleService {
 
     // categoryId가 null이면(=쿼리 파라미터 생략) "전체" 카테고리로 간주해 필터 없이 조회한다.
     @Transactional(readOnly = true)
-    public LinkuResponseDTO.LinkuSliceResultDTO getMyAiArticlesByCategory(Long userId, Long categoryId, Long cursor, int limit) {
-        List<UsersLinku> usersLinkus = usersLinkuRepository.fetchAiArticlesByCategoryIdWithCursor(userId, categoryId, cursor, limit);
+    public LinkuResponseDTO.LinkuSliceResultDTO getMyAiArticlesByCategory(
+            Long userId, Long categoryId, Long cursor, int limit) {
+        List<UsersLinku> usersLinkus =
+                usersLinkuRepository.fetchAiArticlesByCategoryIdWithCursor(
+                        userId, categoryId, cursor, limit);
 
         boolean hasNext = usersLinkus.size() > limit;
         List<UsersLinku> resultList = hasNext ? usersLinkus.subList(0, limit) : usersLinkus;
 
-        Long nextCursor = hasNext
-                ? resultList.get(resultList.size() - 1).getUserLinkuId()
-                : null;
+        Long nextCursor = hasNext ? resultList.get(resultList.size() - 1).getUserLinkuId() : null;
 
-        List<LinkuResponseDTO.AiArticleSummaryDTO> linkuResultDTOs = resultList.stream()
-                .map(LinkuConverter::toAiArticleSummaryDTO)
-                .collect(Collectors.toList());
+        List<LinkuResponseDTO.AiArticleSummaryDTO> linkuResultDTOs =
+                resultList.stream()
+                        .map(LinkuConverter::toAiArticleSummaryDTO)
+                        .collect(Collectors.toList());
 
         return LinkuResponseDTO.LinkuSliceResultDTO.builder()
                 .linkuList(linkuResultDTOs)

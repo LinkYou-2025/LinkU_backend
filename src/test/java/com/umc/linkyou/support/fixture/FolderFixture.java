@@ -14,12 +14,7 @@ public class FolderFixture {
     public static final Long CATEGORY_ID = 10L;
 
     public static Users owner() {
-        return
-                Users.builder()
-                        .id(OWNER_ID)
-                        .nickName("주인")
-                        .role(Role.USER)
-                        .build();
+        return Users.builder().id(OWNER_ID).nickName("주인").role(Role.USER).build();
     }
 
     public static Category category() {
@@ -27,10 +22,7 @@ public class FolderFixture {
     }
 
     public static Folder folder() {
-        return
-                Folder.builder()
-                        .folderId(FOLDER_ID)
-                        .folderName("어학").build();
+        return Folder.builder().folderId(FOLDER_ID).folderName("어학").build();
     }
 
     public static Folder parentFolder() {

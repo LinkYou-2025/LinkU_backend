@@ -1,5 +1,25 @@
 package com.umc.linkyou.service.curation;
 
+import static com.umc.linkyou.support.fixture.CurationFixture.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -13,25 +33,6 @@ import com.umc.linkyou.web.dto.curation.CurationDetailResponse;
 import com.umc.linkyou.web.dto.curation.CurationLatestResponse;
 import com.umc.linkyou.web.dto.curation.CurationListResponse;
 import com.umc.linkyou.web.dto.curation.CurationSectionResponse;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-
-import java.util.List;
-import java.util.Optional;
-
-import static com.umc.linkyou.support.fixture.CurationFixture.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CurationService 단위 테스트")
@@ -57,8 +58,10 @@ class CurationServiceTest {
                 given(curationRepository.save(any())).willReturn(curation(user, MONTH));
 
                 boolean result;
-                try (MockedStatic<TransactionSynchronizationManager> tsm = mockStatic(TransactionSynchronizationManager.class)) {
-                    tsm.when(() -> TransactionSynchronizationManager.registerSynchronization(any())).thenAnswer(inv -> null);
+                try (MockedStatic<TransactionSynchronizationManager> tsm =
+                        mockStatic(TransactionSynchronizationManager.class)) {
+                    tsm.when(() -> TransactionSynchronizationManager.registerSynchronization(any()))
+                            .thenAnswer(inv -> null);
 
                     result = curationService.generateCurationForUser(USER_ID, MONTH);
                 }
@@ -91,8 +94,10 @@ class CurationServiceTest {
 
                 assertThatThrownBy(() -> curationService.generateCurationForUser(USER_ID, MONTH))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
             }
         }
     }
@@ -112,7 +117,8 @@ class CurationServiceTest {
                 given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
                 given(curationRepository.findById(CURATION_ID)).willReturn(Optional.of(curation));
 
-                CurationDetailResponse result = curationService.getCurationDetail(USER_ID, CURATION_ID);
+                CurationDetailResponse result =
+                        curationService.getCurationDetail(USER_ID, CURATION_ID);
 
                 assertThat(result.getMonth()).isEqualTo(MONTH);
                 assertThat(result.isMentReady()).isFalse();
@@ -129,8 +135,10 @@ class CurationServiceTest {
 
                 assertThatThrownBy(() -> curationService.getCurationDetail(USER_ID, CURATION_ID))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(UserErrorStatus._USER_NOT_FOUND));
             }
 
             @Test
@@ -141,8 +149,11 @@ class CurationServiceTest {
 
                 assertThatThrownBy(() -> curationService.getCurationDetail(USER_ID, CURATION_ID))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(CurationErrorStatus._CURATION_NOT_FOUND));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        CurationErrorStatus._CURATION_NOT_FOUND));
             }
 
             @Test
@@ -157,8 +168,11 @@ class CurationServiceTest {
 
                 assertThatThrownBy(() -> curationService.getCurationDetail(USER_ID, CURATION_ID))
                         .isInstanceOf(GeneralException.class)
-                        .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                                .isEqualTo(CurationErrorStatus._CURATION_FORBIDDEN));
+                        .satisfies(
+                                ex ->
+                                        assertThat(((GeneralException) ex).getCode())
+                                                .isEqualTo(
+                                                        CurationErrorStatus._CURATION_FORBIDDEN));
             }
         }
     }
@@ -171,8 +185,10 @@ class CurationServiceTest {
         void 연도범위벗어남_예외() {
             assertThatThrownBy(() -> curationService.getCurationList(USER_ID, 2024))
                     .isInstanceOf(GeneralException.class)
-                    .satisfies(ex -> assertThat(((GeneralException) ex).getCode())
-                            .isEqualTo(CurationErrorStatus._CURATION_INVALID_YEAR));
+                    .satisfies(
+                            ex ->
+                                    assertThat(((GeneralException) ex).getCode())
+                                            .isEqualTo(CurationErrorStatus._CURATION_INVALID_YEAR));
         }
 
         @Test
@@ -181,7 +197,8 @@ class CurationServiceTest {
             Users user = user();
             Curation curation = Curation.builder().user(user).baseMonth("2026-03").build();
 
-            given(curationRepository.findAllByUserIdAndYear(USER_ID, "2026")).willReturn(List.of(curation));
+            given(curationRepository.findAllByUserIdAndYear(USER_ID, "2026"))
+                    .willReturn(List.of(curation));
             given(curationSectionInfoRepository.findByMonthAndSectionNumber("2026-03", 1))
                     .willReturn(Optional.of(CurationSectionInfo.builder().imageUrl("url").build()));
 
@@ -198,7 +215,8 @@ class CurationServiceTest {
         @DisplayName("최근 큐레이션이 있으면 정보를 채워 반환한다")
         void 최근큐레이션존재_반환() {
             Users user = user();
-            Curation curation = Curation.builder().curationId(CURATION_ID).user(user).baseMonth(MONTH).build();
+            Curation curation =
+                    Curation.builder().curationId(CURATION_ID).user(user).baseMonth(MONTH).build();
 
             given(curationRepository.findLatestByUserId(USER_ID)).willReturn(Optional.of(curation));
             given(curationSectionInfoRepository.findByMonthAndSectionNumber(MONTH, 1))
@@ -229,13 +247,14 @@ class CurationServiceTest {
         @Test
         @DisplayName("섹션 정보가 있으면 순서대로 매핑하여 반환한다")
         void 섹션정보존재_매핑반환() {
-            CurationSectionInfo section = CurationSectionInfo.builder()
-                    .month(MONTH)
-                    .sectionNumber(1)
-                    .title("제목")
-                    .description("설명")
-                    .imageUrl("image-url")
-                    .build();
+            CurationSectionInfo section =
+                    CurationSectionInfo.builder()
+                            .month(MONTH)
+                            .sectionNumber(1)
+                            .title("제목")
+                            .description("설명")
+                            .imageUrl("image-url")
+                            .build();
 
             given(curationSectionInfoRepository.findAllByMonth(MONTH)).willReturn(List.of(section));
 

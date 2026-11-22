@@ -1,22 +1,19 @@
 package com.umc.linkyou.oauth2.mobile.controller;
 
-import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
-import com.umc.linkyou.service.users.UserWithdrawService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * 카카오 연결 해제 웹훅 처리를 위한 컨트롤러
- * 사용자가 카카오톡 설정에서 연결 해제를 할 경우 카카오 서버가 이 엔드포인트로 POST 요청을 보냅니다.
- */
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.*;
+
+import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
+import com.umc.linkyou.service.users.UserWithdrawService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/** 카카오 연결 해제 웹훅 처리를 위한 컨트롤러 사용자가 카카오톡 설정에서 연결 해제를 할 경우 카카오 서버가 이 엔드포인트로 POST 요청을 보냅니다. */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/webhooks/kakao")
@@ -44,18 +41,17 @@ public class KakaoWebhookController {
         }
 
         // 2. 카카오 유저 ID(user_id) 추출 및 검증
-        String kakaoExternalId = Optional.ofNullable(payload)
-                .map(p -> p.get("user_id"))
-                .map(Object::toString)
-                .filter(id -> !id.isBlank())
-                .orElse(null);
+        String kakaoExternalId =
+                Optional.ofNullable(payload)
+                        .map(p -> p.get("user_id"))
+                        .map(Object::toString)
+                        .filter(id -> !id.isBlank())
+                        .orElse(null);
 
         if (kakaoExternalId == null) {
             log.error("웹훅 페이로드에 유효한 user_id가 누락되었습니다.");
             return ApiResponse.onFailure(
-                    ErrorStatus._BAD_REQUEST.getCode(),
-                    "웹훅 페이로드에 유효한 user_id가 누락되었습니다.",
-                    null);
+                    ErrorStatus._BAD_REQUEST.getCode(), "웹훅 페이로드에 유효한 user_id가 누락되었습니다.", null);
         }
 
         log.info("카카오 연결 해제 웹훅 수신 확정 - 카카오 고유번호(externalId): {}", kakaoExternalId);

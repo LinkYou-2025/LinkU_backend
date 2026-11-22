@@ -1,19 +1,15 @@
 package com.umc.linkyou.batch;
 
-import com.umc.linkyou.domain.Alarm;
-import com.umc.linkyou.domain.UserAlarm;
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.enums.AlarmType;
-import com.umc.linkyou.repository.AlarmRepository;
-import com.umc.linkyou.repository.UserAlarmRepository;
-import com.umc.linkyou.repository.userRepository.UserRepository;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.*;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.JobRepositoryTestUtils;
-import com.umc.linkyou.support.config.TestExternalConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,23 +18,32 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
-import java.time.LocalDateTime;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import com.umc.linkyou.domain.Alarm;
+import com.umc.linkyou.domain.UserAlarm;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.AlarmType;
+import com.umc.linkyou.repository.AlarmRepository;
+import com.umc.linkyou.repository.UserAlarmRepository;
+import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.support.config.TestExternalConfig;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(TestExternalConfig.class)
-@TestPropertySource(properties = {
-        "spring.batch.jdbc.initialize-schema=always",
-        "spring.batch.job.enabled=false"
-})
+@TestPropertySource(
+        properties = {
+            "spring.batch.jdbc.initialize-schema=always",
+            "spring.batch.job.enabled=false"
+        })
 @DisplayName("DeleteOldAlarmJob 통합 테스트")
 class DeleteOldAlarmBatchIntegrationTest {
 
     @Autowired private JobLauncher jobLauncher;
     @Autowired private JobRepository jobRepository;
-    @Autowired @Qualifier("deleteOldAlarmJob") private Job deleteOldAlarmJob;
+
+    @Autowired
+    @Qualifier("deleteOldAlarmJob")
+    private Job deleteOldAlarmJob;
 
     @Autowired private AlarmRepository alarmRepository;
     @Autowired private UserAlarmRepository userAlarmRepository;
@@ -77,8 +82,10 @@ class DeleteOldAlarmBatchIntegrationTest {
         void 알람_7일초과_UserAlarm_함께_삭제() throws Exception {
             // given
             Users user = saveUser("alarm-test-user");
-            Alarm oldAlarm    = saveAlarm(AlarmType.CURATION_UPDATED, 1L, LocalDateTime.now().minusDays(8));
-            Alarm recentAlarm = saveAlarm(AlarmType.CURATION_UPDATED, 2L, LocalDateTime.now().minusDays(3));
+            Alarm oldAlarm =
+                    saveAlarm(AlarmType.CURATION_UPDATED, 1L, LocalDateTime.now().minusDays(8));
+            Alarm recentAlarm =
+                    saveAlarm(AlarmType.CURATION_UPDATED, 2L, LocalDateTime.now().minusDays(3));
             userAlarmRepository.save(UserAlarm.create(user, oldAlarm));
             userAlarmRepository.save(UserAlarm.create(user, recentAlarm));
 
@@ -103,7 +110,8 @@ class DeleteOldAlarmBatchIntegrationTest {
         void 알람_7일이내_보존() throws Exception {
             // given
             Users user = saveUser("recent-alarm-user");
-            Alarm recentAlarm = saveAlarm(AlarmType.CURATION_UPDATED, 3L, LocalDateTime.now().minusDays(6));
+            Alarm recentAlarm =
+                    saveAlarm(AlarmType.CURATION_UPDATED, 3L, LocalDateTime.now().minusDays(6));
             userAlarmRepository.save(UserAlarm.create(user, recentAlarm));
 
             // when
@@ -142,9 +150,7 @@ class DeleteOldAlarmBatchIntegrationTest {
     private Alarm saveAlarm(AlarmType type, Long targetId, LocalDateTime createdAt) {
         Alarm saved = alarmRepository.save(Alarm.create(type, targetId));
         jdbcTemplate.update(
-                "UPDATE alarms SET created_at = ? WHERE alarm_id = ?",
-                createdAt, saved.getId()
-        );
+                "UPDATE alarms SET created_at = ? WHERE alarm_id = ?", createdAt, saved.getId());
         return alarmRepository.findById(saved.getId()).orElseThrow();
     }
 

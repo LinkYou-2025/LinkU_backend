@@ -1,9 +1,9 @@
 package com.umc.linkyou.service.alarm;
 
+import java.util.List;
+
 import com.umc.linkyou.web.dto.alarm.FcmBulkTarget;
 import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
-
-import java.util.List;
 
 public interface FcmPushSender {
 

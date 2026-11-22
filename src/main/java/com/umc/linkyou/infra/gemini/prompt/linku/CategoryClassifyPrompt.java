@@ -1,14 +1,22 @@
 package com.umc.linkyou.infra.gemini.prompt.linku;
 
-public record CategoryClassifyPrompt(String domain, String title, String content, String categoryList, String situationList, String emotionList) {
+public record CategoryClassifyPrompt(
+        String domain,
+        String title,
+        String content,
+        String categoryList,
+        String situationList,
+        String emotionList) {
 
     public String render() {
         StringBuilder info = new StringBuilder();
-        if (domain != null && !domain.isBlank())   info.append("도메인: ").append(domain).append("\n");
-        if (title != null && !title.isBlank())     info.append("제목: ").append(title).append("\n");
-        if (content != null && !content.isBlank()) info.append("본문(일부): ").append(content).append("\n");
+        if (domain != null && !domain.isBlank()) info.append("도메인: ").append(domain).append("\n");
+        if (title != null && !title.isBlank()) info.append("제목: ").append(title).append("\n");
+        if (content != null && !content.isBlank())
+            info.append("본문(일부): ").append(content).append("\n");
         // 반드시 분류 후보군에서 situation과 emotion을 선택해야함.
-        return String.format("""
+        return String.format(
+                """
                 다음은 특정 URL에서 가져온 정보입니다.
 
                 %s

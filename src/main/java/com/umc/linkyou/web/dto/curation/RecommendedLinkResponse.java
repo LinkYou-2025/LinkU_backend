@@ -1,14 +1,15 @@
 package com.umc.linkyou.web.dto.curation;
 
+import java.util.List;
+
 import com.umc.linkyou.domain.enums.CurationLinkuType;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.List;
 
 @Getter
 @Setter
@@ -25,18 +26,26 @@ public class RecommendedLinkResponse {
     @Schema(description = "링크 URL", example = "https://example.com/articles/home-workout")
     private String url;
 
-    @Schema(description = "링크 대표 이미지 URL", example = "https://cdn.example.com/links/home-workout.png")
+    @Schema(
+            description = "링크 대표 이미지 URL",
+            example = "https://cdn.example.com/links/home-workout.png")
     private String imageUrl;
 
     @Schema(description = "도메인 이름", example = "example.com")
     private String domain;
 
-    @Schema(description = "도메인 아이콘 이미지 URL", example = "https://cdn.example.com/domains/example.png")
+    @Schema(
+            description = "도메인 아이콘 이미지 URL",
+            example = "https://cdn.example.com/domains/example.png")
     private String domainImageUrl;
 
-    @Schema(description = "카테고리 + 감정 태그 (내부 추천만 포함, 외부 추천이면 null)", example = "[\"라이프스타일\", \"평온\"]")
+    @Schema(
+            description = "카테고리 + 감정 태그 (내부 추천만 포함, 외부 추천이면 null)",
+            example = "[\"라이프스타일\", \"평온\"]")
     private List<String> categories;
 
-    @Schema(description = "추천 종류 (INTERNAL: 내가 저장한 링크 기반, EXTERNAL: AI 웹 검색 기반)", example = "INTERNAL")
+    @Schema(
+            description = "추천 종류 (INTERNAL: 내가 저장한 링크 기반, EXTERNAL: AI 웹 검색 기반)",
+            example = "INTERNAL")
     private CurationLinkuType type;
 }

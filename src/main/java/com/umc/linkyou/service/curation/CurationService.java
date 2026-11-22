@@ -1,12 +1,12 @@
 package com.umc.linkyou.service.curation;
 
+import java.util.List;
+import java.util.Optional;
+
 import com.umc.linkyou.web.dto.curation.CurationDetailResponse;
 import com.umc.linkyou.web.dto.curation.CurationLatestResponse;
 import com.umc.linkyou.web.dto.curation.CurationListResponse;
 import com.umc.linkyou.web.dto.curation.CurationSectionResponse;
-
-import java.util.List;
-import java.util.Optional;
 
 public interface CurationService {
 

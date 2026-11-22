@@ -1,16 +1,17 @@
 package com.umc.linkyou.utils;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.extern.slf4j.Slf4j;
+
 /**
- * 홈화면 링크 추천 커서 페이징 인코더/디코더. (scoreBucket, userLinkuId) seek 탐색 키를
- * base64(JSON, {@code {"scoreBucket":<int|null>,"lastId":<long|null>}})로 묶어 FE에는 불투명 문자열로만
- * 내려준다 — FE는 이 문자열을 파싱하지 않고 다음 요청의 cursor 파라미터에 그대로 되돌려주기만 한다.
+ * 홈화면 링크 추천 커서 페이징 인코더/디코더. (scoreBucket, userLinkuId) seek 탐색 키를 base64(JSON, {@code
+ * {"scoreBucket":<int|null>,"lastId":<long|null>}})로 묶어 FE에는 불투명 문자열로만 내려준다 — FE는 이 문자열을 파싱하지 않고 다음
+ * 요청의 cursor 파라미터에 그대로 되돌려주기만 한다.
  */
 @Slf4j
 public class RecommendCursorUtil {
@@ -40,7 +41,8 @@ public class RecommendCursorUtil {
             // 채워짐) 하나만 있는 상태가 나올 수 없다 — 디코딩 실패와 동일하게 취급해 조용히 삼키지
             // 않고 첫 페이지로 폴백한다.
             if (scoreBucket == null || lastId == null) {
-                log.warn("[추천 커서 디코딩 실패] 알 수 없는 커서 형식(예: 구버전 포맷)이라 첫 페이지로 폴백합니다. cursor={}", cursor);
+                log.warn(
+                        "[추천 커서 디코딩 실패] 알 수 없는 커서 형식(예: 구버전 포맷)이라 첫 페이지로 폴백합니다. cursor={}", cursor);
                 return RecommendCursor.FIRST_PAGE;
             }
             return new RecommendCursor(scoreBucket, lastId);
@@ -64,8 +66,9 @@ public class RecommendCursorUtil {
 
     /** 필드가 고정된 int/long뿐이라 실패할 일이 없어 try-catch 없이 직접 조립 */
     public static String encode(RecommendCursor cursor) {
-        String json = "{\"scoreBucket\":%s,\"lastId\":%s}"
-                .formatted(jsonNumber(cursor.scoreBucket()), jsonNumber(cursor.lastId()));
+        String json =
+                "{\"scoreBucket\":%s,\"lastId\":%s}"
+                        .formatted(jsonNumber(cursor.scoreBucket()), jsonNumber(cursor.lastId()));
         return Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
     }
 

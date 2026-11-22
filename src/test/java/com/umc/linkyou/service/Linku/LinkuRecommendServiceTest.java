@@ -7,6 +7,20 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -18,18 +32,6 @@ import com.umc.linkyou.repository.mapping.SituationJobRepository;
 import com.umc.linkyou.repository.mapping.linkuFolderRepository.LinkuFolderRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.utils.RecommendCursorUtil;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("LinkuRecommendService 단위 테스트")
@@ -56,9 +58,17 @@ class LinkuRecommendServiceTest {
     private void candidates(List<RankedUsersLinku> rows, Integer score, Long id, int limit) {
         given(situationCategoryService.getCategoryIdsBySituation(SITUATION_ID))
                 .willReturn(List.of(CATEGORY_ID));
-        given(usersLinkuRepository.findNormalRecommendCandidates(eq(USER_ID), eq(EMOTION_ID),
-                eq(SITUATION_ID), eq(List.of(CATEGORY_ID)), any(LocalDateTime.class),
-                eq(score), eq(id), eq(limit))).willReturn(rows);
+        given(
+                        usersLinkuRepository.findNormalRecommendCandidates(
+                                eq(USER_ID),
+                                eq(EMOTION_ID),
+                                eq(SITUATION_ID),
+                                eq(List.of(CATEGORY_ID)),
+                                any(LocalDateTime.class),
+                                eq(score),
+                                eq(id),
+                                eq(limit)))
+                .willReturn(rows);
     }
 
     @Nested
@@ -68,18 +78,25 @@ class LinkuRecommendServiceTest {
         @DisplayName("다음_후보가_있을_시_노출한_마지막_항목의_커서를_반환한다")
         void 다음_후보가_있을_시_노출한_마지막_항목의_커서를_반환한다() {
             context(3);
-            candidates(List.of(candidate(30L, 150), candidate(20L, 120), candidate(10L, 100)), null, null, 3);
+            candidates(
+                    List.of(candidate(30L, 150), candidate(20L, 120), candidate(10L, 100)),
+                    null,
+                    null,
+                    3);
             given(linkuFolderRepository.findByUsersLinku_UserLinkuIdIn(List.of(30L, 20L)))
                     .willReturn(List.of(folder(30L, 3L, "최신 폴더"), folder(30L, 2L, "이전 폴더")));
             var response = service.recommendLinku(USER_ID, SITUATION_ID, EMOTION_ID, null, 2);
             assertTrue(response.getIsSuccess());
             assertEquals("COMMON200", response.getCode());
             var page = response.getResult();
-            assertThat(page.items()).extracting(item -> item.userLinkuId()).containsExactly(30L, 20L);
+            assertThat(page.items())
+                    .extracting(item -> item.userLinkuId())
+                    .containsExactly(30L, 20L);
             assertEquals("최신 폴더", page.items().get(0).folderName());
             assertNull(page.items().get(1).folderName());
             assertTrue(page.hasNext());
-            assertEquals(new RecommendCursorUtil.RecommendCursor(120, 20L),
+            assertEquals(
+                    new RecommendCursorUtil.RecommendCursor(120, 20L),
                     RecommendCursorUtil.decode(page.nextCursor()));
             verify(linkuViewService).recordRecommendKeywordCount(USER_ID, EMOTION_ID, SITUATION_ID);
         }
@@ -89,8 +106,11 @@ class LinkuRecommendServiceTest {
         void 마지막_페이지_조회_시_다음_커서없이_결과를_반환한다() {
             context(3);
             candidates(List.of(candidate(10L, 100)), 120, 20L, 2);
-            String cursor = RecommendCursorUtil.encode(new RecommendCursorUtil.RecommendCursor(120, 20L));
-            var page = service.recommendLinku(USER_ID, SITUATION_ID, EMOTION_ID, cursor, 1).getResult();
+            String cursor =
+                    RecommendCursorUtil.encode(new RecommendCursorUtil.RecommendCursor(120, 20L));
+            var page =
+                    service.recommendLinku(USER_ID, SITUATION_ID, EMOTION_ID, cursor, 1)
+                            .getResult();
             assertEquals(10L, page.items().get(0).userLinkuId());
             assertFalse(page.hasNext());
             assertNull(page.nextCursor());
@@ -101,7 +121,8 @@ class LinkuRecommendServiceTest {
         void 추천_결과가_없을_시_폴더조회와_통계저장없이_빈_결과를_반환한다() {
             context(3);
             candidates(List.of(), null, null, 6);
-            var page = service.recommendLinku(USER_ID, SITUATION_ID, EMOTION_ID, null, 5).getResult();
+            var page =
+                    service.recommendLinku(USER_ID, SITUATION_ID, EMOTION_ID, null, 5).getResult();
             assertEquals(List.of(), page.items());
             assertFalse(page.hasNext());
             assertNull(page.nextCursor());
@@ -113,7 +134,9 @@ class LinkuRecommendServiceTest {
         @DisplayName("조회_개수가_0이하일_시_후보조회없이_빈_결과를_반환한다")
         void 조회_개수가_0이하일_시_후보조회없이_빈_결과를_반환한다(int size) {
             context(3);
-            var page = service.recommendLinku(USER_ID, SITUATION_ID, EMOTION_ID, null, size).getResult();
+            var page =
+                    service.recommendLinku(USER_ID, SITUATION_ID, EMOTION_ID, null, size)
+                            .getResult();
             assertEquals(List.of(), page.items());
             assertFalse(page.hasNext());
             assertNull(page.nextCursor());
@@ -130,8 +153,12 @@ class LinkuRecommendServiceTest {
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(userWithoutJob()));
             given(emotionRepository.findById(EMOTION_ID)).willReturn(Optional.of(emotion()));
             given(situationRepository.findById(SITUATION_ID)).willReturn(Optional.of(situation()));
-            var ex = assertThrows(GeneralException.class,
-                    () -> service.recommendLinku(USER_ID, SITUATION_ID, EMOTION_ID, null, 5));
+            var ex =
+                    assertThrows(
+                            GeneralException.class,
+                            () ->
+                                    service.recommendLinku(
+                                            USER_ID, SITUATION_ID, EMOTION_ID, null, 5));
             assertEquals(UserErrorStatus._JOB_NOT_SET, ex.getCode());
         }
 
@@ -140,10 +167,17 @@ class LinkuRecommendServiceTest {
         @DisplayName("저장_링크가_3개_미만일_시_개수에_맞는_에러를_반환한다")
         void 저장_링크가_3개_미만일_시_개수에_맞는_에러를_반환한다(long count) {
             context(count);
-            var ex = assertThrows(GeneralException.class,
-                    () -> service.recommendLinku(USER_ID, SITUATION_ID, EMOTION_ID, null, 5));
-            assertEquals(count == 0 ? ErrorStatus._RECOMMEND_LINKU_NEW_USER
-                    : ErrorStatus._RECOMMEND_LINKU_NOT_ENOUGH_LINKS, ex.getCode());
+            var ex =
+                    assertThrows(
+                            GeneralException.class,
+                            () ->
+                                    service.recommendLinku(
+                                            USER_ID, SITUATION_ID, EMOTION_ID, null, 5));
+            assertEquals(
+                    count == 0
+                            ? ErrorStatus._RECOMMEND_LINKU_NEW_USER
+                            : ErrorStatus._RECOMMEND_LINKU_NOT_ENOUGH_LINKS,
+                    ex.getCode());
             verifyNoInteractions(situationCategoryService, linkuViewService, linkuFolderRepository);
         }
     }

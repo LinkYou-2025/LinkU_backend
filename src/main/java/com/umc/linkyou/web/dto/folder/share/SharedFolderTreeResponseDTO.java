@@ -1,11 +1,10 @@
 package com.umc.linkyou.web.dto.folder.share;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
-import lombok.*;
-
-import java.util.ArrayList;
 import java.util.List;
+
+import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
+
+import lombok.*;
 
 @Getter
 @Setter

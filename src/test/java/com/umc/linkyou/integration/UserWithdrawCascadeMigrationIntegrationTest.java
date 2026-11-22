@@ -32,13 +32,12 @@ import com.umc.linkyou.service.users.UserWithdrawService;
 import com.umc.linkyou.support.config.TestExternalConfig;
 
 /**
- * V9/V10 flyway 마이그레이션으로 추가한 ON DELETE CASCADE 가 "실제 DB 제약조건"으로
- * 정확히 반영되었는지 검증한다.
+ * V9/V10 flyway 마이그레이션으로 추가한 ON DELETE CASCADE 가 "실제 DB 제약조건"으로 정확히 반영되었는지 검증한다.
  *
- * <p>다른 테스트들은 {@code spring.jpa.hibernate.ddl-auto=create-drop} (엔티티 매핑 기반 스키마)을 쓰지만,
- * {@link LinkuSearchHistory} 는 Users 에 대한 JPA 연관관계 없이 순수 컬럼(userId)으로만 존재해서
- * 엔티티 기반 스키마에는 애초에 FK 자체가 생성되지 않는다. 실제 운영과 동일하게 flyway 마이그레이션을
- * 그대로 적용한 스키마(ddl-auto=validate)에서 검증해야만 이번에 추가한 CASCADE 를 확인할 수 있다.
+ * <p>다른 테스트들은 {@code spring.jpa.hibernate.ddl-auto=create-drop} (엔티티 매핑 기반 스키마)을 쓰지만, {@link
+ * LinkuSearchHistory} 는 Users 에 대한 JPA 연관관계 없이 순수 컬럼(userId)으로만 존재해서 엔티티 기반 스키마에는 애초에 FK 자체가 생성되지
+ * 않는다. 실제 운영과 동일하게 flyway 마이그레이션을 그대로 적용한 스키마(ddl-auto=validate)에서 검증해야만 이번에 추가한 CASCADE 를 확인할 수
+ * 있다.
  */
 @ActiveProfiles("test")
 @SpringBootTest
@@ -70,8 +69,7 @@ class UserWithdrawCascadeMigrationIntegrationTest {
     @PersistenceContext private EntityManager em;
 
     @Test
-    @DisplayName(
-            "실제 flyway 스키마에서 유저 완전 삭제 시 검색 기록(FK가 새로 추가된 테이블)과 관심사·목적 연결이 CASCADE로 삭제된다")
+    @DisplayName("실제 flyway 스키마에서 유저 완전 삭제 시 검색 기록(FK가 새로 추가된 테이블)과 관심사·목적 연결이 CASCADE로 삭제된다")
     void 실제_flyway_스키마에서_유저_삭제_시_검색기록과_관심사_목적_연결이_삭제된다() {
         // given
         Users user =

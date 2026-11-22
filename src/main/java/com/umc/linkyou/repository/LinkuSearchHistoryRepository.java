@@ -1,10 +1,11 @@
 package com.umc.linkyou.repository;
 
-import com.umc.linkyou.domain.LinkuSearchHistory;
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.umc.linkyou.domain.LinkuSearchHistory;
 
 public interface LinkuSearchHistoryRepository extends JpaRepository<LinkuSearchHistory, Long> {
 

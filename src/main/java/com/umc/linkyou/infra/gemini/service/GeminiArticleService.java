@@ -1,5 +1,7 @@
 package com.umc.linkyou.infra.gemini.service;
 
+import org.springframework.stereotype.Service;
+
 import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.infra.ai.AiArticleAnalyzer;
@@ -7,9 +9,9 @@ import com.umc.linkyou.infra.ai.dto.AiArticleResultDTO;
 import com.umc.linkyou.infra.gemini.prompt.common.PromptComposer;
 import com.umc.linkyou.infra.gemini.prompt.linku.LinkSummaryPrompt;
 import com.umc.linkyou.infra.parser.WebContentExtractor;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -26,15 +28,11 @@ public class GeminiArticleService implements AiArticleAnalyzer {
         if (pageContent == null || pageContent.isBlank())
             throw new GeneralException(AiArticleErrorStatus._CONTENT_EXTRACTION_FAILED);
 
-        if (pageContent.length() > 2800)
-            pageContent = pageContent.substring(0, 2800);
+        if (pageContent.length() > 2800) pageContent = pageContent.substring(0, 2800);
 
         LinkSummaryPrompt prompt = new LinkSummaryPrompt(pageContent);
 
         return geminiService.callAndParse(
-                promptComposer.general(),
-                prompt.render(),
-                AiArticleResultDTO.class
-        );
+                promptComposer.general(), prompt.render(), AiArticleResultDTO.class);
     }
 }

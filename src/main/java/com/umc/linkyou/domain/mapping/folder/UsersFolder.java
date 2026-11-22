@@ -1,13 +1,16 @@
 package com.umc.linkyou.domain.mapping.folder;
 
+import jakarta.persistence.*;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.common.BaseEntity;
 import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.Folder;
-import jakarta.persistence.*;
+
 import lombok.*;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "users_folders")

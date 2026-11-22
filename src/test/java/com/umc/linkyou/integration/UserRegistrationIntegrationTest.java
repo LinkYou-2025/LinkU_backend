@@ -150,8 +150,9 @@ public class UserRegistrationIntegrationTest {
         com.umc.linkyou.apiPayload.exception.handler.UserHandler exception =
                 assertThrows(
                         com.umc.linkyou.apiPayload.exception.handler.UserHandler.class,
-                        () -> userService.socialCompleteProfile(
-                                activeUser.getId(), "GENERAL", completeReq));
+                        () ->
+                                userService.socialCompleteProfile(
+                                        activeUser.getId(), "GENERAL", completeReq));
 
         // getCode() 메서드를 통해 에러 코드 검증
         assertEquals(UserErrorStatus._DUPLICATE_JOIN_REQUEST, exception.getCode());

@@ -1,5 +1,12 @@
 package com.umc.linkyou.infra.gemini.service;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.jsoup.nodes.Document;
+import org.springframework.stereotype.Service;
+
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.classification.Emotion;
 import com.umc.linkyou.domain.classification.Situation;
@@ -9,14 +16,9 @@ import com.umc.linkyou.infra.gemini.prompt.common.PromptComposer;
 import com.umc.linkyou.infra.gemini.prompt.linku.CategoryClassifyPrompt;
 import com.umc.linkyou.infra.parser.TitleDomainParser;
 import com.umc.linkyou.infra.parser.WebContentExtractor;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.nodes.Document;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -28,24 +30,35 @@ public class GeminiLinkuService implements AiLinkuAnalyzer {
     private final GeminiService geminiService;
     private final PromptComposer promptComposer;
 
-    public Optional<LinkuResultDTO> analyzeByUrl(String url, List<Category> categories, List<Situation> situations, List<Emotion> emotions) {
+    public Optional<LinkuResultDTO> analyzeByUrl(
+            String url,
+            List<Category> categories,
+            List<Situation> situations,
+            List<Emotion> emotions) {
         return analyzeByUrl(url, null, categories, situations, emotions);
     }
 
     @Override
-    public Optional<LinkuResultDTO> analyzeByUrl(String url, Document doc, List<Category> categories, List<Situation> situations, List<Emotion> emotions) {
+    public Optional<LinkuResultDTO> analyzeByUrl(
+            String url,
+            Document doc,
+            List<Category> categories,
+            List<Situation> situations,
+            List<Emotion> emotions) {
         // situations, emotions를 Gemini 프롬프트에 주입 → AI가 DB에 존재하는 ID로 situationId/emotionId 반환
-        TitleDomainParser.ParsedPageInfo pageInfo = (doc != null)
-                ? titleDomainParser.parseUrl(url, doc)
-                : titleDomainParser.parseUrl(url);
+        TitleDomainParser.ParsedPageInfo pageInfo =
+                (doc != null)
+                        ? titleDomainParser.parseUrl(url, doc)
+                        : titleDomainParser.parseUrl(url);
         String domain = pageInfo.domain();
         String title = pageInfo.title();
         String pageContent = null;
 
         try {
-            pageContent = (doc != null)
-                    ? webContentExtractor.extractTextFromDocument(url, doc)
-                    : webContentExtractor.extractTextFromUrl(url);
+            pageContent =
+                    (doc != null)
+                            ? webContentExtractor.extractTextFromDocument(url, doc)
+                            : webContentExtractor.extractTextFromUrl(url);
         } catch (Exception e) {
             log.warn("[본문 추출 실패] {}", e.getMessage());
         }
@@ -58,25 +71,33 @@ public class GeminiLinkuService implements AiLinkuAnalyzer {
         if (pageContent != null && pageContent.length() > 2000)
             pageContent = pageContent.substring(0, 2000);
 
-        String categoryList = categories.stream()
-                .map(c -> "- id: " + c.getCategoryId() + ", name: \"" + c.getCategoryName() + "\"")
-                .collect(Collectors.joining("\n"));
+        String categoryList =
+                categories.stream()
+                        .map(
+                                c ->
+                                        "- id: "
+                                                + c.getCategoryId()
+                                                + ", name: \""
+                                                + c.getCategoryName()
+                                                + "\"")
+                        .collect(Collectors.joining("\n"));
 
-        String situationList = situations.stream()
-                .map(s -> "- id: " + s.getId() + ", name: \"" + s.getName() + "\"")
-                .collect(Collectors.joining("\n"));
+        String situationList =
+                situations.stream()
+                        .map(s -> "- id: " + s.getId() + ", name: \"" + s.getName() + "\"")
+                        .collect(Collectors.joining("\n"));
 
-        String emotionList = emotions.stream()
-                .map(e -> "- id: " + e.getEmotionId() + ", name: \"" + e.getName() + "\"")
-                .collect(Collectors.joining("\n"));
+        String emotionList =
+                emotions.stream()
+                        .map(e -> "- id: " + e.getEmotionId() + ", name: \"" + e.getName() + "\"")
+                        .collect(Collectors.joining("\n"));
 
-        CategoryClassifyPrompt prompt = new CategoryClassifyPrompt(domain, title, pageContent, categoryList, situationList, emotionList);
+        CategoryClassifyPrompt prompt =
+                new CategoryClassifyPrompt(
+                        domain, title, pageContent, categoryList, situationList, emotionList);
 
         return Optional.of(
                 geminiService.callAndParse(
-                        promptComposer.general(),
-                        prompt.render(),
-                        LinkuResultDTO.class)
-        );
+                        promptComposer.general(), prompt.render(), LinkuResultDTO.class));
     }
 }

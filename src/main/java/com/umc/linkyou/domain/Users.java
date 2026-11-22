@@ -1,14 +1,16 @@
 package com.umc.linkyou.domain;
 
+import java.time.LocalDateTime;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+
 import com.umc.linkyou.domain.classification.Job;
 import com.umc.linkyou.domain.common.BaseEntity;
 import com.umc.linkyou.domain.enums.*;
-import io.hypersistence.utils.hibernate.id.Tsid;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
 
-import java.time.LocalDateTime;
+import io.hypersistence.utils.hibernate.id.Tsid;
+import lombok.*;
 
 @Entity
 @Builder
@@ -22,7 +24,6 @@ public class Users extends BaseEntity {
     @Tsid
     @Column(name = "user_id")
     private Long id;
-
 
     @NotNull
     @Column(name = "password")
@@ -43,6 +44,7 @@ public class Users extends BaseEntity {
     @Builder.Default
     @Column(name = "role")
     private Role role = Role.USER;
+
     // enum 값은 USER로 저장하고, authority 문자열은 "ROLE_USER"로 꺼내 씀
 
     @Enumerated(EnumType.STRING)

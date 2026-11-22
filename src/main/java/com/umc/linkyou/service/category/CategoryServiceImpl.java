@@ -1,5 +1,12 @@
 package com.umc.linkyou.service.category;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import jakarta.transaction.Transactional;
+
+import org.springframework.stereotype.Service;
+
 import com.umc.linkyou.apiPayload.code.status.category.CategoryErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.CategoryConverter;
@@ -12,13 +19,8 @@ import com.umc.linkyou.repository.classification.CategoryRepository;
 import com.umc.linkyou.web.dto.category.CategoryListResponseDTO;
 import com.umc.linkyou.web.dto.category.UpdateCategoryColorRequestDTO;
 import com.umc.linkyou.web.dto.category.UserCategoryColorResponseDTO;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -30,34 +32,35 @@ public class CategoryServiceImpl implements CategoryService {
     // 카테고리-기본 컬러 목록 조회
     public List<CategoryListResponseDTO> getCategories(Long userId) {
         // 유저별 카테고리- fcolor 매핑 조회
-        List<UsersCategoryColor> usersCategoryColor = usersCategoryColorRepository.findByUserId(userId);
+        List<UsersCategoryColor> usersCategoryColor =
+                usersCategoryColorRepository.findByUserId(userId);
 
         // 유저별 카테고리 색상
         return usersCategoryColor.stream()
-                .map(uc -> {
-                    Category category = uc.getCategory();
-                    Fcolor fcolor = uc.getFcolor();
+                .map(
+                        uc -> {
+                            Category category = uc.getCategory();
+                            Fcolor fcolor = uc.getFcolor();
 
-                    return CategoryListResponseDTO.builder()
-                            .categoryId(category.getCategoryId())
-                            .categoryName(category.getCategoryName())
-                            .colorName(fcolor != null ? fcolor.getColorName() : null)
-                            .colorCode1(fcolor != null ? fcolor.getColorCode1() : null)
-                            .colorCode2(fcolor != null ? fcolor.getColorCode2() : null)
-                            .colorCode3(fcolor != null ? fcolor.getColorCode3() : null)
-                            .colorCode4(fcolor != null ? fcolor.getColorCode4() : null)
-                            .build();
-                })
+                            return CategoryListResponseDTO.builder()
+                                    .categoryId(category.getCategoryId())
+                                    .categoryName(category.getCategoryName())
+                                    .colorName(fcolor != null ? fcolor.getColorName() : null)
+                                    .colorCode1(fcolor != null ? fcolor.getColorCode1() : null)
+                                    .colorCode2(fcolor != null ? fcolor.getColorCode2() : null)
+                                    .colorCode3(fcolor != null ? fcolor.getColorCode3() : null)
+                                    .colorCode4(fcolor != null ? fcolor.getColorCode4() : null)
+                                    .build();
+                        })
                 .collect(Collectors.toList());
     }
 
     // 유저 카테고리(중분류 폴더) 색상 수정
     @Transactional
     public UserCategoryColorResponseDTO updateUserCategoryColor(
-            Long userId,
-            Long categoryId,
-            UpdateCategoryColorRequestDTO request) {
-        UsersCategoryColor ucc = usersCategoryColorRepository.searchCategoryColor(userId, categoryId);
+            Long userId, Long categoryId, UpdateCategoryColorRequestDTO request) {
+        UsersCategoryColor ucc =
+                usersCategoryColorRepository.searchCategoryColor(userId, categoryId);
         if (ucc == null) {
             throw new GeneralException(CategoryErrorStatus._CATEGORY_NOT_FOUND);
         }

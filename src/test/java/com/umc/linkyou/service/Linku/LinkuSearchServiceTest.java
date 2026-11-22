@@ -1,25 +1,5 @@
 package com.umc.linkyou.service.Linku;
 
-import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.domain.LinkuSearchHistory;
-import com.umc.linkyou.repository.LinkuSearchHistoryRepository;
-import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
-import com.umc.linkyou.web.dto.linku.LinkuQuickSearchResponseDTO;
-import com.umc.linkyou.web.dto.linku.LinkuSearchHistoryItemDTO;
-import com.umc.linkyou.web.dto.linku.LinkuSearchResponseDTO;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-import java.util.Optional;
-
 import static com.umc.linkyou.support.fixture.LinkuFixture.quickSearchItem;
 import static com.umc.linkyou.support.fixture.LinkuFixture.searchHistory;
 import static com.umc.linkyou.support.fixture.LinkuFixture.searchItem;
@@ -36,18 +16,36 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
+import com.umc.linkyou.domain.LinkuSearchHistory;
+import com.umc.linkyou.repository.LinkuSearchHistoryRepository;
+import com.umc.linkyou.repository.linkuRepository.LinkuRepository;
+import com.umc.linkyou.web.dto.linku.LinkuQuickSearchResponseDTO;
+import com.umc.linkyou.web.dto.linku.LinkuSearchHistoryItemDTO;
+import com.umc.linkyou.web.dto.linku.LinkuSearchResponseDTO;
+
 @ExtendWith(MockitoExtension.class)
 @DisplayName("LinkuSearchService 테스트")
 class LinkuSearchServiceTest {
 
-    @InjectMocks
-    private LinkuSearchService linkuSearchService;
+    @InjectMocks private LinkuSearchService linkuSearchService;
 
-    @Mock
-    private LinkuRepository linkuRepository;
+    @Mock private LinkuRepository linkuRepository;
 
-    @Mock
-    private LinkuSearchHistoryRepository linkuSearchHistoryRepository;
+    @Mock private LinkuSearchHistoryRepository linkuSearchHistoryRepository;
 
     @Nested
     @DisplayName("검색 (search)")
@@ -63,7 +61,8 @@ class LinkuSearchServiceTest {
                 when(linkuRepository.findQuickByKeyword(1L, "Java"))
                         .thenReturn(List.of(quickSearchItem("Java Guide", 1L)));
 
-                List<LinkuQuickSearchResponseDTO> result = linkuSearchService.quickSearch(1L, "  Java  ");
+                List<LinkuQuickSearchResponseDTO> result =
+                        linkuSearchService.quickSearch(1L, "  Java  ");
 
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).title()).isEqualTo("Java Guide");
@@ -74,7 +73,11 @@ class LinkuSearchServiceTest {
             @DisplayName("검색 - size+1개가 조회되면 hasNext true, 마지막 항목은 잘라낸다")
             void 검색_결과가_size초과면_hasNext_true를_반환한다() {
                 when(linkuRepository.searchUserLinks(1L, "Java", null, 2))
-                        .thenReturn(List.of(searchItem(30L, "A"), searchItem(20L, "B"), searchItem(10L, "C")));
+                        .thenReturn(
+                                List.of(
+                                        searchItem(30L, "A"),
+                                        searchItem(20L, "B"),
+                                        searchItem(10L, "C")));
 
                 LinkuSearchResponseDTO.LinkuSearchCursorPageResponse result =
                         linkuSearchService.search(1L, "Java", null, 2);
@@ -101,8 +104,7 @@ class LinkuSearchServiceTest {
             @Test
             @DisplayName("검색 - 결과가 없으면 nextCursor는 null")
             void 검색_결과가_없으면_nextCursor는_null이다() {
-                when(linkuRepository.searchUserLinks(1L, "Java", null, 10))
-                        .thenReturn(List.of());
+                when(linkuRepository.searchUserLinks(1L, "Java", null, 10)).thenReturn(List.of());
 
                 LinkuSearchResponseDTO.LinkuSearchCursorPageResponse result =
                         linkuSearchService.search(1L, "Java", null, 10);
@@ -120,7 +122,8 @@ class LinkuSearchServiceTest {
 
                 assertThat(result.items()).isEmpty();
                 assertThat(result.hasNext()).isFalse();
-                verify(linkuRepository, never()).searchUserLinks(anyLong(), anyString(), any(), anyInt());
+                verify(linkuRepository, never())
+                        .searchUserLinks(anyLong(), anyString(), any(), anyInt());
             }
 
             @Test
@@ -173,7 +176,8 @@ class LinkuSearchServiceTest {
 
                 linkuSearchService.search(1L, "Java", null, 10);
 
-                verify(linkuSearchHistoryRepository, never()).findFirstByUserIdOrderByCreatedAtAsc(anyLong());
+                verify(linkuSearchHistoryRepository, never())
+                        .findFirstByUserIdOrderByCreatedAtAsc(anyLong());
                 verify(linkuSearchHistoryRepository, never()).deleteById(anyLong());
             }
         }
@@ -219,10 +223,7 @@ class LinkuSearchServiceTest {
         @DisplayName("검색어 목록을 최신순 DTO로 반환한다")
         void 검색어_목록을_최신순_DTO로_반환한다() {
             given(linkuSearchHistoryRepository.findAllByUserIdOrderByCreatedAtDesc(1L))
-                    .willReturn(List.of(
-                            searchHistory(2L, 1L, "코틀린"),
-                            searchHistory(1L, 1L, "자바")
-                    ));
+                    .willReturn(List.of(searchHistory(2L, 1L, "코틀린"), searchHistory(1L, 1L, "자바")));
 
             List<LinkuSearchHistoryItemDTO> result = linkuSearchService.getRecentKeywords(1L);
 
@@ -267,10 +268,10 @@ class LinkuSearchServiceTest {
             given(linkuSearchHistoryRepository.findByUserIdAndId(1L, 99L))
                     .willReturn(Optional.empty());
 
-            GeneralException ex = org.junit.jupiter.api.Assertions.assertThrows(
-                    GeneralException.class,
-                    () -> linkuSearchService.deleteKeyword(1L, 99L)
-            );
+            GeneralException ex =
+                    org.junit.jupiter.api.Assertions.assertThrows(
+                            GeneralException.class,
+                            () -> linkuSearchService.deleteKeyword(1L, 99L));
             assertEquals(LinkuErrorStatus._SEARCH_HISTORY_NOT_FOUND, ex.getCode());
         }
     }
@@ -291,8 +292,7 @@ class LinkuSearchServiceTest {
         @DisplayName("검색어가 없어도 예외 없이 정상 처리된다")
         void 검색어가_없어도_예외_없이_정상_처리된다() {
             org.junit.jupiter.api.Assertions.assertDoesNotThrow(
-                    () -> linkuSearchService.deleteAllKeywords(1L)
-            );
+                    () -> linkuSearchService.deleteAllKeywords(1L));
             verify(linkuSearchHistoryRepository).deleteAllByUserId(1L);
         }
     }

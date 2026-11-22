@@ -1,14 +1,16 @@
 package com.umc.linkyou.domain.folder;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.persistence.*;
+
 import com.umc.linkyou.domain.classification.Category;
 import com.umc.linkyou.domain.common.BaseEntity;
 import com.umc.linkyou.domain.mapping.LinkuFolder;
 import com.umc.linkyou.domain.mapping.folder.UsersFolder;
-import jakarta.persistence.*;
-import lombok.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import lombok.*;
 
 @Entity
 @Table(name = "folders")

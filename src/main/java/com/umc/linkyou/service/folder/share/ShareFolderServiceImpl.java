@@ -1,11 +1,24 @@
 package com.umc.linkyou.service.folder.share;
 
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.InvitationErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.ShareFolderErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.converter.ShareFolderConverter;
+import com.umc.linkyou.domain.AlarmSetting;
 import com.umc.linkyou.domain.enums.PermissionType;
 import com.umc.linkyou.domain.folder.Folder;
 import com.umc.linkyou.domain.folder.FolderShareLink;
@@ -20,19 +33,8 @@ import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.MySharedFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import com.umc.linkyou.domain.AlarmSetting;
 
-import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -48,8 +50,11 @@ public class ShareFolderServiceImpl implements ShareFolderService {
     // 초대 링크 생성
     public String createInviteLink(Long userId, Long folderId) {
         // 폴더 존재 및 소유권 확인
-        Folder folder = folderRepository.findById(folderId)
-                .orElseThrow(() -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
+        Folder folder =
+                folderRepository
+                        .findById(folderId)
+                        .orElseThrow(
+                                () -> new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND));
 
         boolean isOwner = usersFolderRepository.existsFolderOwner(userId, folderId);
 
@@ -63,7 +68,8 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         }
 
         // 이미 존재하는 링크 확인
-        Optional<FolderShareLink> existingLink = folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(folderId);
+        Optional<FolderShareLink> existingLink =
+                folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(folderId);
 
         // 이미 링크가 있는 경우
         if (existingLink.isPresent()) {
@@ -84,15 +90,21 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         // 링크가 없는 경우 -> 새로 생성
         String token = UUID.randomUUID().toString();
 
-        FolderShareLink newLink = FolderShareLink.builder()
-                .token(token)
-                .folder(folder)
-                .creator(userRepository.findById(userId)
-                        .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND)))
-                .permissionType(PermissionType.VIEWER)
-                .expiresAt(LocalDateTime.now().plusDays(7))
-                .isActive(true)
-                .build();
+        FolderShareLink newLink =
+                FolderShareLink.builder()
+                        .token(token)
+                        .folder(folder)
+                        .creator(
+                                userRepository
+                                        .findById(userId)
+                                        .orElseThrow(
+                                                () ->
+                                                        new GeneralException(
+                                                                UserErrorStatus._USER_NOT_FOUND)))
+                        .permissionType(PermissionType.VIEWER)
+                        .expiresAt(LocalDateTime.now().plusDays(7))
+                        .isActive(true)
+                        .build();
 
         folderShareLinkRepository.save(newLink);
 
@@ -111,8 +123,13 @@ public class ShareFolderServiceImpl implements ShareFolderService {
             throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
-        FolderShareLink link = folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(folderId)
-                .orElseThrow(() -> new GeneralException(InvitationErrorStatus.INVITATION_LINK_NOT_FOUND));
+        FolderShareLink link =
+                folderShareLinkRepository
+                        .findByFolder_FolderIdAndIsActiveTrue(folderId)
+                        .orElseThrow(
+                                () ->
+                                        new GeneralException(
+                                                InvitationErrorStatus.INVITATION_LINK_NOT_FOUND));
 
         link.deactivate();
     }
@@ -129,15 +146,15 @@ public class ShareFolderServiceImpl implements ShareFolderService {
             throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
-        List<UsersFolder> participants = usersFolderRepository.findAllParticipantsByFolderId(folderId);
+        List<UsersFolder> participants =
+                usersFolderRepository.findAllParticipantsByFolderId(folderId);
 
-        return participants.stream()
-                .map(ShareFolderConverter::toViewerResponseDTO)
-                .toList();
+        return participants.stream().map(ShareFolderConverter::toViewerResponseDTO).toList();
     }
 
     // 유저의 폴더 권한 수정
-    public ShareFolderResponseDTO updateViewerPermission(Long userId, Long folderId, Long userFolderId, FolderPermissionRequestDTO request) {
+    public ShareFolderResponseDTO updateViewerPermission(
+            Long userId, Long folderId, Long userFolderId, FolderPermissionRequestDTO request) {
         if (!folderRepository.existsById(folderId)) {
             throw new GeneralException(FolderErrorStatus._FOLDER_NOT_FOUND);
         }
@@ -147,7 +164,14 @@ public class ShareFolderServiceImpl implements ShareFolderService {
             throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
-        UsersFolder usersFolder = usersFolderRepository.findById(userFolderId).orElseThrow(() -> new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND));
+        UsersFolder usersFolder =
+                usersFolderRepository
+                        .findById(userFolderId)
+                        .orElseThrow(
+                                () ->
+                                        new GeneralException(
+                                                ShareFolderErrorStatus
+                                                        ._FOLDER_PERMISSION_NOT_FOUND));
 
         if (!usersFolder.getFolder().getFolderId().equals(folderId)) {
             throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
@@ -172,13 +196,20 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         Long memberId = usersFolder.getUser().getId();
         String folderName = usersFolder.getFolder().getFolderName();
 
-        alarmSettingRepository.findByUserId(memberId)
-            .filter(AlarmSetting::isFolderActive)
-            .ifPresent(setting -> eventPublisher.publishEvent(
-                    new FolderPermissionChangedAlarmEvent(memberId, folderId, folderName)));
+        alarmSettingRepository
+                .findByUserId(memberId)
+                .filter(AlarmSetting::isFolderActive)
+                .ifPresent(
+                        setting ->
+                                eventPublisher.publishEvent(
+                                        new FolderPermissionChangedAlarmEvent(
+                                                memberId, folderId, folderName)));
 
         return ShareFolderConverter.toShareFolderResponseDTO(
-                folderId, usersFolder.getUser().getId(), permission.name(), usersFolder.getUpdatedAt());
+                folderId,
+                usersFolder.getUser().getId(),
+                permission.name(),
+                usersFolder.getUpdatedAt());
     }
 
     // 가장 오래 참여한 멤버에게 소유권 자동 위임 후 폴더 나가기
@@ -193,19 +224,33 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         }
 
         // 참여 시각(createdAt)이 가장 오래된 멤버를 다음 소유자로 선정
-        UsersFolder newOwnerUF = usersFolderRepository.findAllParticipantsByFolderId(folderId).stream()
-                .min(Comparator.comparing(UsersFolder::getCreatedAt))
-                .orElseThrow(() -> new GeneralException(ShareFolderErrorStatus._FOLDER_LEAVE_NO_MEMBER_TO_TRANSFER));
+        UsersFolder newOwnerUF =
+                usersFolderRepository.findAllParticipantsByFolderId(folderId).stream()
+                        .min(Comparator.comparing(UsersFolder::getCreatedAt))
+                        .orElseThrow(
+                                () ->
+                                        new GeneralException(
+                                                ShareFolderErrorStatus
+                                                        ._FOLDER_LEAVE_NO_MEMBER_TO_TRANSFER));
 
-        UsersFolder ownerUF = usersFolderRepository.findByUserIdAndFolderId(ownerId, folderId)
-                .orElseThrow(() -> new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_FOUND));
+        UsersFolder ownerUF =
+                usersFolderRepository
+                        .findByUserIdAndFolderId(ownerId, folderId)
+                        .orElseThrow(
+                                () ->
+                                        new GeneralException(
+                                                ShareFolderErrorStatus
+                                                        ._FOLDER_PERMISSION_NOT_FOUND));
 
         newOwnerUF.updatePermission(PermissionType.OWNER);
         ownerUF.updatePermission(PermissionType.NONE);
         usersFolderRepository.saveAll(List.of(newOwnerUF, ownerUF));
 
         return ShareFolderConverter.toShareFolderResponseDTO(
-                folderId, newOwnerUF.getUser().getId(), PermissionType.OWNER.name(), LocalDateTime.now());
+                folderId,
+                newOwnerUF.getUser().getId(),
+                PermissionType.OWNER.name(),
+                LocalDateTime.now());
     }
 
     // 내가 공유한(소유자인) 폴더 목록 조회
@@ -219,12 +264,20 @@ public class ShareFolderServiceImpl implements ShareFolderService {
 
         List<Long> folderIds = folders.stream().map(Folder::getFolderId).toList();
 
-        Map<Long, Long> memberCountByFolderId = usersFolderRepository.findAllParticipantsByFolderIdIn(folderIds).stream()
-                .collect(Collectors.groupingBy(uf -> uf.getFolder().getFolderId(), Collectors.counting()));
+        Map<Long, Long> memberCountByFolderId =
+                usersFolderRepository.findAllParticipantsByFolderIdIn(folderIds).stream()
+                        .collect(
+                                Collectors.groupingBy(
+                                        uf -> uf.getFolder().getFolderId(), Collectors.counting()));
 
         return folders.stream()
-                .map(folder -> ShareFolderConverter.toMySharedFolderResponseDTO(
-                        folder, memberCountByFolderId.getOrDefault(folder.getFolderId(), 0L).intValue()))
+                .map(
+                        folder ->
+                                ShareFolderConverter.toMySharedFolderResponseDTO(
+                                        folder,
+                                        memberCountByFolderId
+                                                .getOrDefault(folder.getFolderId(), 0L)
+                                                .intValue()))
                 .toList();
     }
 
@@ -235,25 +288,25 @@ public class ShareFolderServiceImpl implements ShareFolderService {
         }
 
         // 폴더 주인인지 확인
-        boolean isOwner = usersFolderRepository
-                .existsFolderOwner(ownerId, folderId);
+        boolean isOwner = usersFolderRepository.existsFolderOwner(ownerId, folderId);
         if (!isOwner) {
             throw new GeneralException(ShareFolderErrorStatus._FOLDER_PERMISSION_NOT_ALLOWED);
         }
 
         // 활성화된 초대 링크가 있다면 만료
-        folderShareLinkRepository.findByFolder_FolderIdAndIsActiveTrue(folderId)
+        folderShareLinkRepository
+                .findByFolder_FolderIdAndIsActiveTrue(folderId)
                 .ifPresent(FolderShareLink::deactivate);
 
         // member(viewer and writer) 조회
-        List<UsersFolder> mappings =
-                usersFolderRepository.findAllParticipantsByFolderId(folderId);
+        List<UsersFolder> mappings = usersFolderRepository.findAllParticipantsByFolderId(folderId);
 
         // 권한 박탈
         mappings.forEach(uf -> uf.updatePermission(PermissionType.NONE));
 
         usersFolderRepository.saveAll(mappings);
 
-        return ShareFolderConverter.toShareFolderResponseDTO(folderId, ownerId, "PRIVATE", LocalDateTime.now());
+        return ShareFolderConverter.toShareFolderResponseDTO(
+                folderId, ownerId, "PRIVATE", LocalDateTime.now());
     }
 }

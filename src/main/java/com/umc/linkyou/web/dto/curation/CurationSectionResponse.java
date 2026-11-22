@@ -22,6 +22,8 @@ public class CurationSectionResponse {
     @Schema(description = "섹션 설명", example = "이번달을 위한 링크, 링큐가 준비했어요.")
     private String description;
 
-    @Schema(description = "섹션 대표 이미지 URL", example = "https://cdn.example.com/sections/2026-06-1.png")
+    @Schema(
+            description = "섹션 대표 이미지 URL",
+            example = "https://cdn.example.com/sections/2026-06-1.png")
     private String imageUrl;
 }

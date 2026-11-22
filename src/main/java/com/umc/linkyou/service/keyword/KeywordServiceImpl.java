@@ -1,5 +1,13 @@
 package com.umc.linkyou.service.keyword;
 
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.List;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.umc.linkyou.apiPayload.code.status.linku.LinkuErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -13,14 +21,8 @@ import com.umc.linkyou.repository.mapping.LinkuKeywordRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.web.dto.keyword.JobKeywordRankResponse;
 import com.umc.linkyou.web.dto.keyword.KeywordLinkuItemDTO;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.YearMonth;
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -46,16 +48,17 @@ public class KeywordServiceImpl implements KeywordService {
 
             if (!linkuKeywordRepository.existsByLinkuAndKeyword(linku, keyword)) {
                 linkuKeywordRepository.save(
-                        LinkuKeyword.builder().linku(linku).keyword(keyword).build()
-                );
+                        LinkuKeyword.builder().linku(linku).keyword(keyword).build());
             }
         }
     }
 
     @Override
     public List<JobKeywordRankResponse> getJobTopKeywords(Long userId, YearMonth month, int limit) {
-        Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
+        Users user =
+                userRepository
+                        .findById(userId)
+                        .orElseThrow(() -> new GeneralException(UserErrorStatus._USER_NOT_FOUND));
 
         if (user.getJob() == null) {
             throw new GeneralException(UserErrorStatus._JOB_NOT_SET);
@@ -65,18 +68,22 @@ public class KeywordServiceImpl implements KeywordService {
         LocalDateTime end = month.plusMonths(1).atDay(1).atStartOfDay();
 
         return linkuKeywordRepository
-                .findTopKeywordNamesByJobIdAndPeriod(user.getJob().getId(), start, end, PageRequest.of(0, limit))
+                .findTopKeywordNamesByJobIdAndPeriod(
+                        user.getJob().getId(), start, end, PageRequest.of(0, limit))
                 .stream()
-                .map(row -> JobKeywordRankResponse.builder()
-                        .name(row.name())
-                        .count(row.count())
-                        .build())
+                .map(
+                        row ->
+                                JobKeywordRankResponse.builder()
+                                        .name(row.name())
+                                        .count(row.count())
+                                        .build())
                 .toList();
     }
 
     @Override
     public List<KeywordLinkuItemDTO> getLinkusByKeyword(Long userId, String keyword) {
-        keywordRepository.findByName(keyword)
+        keywordRepository
+                .findByName(keyword)
                 .orElseThrow(() -> new GeneralException(LinkuErrorStatus._KEYWORD_NOT_FOUND));
 
         return linkuRepository.findUserLinksByExactKeyword(userId, keyword);

@@ -6,4 +6,3 @@ public enum CrawlStrategy {
     VIDEO,
     DEFAULT
 }
-

@@ -1,32 +1,36 @@
 package com.umc.linkyou.jwt;
 
-import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
-import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
-import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.enums.Provider;
-import com.umc.linkyou.domain.enums.Role;
-import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
+import java.util.Date;
+import java.util.HexFormat;
+
+import javax.crypto.spec.SecretKeySpec;
+
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import com.umc.linkyou.apiPayload.code.status.auth.AuthErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
+import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
 import com.umc.linkyou.config.properties.Constants;
 import com.umc.linkyou.config.properties.JwtProperties;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.Provider;
+import com.umc.linkyou.domain.enums.Role;
+import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
-import java.util.Date;
-import java.util.HexFormat;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -47,8 +51,10 @@ public class JwtTokenProvider {
 
     @PostConstruct
     public void init() {
-        this.accessKey  = Keys.hmacShaKeyFor(jwtProperties.keys().access().getBytes(StandardCharsets.UTF_8));
-        this.refreshKey = Keys.hmacShaKeyFor(jwtProperties.keys().refresh().getBytes(StandardCharsets.UTF_8));
+        this.accessKey =
+                Keys.hmacShaKeyFor(jwtProperties.keys().access().getBytes(StandardCharsets.UTF_8));
+        this.refreshKey =
+                Keys.hmacShaKeyFor(jwtProperties.keys().refresh().getBytes(StandardCharsets.UTF_8));
     }
 
     // 액세스 토큰 생성 (subject 기반)
@@ -56,15 +62,20 @@ public class JwtTokenProvider {
         return createAccessToken(userId, subject, provider, role, null);
     }
 
-    public String createAccessToken(Long userId, String subject, String provider, Role role, String sessionId) {
-        JwtBuilder builder = Jwts.builder()
-                .setSubject(subject)
-                .claim("userId", userId)
-                .claim("provider", provider)
-                .claim("role", role.getAuthority())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.expiration().access()))
-                .signWith(accessKey, SignatureAlgorithm.HS256);
+    public String createAccessToken(
+            Long userId, String subject, String provider, Role role, String sessionId) {
+        JwtBuilder builder =
+                Jwts.builder()
+                        .setSubject(subject)
+                        .claim("userId", userId)
+                        .claim("provider", provider)
+                        .claim("role", role.getAuthority())
+                        .setIssuedAt(new Date())
+                        .setExpiration(
+                                new Date(
+                                        System.currentTimeMillis()
+                                                + jwtProperties.expiration().access()))
+                        .signWith(accessKey, SignatureAlgorithm.HS256);
 
         // sessionId가 null이 아니고 공백이 아닌 경우에만 claim에 추가
         if (sessionId != null && !sessionId.isBlank()) {
@@ -99,9 +110,9 @@ public class JwtTokenProvider {
     // 클레임 기반으로 Authentication 구성 — DB 조회 없음
     public Authentication getAuthentication(String token) {
         Claims claims = validateAndParseAccess(token).getBody();
-        Long userId     = claims.get("userId", Long.class);
+        Long userId = claims.get("userId", Long.class);
         String provider = claims.get("provider", String.class);
-        String roleStr  = claims.get("role", String.class);
+        String roleStr = claims.get("role", String.class);
 
         if (roleStr == null || roleStr.isBlank()) {
             throw new UserHandler(AuthErrorStatus.UNAUTHORIZED);
@@ -115,17 +126,17 @@ public class JwtTokenProvider {
         }
 
         CustomUserDetails principal = new CustomUserDetails(userId, role, provider);
-        return new UsernamePasswordAuthenticationToken(principal, token, principal.getAuthorities());
+        return new UsernamePasswordAuthenticationToken(
+                principal, token, principal.getAuthorities());
     }
 
     public static String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader(Constants.AUTH_HEADER);
-        if(StringUtils.hasText(bearerToken) && bearerToken.startsWith(Constants.TOKEN_PREFIX)) {
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(Constants.TOKEN_PREFIX)) {
             return bearerToken.substring(Constants.TOKEN_PREFIX.length());
         }
         return null;
     }
-
 
     // 리프레시 토큰 발급
     public String createRefreshToken(String subjectEmail, String provider) {
@@ -135,16 +146,19 @@ public class JwtTokenProvider {
                 .signWith(refreshKey, SignatureAlgorithm.HS256)
                 .setIssuer(jwtProperties.issuer())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.expiration().refresh()))
+                .setExpiration(
+                        new Date(System.currentTimeMillis() + jwtProperties.expiration().refresh()))
                 .compact();
     }
 
     public String hmac(String token) {
         try {
             var mac = javax.crypto.Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(hmacSecret.getBytes(StandardCharsets.UTF_8),  "HmacSHA256"));
+            mac.init(new SecretKeySpec(hmacSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
             return HexFormat.of().formatHex(mac.doFinal(token.getBytes(StandardCharsets.UTF_8)));
-        } catch (Exception e) { throw new IllegalStateException(e); }
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     // 리프레시 토큰 유효성 검증 (Redis 화이트리스트: HMAC id 존재 여부)
@@ -158,16 +172,18 @@ public class JwtTokenProvider {
         Claims claims = jws.getBody();
         String email = claims.getSubject();
 
-        String providerStr = claims.get("provider", String.class);  // String 그대로!
+        String providerStr = claims.get("provider", String.class); // String 그대로!
 
         if (providerStr == null || providerStr.isBlank()) {
             throw new UserHandler(AuthErrorStatus.INVALID_TOKEN);
         }
 
         // 3) 토큰 소유자 userId 조회
-        Long expectedUserId = authAccountRepository.findUserByEmailAndProvider(email, Provider.valueOf(providerStr))
-                .map(Users::getId)
-                .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
+        Long expectedUserId =
+                authAccountRepository
+                        .findUserByEmailAndProvider(email, Provider.valueOf(providerStr))
+                        .map(Users::getId)
+                        .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
         // 4) HMAC id 생성
         String id = hmac(raw);
 
@@ -177,12 +193,8 @@ public class JwtTokenProvider {
         }
     }
 
-
     private Jws<Claims> parse(String token, Key key) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token);
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
     }
 
     // 액세스 토큰 파싱/검증
@@ -215,7 +227,4 @@ public class JwtTokenProvider {
     public String getSessionId(String token) {
         return validateAndParseAccess(normalizeStrict(token)).getBody().get("sid", String.class);
     }
-
-
-
 }

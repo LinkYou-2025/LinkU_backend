@@ -1,16 +1,19 @@
 package com.umc.linkyou.batch;
 
-import com.umc.linkyou.batch.curation.MonthlyCurationBatchItem;
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.repository.userRepository.UserRepository;
-import com.umc.linkyou.service.curation.CurationBatchService;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
+
+import java.util.List;
+import java.util.Optional;
+
 import org.junit.jupiter.api.*;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.JobRepositoryTestUtils;
-import com.umc.linkyou.support.config.TestExternalConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,33 +23,34 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import com.umc.linkyou.batch.curation.MonthlyCurationBatchItem;
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.repository.userRepository.UserRepository;
+import com.umc.linkyou.service.curation.CurationBatchService;
+import com.umc.linkyou.support.config.TestExternalConfig;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(TestExternalConfig.class)
-@TestPropertySource(properties = {
-        "spring.batch.jdbc.initialize-schema=always",
-        "spring.batch.job.enabled=false"
-})
+@TestPropertySource(
+        properties = {
+            "spring.batch.jdbc.initialize-schema=always",
+            "spring.batch.job.enabled=false"
+        })
 @DisplayName("GenerateMonthlyCurationJob 통합 테스트")
 class GenerateMonthlyCurationBatchIntegrationTest {
 
     @Autowired private JobLauncher jobLauncher;
     @Autowired private JobRepository jobRepository;
-    @Autowired @Qualifier("generateMonthlyCurationJob") private Job generateMonthlyCurationJob;
+
+    @Autowired
+    @Qualifier("generateMonthlyCurationJob")
+    private Job generateMonthlyCurationJob;
 
     @Autowired private UserRepository userRepository;
     @Autowired private JdbcTemplate jdbcTemplate;
 
-    @MockitoBean
-    private CurationBatchService curationBatchService;
+    @MockitoBean private CurationBatchService curationBatchService;
 
     private JobLauncherTestUtils jobLauncherTestUtils;
     private JobRepositoryTestUtils jobRepositoryTestUtils;
@@ -120,7 +124,6 @@ class GenerateMonthlyCurationBatchIntegrationTest {
         }
     }
 
-
     @Nested
     @DisplayName("엣지 케이스")
     class EdgeCase {
@@ -141,7 +144,6 @@ class GenerateMonthlyCurationBatchIntegrationTest {
             verify(curationBatchService, never()).createMonthlyCurations(any());
         }
     }
-
 
     private void saveUser(String nickName) {
         userRepository.save(Users.builder().nickName(nickName).password("pw").build());

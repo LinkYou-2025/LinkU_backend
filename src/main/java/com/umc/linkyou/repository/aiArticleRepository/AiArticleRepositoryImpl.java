@@ -1,16 +1,18 @@
 package com.umc.linkyou.repository.aiArticleRepository;
 
-import com.querydsl.core.Tuple;
-import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.umc.linkyou.domain.QAiArticle;
-import com.umc.linkyou.domain.QLinku;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Repository;
+
+import com.querydsl.core.Tuple;
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.umc.linkyou.domain.QAiArticle;
+import com.umc.linkyou.domain.QLinku;
+
+import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
@@ -23,32 +25,38 @@ public class AiArticleRepositoryImpl implements AiArticleRepositoryCustom {
 
     @Override
     public boolean existsAiArticleByLinkuId(Long linkuId) {
-        Integer count = queryFactory
-                .selectOne()
-                .from(aiArticle)
-                .where(aiArticle.linku.linkuId.eq(linkuId)
-                        .and(aiArticle.summary.isNotNull())
-                        .and(aiArticle.summary.isNotEmpty()))
-                .fetchFirst();
+        Integer count =
+                queryFactory
+                        .selectOne()
+                        .from(aiArticle)
+                        .where(
+                                aiArticle
+                                        .linku
+                                        .linkuId
+                                        .eq(linkuId)
+                                        .and(aiArticle.summary.isNotNull())
+                                        .and(aiArticle.summary.isNotEmpty()))
+                        .fetchFirst();
         return count != null;
     }
 
     @Override
     public Map<Long, Boolean> existsAiArticleByLinkuIds(Collection<Long> linkuIds) {
-        List<Tuple> results = queryFactory
-                .select(aiArticle.linku.linkuId, aiArticle.summary)
-                .from(aiArticle)
-                .where(aiArticle.linku.linkuId.in(linkuIds))
-                .fetch();
+        List<Tuple> results =
+                queryFactory
+                        .select(aiArticle.linku.linkuId, aiArticle.summary)
+                        .from(aiArticle)
+                        .where(aiArticle.linku.linkuId.in(linkuIds))
+                        .fetch();
 
         return results.stream()
-                .collect(Collectors.toMap(
-                        tuple -> tuple.get(aiArticle.linku.linkuId),
-                        tuple -> {
-                            String summary = tuple.get(aiArticle.summary);
-                            return summary != null && !summary.isBlank();
-                        },
-                        (a, b) -> a
-                ));
+                .collect(
+                        Collectors.toMap(
+                                tuple -> tuple.get(aiArticle.linku.linkuId),
+                                tuple -> {
+                                    String summary = tuple.get(aiArticle.summary);
+                                    return summary != null && !summary.isBlank();
+                                },
+                                (a, b) -> a));
     }
 }

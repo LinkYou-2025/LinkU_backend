@@ -1,14 +1,12 @@
 package com.umc.linkyou.domain;
 
-import com.umc.linkyou.domain.enums.AlarmPlaceholder;
-
 import java.util.Map;
 
+import com.umc.linkyou.domain.enums.AlarmPlaceholder;
+
 /**
- * 알림 본문 placeholder 치환에 필요한 값들을 담는 payload
- * - 매직 스트링 제거: 키는 {@link AlarmPlaceholder} 에서만 정의
- * - 값 누락을 컴파일타임에 차단 (record 생성자 강제)
- * 렌더러 경계에서만 {@link #toValues()} 로 Map 으로 변환
+ * 알림 본문 placeholder 치환에 필요한 값들을 담는 payload - 매직 스트링 제거: 키는 {@link AlarmPlaceholder} 에서만 정의 - 값 누락을
+ * 컴파일타임에 차단 (record 생성자 강제) 렌더러 경계에서만 {@link #toValues()} 로 Map 으로 변환
  */
 public sealed interface AlarmPayload {
 
@@ -53,8 +51,7 @@ public sealed interface AlarmPayload {
         public Map<String, String> toValues() {
             return Map.of(
                     AlarmPlaceholder.NICKNAME.key(), nickname,
-                    AlarmPlaceholder.FOLDER_NAME.key(), folderName
-            );
+                    AlarmPlaceholder.FOLDER_NAME.key(), folderName);
         }
     }
 }

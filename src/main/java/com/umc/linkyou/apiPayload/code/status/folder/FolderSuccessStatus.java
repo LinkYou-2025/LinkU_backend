@@ -1,10 +1,12 @@
 package com.umc.linkyou.apiPayload.code.status.folder;
 
+import org.springframework.http.HttpStatus;
+
 import com.umc.linkyou.apiPayload.code.BaseSuccessCode;
 import com.umc.linkyou.apiPayload.code.SuccessReasonDTO;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
 @Getter
 @AllArgsConstructor
@@ -46,6 +48,11 @@ public enum FolderSuccessStatus implements BaseSuccessCode {
 
     @Override
     public SuccessReasonDTO getReasonHttpStatus() {
-        return SuccessReasonDTO.builder().message(message).code(code).isSuccess(true).httpStatus(httpStatus).build();
+        return SuccessReasonDTO.builder()
+                .message(message)
+                .code(code)
+                .isSuccess(true)
+                .httpStatus(httpStatus)
+                .build();
     }
 }

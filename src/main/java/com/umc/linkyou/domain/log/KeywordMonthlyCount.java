@@ -1,20 +1,22 @@
 package com.umc.linkyou.domain.log;
 
-import com.umc.linkyou.domain.Users;
-import com.umc.linkyou.domain.enums.KeywordType;
 import jakarta.persistence.*;
-import lombok.*;
+
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import com.umc.linkyou.domain.Users;
+import com.umc.linkyou.domain.enums.KeywordType;
+
+import lombok.*;
+
 @Entity
 @Table(
-    name = "keyword_monthly_counts",
-    uniqueConstraints = @UniqueConstraint(
-        name = "uq_keyword_monthly",
-        columnNames = {"user_id", "type", "ref_id", "base_month"}
-    )
-)
+        name = "keyword_monthly_counts",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uq_keyword_monthly",
+                        columnNames = {"user_id", "type", "ref_id", "base_month"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

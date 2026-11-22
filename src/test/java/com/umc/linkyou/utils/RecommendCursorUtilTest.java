@@ -26,7 +26,9 @@ class RecommendCursorUtilTest {
         @ValueSource(strings = {" ", "\t"})
         @DisplayName("커서가_비어있을_시_첫_페이지를_반환한다")
         void 커서가_비어있을_시_첫_페이지를_반환한다(String cursor) {
-            assertEquals(RecommendCursorUtil.RecommendCursor.FIRST_PAGE, RecommendCursorUtil.decode(cursor));
+            assertEquals(
+                    RecommendCursorUtil.RecommendCursor.FIRST_PAGE,
+                    RecommendCursorUtil.decode(cursor));
         }
 
         @Test
@@ -43,24 +45,32 @@ class RecommendCursorUtilTest {
         @Test
         @DisplayName("Base64가_잘못된_입력_시_첫_페이지를_반환한다")
         void Base64가_잘못된_입력_시_첫_페이지를_반환한다() {
-            assertEquals(RecommendCursorUtil.RecommendCursor.FIRST_PAGE, RecommendCursorUtil.decode("%%%"));
+            assertEquals(
+                    RecommendCursorUtil.RecommendCursor.FIRST_PAGE,
+                    RecommendCursorUtil.decode("%%%"));
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {
-                "not-json", "null", "[]", "{}",
-                "{\"normalBucket\":100,\"normalLastId\":7,\"noveltyExhausted\":false}",
-                "{\"scoreBucket\":100}", "{\"lastId\":7}",
-                "{\"scoreBucket\":null,\"lastId\":7}",
-                "{\"scoreBucket\":100,\"lastId\":null}",
-                "{\"scoreBucket\":\"abc\",\"lastId\":7}",
-                "{\"scoreBucket\":100,\"lastId\":\"abc\"}",
-                "{\"scoreBucket\":2147483648,\"lastId\":7}",
-                "{\"scoreBucket\":100,\"lastId\":9223372036854775808}"
-        })
+        @ValueSource(
+                strings = {
+                    "not-json",
+                    "null",
+                    "[]",
+                    "{}",
+                    "{\"normalBucket\":100,\"normalLastId\":7,\"noveltyExhausted\":false}",
+                    "{\"scoreBucket\":100}",
+                    "{\"lastId\":7}",
+                    "{\"scoreBucket\":null,\"lastId\":7}",
+                    "{\"scoreBucket\":100,\"lastId\":null}",
+                    "{\"scoreBucket\":\"abc\",\"lastId\":7}",
+                    "{\"scoreBucket\":100,\"lastId\":\"abc\"}",
+                    "{\"scoreBucket\":2147483648,\"lastId\":7}",
+                    "{\"scoreBucket\":100,\"lastId\":9223372036854775808}"
+                })
         @DisplayName("구버전이나_손상된_커서_입력_시_첫_페이지를_반환한다")
         void 구버전이나_손상된_커서_입력_시_첫_페이지를_반환한다(String json) {
-            assertEquals(RecommendCursorUtil.RecommendCursor.FIRST_PAGE,
+            assertEquals(
+                    RecommendCursorUtil.RecommendCursor.FIRST_PAGE,
                     RecommendCursorUtil.decode(encodedJson(json)));
         }
     }

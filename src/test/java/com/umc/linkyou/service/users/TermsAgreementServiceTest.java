@@ -1,5 +1,23 @@
 package com.umc.linkyou.service.users;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.TermsAgreement;
@@ -10,23 +28,6 @@ import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.repository.TermsAgreementRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.web.dto.user.MarketingAgreeResponseDTO;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TermsAgreementServiceTest {
@@ -50,7 +51,8 @@ class TermsAgreementServiceTest {
                 Users user = Users.builder().id(1L).build();
                 Map<TermsType, Boolean> termsMap = Map.of(TermsType.TERMS_OF_USE, true);
 
-                when(termsAgreementRepository.findAllByUserId(1L)).thenReturn(Collections.emptyList());
+                when(termsAgreementRepository.findAllByUserId(1L))
+                        .thenReturn(Collections.emptyList());
                 // when
                 termsAgreementService.upsertTerms(user, termsMap);
 
@@ -63,10 +65,11 @@ class TermsAgreementServiceTest {
             void 기존_기록이_있는_약관은_상태만_업데이트된다() {
                 // given
                 Users user = Users.builder().id(1L).build();
-                TermsAgreement existing = TermsAgreement.builder()
-                        .termsType(TermsType.MARKETING)
-                        .isAgreed(false)
-                        .build();
+                TermsAgreement existing =
+                        TermsAgreement.builder()
+                                .termsType(TermsType.MARKETING)
+                                .isAgreed(false)
+                                .build();
 
                 when(termsAgreementRepository.findAllByUserId(1L)).thenReturn(List.of(existing));
                 Map<TermsType, Boolean> termsMap = Map.of(TermsType.MARKETING, true);
@@ -76,7 +79,8 @@ class TermsAgreementServiceTest {
 
                 // then
                 assertEquals(true, existing.getIsAgreed());
-                verify(termsAgreementRepository, never()).save(any()); // save가 아닌 변경 감지(Dirty Checking) 활용
+                verify(termsAgreementRepository, never())
+                        .save(any()); // save가 아닌 변경 감지(Dirty Checking) 활용
             }
         }
 
@@ -92,8 +96,10 @@ class TermsAgreementServiceTest {
                 Map<TermsType, Boolean> emptyMap = Map.of();
 
                 // when & then
-                GeneralException exception = assertThrows(GeneralException.class,
-                        () -> termsAgreementService.upsertTerms(user, emptyMap));
+                GeneralException exception =
+                        assertThrows(
+                                GeneralException.class,
+                                () -> termsAgreementService.upsertTerms(user, emptyMap));
 
                 assertEquals(UserErrorStatus.INVALID_TERMS_TYPE, exception.getCode());
             }
@@ -111,14 +117,16 @@ class TermsAgreementServiceTest {
             @Test
             @DisplayName("기존 동의 기록이 있으면 상태를 반전한 결과를 반환한다")
             void 기존_동의_기록이_있으면_상태를_반전한_결과를_반환한다() {
-                TermsAgreement agreement = TermsAgreement.builder()
-                        .termsType(TermsType.MARKETING)
-                        .isAgreed(true)
-                        .build();
+                TermsAgreement agreement =
+                        TermsAgreement.builder()
+                                .termsType(TermsType.MARKETING)
+                                .isAgreed(true)
+                                .build();
                 when(termsAgreementRepository.findByUserIdAndTermsType(1L, TermsType.MARKETING))
                         .thenReturn(Optional.of(agreement));
 
-                MarketingAgreeResponseDTO response = termsAgreementService.toggleMarketing(userDetails());
+                MarketingAgreeResponseDTO response =
+                        termsAgreementService.toggleMarketing(userDetails());
 
                 assertEquals(false, response.isMarketingAgreed());
                 assertEquals(false, agreement.getIsAgreed());
@@ -129,17 +137,20 @@ class TermsAgreementServiceTest {
             @DisplayName("기존 기록이 없으면 동의 상태로 생성한 결과를 반환한다")
             void 기존_기록이_없으면_동의_상태로_생성한_결과를_반환한다() {
                 Users user = Users.builder().id(1L).build();
-                TermsAgreement createdAgreement = TermsAgreement.builder()
-                        .user(user)
-                        .termsType(TermsType.MARKETING)
-                        .isAgreed(true)
-                        .build();
+                TermsAgreement createdAgreement =
+                        TermsAgreement.builder()
+                                .user(user)
+                                .termsType(TermsType.MARKETING)
+                                .isAgreed(true)
+                                .build();
                 when(termsAgreementRepository.findByUserIdAndTermsType(1L, TermsType.MARKETING))
                         .thenReturn(Optional.empty());
                 when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-                when(termsAgreementRepository.save(any(TermsAgreement.class))).thenReturn(createdAgreement);
+                when(termsAgreementRepository.save(any(TermsAgreement.class)))
+                        .thenReturn(createdAgreement);
 
-                MarketingAgreeResponseDTO response = termsAgreementService.toggleMarketing(userDetails());
+                MarketingAgreeResponseDTO response =
+                        termsAgreementService.toggleMarketing(userDetails());
 
                 assertEquals(true, response.isMarketingAgreed());
                 verify(termsAgreementRepository).save(any(TermsAgreement.class));
@@ -157,9 +168,10 @@ class TermsAgreementServiceTest {
                         .thenReturn(Optional.empty());
                 when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
-                GeneralException exception = assertThrows(
-                        GeneralException.class,
-                        () -> termsAgreementService.toggleMarketing(userDetails()));
+                GeneralException exception =
+                        assertThrows(
+                                GeneralException.class,
+                                () -> termsAgreementService.toggleMarketing(userDetails()));
 
                 assertEquals(UserErrorStatus._USER_NOT_FOUND, exception.getCode());
                 verify(termsAgreementRepository, never()).save(any(TermsAgreement.class));

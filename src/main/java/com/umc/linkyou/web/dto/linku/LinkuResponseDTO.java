@@ -9,11 +9,25 @@ public class LinkuResponseDTO {
 
     @Builder
     public record LinkuResultDTO(
-            Long userId, Long userLinkuId, String folderName, Long categoryId, String linku, String memo,
-            Long emotionId, Long situationId, Boolean isEmotionAi, Boolean isSituationAi, String domain,
-            String title, String domainImageUrl, String linkuImageUrl, Boolean aiArticleExists,
-            LocalDateTime createdAt, LocalDateTime updatedAt, String keyword, String summary
-    ) {
+            Long userId,
+            Long userLinkuId,
+            String folderName,
+            Long categoryId,
+            String linku,
+            String memo,
+            Long emotionId,
+            Long situationId,
+            Boolean isEmotionAi,
+            Boolean isSituationAi,
+            String domain,
+            String title,
+            String domainImageUrl,
+            String linkuImageUrl,
+            Boolean aiArticleExists,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt,
+            String keyword,
+            String summary) {
         public LinkuResultDTO {
             aiArticleExists = aiArticleExists != null ? aiArticleExists : false;
         }
@@ -21,15 +35,26 @@ public class LinkuResponseDTO {
 
     @Builder
     public record LinkuFolderChangeResultDTO(
-            Long userLinkuId, Long folderId, String folderName, LocalDateTime createdAt, LocalDateTime updatedAt
-    ) {}
+            Long userLinkuId,
+            Long folderId,
+            String folderName,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {}
 
     @Builder
     public record LinkuSimpleDTO(
-            Long userLinkuId, Long categoryId, String folderName, String linku, String memo, Long emotionId,
-            String title, String domain, String domainImageUrl, String linkuImageUrl, Boolean aiArticleExists,
-            LocalDateTime lastViewedAt
-    ) {
+            Long userLinkuId,
+            Long categoryId,
+            String folderName,
+            String linku,
+            String memo,
+            Long emotionId,
+            String title,
+            String domain,
+            String domainImageUrl,
+            String linkuImageUrl,
+            Boolean aiArticleExists,
+            LocalDateTime lastViewedAt) {
         public LinkuSimpleDTO {
             aiArticleExists = aiArticleExists != null ? aiArticleExists : false;
         }
@@ -37,22 +62,34 @@ public class LinkuResponseDTO {
 
     @Builder
     public record LinkuIsExistDTO(
-            boolean isExist, Long userId, String title, String memo, Long emotionId,
-            LocalDateTime createdAt, LocalDateTime updatedAt
-    ) {}
+            boolean isExist,
+            Long userId,
+            String title,
+            String memo,
+            Long emotionId,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt) {}
 
     @Builder
     public record LinkuCreateResult(LinkuResultDTO data, boolean validUrl) {}
 
     @Builder
-    public record LinkuSliceResultDTO(List<AiArticleSummaryDTO> linkuList, Long nextCursor, Boolean hasNext) {}
+    public record LinkuSliceResultDTO(
+            List<AiArticleSummaryDTO> linkuList, Long nextCursor, Boolean hasNext) {}
 
     @Builder
     public record AiArticleSummaryDTO(
-           Long userLinkuId, String linku, Long emotionId, String domain, String domainImageUrl, String title,
-            String linkuImageUrl, Long categoryId, String categoryName
-    ) {}
+            Long userLinkuId,
+            String linku,
+            Long emotionId,
+            String domain,
+            String domainImageUrl,
+            String title,
+            String linkuImageUrl,
+            Long categoryId,
+            String categoryName) {}
 
     @Builder
-    public record LinkuRecommendCursorPageDTO(List<LinkuSimpleDTO> items, String nextCursor, Boolean hasNext) {}
+    public record LinkuRecommendCursorPageDTO(
+            List<LinkuSimpleDTO> items, String nextCursor, Boolean hasNext) {}
 }

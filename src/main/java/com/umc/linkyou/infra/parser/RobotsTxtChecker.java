@@ -1,13 +1,5 @@
 package com.umc.linkyou.infra.parser;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.Expiry;
-import com.umc.linkyou.infra.net.SafeUrlFetcher;
-import com.umc.linkyou.infra.net.SsrfGuard;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -17,6 +9,16 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+
+import org.springframework.stereotype.Component;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
+import com.umc.linkyou.infra.net.SafeUrlFetcher;
+import com.umc.linkyou.infra.net.SsrfGuard;
+
+import lombok.extern.slf4j.Slf4j;
 
 // title/body 크롤링이 공통으로 사용하는 robots.txt 검사기.
 // Allow/Disallow 둘 다 반영하며, 더 구체적인(긴) 경로 규칙이 우선한다.
@@ -57,27 +59,37 @@ public class RobotsTxtChecker {
     // 테스트는 이 생성자에 직접 SafeUrlFetcher를 넘겨서 SSRF 정책을 통제한다.
     public RobotsTxtChecker(SafeUrlFetcher safeUrlFetcher) {
         this.safeUrlFetcher = safeUrlFetcher;
-        this.ruleCache = Caffeine.newBuilder()
-                .maximumSize(5_000)
-                .expireAfter(new Expiry<String, CachedRules>() {
-                    @Override
-                    public long expireAfterCreate(String key, CachedRules value, long currentTime) {
-                        return value.ttl().toNanos();
-                    }
+        this.ruleCache =
+                Caffeine.newBuilder()
+                        .maximumSize(5_000)
+                        .expireAfter(
+                                new Expiry<String, CachedRules>() {
+                                    @Override
+                                    public long expireAfterCreate(
+                                            String key, CachedRules value, long currentTime) {
+                                        return value.ttl().toNanos();
+                                    }
 
-                    @Override
-                    public long expireAfterUpdate(
-                            String key, CachedRules value, long currentTime, long currentDuration) {
-                        return value.ttl().toNanos();
-                    }
+                                    @Override
+                                    public long expireAfterUpdate(
+                                            String key,
+                                            CachedRules value,
+                                            long currentTime,
+                                            long currentDuration) {
+                                        return value.ttl().toNanos();
+                                    }
 
-                    @Override
-                    public long expireAfterRead(
-                            String key, CachedRules value, long currentTime, long currentDuration) {
-                        return currentDuration; // 읽는다고 만료 시각을 늘리지 않는다(원래도 expireAfterWrite 방식이었음)
-                    }
-                })
-                .build();
+                                    @Override
+                                    public long expireAfterRead(
+                                            String key,
+                                            CachedRules value,
+                                            long currentTime,
+                                            long currentDuration) {
+                                        return currentDuration; // 읽는다고 만료 시각을 늘리지 않는다(원래도
+                                        // expireAfterWrite 방식이었음)
+                                    }
+                                })
+                        .build();
         this.compiledPatternCache = Caffeine.newBuilder().maximumSize(5_000).build();
     }
 
@@ -140,7 +152,8 @@ public class RobotsTxtChecker {
 
     // 캐시에 유효한 항목이 있으면 그대로 쓰고, 없거나 만료됐으면 새로 fetch한다.
     // 중복 fetch 허용형: 동시에 같은 호스트가 만료 시점을 맞히면 여러 스레드가 각자 fetch할 수 있다(락 없음).
-    private List<Rule> resolveRules(String protocol, String hostPart, String userAgent, String cacheKey) {
+    private List<Rule> resolveRules(
+            String protocol, String hostPart, String userAgent, String cacheKey) {
         CachedRules cached = ruleCache.getIfPresent(cacheKey);
         if (cached != null) {
             return cached.rules();
@@ -150,20 +163,24 @@ public class RobotsTxtChecker {
 
     // robots.txt를 실제로 가져와 파싱하고, 성공/실패 여부에 따라 다른 TTL로 캐시에 저장한다.
     // SsrfGuard.BlockedException은 캐시하지 않고 그대로 위로 던져서 isAllowed()가 fail-closed 처리하게 한다.
-    private List<Rule> fetchAndCache(String protocol, String hostPart, String userAgent, String cacheKey) {
+    private List<Rule> fetchAndCache(
+            String protocol, String hostPart, String userAgent, String cacheKey) {
         List<Rule> rules;
         Duration ttl;
         try {
             String robotsUrl = protocol + "://" + hostPart + "/robots.txt";
-            HttpURLConnection conn = safeUrlFetcher.openConnection(robotsUrl, userAgent, 5000, 5000);
+            HttpURLConnection conn =
+                    safeUrlFetcher.openConnection(robotsUrl, userAgent, 5000, 5000);
             try {
                 int responseCode = conn.getResponseCode();
                 if (responseCode != 200) {
                     // robots.txt 없으면 기본 허용 - 정상적으로 확인된 상태이므로 길게 캐시한다.
                     rules = List.of();
                 } else {
-                    try (BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                    try (BufferedReader reader =
+                            new BufferedReader(
+                                    new InputStreamReader(
+                                            conn.getInputStream(), StandardCharsets.UTF_8))) {
                         rules = parseRules(reader, userAgent);
                     }
                 }
@@ -228,9 +245,11 @@ public class RobotsTxtChecker {
 
             if (field.equals("user-agent")) {
                 boolean matchesThis = value.equals("*") || value.equalsIgnoreCase(userAgent);
-                applicableUserAgent = previousLineWasUserAgent
-                        ? (applicableUserAgent || matchesThis) // 같은 그룹 내 추가 User-agent → OR 결합
-                        : matchesThis;                          // 새 그룹 시작 → 새로 판단
+                applicableUserAgent =
+                        previousLineWasUserAgent
+                                ? (applicableUserAgent
+                                        || matchesThis) // 같은 그룹 내 추가 User-agent → OR 결합
+                                : matchesThis; // 새 그룹 시작 → 새로 판단
                 previousLineWasUserAgent = true;
                 continue;
             }

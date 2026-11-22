@@ -3,7 +3,8 @@ package com.umc.linkyou.infra.gemini.prompt.curation;
 public record CurationMentPrompt(String emotionName) {
 
     public String render() {
-        return String.format("""
+        return String.format(
+                """
                 사용자의 현재 감정은 '%s'입니다.
                 이 감정을 기반으로, 해당 사용자에게 맞는 콘텐츠를 소개하는 큐레이션 멘트를 작성해주세요.
 

@@ -1,16 +1,17 @@
 package com.umc.linkyou.domain.redis;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.redis.core.TimeToLive;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Builder
@@ -19,11 +20,9 @@ import java.util.concurrent.TimeUnit;
 @RedisHash("fcm")
 public class UserFcmTokenCache {
 
-    @Id
-    private Long userId;
+    @Id private Long userId;
 
-    @Builder.Default
-    private Set<String> activeTokens = new HashSet<>();
+    @Builder.Default private Set<String> activeTokens = new HashSet<>();
 
     @TimeToLive(unit = TimeUnit.DAYS)
     @Builder.Default

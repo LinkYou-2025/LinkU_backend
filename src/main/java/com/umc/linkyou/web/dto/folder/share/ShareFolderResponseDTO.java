@@ -22,4 +22,3 @@ public class ShareFolderResponseDTO {
         this.sharedAt = sharedAt;
     }
 }
-

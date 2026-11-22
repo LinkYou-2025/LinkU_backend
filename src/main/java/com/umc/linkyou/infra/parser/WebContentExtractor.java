@@ -1,24 +1,26 @@
 package com.umc.linkyou.infra.parser;
 
+import java.util.List;
+import java.util.Optional;
+
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
+import org.springframework.stereotype.Component;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
+import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.classification.Domain;
 import com.umc.linkyou.domain.enums.CrawlStrategy;
 import com.umc.linkyou.infra.net.SafeUrlFetcher;
 import com.umc.linkyou.infra.net.SsrfGuard;
 import com.umc.linkyou.repository.classification.domainRepository.DomainRepository;
-import com.umc.linkyou.apiPayload.code.status.aiarticle.AiArticleErrorStatus;
-import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.utils.UrlUtils;
 import com.umc.linkyou.utils.UrlValidUtils;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.nodes.Document;
-import org.jsoup.select.Elements;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Component
@@ -50,7 +52,8 @@ public class WebContentExtractor {
             Elements main = doc.select("main");
             if (!main.isEmpty() && !main.text().isBlank()) return main.text();
 
-            Elements content = doc.select("[class*=content], [id*=content], [class*=body], [id*=body]");
+            Elements content =
+                    doc.select("[class*=content], [id*=content], [class*=body], [id*=body]");
             if (!content.isEmpty() && !content.text().isBlank()) return content.text();
 
             Elements ps = doc.select("p");
@@ -98,7 +101,8 @@ public class WebContentExtractor {
                 }
 
                 if (logNo != null) {
-                    Elements containers = iframeDoc.select("#post-view" + logNo + " .se-main-container");
+                    Elements containers =
+                            iframeDoc.select("#post-view" + logNo + " .se-main-container");
                     if (containers.isEmpty()) {
                         containers = iframeDoc.select(".se-main-container");
                     }
@@ -118,18 +122,21 @@ public class WebContentExtractor {
         }
     }
 
-
     // domainTailCandidates: [정확한 호스트, (있다면) registry-suffix apex 도메인] 순서.
     // someuser.tistory.com처럼 정확히 일치하는 행이 없는 서브도메인은 apex(tistory.com) 행으로 폴백한다.
     private ContentExtractorStrategy createStrategy(List<String> domainTailCandidates) {
-        Domain domain = domainTailCandidates.stream()
-                .map(domainRepository::findByDomainTail)
-                .flatMap(Optional::stream)
-                .findFirst()
-                .orElse(null);
+        Domain domain =
+                domainTailCandidates.stream()
+                        .map(domainRepository::findByDomainTail)
+                        .flatMap(Optional::stream)
+                        .findFirst()
+                        .orElse(null);
         if (domain == null) return new DefaultExtractor();
 
-        CrawlStrategy strategy = domain.getCrawlStrategy() != null ? domain.getCrawlStrategy() : CrawlStrategy.DEFAULT;
+        CrawlStrategy strategy =
+                domain.getCrawlStrategy() != null
+                        ? domain.getCrawlStrategy()
+                        : CrawlStrategy.DEFAULT;
         return switch (strategy) {
             case IFRAME -> new NaverBlogExtractor(safeUrlFetcher, robotsTxtChecker);
             case BODY -> new BodyExtractor();
@@ -167,9 +174,12 @@ public class WebContentExtractor {
 
             String safeUrl = UrlUtils.normalizeUrl(url);
             List<String> domainTailCandidates = UrlValidUtils.extractDomainTailCandidates(safeUrl);
-            ContentExtractorStrategy strategy = domainTailCandidates.isEmpty()
-                    ? new DefaultExtractor()
-                    : crawlerStrategies.get(domainTailCandidates.get(0), key -> createStrategy(domainTailCandidates));
+            ContentExtractorStrategy strategy =
+                    domainTailCandidates.isEmpty()
+                            ? new DefaultExtractor()
+                            : crawlerStrategies.get(
+                                    domainTailCandidates.get(0),
+                                    key -> createStrategy(domainTailCandidates));
 
             String extracted = strategy.extract(doc, safeUrl);
 

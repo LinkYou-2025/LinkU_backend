@@ -1,5 +1,34 @@
 package com.umc.linkyou.web.controller;
 
+import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResult;
+import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResultList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderErrorStatus;
@@ -19,54 +48,21 @@ import com.umc.linkyou.web.dto.folder.FolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderTreeResponseDTO;
 import com.umc.linkyou.web.dto.folder.FolderUpdateRequestDTO;
 import com.umc.linkyou.web.dto.folder.linku.FolderLinkusResponseDTO;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-
-import java.util.List;
-
-import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResult;
-import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResultList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doThrow;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(FolderController.class)
 @Import({WebConfig.class, CurrentUserArgumentResolver.class, TestSecurityConfig.class})
 @DisplayName("FolderController 테스트")
 class FolderControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @MockitoBean
-    private FolderService folderService;
+    @MockitoBean private FolderService folderService;
 
-    @MockitoBean
-    private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean private JwtTokenProvider jwtTokenProvider;
 
-    @MockitoBean
-    private AccessTokenBlackListManager accessTokenBlackListManager;
+    @MockitoBean private AccessTokenBlackListManager accessTokenBlackListManager;
 
     private static final Long PARENT_FOLDER_ID = 200L;
     private static final Long FOLDER_ID = 100L;
@@ -85,21 +81,32 @@ class FolderControllerTest {
                 FolderCreateRequestDTO request = new FolderCreateRequestDTO();
                 request.setFolderName("새폴더");
 
-                FolderResponseDTO response = FolderResponseDTO.builder()
-                        .folderId(FOLDER_ID).folderName("새폴더").parentFolderId(PARENT_FOLDER_ID).isBookmarked(false).build();
+                FolderResponseDTO response =
+                        FolderResponseDTO.builder()
+                                .folderId(FOLDER_ID)
+                                .folderName("새폴더")
+                                .parentFolderId(PARENT_FOLDER_ID)
+                                .isBookmarked(false)
+                                .build();
 
-                given(folderService.createFolder(eq(1L), eq(PARENT_FOLDER_ID), any())).willReturn(response);
+                given(folderService.createFolder(eq(1L), eq(PARENT_FOLDER_ID), any()))
+                        .willReturn(response);
 
-                MvcResult result = mockMvc.perform(post("/api/v1/folders/{parentFolderId}/subfolders", PARENT_FOLDER_ID)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                                .with(csrf()))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andExpect(jsonPath("$.code").value("FOLDER2011"))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(
+                                        post(
+                                                        "/api/v1/folders/{parentFolderId}/subfolders",
+                                                        PARENT_FOLDER_ID)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request))
+                                                .with(csrf()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andExpect(jsonPath("$.code").value("FOLDER2011"))
+                                .andReturn();
 
-                FolderResponseDTO created = readResult(result, objectMapper, FolderResponseDTO.class);
+                FolderResponseDTO created =
+                        readResult(result, objectMapper, FolderResponseDTO.class);
                 assertThat(created.getFolderId()).isEqualTo(FOLDER_ID);
                 assertThat(created.getFolderName()).isEqualTo("새폴더");
             }
@@ -116,15 +123,23 @@ class FolderControllerTest {
                 request.setFolderName("새폴더");
 
                 given(folderService.createFolder(eq(1L), eq(PARENT_FOLDER_ID), any()))
-                        .willThrow(new GeneralException(FolderErrorStatus._FOLDER_PARENT_NOT_FOUND));
+                        .willThrow(
+                                new GeneralException(FolderErrorStatus._FOLDER_PARENT_NOT_FOUND));
 
-                mockMvc.perform(post("/api/v1/folders/{parentFolderId}/subfolders", PARENT_FOLDER_ID)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                                .with(csrf()))
+                mockMvc.perform(
+                                post(
+                                                "/api/v1/folders/{parentFolderId}/subfolders",
+                                                PARENT_FOLDER_ID)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request))
+                                        .with(csrf()))
                         .andExpect(status().isNotFound())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(FolderErrorStatus._FOLDER_PARENT_NOT_FOUND.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(
+                                                FolderErrorStatus._FOLDER_PARENT_NOT_FOUND
+                                                        .getCode()));
             }
 
             @Test
@@ -135,15 +150,23 @@ class FolderControllerTest {
                 request.setFolderName("새폴더");
 
                 given(folderService.createFolder(eq(1L), eq(PARENT_FOLDER_ID), any()))
-                        .willThrow(new GeneralException(FolderErrorStatus._FOLDER_MAX_DEPTH_EXCEEDED));
+                        .willThrow(
+                                new GeneralException(FolderErrorStatus._FOLDER_MAX_DEPTH_EXCEEDED));
 
-                mockMvc.perform(post("/api/v1/folders/{parentFolderId}/subfolders", PARENT_FOLDER_ID)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                                .with(csrf()))
+                mockMvc.perform(
+                                post(
+                                                "/api/v1/folders/{parentFolderId}/subfolders",
+                                                PARENT_FOLDER_ID)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request))
+                                        .with(csrf()))
                         .andExpect(status().isBadRequest())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(FolderErrorStatus._FOLDER_MAX_DEPTH_EXCEEDED.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(
+                                                FolderErrorStatus._FOLDER_MAX_DEPTH_EXCEEDED
+                                                        .getCode()));
             }
 
             @Test
@@ -152,10 +175,13 @@ class FolderControllerTest {
                 FolderCreateRequestDTO request = new FolderCreateRequestDTO();
                 request.setFolderName("새폴더");
 
-                mockMvc.perform(post("/api/v1/folders/{parentFolderId}/subfolders", PARENT_FOLDER_ID)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                                .with(csrf()))
+                mockMvc.perform(
+                                post(
+                                                "/api/v1/folders/{parentFolderId}/subfolders",
+                                                PARENT_FOLDER_ID)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request))
+                                        .with(csrf()))
                         .andExpect(status().isUnauthorized());
             }
         }
@@ -175,21 +201,29 @@ class FolderControllerTest {
                 FolderUpdateRequestDTO request = new FolderUpdateRequestDTO();
                 request.setFolderName("수정된이름");
 
-                FolderResponseDTO response = FolderResponseDTO.builder()
-                        .folderId(FOLDER_ID).folderName("수정된이름").isBookmarked(true).build();
+                FolderResponseDTO response =
+                        FolderResponseDTO.builder()
+                                .folderId(FOLDER_ID)
+                                .folderName("수정된이름")
+                                .isBookmarked(true)
+                                .build();
 
-                given(folderService.updateFolder(eq(1L), eq(FOLDER_ID), any())).willReturn(response);
+                given(folderService.updateFolder(eq(1L), eq(FOLDER_ID), any()))
+                        .willReturn(response);
 
-                MvcResult result = mockMvc.perform(put("/api/v1/folders/subfolders/{folderId}", FOLDER_ID)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                                .with(csrf()))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andExpect(jsonPath("$.code").value("FOLDER2004"))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(
+                                        put("/api/v1/folders/subfolders/{folderId}", FOLDER_ID)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request))
+                                                .with(csrf()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andExpect(jsonPath("$.code").value("FOLDER2004"))
+                                .andReturn();
 
-                FolderResponseDTO updated = readResult(result, objectMapper, FolderResponseDTO.class);
+                FolderResponseDTO updated =
+                        readResult(result, objectMapper, FolderResponseDTO.class);
                 assertThat(updated.getFolderName()).isEqualTo("수정된이름");
             }
         }
@@ -205,15 +239,21 @@ class FolderControllerTest {
                 request.setFolderName("수정된이름");
 
                 given(folderService.updateFolder(eq(1L), eq(FOLDER_ID), any()))
-                        .willThrow(new GeneralException(FolderErrorStatus._FOLDER_UPDATE_FORBIDDEN));
+                        .willThrow(
+                                new GeneralException(FolderErrorStatus._FOLDER_UPDATE_FORBIDDEN));
 
-                mockMvc.perform(put("/api/v1/folders/subfolders/{folderId}", FOLDER_ID)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                                .with(csrf()))
+                mockMvc.perform(
+                                put("/api/v1/folders/subfolders/{folderId}", FOLDER_ID)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request))
+                                        .with(csrf()))
                         .andExpect(status().isForbidden())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(FolderErrorStatus._FOLDER_UPDATE_FORBIDDEN.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(
+                                                FolderErrorStatus._FOLDER_UPDATE_FORBIDDEN
+                                                        .getCode()));
             }
         }
     }
@@ -229,7 +269,9 @@ class FolderControllerTest {
             @DisplayName("정상 요청 시 삭제에 성공한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_삭제에_성공한다() throws Exception {
-                mockMvc.perform(delete("/api/v1/folders/subfolders/{folderId}", FOLDER_ID).with(csrf()))
+                mockMvc.perform(
+                                delete("/api/v1/folders/subfolders/{folderId}", FOLDER_ID)
+                                        .with(csrf()))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true))
                         .andExpect(jsonPath("$.code").value("FOLDER2005"));
@@ -244,12 +286,19 @@ class FolderControllerTest {
             @WithCustomUser(userId = 1L)
             void 삭제권한이_없으면_403을_반환한다() throws Exception {
                 doThrow(new GeneralException(FolderErrorStatus._FOLDER_DELETE_FORBIDDEN))
-                        .when(folderService).deleteFolder(eq(1L), eq(FOLDER_ID));
+                        .when(folderService)
+                        .deleteFolder(eq(1L), eq(FOLDER_ID));
 
-                mockMvc.perform(delete("/api/v1/folders/subfolders/{folderId}", FOLDER_ID).with(csrf()))
+                mockMvc.perform(
+                                delete("/api/v1/folders/subfolders/{folderId}", FOLDER_ID)
+                                        .with(csrf()))
                         .andExpect(status().isForbidden())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(FolderErrorStatus._FOLDER_DELETE_FORBIDDEN.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(
+                                                FolderErrorStatus._FOLDER_DELETE_FORBIDDEN
+                                                        .getCode()));
             }
         }
     }
@@ -265,18 +314,24 @@ class FolderControllerTest {
             @DisplayName("정상 요청 시 폴더 트리를 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_폴더트리를_반환한다() throws Exception {
-                FolderTreeResponseDTO tree = FolderTreeResponseDTO.builder()
-                        .folderId(PARENT_FOLDER_ID).folderName("중분류").isBookmarked(false).build();
+                FolderTreeResponseDTO tree =
+                        FolderTreeResponseDTO.builder()
+                                .folderId(PARENT_FOLDER_ID)
+                                .folderName("중분류")
+                                .isBookmarked(false)
+                                .build();
 
                 given(folderService.getMyFolderTree(1L)).willReturn(List.of(tree));
 
-                MvcResult result = mockMvc.perform(get("/api/v1/folders/my"))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andExpect(jsonPath("$.code").value("FOLDER2001"))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(get("/api/v1/folders/my"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andExpect(jsonPath("$.code").value("FOLDER2001"))
+                                .andReturn();
 
-                List<FolderTreeResponseDTO> tree2 = readResultList(result, objectMapper, FolderTreeResponseDTO.class);
+                List<FolderTreeResponseDTO> tree2 =
+                        readResultList(result, objectMapper, FolderTreeResponseDTO.class);
                 assertThat(tree2).hasSize(1);
                 assertThat(tree2.get(0).getFolderId()).isEqualTo(PARENT_FOLDER_ID);
             }
@@ -288,8 +343,7 @@ class FolderControllerTest {
             @Test
             @DisplayName("인증되지 않은 요청은 401을 반환한다")
             void 인증되지_않으면_401을_반환한다() throws Exception {
-                mockMvc.perform(get("/api/v1/folders/my"))
-                        .andExpect(status().isUnauthorized());
+                mockMvc.perform(get("/api/v1/folders/my")).andExpect(status().isUnauthorized());
             }
         }
     }
@@ -305,17 +359,25 @@ class FolderControllerTest {
             @DisplayName("정상 요청 시 categoryId를 포함해 중분류 폴더 목록을 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_중분류폴더목록을_반환한다() throws Exception {
-                FolderListResponseDTO item = FolderListResponseDTO.builder()
-                        .folderId(PARENT_FOLDER_ID).folderName("중분류").isBookmarked(false).isSharing("private").categoryId(10L).build();
+                FolderListResponseDTO item =
+                        FolderListResponseDTO.builder()
+                                .folderId(PARENT_FOLDER_ID)
+                                .folderName("중분류")
+                                .isBookmarked(false)
+                                .isSharing("private")
+                                .categoryId(10L)
+                                .build();
 
                 given(folderService.getParentFolders(1L, "name")).willReturn(List.of(item));
 
-                MvcResult result = mockMvc.perform(get("/api/v1/folders/parentFolders"))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(get("/api/v1/folders/parentFolders"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                List<FolderListResponseDTO> folders = readResultList(result, objectMapper, FolderListResponseDTO.class);
+                List<FolderListResponseDTO> folders =
+                        readResultList(result, objectMapper, FolderListResponseDTO.class);
                 assertThat(folders).hasSize(1);
                 assertThat(folders.get(0).getIsSharing()).isEqualTo("private");
                 assertThat(folders.get(0).getCategoryId()).isEqualTo(10L);
@@ -334,17 +396,28 @@ class FolderControllerTest {
             @DisplayName("정상 요청 시 하위 폴더 목록을 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_하위폴더목록을_반환한다() throws Exception {
-                FolderListResponseDTO item = FolderListResponseDTO.builder()
-                        .folderId(FOLDER_ID).folderName("소분류").parentFolderId(PARENT_FOLDER_ID).isBookmarked(false).isSharing("private").build();
+                FolderListResponseDTO item =
+                        FolderListResponseDTO.builder()
+                                .folderId(FOLDER_ID)
+                                .folderName("소분류")
+                                .parentFolderId(PARENT_FOLDER_ID)
+                                .isBookmarked(false)
+                                .isSharing("private")
+                                .build();
 
                 given(folderService.getSubFolders(1L, PARENT_FOLDER_ID)).willReturn(List.of(item));
 
-                MvcResult result = mockMvc.perform(get("/api/v1/folders/{parentFolderId}/subfolders", PARENT_FOLDER_ID))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(
+                                        get(
+                                                "/api/v1/folders/{parentFolderId}/subfolders",
+                                                PARENT_FOLDER_ID))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                List<FolderListResponseDTO> folders = readResultList(result, objectMapper, FolderListResponseDTO.class);
+                List<FolderListResponseDTO> folders =
+                        readResultList(result, objectMapper, FolderListResponseDTO.class);
                 assertThat(folders).hasSize(1);
                 assertThat(folders.get(0).getFolderId()).isEqualTo(FOLDER_ID);
             }
@@ -358,12 +431,20 @@ class FolderControllerTest {
             @WithCustomUser(userId = 1L)
             void 접근권한이_없으면_403을_반환한다() throws Exception {
                 given(folderService.getSubFolders(1L, PARENT_FOLDER_ID))
-                        .willThrow(new GeneralException(FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN));
+                        .willThrow(
+                                new GeneralException(FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN));
 
-                mockMvc.perform(get("/api/v1/folders/{parentFolderId}/subfolders", PARENT_FOLDER_ID))
+                mockMvc.perform(
+                                get(
+                                        "/api/v1/folders/{parentFolderId}/subfolders",
+                                        PARENT_FOLDER_ID))
                         .andExpect(status().isForbidden())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(
+                                                FolderErrorStatus._FOLDER_ACCESS_FORBIDDEN
+                                                        .getCode()));
             }
         }
     }
@@ -382,20 +463,26 @@ class FolderControllerTest {
                 BookmarkUpdateRequestDTO request = new BookmarkUpdateRequestDTO();
                 request.setIsBookmarked(true);
 
-                BookmarkUpdateResponseDTO response = BookmarkUpdateResponseDTO.builder()
-                        .folderId(FOLDER_ID).isBookmarked(true).build();
+                BookmarkUpdateResponseDTO response =
+                        BookmarkUpdateResponseDTO.builder()
+                                .folderId(FOLDER_ID)
+                                .isBookmarked(true)
+                                .build();
 
                 given(folderService.updateBookmark(1L, FOLDER_ID, true)).willReturn(response);
 
-                MvcResult result = mockMvc.perform(patch("/api/v1/folders/{folderId}/bookmark", FOLDER_ID)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                                .with(csrf()))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(
+                                        patch("/api/v1/folders/{folderId}/bookmark", FOLDER_ID)
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request))
+                                                .with(csrf()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                BookmarkUpdateResponseDTO bookmark = readResult(result, objectMapper, BookmarkUpdateResponseDTO.class);
+                BookmarkUpdateResponseDTO bookmark =
+                        readResult(result, objectMapper, BookmarkUpdateResponseDTO.class);
                 assertThat(bookmark.getIsBookmarked()).isTrue();
             }
         }
@@ -413,13 +500,16 @@ class FolderControllerTest {
                 given(folderService.updateBookmark(1L, FOLDER_ID, true))
                         .willThrow(new GeneralException(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND));
 
-                mockMvc.perform(patch("/api/v1/folders/{folderId}/bookmark", FOLDER_ID)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request))
-                                .with(csrf()))
+                mockMvc.perform(
+                                patch("/api/v1/folders/{folderId}/bookmark", FOLDER_ID)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request))
+                                        .with(csrf()))
                         .andExpect(status().isNotFound())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(ErrorStatus._FOLDER_BOOKMARK_NOT_FOUND.getCode()));
             }
         }
     }
@@ -435,21 +525,25 @@ class FolderControllerTest {
             @DisplayName("정상 요청 시 링크와 하위 폴더 목록을 반환한다")
             @WithCustomUser(userId = 1L)
             void 정상_요청_시_링크와_하위폴더목록을_반환한다() throws Exception {
-                FolderLinkusResponseDTO response = FolderLinkusResponseDTO.builder()
-                        .folders(List.of())
-                        .links(List.of())
-                        .nextCursor(null)
-                        .build();
+                FolderLinkusResponseDTO response =
+                        FolderLinkusResponseDTO.builder()
+                                .folders(List.of())
+                                .links(List.of())
+                                .nextCursor(null)
+                                .build();
 
-                given(folderService.getFolderLinkus(1L, FOLDER_ID, 20, null, "name", true)).willReturn(response);
+                given(folderService.getFolderLinkus(1L, FOLDER_ID, 20, null, "name", true))
+                        .willReturn(response);
 
-                MvcResult result = mockMvc.perform(get("/api/v1/folders/{folderId}/linkus", FOLDER_ID))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andExpect(jsonPath("$.code").value("FOLDER2006"))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(get("/api/v1/folders/{folderId}/linkus", FOLDER_ID))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andExpect(jsonPath("$.code").value("FOLDER2006"))
+                                .andReturn();
 
-                FolderLinkusResponseDTO linkus = readResult(result, objectMapper, FolderLinkusResponseDTO.class);
+                FolderLinkusResponseDTO linkus =
+                        readResult(result, objectMapper, FolderLinkusResponseDTO.class);
                 assertThat(linkus.getFolders()).isEmpty();
                 assertThat(linkus.getLinks()).isEmpty();
                 assertThat(linkus.getNextCursor()).isNull();
@@ -459,15 +553,19 @@ class FolderControllerTest {
             @DisplayName("includeLinks=false로 요청하면 폴더 목록만 반환한다")
             @WithCustomUser(userId = 1L)
             void includeLinks가_false면_폴더목록만_반환한다() throws Exception {
-                FolderLinkusResponseDTO response = FolderLinkusResponseDTO.builder()
-                        .folders(List.of())
-                        .links(List.of())
-                        .nextCursor(null)
-                        .build();
+                FolderLinkusResponseDTO response =
+                        FolderLinkusResponseDTO.builder()
+                                .folders(List.of())
+                                .links(List.of())
+                                .nextCursor(null)
+                                .build();
 
-                given(folderService.getFolderLinkus(1L, FOLDER_ID, 20, null, "name", false)).willReturn(response);
+                given(folderService.getFolderLinkus(1L, FOLDER_ID, 20, null, "name", false))
+                        .willReturn(response);
 
-                mockMvc.perform(get("/api/v1/folders/{folderId}/linkus", FOLDER_ID).param("includeLinks", "false"))
+                mockMvc.perform(
+                                get("/api/v1/folders/{folderId}/linkus", FOLDER_ID)
+                                        .param("includeLinks", "false"))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.isSuccess").value(true));
             }
@@ -483,10 +581,14 @@ class FolderControllerTest {
                 given(folderService.getFolderLinkus(1L, FOLDER_ID, 20, "abc", "name", true))
                         .willThrow(new GeneralException(FolderErrorStatus._FOLDER_INVALID_CURSOR));
 
-                mockMvc.perform(get("/api/v1/folders/{folderId}/linkus", FOLDER_ID).param("cursor", "abc"))
+                mockMvc.perform(
+                                get("/api/v1/folders/{folderId}/linkus", FOLDER_ID)
+                                        .param("cursor", "abc"))
                         .andExpect(status().isBadRequest())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(FolderErrorStatus._FOLDER_INVALID_CURSOR.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(FolderErrorStatus._FOLDER_INVALID_CURSOR.getCode()));
             }
         }
     }

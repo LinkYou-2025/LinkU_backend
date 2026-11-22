@@ -1,15 +1,18 @@
 package com.umc.linkyou.jwt;
 
+import java.io.IOException;
+
+import jakarta.servlet.http.HttpServletResponse;
+
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Component;
 
-import java.io.IOException;
+import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
@@ -28,11 +31,8 @@ public class SecurityErrorResponseWriter {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
 
-        ApiResponse<Object> body = ApiResponse.onFailure(
-                reason.getCode(),
-                reason.getMessage(),
-                null
-        );
+        ApiResponse<Object> body =
+                ApiResponse.onFailure(reason.getCode(), reason.getMessage(), null);
 
         objectMapper.writeValue(response.getOutputStream(), body);
     }

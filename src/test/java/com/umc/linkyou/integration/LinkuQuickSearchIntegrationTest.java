@@ -1,5 +1,24 @@
 package com.umc.linkyou.integration;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.domain.Keyword;
@@ -26,24 +45,6 @@ import com.umc.linkyou.repository.mapping.LinkuKeywordRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
 import com.umc.linkyou.support.config.TestExternalConfig;
 import com.umc.linkyou.support.security.TestSecurityConfig;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.transaction.annotation.Transactional;
-
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("test")
 @SpringBootTest
@@ -53,41 +54,29 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("링크 검색·자동완성 통합테스트")
 class LinkuQuickSearchIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private LinkuRepository linkuRepository;
+    @Autowired private LinkuRepository linkuRepository;
 
-    @Autowired
-    private UsersLinkuRepository usersLinkuRepository;
+    @Autowired private UsersLinkuRepository usersLinkuRepository;
 
-    @Autowired
-    private DomainRepository domainRepository;
+    @Autowired private DomainRepository domainRepository;
 
-    @Autowired
-    private CategoryRepository categoryRepository;
+    @Autowired private CategoryRepository categoryRepository;
 
-    @Autowired
-    private FcolorRepository fcolorRepository;
+    @Autowired private FcolorRepository fcolorRepository;
 
-    @Autowired
-    private EmotionRepository emotionRepository;
+    @Autowired private EmotionRepository emotionRepository;
 
-    @Autowired
-    private SituationRepository situationRepository;
+    @Autowired private SituationRepository situationRepository;
 
-    @Autowired
-    private KeywordRepository keywordRepository;
+    @Autowired private KeywordRepository keywordRepository;
 
-    @Autowired
-    private LinkuKeywordRepository linkuKeywordRepository;
+    @Autowired private LinkuKeywordRepository linkuKeywordRepository;
 
     private Domain domain;
     private Category category;
@@ -96,32 +85,31 @@ class LinkuQuickSearchIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        domain = domainRepository.save(Domain.builder()
-                .domainTail("youtube.com")
-                .name("유튜브")
-                .imageUrl("https://image.com/youtube.png")
-                .build());
+        domain =
+                domainRepository.save(
+                        Domain.builder()
+                                .domainTail("youtube.com")
+                                .name("유튜브")
+                                .imageUrl("https://image.com/youtube.png")
+                                .build());
 
-        Fcolor fcolor = fcolorRepository.save(Fcolor.builder()
-                .colorName("BLUE")
-                .colorCode1("#E3F2FD")
-                .colorCode2("#90CAF9")
-                .colorCode3("#42A5F5")
-                .colorCode4("#1E88E5")
-                .build());
+        Fcolor fcolor =
+                fcolorRepository.save(
+                        Fcolor.builder()
+                                .colorName("BLUE")
+                                .colorCode1("#E3F2FD")
+                                .colorCode2("#90CAF9")
+                                .colorCode3("#42A5F5")
+                                .colorCode4("#1E88E5")
+                                .build());
 
-        category = categoryRepository.save(Category.builder()
-                .categoryName("개발")
-                .fcolor(fcolor)
-                .build());
+        category =
+                categoryRepository.save(
+                        Category.builder().categoryName("개발").fcolor(fcolor).build());
 
-        emotion = emotionRepository.save(Emotion.builder()
-                .name("기쁨")
-                .build());
+        emotion = emotionRepository.save(Emotion.builder().name("기쁨").build());
 
-        situation = situationRepository.save(Situation.builder()
-                .name("일상")
-                .build());
+        situation = situationRepository.save(Situation.builder().name("일상").build());
     }
 
     // ===== 링크 검색 (커서 페이징) =====
@@ -133,16 +121,19 @@ class LinkuQuickSearchIntegrationTest {
         Linku linku = createLinku("스프링 부트 강의 모음", "https://youtube.com/watch?v=1");
         saveToUser(user, linku, null);
 
-        mockMvc.perform(get("/api/v1/linku/search")
-                        .param("searchQuery", "부트")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search")
+                                .param("searchQuery", "부트")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.code").value("LINKU2005"))
                 .andExpect(jsonPath("$.result.items.length()").value(1))
                 .andExpect(jsonPath("$.result.items[0].title").value("스프링 부트 강의 모음"))
                 .andExpect(jsonPath("$.result.items[0].domainName").value("유튜브"))
-                .andExpect(jsonPath("$.result.items[0].domainImageUrl").value("https://image.com/youtube.png"))
+                .andExpect(
+                        jsonPath("$.result.items[0].domainImageUrl")
+                                .value("https://image.com/youtube.png"))
                 .andExpect(jsonPath("$.result.items[0].tags.length()").value(0))
                 .andExpect(jsonPath("$.result.hasNext").value(false));
     }
@@ -154,9 +145,10 @@ class LinkuQuickSearchIntegrationTest {
         Linku linku = createLinku("원본 크롤링 제목", "https://youtube.com/watch?v=2");
         saveToUser(user, linku, "내가 바꾼 제목");
 
-        mockMvc.perform(get("/api/v1/linku/search")
-                        .param("searchQuery", "바꾼")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search")
+                                .param("searchQuery", "바꾼")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.items.length()").value(1))
                 .andExpect(jsonPath("$.result.items[0].title").value("내가 바꾼 제목"));
@@ -170,9 +162,10 @@ class LinkuQuickSearchIntegrationTest {
         saveToUser(user, linku, null);
         attachTag(linku, "스프링");
 
-        mockMvc.perform(get("/api/v1/linku/search")
-                        .param("searchQuery", "스프링")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search")
+                                .param("searchQuery", "스프링")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.items.length()").value(1))
                 .andExpect(jsonPath("$.result.items[0].title").value("자바 유용한 팁"))
@@ -186,9 +179,10 @@ class LinkuQuickSearchIntegrationTest {
         Linku linku = createLinku("YouTube 알고리즘 분석", "https://youtube.com/watch?v=4");
         saveToUser(user, linku, null);
 
-        mockMvc.perform(get("/api/v1/linku/search")
-                        .param("searchQuery", "youtube")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search")
+                                .param("searchQuery", "youtube")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.items.length()").value(1))
                 .andExpect(jsonPath("$.result.items[0].title").value("YouTube 알고리즘 분석"));
@@ -202,9 +196,10 @@ class LinkuQuickSearchIntegrationTest {
         Linku linku = createLinku("스프링 부트 강의", "https://youtube.com/watch?v=5");
         saveToUser(owner, linku, null);
 
-        mockMvc.perform(get("/api/v1/linku/search")
-                        .param("searchQuery", "스프링")
-                        .with(authentication(authFor(other))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search")
+                                .param("searchQuery", "스프링")
+                                .with(authentication(authFor(other))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.items.length()").value(0))
                 .andExpect(jsonPath("$.result.hasNext").value(false));
@@ -219,9 +214,10 @@ class LinkuQuickSearchIntegrationTest {
         Linku second = createLinku("스프링 강의 둘", "https://youtube.com/watch?v=7");
         saveToUser(user, second, null);
 
-        mockMvc.perform(get("/api/v1/linku/search")
-                        .param("searchQuery", "스프링")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search")
+                                .param("searchQuery", "스프링")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.items[0].title").value("스프링 강의 둘"))
                 .andExpect(jsonPath("$.result.items[1].title").value("스프링 강의 하나"));
@@ -236,24 +232,27 @@ class LinkuQuickSearchIntegrationTest {
             saveToUser(user, linku, null);
         }
 
-        MvcResult firstPage = mockMvc.perform(get("/api/v1/linku/search")
-                        .param("searchQuery", "스프링")
-                        .param("size", "10")
-                        .with(authentication(authFor(user))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.items.length()").value(10))
-                .andExpect(jsonPath("$.result.hasNext").value(true))
-                .andExpect(jsonPath("$.result.nextCursor").isNumber())
-                .andReturn();
+        MvcResult firstPage =
+                mockMvc.perform(
+                                get("/api/v1/linku/search")
+                                        .param("searchQuery", "스프링")
+                                        .param("size", "10")
+                                        .with(authentication(authFor(user))))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.result.items.length()").value(10))
+                        .andExpect(jsonPath("$.result.hasNext").value(true))
+                        .andExpect(jsonPath("$.result.nextCursor").isNumber())
+                        .andReturn();
 
         JsonNode root = objectMapper.readTree(firstPage.getResponse().getContentAsString());
         long nextCursor = root.path("result").path("nextCursor").asLong();
 
-        mockMvc.perform(get("/api/v1/linku/search")
-                        .param("searchQuery", "스프링")
-                        .param("cursor", String.valueOf(nextCursor))
-                        .param("size", "10")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search")
+                                .param("searchQuery", "스프링")
+                                .param("cursor", String.valueOf(nextCursor))
+                                .param("size", "10")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.items.length()").value(5))
                 .andExpect(jsonPath("$.result.hasNext").value(false));
@@ -264,9 +263,10 @@ class LinkuQuickSearchIntegrationTest {
     void 검색어가_공백뿐이면_400을_반환한다() throws Exception {
         Users user = createUser("search_user_9");
 
-        mockMvc.perform(get("/api/v1/linku/search")
-                        .param("searchQuery", "   ")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search")
+                                .param("searchQuery", "   ")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("LINKU4003"));
     }
@@ -276,9 +276,10 @@ class LinkuQuickSearchIntegrationTest {
     void 검색어가_1글자면_400을_반환한다() throws Exception {
         Users user = createUser("search_user_10");
 
-        mockMvc.perform(get("/api/v1/linku/search")
-                        .param("searchQuery", " 스 ")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search")
+                                .param("searchQuery", " 스 ")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("LINKU4005"));
     }
@@ -292,15 +293,18 @@ class LinkuQuickSearchIntegrationTest {
         Linku linku = createLinku("스프링 부트 강의", "https://youtube.com/watch?v=8");
         saveToUser(user, linku, null);
 
-        mockMvc.perform(get("/api/v1/linku/search/quick")
-                        .param("searchQuery", "스프링")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search/quick")
+                                .param("searchQuery", "스프링")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.code").value("LINKU2008"))
                 .andExpect(jsonPath("$.result.length()").value(1))
                 .andExpect(jsonPath("$.result[0].title").value("스프링 부트 강의"))
-                .andExpect(jsonPath("$.result[0].domainImageUrl").value("https://image.com/youtube.png"))
+                .andExpect(
+                        jsonPath("$.result[0].domainImageUrl")
+                                .value("https://image.com/youtube.png"))
                 .andExpect(jsonPath("$.result[0].userLinkuId").isNumber());
     }
 
@@ -312,9 +316,10 @@ class LinkuQuickSearchIntegrationTest {
         saveToUser(user, linku, null);
         attachTag(linku, "스프링");
 
-        mockMvc.perform(get("/api/v1/linku/search/quick")
-                        .param("searchQuery", "스프링")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search/quick")
+                                .param("searchQuery", "스프링")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.length()").value(1));
     }
@@ -328,9 +333,10 @@ class LinkuQuickSearchIntegrationTest {
             saveToUser(user, linku, null);
         }
 
-        mockMvc.perform(get("/api/v1/linku/search/quick")
-                        .param("searchQuery", "스프링")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search/quick")
+                                .param("searchQuery", "스프링")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.length()").value(3));
     }
@@ -342,9 +348,10 @@ class LinkuQuickSearchIntegrationTest {
         Linku linku = createLinku("원본 크롤링 제목", "https://youtube.com/watch?v=custom");
         saveToUser(user, linku, "내가 바꾼 스프링 강의");
 
-        mockMvc.perform(get("/api/v1/linku/search/quick")
-                        .param("searchQuery", "스프링")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search/quick")
+                                .param("searchQuery", "스프링")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.length()").value(1))
                 .andExpect(jsonPath("$.result[0].title").value("내가 바꾼 스프링 강의"));
@@ -355,9 +362,10 @@ class LinkuQuickSearchIntegrationTest {
     void 자동완성_검색어가_1글자면_400을_반환한다() throws Exception {
         Users user = createUser("search_user_14");
 
-        mockMvc.perform(get("/api/v1/linku/search/quick")
-                        .param("searchQuery", "스")
-                        .with(authentication(authFor(user))))
+        mockMvc.perform(
+                        get("/api/v1/linku/search/quick")
+                                .param("searchQuery", "스")
+                                .with(authentication(authFor(user))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("LINKU4005"));
     }
@@ -365,48 +373,45 @@ class LinkuQuickSearchIntegrationTest {
     // ===== 헬퍼 =====
 
     private Users createUser(String nickName) {
-        return userRepository.save(Users.builder()
-                .nickName(nickName)
-                .password("password")
-                .role(Role.USER)
-                .build());
+        return userRepository.save(
+                Users.builder().nickName(nickName).password("password").role(Role.USER).build());
     }
 
     private Linku createLinku(String title, String url) {
-        return linkuRepository.save(Linku.builder()
-                .title(title)
-                .linkuUrl(url)
-                .category(category)
-                .domain(domain)
-                .emotion(emotion)
-                .situation(situation)
-                .build());
+        return linkuRepository.save(
+                Linku.builder()
+                        .title(title)
+                        .linkuUrl(url)
+                        .category(category)
+                        .domain(domain)
+                        .emotion(emotion)
+                        .situation(situation)
+                        .build());
     }
 
     private void saveToUser(Users user, Linku linku, String customTitle) {
-        usersLinkuRepository.save(UsersLinku.builder()
-                .user(user)
-                .linku(linku)
-                .emotion(emotion)
-                .title(customTitle)
-                .build());
+        usersLinkuRepository.save(
+                UsersLinku.builder()
+                        .user(user)
+                        .linku(linku)
+                        .emotion(emotion)
+                        .title(customTitle)
+                        .build());
     }
 
     private void attachTag(Linku linku, String tagName) {
-        Keyword tag = keywordRepository.findByName(tagName)
-                .orElseGet(() -> keywordRepository.save(Keyword.builder().name(tagName).build()));
-        linkuKeywordRepository.save(LinkuKeyword.builder()
-                .linku(linku)
-                .keyword(tag)
-                .build());
+        Keyword tag =
+                keywordRepository
+                        .findByName(tagName)
+                        .orElseGet(
+                                () ->
+                                        keywordRepository.save(
+                                                Keyword.builder().name(tagName).build()));
+        linkuKeywordRepository.save(LinkuKeyword.builder().linku(linku).keyword(tag).build());
     }
 
     private Authentication authFor(Users user) {
         CustomUserDetails principal = new CustomUserDetails(user, "kakao");
-        return new UsernamePasswordAuthenticationToken(
-                principal,
-                null,
-                principal.getAuthorities()
-        );
+        return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
     }
 }

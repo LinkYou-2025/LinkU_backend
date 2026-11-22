@@ -1,5 +1,11 @@
 package com.umc.linkyou.web.controller;
 
+import java.util.List;
+
+import jakarta.validation.Valid;
+
+import org.springframework.web.bind.annotation.*;
+
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.folder.FolderSuccessStatus;
 import com.umc.linkyou.jwt.CurrentUser;
@@ -11,11 +17,8 @@ import com.umc.linkyou.web.dto.folder.share.FolderPermissionRequestDTO;
 import com.umc.linkyou.web.dto.folder.share.MySharedFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ShareFolderResponseDTO;
 import com.umc.linkyou.web.dto.folder.share.ViewerResponseDTO;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @ApiV1
 @RequiredArgsConstructor
@@ -24,39 +27,60 @@ public class ShareFolderController implements ShareFolderApi {
     private final ShareFolderService shareFolderService;
 
     @Override
-    public ApiResponse<String> createInviteLink(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
+    public ApiResponse<String> createInviteLink(
+            @CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
         String token = shareFolderService.createInviteLink(userDetails.getUserId(), folderId);
         return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_INVITE_LINK_CREATED, token);
     }
 
     @Override
-    public ApiResponse<Object> deactivateInviteLink(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
+    public ApiResponse<Object> deactivateInviteLink(
+            @CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
         shareFolderService.deactivateInviteLink(userDetails.getUserId(), folderId);
         return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_INVITE_LINK_DEACTIVATED);
     }
 
     @Override
-    public ApiResponse<List<ViewerResponseDTO>> getFolderViewers(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
-        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_MEMBERS_OK, shareFolderService.getViewers(userDetails.getUserId(), folderId));
+    public ApiResponse<List<ViewerResponseDTO>> getFolderViewers(
+            @CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
+        return ApiResponse.onSuccess(
+                FolderSuccessStatus.FOLDER_MEMBERS_OK,
+                shareFolderService.getViewers(userDetails.getUserId(), folderId));
     }
 
     @Override
-    public ApiResponse<ShareFolderResponseDTO> updateViewerPermission(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId, @PathVariable Long userFolderId, @Valid @RequestBody FolderPermissionRequestDTO request) {
-        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_PERMISSION_OK, shareFolderService.updateViewerPermission(userDetails.getUserId(), folderId, userFolderId, request));
+    public ApiResponse<ShareFolderResponseDTO> updateViewerPermission(
+            @CurrentUser CustomUserDetails userDetails,
+            @PathVariable Long folderId,
+            @PathVariable Long userFolderId,
+            @Valid @RequestBody FolderPermissionRequestDTO request) {
+        return ApiResponse.onSuccess(
+                FolderSuccessStatus.FOLDER_PERMISSION_OK,
+                shareFolderService.updateViewerPermission(
+                        userDetails.getUserId(), folderId, userFolderId, request));
     }
 
     @Override
-    public ApiResponse<ShareFolderResponseDTO> unshareFolder(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
-        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_UNSHARE_OK, shareFolderService.unshare(userDetails.getUserId(), folderId));
+    public ApiResponse<ShareFolderResponseDTO> unshareFolder(
+            @CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
+        return ApiResponse.onSuccess(
+                FolderSuccessStatus.FOLDER_UNSHARE_OK,
+                shareFolderService.unshare(userDetails.getUserId(), folderId));
     }
 
     @Override
-    public ApiResponse<ShareFolderResponseDTO> leaveFolder(@CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
-        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_OWNERSHIP_TRANSFERRED_OK, shareFolderService.leaveFolder(userDetails.getUserId(), folderId));
+    public ApiResponse<ShareFolderResponseDTO> leaveFolder(
+            @CurrentUser CustomUserDetails userDetails, @PathVariable Long folderId) {
+        return ApiResponse.onSuccess(
+                FolderSuccessStatus.FOLDER_OWNERSHIP_TRANSFERRED_OK,
+                shareFolderService.leaveFolder(userDetails.getUserId(), folderId));
     }
 
     @Override
-    public ApiResponse<List<MySharedFolderResponseDTO>> getMySharedFolders(@CurrentUser CustomUserDetails userDetails) {
-        return ApiResponse.onSuccess(FolderSuccessStatus.FOLDER_MY_SHARED_OK, shareFolderService.getMySharedFolders(userDetails.getUserId()));
+    public ApiResponse<List<MySharedFolderResponseDTO>> getMySharedFolders(
+            @CurrentUser CustomUserDetails userDetails) {
+        return ApiResponse.onSuccess(
+                FolderSuccessStatus.FOLDER_MY_SHARED_OK,
+                shareFolderService.getMySharedFolders(userDetails.getUserId()));
     }
 }

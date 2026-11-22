@@ -1,10 +1,12 @@
 package com.umc.linkyou.apiPayload.code.status.gemini;
 
+import org.springframework.http.HttpStatus;
+
 import com.umc.linkyou.apiPayload.code.BaseErrorCode;
 import com.umc.linkyou.apiPayload.code.ErrorReasonDTO;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
 @Getter
 @AllArgsConstructor
@@ -13,10 +15,12 @@ public enum GeminiErrorStatus implements BaseErrorCode {
     GEMINI_BAD_REQUEST(HttpStatus.BAD_REQUEST, "GEMINI4001", "잘못된 AI 요청입니다."),
 
     // 429 Too Many Requests
-    GEMINI_TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "GEMINI4291", "AI 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
+    GEMINI_TOO_MANY_REQUESTS(
+            HttpStatus.TOO_MANY_REQUESTS, "GEMINI4291", "AI 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
 
     // 500 Internal Server Error
-    GEMINI_RESPONSE_FORMAT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "GEMINI5002", "AI 응답 형식이 올바르지 않습니다."),
+    GEMINI_RESPONSE_FORMAT_ERROR(
+            HttpStatus.INTERNAL_SERVER_ERROR, "GEMINI5002", "AI 응답 형식이 올바르지 않습니다."),
 
     // 502 Bad Gateway (외부 API 호출 실패)
     GEMINI_API_ERROR(HttpStatus.BAD_GATEWAY, "GEMINI5021", "Gemini API 호출 중 오류가 발생했습니다."),
@@ -31,11 +35,7 @@ public enum GeminiErrorStatus implements BaseErrorCode {
 
     @Override
     public ErrorReasonDTO getReason() {
-        return ErrorReasonDTO.builder()
-                .message(message)
-                .code(code)
-                .isSuccess(false)
-                .build();
+        return ErrorReasonDTO.builder().message(message).code(code).isSuccess(false).build();
     }
 
     @Override

@@ -1,10 +1,11 @@
 package com.umc.linkyou.web.dto.folder;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.*;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import lombok.*;
 
 @Getter
 @Setter
@@ -16,6 +17,7 @@ public class FolderTreeResponseDTO {
     private String folderName;
     private Long categoryId;
     private Boolean isBookmarked;
+
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     @Builder.Default
     private List<FolderTreeResponseDTO> children = new ArrayList<>();

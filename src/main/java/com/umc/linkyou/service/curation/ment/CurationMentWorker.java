@@ -1,5 +1,14 @@
 package com.umc.linkyou.service.curation.ment;
 
+import java.time.YearMonth;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
 import com.umc.linkyou.domain.Curation;
@@ -13,16 +22,9 @@ import com.umc.linkyou.repository.curationRepository.CurationMentRepository;
 import com.umc.linkyou.repository.curationRepository.CurationRepository;
 import com.umc.linkyou.repository.keywordRepository.KeywordMonthlyCountRepository;
 import com.umc.linkyou.service.common.EmotionMapper;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.YearMonth;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -37,8 +39,13 @@ public class CurationMentWorker {
 
     @Transactional
     public void generateMent(Long curationId) {
-        Curation curation = curationRepository.findById(curationId)
-                .orElseThrow(() -> new GeneralException(CurationErrorStatus._CURATION_NOT_FOUND));
+        Curation curation =
+                curationRepository
+                        .findById(curationId)
+                        .orElseThrow(
+                                () ->
+                                        new GeneralException(
+                                                CurationErrorStatus._CURATION_NOT_FOUND));
 
         Users user = curation.getUser();
         Long userId = user.getId();
@@ -47,9 +54,12 @@ public class CurationMentWorker {
         String dataBaseMonth = YearMonth.parse(curation.getBaseMonth()).minusMonths(1).toString();
 
         // 상위 1개 감정 조회
-        Optional<KeywordMonthlyCount> topEmotionCount = keywordMonthlyCountRepository
-                .findTopByUserIdAndBaseMonthAndType(userId, dataBaseMonth, KeywordType.EMOTION, PageRequest.of(0, 1))
-                .stream().findFirst();
+        Optional<KeywordMonthlyCount> topEmotionCount =
+                keywordMonthlyCountRepository
+                        .findTopByUserIdAndBaseMonthAndType(
+                                userId, dataBaseMonth, KeywordType.EMOTION, PageRequest.of(0, 1))
+                        .stream()
+                        .findFirst();
 
         String emotionName;
         Long emotionId;
@@ -77,7 +87,8 @@ public class CurationMentWorker {
         if (header == null || header.isBlank() || footer == null || footer.isBlank()) {
             List<CurationMent> mentList = curationMentRepository.findAllByEmotionId(emotionId);
             if (!mentList.isEmpty()) {
-                CurationMent fallback = mentList.get(ThreadLocalRandom.current().nextInt(mentList.size()));
+                CurationMent fallback =
+                        mentList.get(ThreadLocalRandom.current().nextInt(mentList.size()));
                 header = fallback.getHeaderText();
                 footer = fallback.getFooterText();
             }
@@ -86,9 +97,7 @@ public class CurationMentWorker {
         // 폴백까지 실패하면 mentReady=false
         if (header != null && footer != null) {
             curation.updateMent(
-                    header.replace("(닉네임)", nickname),
-                    footer.replace("(닉네임)", nickname)
-            );
+                    header.replace("(닉네임)", nickname), footer.replace("(닉네임)", nickname));
         }
     }
 }

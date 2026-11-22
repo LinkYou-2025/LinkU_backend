@@ -1,38 +1,44 @@
 package com.umc.linkyou.web.api;
 
-import com.umc.linkyou.apiPayload.ApiResponse;
-import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
-import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
-import com.umc.linkyou.apiPayload.code.status.alarm.AlarmErrorStatus;
-import com.umc.linkyou.domain.enums.AlarmSettingType;
-import com.umc.linkyou.jwt.CustomUserDetails;
-import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
-import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
-import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
-import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
-import com.umc.linkyou.web.dto.alarm.AlarmResponseDTO;
-import com.umc.linkyou.web.dto.alarm.AlarmSettingResponseDTO;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import com.umc.linkyou.jwt.CurrentUser;
+
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.umc.linkyou.apiPayload.ApiResponse;
+import com.umc.linkyou.apiPayload.code.status.CommonErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.SuccessStatus;
+import com.umc.linkyou.apiPayload.code.status.alarm.AlarmErrorStatus;
+import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
+import com.umc.linkyou.domain.enums.AlarmSettingType;
+import com.umc.linkyou.jwt.CurrentUser;
+import com.umc.linkyou.jwt.CustomUserDetails;
+import com.umc.linkyou.validation.annotation.swagger.ApiErrorCode;
+import com.umc.linkyou.validation.annotation.swagger.ApiSuccessCode;
+import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
+import com.umc.linkyou.web.dto.alarm.AlarmResponseDTO;
+import com.umc.linkyou.web.dto.alarm.AlarmSettingResponseDTO;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @Tag(name = "알림 API", description = "알림 관련 API")
 @RequestMapping("/alarm")
 public interface AlarmApi {
 
-    @Operation(summary = "FCM 토큰 등록", description = """
+    @Operation(
+            summary = "FCM 토큰 등록",
+            description =
+                    """
             FCM 토큰을 등록합니다.
             - 요청 body의 `fcmToken`은 필수값입니다.
             - 등록된 토큰은 이후 푸시 알림 전송에 사용됩니다.
@@ -42,10 +48,12 @@ public interface AlarmApi {
     @PostMapping("/fcmtoken")
     ApiResponse<Object> registerFcmToken(
             @CurrentUser CustomUserDetails userDetails,
-            @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO
-    );
+            @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO);
 
-    @Operation(summary = "FCM 토큰 삭제", description = """
+    @Operation(
+            summary = "FCM 토큰 삭제",
+            description =
+                    """
             등록된 FCM 토큰을 삭제합니다.
             - 요청 body의 `fcmToken`은 필수값입니다.
             """)
@@ -53,10 +61,12 @@ public interface AlarmApi {
     @DeleteMapping("/fcmtoken")
     ApiResponse<Object> deleteFcmToken(
             @CurrentUser CustomUserDetails userDetails,
-            @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO
-    );
+            @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO);
 
-    @Operation(summary = "테스트 알림 전송", description = """
+    @Operation(
+            summary = "테스트 알림 전송",
+            description =
+                    """
             발급받은 FCM 토큰으로 테스트 알림을 전송합니다.
             - `fcmToken`, `type`, `targetId`는 필수값입니다.
             - `type`에 지정한 `AlarmType`의 제목/본문으로 알림이 전송됩니다.
@@ -67,10 +77,12 @@ public interface AlarmApi {
     @PostMapping("/test/send")
     ApiResponse<Object> sendTestAlarm(
             @CurrentUser CustomUserDetails userDetails,
-            @Valid @RequestBody AlarmRequestDTO.TestAlarmSendDTO request
-    );
+            @Valid @RequestBody AlarmRequestDTO.TestAlarmSendDTO request);
 
-    @Operation(summary = "알림 설정 조회", description = """
+    @Operation(
+            summary = "알림 설정 조회",
+            description =
+                    """
             사용자의 알림 설정 상태를 조회합니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
@@ -78,24 +90,32 @@ public interface AlarmApi {
     @ApiErrorCode(alarmErrorStatus = {AlarmErrorStatus.ALARM_SETTING_NOT_INITIALIZED})
     @GetMapping("/settings")
     ApiResponse<AlarmSettingResponseDTO> viewAlarmSetting(
-            @CurrentUser CustomUserDetails userDetails
-    );
+            @CurrentUser CustomUserDetails userDetails);
 
-    @Operation(summary = "알림 설정 수정", description = """
+    @Operation(
+            summary = "알림 설정 수정",
+            description =
+                    """
             선택한 알림 타입의 상태를 변경합니다.
             - 타입: ALL/FOLDER/LINK/CURATION/NOTICE
             - 이미 off이면 on으로, on이면 off로 변경됩니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
-    @ApiErrorCode(alarmErrorStatus = {AlarmErrorStatus.ALARM_SETTING_NOT_INITIALIZED, AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED})
+    @ApiErrorCode(
+            alarmErrorStatus = {
+                AlarmErrorStatus.ALARM_SETTING_NOT_INITIALIZED,
+                AlarmErrorStatus.ALARM_TOPIC_SUBSCRIPTION_FAILED
+            })
     @PatchMapping("/settings")
     ApiResponse<AlarmSettingResponseDTO> updateAlarmSetting(
             @CurrentUser CustomUserDetails userDetails,
-            @Valid @RequestBody AlarmRequestDTO.AlarmSettingUpdateDTO request
-    );
+            @Valid @RequestBody AlarmRequestDTO.AlarmSettingUpdateDTO request);
 
-    @Operation(summary = "알림 목록 조회", description = """
+    @Operation(
+            summary = "알림 목록 조회",
+            description =
+                    """
             알림 목록을 커서 기반으로 조회합니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
@@ -105,14 +125,18 @@ public interface AlarmApi {
     ApiResponse<AlarmResponseDTO.AlarmCursorPageResponse> viewAlarmList(
             @CurrentUser CustomUserDetails userDetails,
             @Parameter(description = "알림 설정 타입 (ALL/FOLDER/LINK/CURATION/NOTICE)")
-            @RequestParam("alarmType") AlarmSettingType alarmType,
+                    @RequestParam("alarmType")
+                    AlarmSettingType alarmType,
             @Parameter(description = "커서(userAlarmId). null일 경우 최신부터 조회")
-            @RequestParam(required = false) Long cursor,
-            @Parameter(description = "조회 개수")
-            @RequestParam(defaultValue = "20") @Min(1) @Max(20) int size
-    );
+                    @RequestParam(required = false)
+                    Long cursor,
+            @Parameter(description = "조회 개수") @RequestParam(defaultValue = "20") @Min(1) @Max(20)
+                    int size);
 
-    @Operation(summary = "읽지 않은 알림 존재 여부 조회", description = """
+    @Operation(
+            summary = "읽지 않은 알림 존재 여부 조회",
+            description =
+                    """
             사용자에게 최근 한 달 이내 생성된 알림 중 읽지 않은 알림이 있는지 여부를 조회합니다.
             - `hasUnread`가 true이면 읽지 않은 알림이 존재합니다.
             """)
@@ -120,10 +144,12 @@ public interface AlarmApi {
     @ApiErrorCode(userErrorStatus = {UserErrorStatus._USER_NOT_FOUND})
     @GetMapping("/unread")
     ApiResponse<AlarmResponseDTO.UnreadAlarmExistsDTO> hasUnreadAlarm(
-            @CurrentUser CustomUserDetails userDetails
-    );
+            @CurrentUser CustomUserDetails userDetails);
 
-    @Operation(summary = "알림 상세 조회", description = """
+    @Operation(
+            summary = "알림 상세 조회",
+            description =
+                    """
             특정 알림의 상세 정보를 조회합니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
@@ -131,11 +157,12 @@ public interface AlarmApi {
     @GetMapping("/detail/{alarmId}")
     ApiResponse<AlarmResponseDTO.AlarmDetailDTO> viewAlarmDetail(
             @CurrentUser CustomUserDetails userDetails,
-            @Parameter(description = "조회할 알림 ID")
-            @PathVariable Long alarmId
-    );
+            @Parameter(description = "조회할 알림 ID") @PathVariable Long alarmId);
 
-    @Operation(summary = "관리자 브로드캐스트 알림 발송", description = """
+    @Operation(
+            summary = "관리자 브로드캐스트 알림 발송",
+            description =
+                    """
             관리자 권한으로 브로드캐스트 알림을 등록합니다.
             `ANNOUNCEMENT_UPDATE`, `ANNOUNCEMENT_ERROR` 두 가지 유형의 알림만 발송할 수 있습니다.
                 - `ANNOUNCEMENT_UPDATE`: 공지사항 업데이트 알림
@@ -144,14 +171,17 @@ public interface AlarmApi {
                 - 등록된 브로드캐스트 알림은 알림을 설정한 모든 사용자에게 푸시 알림으로 전송됩니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
-    @ApiErrorCode(commonErrorStatus = {CommonErrorStatus._FORBIDDEN, CommonErrorStatus._BAD_REQUEST})
+    @ApiErrorCode(
+            commonErrorStatus = {CommonErrorStatus._FORBIDDEN, CommonErrorStatus._BAD_REQUEST})
     @PostMapping("/admin/broadcast")
     ApiResponse<Object> registerAdminAlarm(
             @CurrentUser CustomUserDetails userDetails,
-            @Valid @RequestBody AlarmRequestDTO.AdminAlarmSendRequestDTO request
-    );
+            @Valid @RequestBody AlarmRequestDTO.AdminAlarmSendRequestDTO request);
 
-    @Operation(summary = "알림 읽음 처리", description = """
+    @Operation(
+            summary = "알림 읽음 처리",
+            description =
+                    """
             특정 알림을 읽음 상태로 변경합니다.
             """)
     @ApiSuccessCode(SuccessStatus._OK)
@@ -160,10 +190,5 @@ public interface AlarmApi {
     @PatchMapping("/{alarmId}/read")
     ApiResponse<Object> markAlarmAsRead(
             @CurrentUser CustomUserDetails userDetails,
-            @Parameter(description = "읽음 처리할 알림 ID")
-            @PathVariable Long alarmId
-    );
-
-
-
+            @Parameter(description = "읽음 처리할 알림 ID") @PathVariable Long alarmId);
 }

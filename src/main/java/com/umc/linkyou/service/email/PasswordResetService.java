@@ -1,7 +1,22 @@
 package com.umc.linkyou.service.email;
 
+import java.time.Duration;
+import java.util.Set;
+import java.util.UUID;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import jakarta.mail.internet.AddressException;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
 import com.umc.linkyou.apiPayload.code.status.user.UserErrorStatus;
 import com.umc.linkyou.apiPayload.exception.handler.UserHandler;
+import com.umc.linkyou.domain.AuthAccount;
 import com.umc.linkyou.domain.Users;
 import com.umc.linkyou.domain.enums.Provider;
 import com.umc.linkyou.domain.enums.UserStatus;
@@ -9,27 +24,13 @@ import com.umc.linkyou.domain.redis.PasswordResetCache;
 import com.umc.linkyou.repository.authAccountRepository.AuthAccountRepository;
 import com.umc.linkyou.repository.redis.PasswordResetRedisRepository;
 import com.umc.linkyou.repository.userRepository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import jakarta.mail.internet.AddressException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import com.umc.linkyou.domain.AuthAccount;
-
-import java.time.Duration;
-import java.util.Set;
-import java.util.UUID;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
- * 비밀번호 재설정 기능을 담당하는 서비스
- * 이메일로 재설정 링크를 발송하고, 토큰 검증 후 비밀번호를 업데이트하는 로직을 포함
- * 이메일 발송 시 쿨다운과 일일 전송 횟수 제한을 적용하여 남용을 방지
- * Redis에는 재설정 토큰과 이메일을 매핑하여 저장하며, 토큰은 일정 시간이 지나면 자동으로 만료
+ * 비밀번호 재설정 기능을 담당하는 서비스 이메일로 재설정 링크를 발송하고, 토큰 검증 후 비밀번호를 업데이트하는 로직을 포함 이메일 발송 시 쿨다운과 일일 전송 횟수 제한을
+ * 적용하여 남용을 방지 Redis에는 재설정 토큰과 이메일을 매핑하여 저장하며, 토큰은 일정 시간이 지나면 자동으로 만료
  */
 @Slf4j
 @Service
@@ -62,14 +63,20 @@ public class PasswordResetService {
     public void sendResetLink(String email) {
         validateDeliverableEmail(email);
 
-        rateLimiter.enforce(email, SEND_COOLDOWN_KEY, DAILY_SEND_COUNT_KEY,
-                SEND_COOLDOWN, DAILY_LIMIT_TTL, MAX_DAILY_SEND_COUNT);
+        rateLimiter.enforce(
+                email,
+                SEND_COOLDOWN_KEY,
+                DAILY_SEND_COUNT_KEY,
+                SEND_COOLDOWN,
+                DAILY_LIMIT_TTL,
+                MAX_DAILY_SEND_COUNT);
 
         // 가입되지 않았거나 ACTIVE가 아닌(TEMP, INACTIVE) 계정이면 사용자 없음 에러
-        Set<Provider> providers = authAccountRepository.findByEmail(email).stream()
-                .filter(account -> account.getUser().getStatus() == UserStatus.ACTIVE)
-                .map(AuthAccount::getProvider)
-                .collect(Collectors.toSet());
+        Set<Provider> providers =
+                authAccountRepository.findByEmail(email).stream()
+                        .filter(account -> account.getUser().getStatus() == UserStatus.ACTIVE)
+                        .map(AuthAccount::getProvider)
+                        .collect(Collectors.toSet());
         if (providers.isEmpty()) {
             throw new UserHandler(UserErrorStatus._USER_NOT_FOUND);
         }
@@ -89,7 +96,8 @@ public class PasswordResetService {
             }
         }
 
-        authAccountRepository.findUserByEmailAndProvider(email, Provider.GENERAL)
+        authAccountRepository
+                .findUserByEmailAndProvider(email, Provider.GENERAL)
                 .ifPresent(user -> sendResetEmail(email, user));
     }
 
@@ -98,7 +106,10 @@ public class PasswordResetService {
         String token = UUID.randomUUID().toString();
         passwordResetRedisRepository.save(PasswordResetCache.of(token, email));
 
-        String nickname = (user.getNickName() == null || user.getNickName().isBlank()) ? "링큐 회원" : user.getNickName();
+        String nickname =
+                (user.getNickName() == null || user.getNickName().isBlank())
+                        ? "링큐 회원"
+                        : user.getNickName();
         String resetUrl = serverBaseUrl + "/password/reset?token=" + token;
         emailService.sendPasswordResetEmail(email, nickname, resetUrl, EXPIRY_MINUTES);
         log.info("비밀번호 재설정 링크 전송: {}", user.getId());
@@ -113,13 +124,18 @@ public class PasswordResetService {
         }
 
         // 토큰으로 이메일 조회, 토큰 없거나 만료되면 에러
-        PasswordResetCache cache = passwordResetRedisRepository.findById(token)
-                .orElseThrow(() -> new UserHandler(UserErrorStatus._EXPIRED_VERIFICATION_CODE));
+        PasswordResetCache cache =
+                passwordResetRedisRepository
+                        .findById(token)
+                        .orElseThrow(
+                                () -> new UserHandler(UserErrorStatus._EXPIRED_VERIFICATION_CODE));
 
         // 이메일로 사용자 조회, 일반 로그인 계정이 아니거나 가입되지 않은 이메일이거나 ACTIVE가 아니면 에러
-        Users user = authAccountRepository.findUserByEmailAndProvider(cache.getEmail(), Provider.GENERAL)
-                .filter(found -> found.getStatus() == UserStatus.ACTIVE)
-                .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
+        Users user =
+                authAccountRepository
+                        .findUserByEmailAndProvider(cache.getEmail(), Provider.GENERAL)
+                        .filter(found -> found.getStatus() == UserStatus.ACTIVE)
+                        .orElseThrow(() -> new UserHandler(UserErrorStatus._USER_NOT_FOUND));
 
         // 새 비밀번호로 업데이트해서 저장
         user.encodePassword(passwordEncoder.encode(newPassword));

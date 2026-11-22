@@ -1,12 +1,13 @@
 package com.umc.linkyou.support.fixture;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.List;
-import javax.net.ssl.SSLSession;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import javax.net.ssl.SSLSession;
 
 public final class TlsSessionFixture {
     private TlsSessionFixture() {}

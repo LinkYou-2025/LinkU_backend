@@ -1,12 +1,20 @@
 package com.umc.linkyou.web.controller;
 
+import jakarta.validation.Valid;
+
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+
 import com.umc.linkyou.apiPayload.ApiResponse;
 import com.umc.linkyou.apiPayload.code.status.ErrorStatus;
 import com.umc.linkyou.apiPayload.code.status.alarm.AlarmSuccessStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
-import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.domain.enums.AlarmSettingType;
 import com.umc.linkyou.domain.enums.Role;
+import com.umc.linkyou.jwt.CurrentUser;
+import com.umc.linkyou.jwt.CustomUserDetails;
 import com.umc.linkyou.service.alarm.AlarmService;
 import com.umc.linkyou.service.alarm.FcmPushSender;
 import com.umc.linkyou.validation.annotation.ApiV1;
@@ -14,16 +22,8 @@ import com.umc.linkyou.web.api.AlarmApi;
 import com.umc.linkyou.web.dto.alarm.AlarmRequestDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmResponseDTO;
 import com.umc.linkyou.web.dto.alarm.AlarmSettingResponseDTO;
-import com.umc.linkyou.web.dto.alarm.FcmSendRequestDTO;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
-import com.umc.linkyou.jwt.CurrentUser;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @ApiV1
 @Validated
@@ -36,8 +36,7 @@ public class AlarmController implements AlarmApi {
     @Override
     public ApiResponse<Object> registerFcmToken(
             @CurrentUser CustomUserDetails userDetails,
-            @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO
-    ) {
+            @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO) {
         alarmService.registerFcmToken(userDetails.getUserId(), alarmFcmTokenDTO);
         return ApiResponse.onSuccess(AlarmSuccessStatus.FCM_TOKEN_REGISTERED);
     }
@@ -45,8 +44,7 @@ public class AlarmController implements AlarmApi {
     @Override
     public ApiResponse<Object> deleteFcmToken(
             @CurrentUser CustomUserDetails userDetails,
-            @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO
-    ) {
+            @Valid @RequestBody AlarmRequestDTO.AlarmFcmTokenDTO alarmFcmTokenDTO) {
         alarmService.deleteFcmToken(userDetails.getUserId(), alarmFcmTokenDTO.fcmToken());
         return ApiResponse.onSuccess(AlarmSuccessStatus.FCM_TOKEN_DELETED);
     }
@@ -54,28 +52,26 @@ public class AlarmController implements AlarmApi {
     @Override
     public ApiResponse<Object> sendTestAlarm(
             @CurrentUser CustomUserDetails userDetails,
-            @Valid @RequestBody AlarmRequestDTO.TestAlarmSendDTO request
-    ) {
+            @Valid @RequestBody AlarmRequestDTO.TestAlarmSendDTO request) {
         fcmPushSender.sendToToken(
-                request.fcmToken(),
-                alarmService.createTestAlarm(userDetails.getUserId(), request)
-        );
+                request.fcmToken(), alarmService.createTestAlarm(userDetails.getUserId(), request));
         return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_TEST_SENT);
     }
 
     @Override
     public ApiResponse<AlarmSettingResponseDTO> viewAlarmSetting(
-            @CurrentUser CustomUserDetails userDetails
-    ) {
-        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_SETTING_OK, alarmService.viewAlarm(userDetails.getUserId()));
+            @CurrentUser CustomUserDetails userDetails) {
+        return ApiResponse.onSuccess(
+                AlarmSuccessStatus.ALARM_SETTING_OK,
+                alarmService.viewAlarm(userDetails.getUserId()));
     }
 
     @Override
     public ApiResponse<AlarmSettingResponseDTO> updateAlarmSetting(
             @CurrentUser CustomUserDetails userDetails,
-            @Valid @RequestBody AlarmRequestDTO.AlarmSettingUpdateDTO request
-    ) {
-        AlarmSettingResponseDTO result = alarmService.updateNoticeAlarmSetting(userDetails.getUserId(), request.alarmType());
+            @Valid @RequestBody AlarmRequestDTO.AlarmSettingUpdateDTO request) {
+        AlarmSettingResponseDTO result =
+                alarmService.updateNoticeAlarmSetting(userDetails.getUserId(), request.alarmType());
         return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_SETTING_UPDATED, result);
     }
 
@@ -84,31 +80,32 @@ public class AlarmController implements AlarmApi {
             @CurrentUser CustomUserDetails userDetails,
             @RequestParam("alarmType") AlarmSettingType alarmType,
             @RequestParam(required = false) Long cursor,
-            @RequestParam(defaultValue = "20") int size
-    ) {
-        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_LIST_OK, alarmService.viewAlarmList(userDetails.getUserId(), alarmType, cursor, size));
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.onSuccess(
+                AlarmSuccessStatus.ALARM_LIST_OK,
+                alarmService.viewAlarmList(userDetails.getUserId(), alarmType, cursor, size));
     }
 
     @Override
     public ApiResponse<AlarmResponseDTO.UnreadAlarmExistsDTO> hasUnreadAlarm(
-            @CurrentUser CustomUserDetails userDetails
-    ) {
-        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_UNREAD_EXISTS_OK, alarmService.hasUnreadAlarm(userDetails.getUserId()));
+            @CurrentUser CustomUserDetails userDetails) {
+        return ApiResponse.onSuccess(
+                AlarmSuccessStatus.ALARM_UNREAD_EXISTS_OK,
+                alarmService.hasUnreadAlarm(userDetails.getUserId()));
     }
 
     @Override
     public ApiResponse<AlarmResponseDTO.AlarmDetailDTO> viewAlarmDetail(
-            @CurrentUser CustomUserDetails userDetails,
-            @PathVariable Long alarmId
-    ) {
-        return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_DETAIL_OK, alarmService.viewAlarmDetail(userDetails.getUserId(), alarmId));
+            @CurrentUser CustomUserDetails userDetails, @PathVariable Long alarmId) {
+        return ApiResponse.onSuccess(
+                AlarmSuccessStatus.ALARM_DETAIL_OK,
+                alarmService.viewAlarmDetail(userDetails.getUserId(), alarmId));
     }
 
     @Override
     public ApiResponse<Object> registerAdminAlarm(
             @CurrentUser CustomUserDetails userDetails,
-            @Valid @RequestBody AlarmRequestDTO.AdminAlarmSendRequestDTO request
-    ) {
+            @Valid @RequestBody AlarmRequestDTO.AdminAlarmSendRequestDTO request) {
         validateAdmin(userDetails);
         alarmService.registerAdminAlarm(request);
         return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_BROADCAST_REGISTERED);
@@ -116,9 +113,7 @@ public class AlarmController implements AlarmApi {
 
     @Override
     public ApiResponse<Object> markAlarmAsRead(
-            @CurrentUser CustomUserDetails userDetails,
-            @PathVariable Long alarmId
-    ) {
+            @CurrentUser CustomUserDetails userDetails, @PathVariable Long alarmId) {
         alarmService.markAlarmAsRead(userDetails.getUserId(), alarmId);
         return ApiResponse.onSuccess(AlarmSuccessStatus.ALARM_READ);
     }

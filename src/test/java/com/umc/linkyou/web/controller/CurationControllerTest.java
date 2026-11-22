@@ -1,5 +1,27 @@
 package com.umc.linkyou.web.controller;
 
+import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResult;
+import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResultList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.umc.linkyou.apiPayload.code.status.curation.CurationErrorStatus;
 import com.umc.linkyou.apiPayload.exception.GeneralException;
@@ -16,50 +38,23 @@ import com.umc.linkyou.web.dto.curation.CurationLatestResponse;
 import com.umc.linkyou.web.dto.curation.CurationListResponse;
 import com.umc.linkyou.web.dto.curation.CurationSectionResponse;
 import com.umc.linkyou.web.dto.curation.RecommendedLinkResponse;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-
-import java.util.List;
-import java.util.Optional;
-
-import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResult;
-import static com.umc.linkyou.support.util.ApiResponseTestUtils.readResultList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(CurationController.class)
 @Import({WebConfig.class, CurrentUserArgumentResolver.class, TestSecurityConfig.class})
 @DisplayName("CurationController 테스트")
 class CurationControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @MockitoBean
-    private CurationService curationService;
+    @MockitoBean private CurationService curationService;
 
-    @MockitoBean
-    private CurationRecommendBuilderService curationRecommendBuilderService;
+    @MockitoBean private CurationRecommendBuilderService curationRecommendBuilderService;
 
-    @MockitoBean
-    private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean private JwtTokenProvider jwtTokenProvider;
 
-    @MockitoBean
-    private AccessTokenBlackListManager accessTokenBlackListManager;
+    @MockitoBean private AccessTokenBlackListManager accessTokenBlackListManager;
 
     private static final Long CURATION_ID = 1L;
     private static final String MONTH = "2026-05";
@@ -75,18 +70,25 @@ class CurationControllerTest {
             @DisplayName("인증된 사용자가 month를 지정하면 해당 월 섹션 목록을 반환한다")
             @WithCustomUser
             void 월지정_시_섹션목록을_반환한다() throws Exception {
-                CurationSectionResponse section = CurationSectionResponse.builder()
-                        .section(1).title("제목").description("설명").imageUrl("image-url").build();
+                CurationSectionResponse section =
+                        CurationSectionResponse.builder()
+                                .section(1)
+                                .title("제목")
+                                .description("설명")
+                                .imageUrl("image-url")
+                                .build();
 
                 given(curationService.getCurationSections(MONTH)).willReturn(List.of(section));
 
-                MvcResult result = mockMvc.perform(get("/api/v1/curations/sections").param("month", MONTH))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andExpect(jsonPath("$.code").value("COMMON200"))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(get("/api/v1/curations/sections").param("month", MONTH))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andExpect(jsonPath("$.code").value("COMMON200"))
+                                .andReturn();
 
-                List<CurationSectionResponse> sections = readResultList(result, objectMapper, CurationSectionResponse.class);
+                List<CurationSectionResponse> sections =
+                        readResultList(result, objectMapper, CurationSectionResponse.class);
                 assertThat(sections).hasSize(1);
                 assertThat(sections.get(0).getSection()).isEqualTo(1);
                 assertThat(sections.get(0).getTitle()).isEqualTo("제목");
@@ -116,17 +118,23 @@ class CurationControllerTest {
             @DisplayName("인증된 사용자가 연도를 지정하면 큐레이션 목록을 반환한다")
             @WithCustomUser(userId = 1L)
             void 연도지정_시_큐레이션목록을_반환한다() throws Exception {
-                CurationListResponse item = CurationListResponse.builder()
-                        .curationId(CURATION_ID).month(MONTH).thumbnailUrl("url").build();
+                CurationListResponse item =
+                        CurationListResponse.builder()
+                                .curationId(CURATION_ID)
+                                .month(MONTH)
+                                .thumbnailUrl("url")
+                                .build();
 
                 given(curationService.getCurationList(eq(1L), eq(2026))).willReturn(List.of(item));
 
-                MvcResult result = mockMvc.perform(get("/api/v1/curations/history").param("year", "2026"))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(get("/api/v1/curations/history").param("year", "2026"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                List<CurationListResponse> curations = readResultList(result, objectMapper, CurationListResponse.class);
+                List<CurationListResponse> curations =
+                        readResultList(result, objectMapper, CurationListResponse.class);
                 assertThat(curations).hasSize(1);
                 assertThat(curations.get(0).getCurationId()).isEqualTo(CURATION_ID);
                 assertThat(curations.get(0).getMonth()).isEqualTo(MONTH);
@@ -141,12 +149,17 @@ class CurationControllerTest {
             @WithCustomUser(userId = 1L)
             void 연도범위벗어나면_예외응답을_반환한다() throws Exception {
                 given(curationService.getCurationList(eq(1L), eq(2024)))
-                        .willThrow(new GeneralException(CurationErrorStatus._CURATION_INVALID_YEAR));
+                        .willThrow(
+                                new GeneralException(CurationErrorStatus._CURATION_INVALID_YEAR));
 
                 mockMvc.perform(get("/api/v1/curations/history").param("year", "2024"))
                         .andExpect(status().isBadRequest())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(CurationErrorStatus._CURATION_INVALID_YEAR.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(
+                                                CurationErrorStatus._CURATION_INVALID_YEAR
+                                                        .getCode()));
             }
 
             @Test
@@ -169,17 +182,23 @@ class CurationControllerTest {
             @DisplayName("최근 큐레이션이 있으면 200과 정보를 반환한다")
             @WithCustomUser(userId = 1L)
             void 최근큐레이션존재_시_200을_반환한다() throws Exception {
-                CurationLatestResponse response = CurationLatestResponse.builder()
-                        .curationId(CURATION_ID).month(MONTH).thumbnailUrl("url").build();
+                CurationLatestResponse response =
+                        CurationLatestResponse.builder()
+                                .curationId(CURATION_ID)
+                                .month(MONTH)
+                                .thumbnailUrl("url")
+                                .build();
 
                 given(curationService.getLatestCuration(1L)).willReturn(Optional.of(response));
 
-                MvcResult result = mockMvc.perform(get("/api/v1/curations/latest"))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(get("/api/v1/curations/latest"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                CurationLatestResponse curation = readResult(result, objectMapper, CurationLatestResponse.class);
+                CurationLatestResponse curation =
+                        readResult(result, objectMapper, CurationLatestResponse.class);
                 assertThat(curation.getCurationId()).isEqualTo(CURATION_ID);
                 assertThat(curation.getMonth()).isEqualTo(MONTH);
             }
@@ -209,18 +228,25 @@ class CurationControllerTest {
             @DisplayName("본인 큐레이션이면 상세 정보를 반환한다")
             @WithCustomUser(userId = 1L)
             void 본인큐레이션_조회_시_상세정보를_반환한다() throws Exception {
-                CurationDetailResponse response = CurationDetailResponse.builder()
-                        .curationId(CURATION_ID).month(MONTH)
-                        .headerMent("header").footerMent("footer").mentReady(true).build();
+                CurationDetailResponse response =
+                        CurationDetailResponse.builder()
+                                .curationId(CURATION_ID)
+                                .month(MONTH)
+                                .headerMent("header")
+                                .footerMent("footer")
+                                .mentReady(true)
+                                .build();
 
                 given(curationService.getCurationDetail(1L, CURATION_ID)).willReturn(response);
 
-                MvcResult result = mockMvc.perform(get("/api/v1/curations/detail/{curationId}", CURATION_ID))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(get("/api/v1/curations/detail/{curationId}", CURATION_ID))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                CurationDetailResponse detail = readResult(result, objectMapper, CurationDetailResponse.class);
+                CurationDetailResponse detail =
+                        readResult(result, objectMapper, CurationDetailResponse.class);
                 assertThat(detail.getMonth()).isEqualTo(MONTH);
                 assertThat(detail.isMentReady()).isTrue();
             }
@@ -239,7 +265,9 @@ class CurationControllerTest {
                 mockMvc.perform(get("/api/v1/curations/detail/{curationId}", CURATION_ID))
                         .andExpect(status().isNotFound())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(CurationErrorStatus._CURATION_NOT_FOUND.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(CurationErrorStatus._CURATION_NOT_FOUND.getCode()));
             }
 
             @Test
@@ -252,7 +280,9 @@ class CurationControllerTest {
                 mockMvc.perform(get("/api/v1/curations/detail/{curationId}", CURATION_ID))
                         .andExpect(status().isForbidden())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(CurationErrorStatus._CURATION_FORBIDDEN.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(CurationErrorStatus._CURATION_FORBIDDEN.getCode()));
             }
 
             @Test
@@ -275,18 +305,28 @@ class CurationControllerTest {
             @DisplayName("추천 링크가 있으면 목록을 반환한다")
             @WithCustomUser(userId = 1L)
             void 추천링크존재_시_목록을_반환한다() throws Exception {
-                RecommendedLinkResponse link = RecommendedLinkResponse.builder()
-                        .userLinkuId(10L).title("링크").url("https://example.com").build();
+                RecommendedLinkResponse link =
+                        RecommendedLinkResponse.builder()
+                                .userLinkuId(10L)
+                                .title("링크")
+                                .url("https://example.com")
+                                .build();
 
-                given(curationRecommendBuilderService.buildRecommendedLinks(eq(1L), eq(CURATION_ID)))
+                given(
+                                curationRecommendBuilderService.buildRecommendedLinks(
+                                        eq(1L), eq(CURATION_ID)))
                         .willReturn(List.of(link));
 
-                MvcResult result = mockMvc.perform(get("/api/v1/curations/recommend-links").param("curationId", String.valueOf(CURATION_ID)))
-                        .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.isSuccess").value(true))
-                        .andReturn();
+                MvcResult result =
+                        mockMvc.perform(
+                                        get("/api/v1/curations/recommend-links")
+                                                .param("curationId", String.valueOf(CURATION_ID)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isSuccess").value(true))
+                                .andReturn();
 
-                List<RecommendedLinkResponse> links = readResultList(result, objectMapper, RecommendedLinkResponse.class);
+                List<RecommendedLinkResponse> links =
+                        readResultList(result, objectMapper, RecommendedLinkResponse.class);
                 assertThat(links).hasSize(1);
                 assertThat(links.get(0).getUserLinkuId()).isEqualTo(10L);
                 assertThat(links.get(0).getTitle()).isEqualTo("링크");
@@ -300,19 +340,27 @@ class CurationControllerTest {
             @DisplayName("큐레이션이 없으면 404와 에러코드를 반환한다")
             @WithCustomUser(userId = 1L)
             void 큐레이션이_없으면_404를_반환한다() throws Exception {
-                given(curationRecommendBuilderService.buildRecommendedLinks(eq(1L), eq(CURATION_ID)))
+                given(
+                                curationRecommendBuilderService.buildRecommendedLinks(
+                                        eq(1L), eq(CURATION_ID)))
                         .willThrow(new GeneralException(CurationErrorStatus._CURATION_NOT_FOUND));
 
-                mockMvc.perform(get("/api/v1/curations/recommend-links").param("curationId", String.valueOf(CURATION_ID)))
+                mockMvc.perform(
+                                get("/api/v1/curations/recommend-links")
+                                        .param("curationId", String.valueOf(CURATION_ID)))
                         .andExpect(status().isNotFound())
                         .andExpect(jsonPath("$.isSuccess").value(false))
-                        .andExpect(jsonPath("$.code").value(CurationErrorStatus._CURATION_NOT_FOUND.getCode()));
+                        .andExpect(
+                                jsonPath("$.code")
+                                        .value(CurationErrorStatus._CURATION_NOT_FOUND.getCode()));
             }
 
             @Test
             @DisplayName("인증되지 않은 요청은 401을 반환한다")
             void 인증되지_않으면_401을_반환한다() throws Exception {
-                mockMvc.perform(get("/api/v1/curations/recommend-links").param("curationId", String.valueOf(CURATION_ID)))
+                mockMvc.perform(
+                                get("/api/v1/curations/recommend-links")
+                                        .param("curationId", String.valueOf(CURATION_ID)))
                         .andExpect(status().isUnauthorized());
             }
         }

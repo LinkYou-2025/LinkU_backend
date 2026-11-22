@@ -1,13 +1,15 @@
 package com.umc.linkyou.infra.parser;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -19,9 +21,8 @@ public class CustomSearchImageClient {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final RestClient restClient = RestClient.builder()
-            .requestFactory(createTimeoutRequestFactory())
-            .build();
+    private final RestClient restClient =
+            RestClient.builder().requestFactory(createTimeoutRequestFactory()).build();
 
     // 타임아웃을 설정한 RestClient용 RequestFactory 생성,
     private static SimpleClientHttpRequestFactory createTimeoutRequestFactory() {
@@ -33,6 +34,7 @@ public class CustomSearchImageClient {
 
     @Value("${custom.search.api.key}")
     private String apiKey;
+
     @Value("${custom.search.engine.id}")
     private String searchEngineId;
 
@@ -40,11 +42,15 @@ public class CustomSearchImageClient {
     @CircuitBreaker(name = "customSearch", fallbackMethod = "searchFirstDirectImageUrlFallback")
     public String searchFirstDirectImageUrl(String query) {
         try {
-            String url = "https://www.googleapis.com/customsearch/v1?"
-                    + "key=" + apiKey
-                    + "&cx=" + searchEngineId
-                    + "&searchType=image"
-                    + "&q=" + java.net.URLEncoder.encode(query, "UTF-8");
+            String url =
+                    "https://www.googleapis.com/customsearch/v1?"
+                            + "key="
+                            + apiKey
+                            + "&cx="
+                            + searchEngineId
+                            + "&searchType=image"
+                            + "&q="
+                            + java.net.URLEncoder.encode(query, "UTF-8");
 
             String response = restClient.get().uri(url).retrieve().body(String.class);
 
@@ -70,12 +76,12 @@ public class CustomSearchImageClient {
     }
 
     private boolean isImageUrl(String url) {
-        //CDN 등에서 내려오는 이미지는 "photo.jpg?w=800"처럼 쿼리스트링이 붙는 경우가 많아 확장자 검사 전에 쿼리스트링 분리
+        // CDN 등에서 내려오는 이미지는 "photo.jpg?w=800"처럼 쿼리스트링이 붙는 경우가 많아 확장자 검사 전에 쿼리스트링 분리
         String path = url.split("\\?", 2)[0].toLowerCase();
-        return path.endsWith(".jpg") ||
-                path.endsWith(".jpeg") ||
-                path.endsWith(".png") ||
-                path.endsWith(".gif") ||
-                path.endsWith(".webp");
+        return path.endsWith(".jpg")
+                || path.endsWith(".jpeg")
+                || path.endsWith(".png")
+                || path.endsWith(".gif")
+                || path.endsWith(".webp");
     }
 }
