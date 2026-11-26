@@ -55,6 +55,10 @@ public class UsersLinku extends BaseEntity {
     @JoinColumn(name = "linku_id", nullable = false)
     private Linku linku;
 
+    // 사용자가 실제로 저장한 정규화 URL. 대표 URL(Linku.linkuUrl)과 달라도 열기 동작에는 이 값을 쓴다.
+    @Column(name = "saved_url", columnDefinition = "text", nullable = false)
+    private String savedUrl;
+
     @OneToMany(mappedBy = "usersLinku", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<LinkuFolder> linkuFolders = new ArrayList<>();
@@ -105,6 +109,14 @@ public class UsersLinku extends BaseEntity {
 
     public void updateSituationAi(boolean situationAi) {
         this.situationAi = situationAi;
+    }
+
+    @PrePersist
+    private void fillSavedUrlFromLinku() {
+        // 기존 테스트/관리 데이터처럼 savedUrl 없이 생성되는 경우 폴백
+        if ((savedUrl == null || savedUrl.isBlank()) && linku != null) {
+            savedUrl = linku.getLinkuUrl();
+        }
     }
 
     @Builder.Default

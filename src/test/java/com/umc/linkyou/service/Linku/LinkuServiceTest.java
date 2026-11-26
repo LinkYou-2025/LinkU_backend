@@ -77,6 +77,38 @@ class LinkuServiceTest {
     private static final Long NEW_SITUATION_ID = 3L;
 
     @Nested
+    @DisplayName("existLinku() - 저장 여부 조회")
+    class ExistLinku {
+
+        @Test
+        @DisplayName("저장한 원본 URL이 대표 URL과 달라도 저장된 링크를 반환한다")
+        void 저장한_원본_URL이_대표_URL과_달라도_저장된_링크를_반환한다() {
+            // given
+            String savedUrl = "https://example.com/original-article";
+            UsersLinku usersLinku =
+                    UsersLinku.builder()
+                            .userLinkuId(10L)
+                            .user(user())
+                            .linku(linku(null))
+                            .savedUrl(savedUrl)
+                            .build();
+            given(
+                            usersLinkuRepository.findByUserIdAndSavedUrlOrderByCreatedAtDesc(
+                                    USER_ID, savedUrl))
+                    .willReturn(List.of(usersLinku));
+
+            // when
+            var response = linkuService.existLinku(USER_ID, savedUrl);
+
+            // then
+            assertTrue(response.getResult().isExist());
+            assertEquals(USER_ID, response.getResult().userId());
+            verify(usersLinkuRepository, never())
+                    .findByUserIdAndLinku_LinkuUrlOrderByCreatedAtDesc(USER_ID, savedUrl);
+        }
+    }
+
+    @Nested
     @DisplayName("상세 조회")
     class Detail {
         @Nested

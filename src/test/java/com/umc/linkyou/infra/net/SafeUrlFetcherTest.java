@@ -152,6 +152,62 @@ class SafeUrlFetcherTest {
         }
 
         @Test
+        @DisplayName("지연 0초 meta refresh는 이동할 주소를 돌려준다")
+        void 지연_0초_meta_refresh는_이동할_주소를_돌려준다() throws Exception {
+            Document doc =
+                    org.jsoup.Jsoup.parse(
+                            "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL='/target'\"></head></html>");
+
+            assertThat(
+                            SafeUrlFetcher.metaRefreshTarget(
+                                    doc, new java.net.URL("https://example.com/r")))
+                    .contains("https://example.com/target");
+        }
+
+        @Test
+        @DisplayName("지연이 있는 meta refresh는 따라가지 않는다")
+        void 지연이_있는_meta_refresh는_따라가지_않는다() throws Exception {
+            Document doc =
+                    org.jsoup.Jsoup.parse(
+                            "<html><head><meta http-equiv=\"refresh\" content=\"5; url=https://example.com/target\"></head></html>");
+
+            assertThat(
+                            SafeUrlFetcher.metaRefreshTarget(
+                                    doc, new java.net.URL("https://example.com/r")))
+                    .isEmpty();
+        }
+
+        @Test
+        @DisplayName("noscript 안의 meta refresh는 따라가지 않는다")
+        void noscript_안의_meta_refresh는_따라가지_않는다() throws Exception {
+            Document doc =
+                    org.jsoup.Jsoup.parse(
+                            """
+                    <html><head></head><body><noscript>
+                    <meta http-equiv="refresh" content="0; url=/login">
+                    </noscript></body></html>
+                    """);
+
+            assertThat(
+                            SafeUrlFetcher.metaRefreshTarget(
+                                    doc, new java.net.URL("https://example.com/r")))
+                    .isEmpty();
+        }
+
+        @Test
+        @DisplayName("probe 시 최종 URL과 거쳐간 리다이렉트를 기록한다")
+        void probe_시_최종_URL과_거쳐간_리다이렉트를_기록한다() throws Exception {
+            String base = startServer();
+
+            SafeUrlFetcher.ProbeResult result = fetcher.probe(base + "/start").orElseThrow();
+
+            assertThat(result.finalUrl()).isEqualTo(base + "/final");
+            assertThat(result.hops())
+                    .containsExactly(
+                            new SafeUrlFetcher.RedirectHop(base + "/start", 302, base + "/final"));
+        }
+
+        @Test
         @DisplayName("리다이렉트를 따라간 뒤 최종 연결을 반환한다")
         void 리다이렉트를_따라간_뒤_최종_연결을_반환한다() throws Exception {
             String base = startServer();
