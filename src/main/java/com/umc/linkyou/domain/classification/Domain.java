@@ -2,8 +2,6 @@ package com.umc.linkyou.domain.classification;
 
 import jakarta.persistence.*;
 
-import com.umc.linkyou.domain.enums.CrawlStrategy;
-
 import lombok.*;
 
 @Entity
@@ -27,10 +25,6 @@ public class Domain {
 
     @Column(name = "image_url", columnDefinition = "text")
     private String imageUrl;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "crawl_strategy", length = 50)
-    private CrawlStrategy crawlStrategy;
 
     public void updateName(String name) {
         this.name = name;
